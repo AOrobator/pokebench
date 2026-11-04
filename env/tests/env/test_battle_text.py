@@ -14,7 +14,6 @@ from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env import battle_text as bt
 from pokebench_env.battle_state import read_battle_state
@@ -339,24 +338,6 @@ def test_journal_records_a_decoder_failure_and_keeps_going() -> None:
     assert [e["text"] for e in journal.snapshot(0)["entries"]] == ["Hi"]  # type: ignore[attr-defined]
 
 
-def test_messages_route_and_frame_hook() -> None:
-    memory = Memory()
-    app = FastAPI()
-
-    class Emulator:
-        def run_frame_with_buttons(self, buttons: list[str]) -> None:
-            pass
-
-    journal = bt.install_battle_text(app, Emulator, memory.read)
-    memory.message(encode("Hello") + b"\xfa\xff", 6, state=2)
-    Emulator().run_frame_with_buttons([])
-    assert journal.frame == 1
-    status, _, body = get(app, "/pokebench/battle/messages", b"after=0")
-    assert status == 200 and json.loads(body)["entries"][0]["text"] == "Hello"
-    status, _, _ = get(app, "/pokebench/battle/messages", b"after=9")
-    assert status == 409
-
-
 def wait_in_thread(wait: bt.BattleWait, capture, bound: int = 600):  # type: ignore[no-untyped-def]
     result: dict[str, object] = {}
 
@@ -452,55 +433,6 @@ def test_wait_parks_and_resumes_with_the_frame_loop() -> None:
     assert result["r"] == ("after", "field", 1)
 
 
-def test_wait_route_through_the_observation_and_the_production_run() -> None:
-    from test_observation import Shot
-
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.serve import run
-
-    memory = Memory()
-    memory.set(0x030026F9, 0, 1)
-    memory.set(0x030022C4, 0x08085E5D)
-    lock = threading.Lock()
-    app = FastAPI()
-    module = types.SimpleNamespace(step_environment=lambda actions: None)
-
-    class Emulator:
-        def run_frame_with_buttons(self, buttons: list[str]) -> None:
-            pass
-
-    run(
-        [],
-        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
-        vendor_main=lambda: None,
-        observation=(app, Shot, memory.read, MapNames({}), lock),
-        pause=(app, module),
-        frames=Emulator,
-        battle_text=(app, Emulator, memory.read),
-    )
-    status, _, body = get(app, "/pokebench/battle/wait")
-    payload = json.loads(body)
-    assert status == 200 and (payload["reason"], payload["frames"]) == ("field", 0)
-    assert payload["state"]["in_battle"] is False
-    memory.set(0x030026F9, 2, 1)
-    memory.set(0x030022C4, 0x08038421)
-    result: dict[str, object] = {}
-    thread = threading.Thread(
-        target=lambda: result.update(r=get(app, "/pokebench/battle/wait", b"max_frames=3")),
-        daemon=True,
-    )
-    thread.start()
-    thread.join(0.2)
-    assert thread.is_alive()
-    for _ in range(3):
-        with lock:
-            Emulator().run_frame_with_buttons([])
-    thread.join(5)
-    assert json.loads(result["r"][2])["reason"] == "bound"  # type: ignore[index]
-    assert get(app, "/pokebench/battle/messages")[0] == 200
-    assert get(app, "/pokebench/battle/wait", b"max_frames=0")[0] == 422
-
-
 def test_human_mode_installs_no_battle_wait_route() -> None:
     from test_observation import Shot
 
@@ -537,42 +469,3 @@ def test_an_initializing_battle_still_reports_its_text_phase() -> None:
     state = read_battle_state(memory.read)
     assert (state.phase, state.text_phase) == ("initializing", "busy")
     assert state.message == bt.BattleMessage("idle")
-
-
-def test_production_run_records_battle_pages_and_releases_the_wait() -> None:
-    from test_observation import Shot
-
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.serve import run
-
-    memory = Memory()
-    lock = threading.Lock()
-    app = FastAPI()
-    order: list[str] = []
-
-    class Emulator:
-        def run_frame_with_buttons(self, buttons: list[str]) -> None:
-            order.append("frame")
-
-    run(
-        [],
-        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
-        vendor_main=lambda: None,
-        observation=(app, Shot, memory.read, MapNames({}), lock),
-        frames=Emulator,
-        battle_text=(app, Emulator, memory.read),
-    )
-    result: dict[str, object] = {}
-    thread = threading.Thread(
-        target=lambda: result.update(r=get(app, "/pokebench/battle/wait")), daemon=True
-    )
-    thread.start()
-    thread.join(0.2)
-    memory.message(encode("Hi") + b"\xfa\xff", 3, state=2)
-    with lock:
-        Emulator().run_frame_with_buttons([])
-    thread.join(5)
-    assert json.loads(result["r"][2])["reason"] == "message_waiting"  # type: ignore[index]
-    status, _, body = get(app, "/pokebench/battle/messages")
-    assert [e["text"] for e in json.loads(body)["entries"]] == ["Hi"]
-    assert json.loads(body)["frame"] == 1

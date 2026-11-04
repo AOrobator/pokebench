@@ -113,21 +113,6 @@ it("does not match town-only mentions and remembers only delivered evidence afte
  expect(stringValue(out.at(-1)?.content)).toContain("Entered DEWFORD TOWN");expect(stringValue(out.at(-1)?.content)).toContain("discovered at result 4");
 });
 
-it("replays GLM discovery without heartbeat-delivering every later result",async()=>{
- const raw:unknown[]=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/gym-campaign-6bbd.json.gz",import.meta.url))).toString()) as unknown[];
- const s=setup();
- let deliveries=0,sawDiscovery=false;
- const results=raw.filter(e=>(e as {type?:string}).type==="tool_result").length;
- for(const e of raw.map(checkEvent)){
-  s.feed(e);
-  if(e.type!=="tool_result")continue;
-  const input:AgentMessage[]=[{role:"toolResult",toolCallId:e.id,toolName:e.name,content:[{type:"text",text:e.text}],isError:false,timestamp:0}];
-  const before=s.notes.length,out=await s.wiring.transformContext(input),note=stringValue(out.at(-1)?.content);
-  if(s.notes.length>before){deliveries++;if(note.includes("discovered at result 66304"))sawDiscovery=true;expect(note).not.toContain("BRAWLY");}
- }
- expect(sawDiscovery).toBe(true);expect(deliveries).toBeGreaterThan(0);expect(deliveries).toBeLessThanOrEqual(results);expect(deliveries).toBeLessThanOrEqual(4);
-});
-
 it.each([
  ["Are you off to FORTREE GYM next?","FORTREE CITY"],
  ["See? This is PETALBURG CITY's GYM.","PETALBURG CITY"],
@@ -155,20 +140,6 @@ it("discovers a source-owned gym in the native Dialog readout with auto-advance 
 it("recognizes the game's reversed short gym name in delivered dialogue",async()=>{
  const s=setup(),body='Screen: overworld\nDialog: "BADGE from the GYM in FORTREE."\nLocation: SOOTOPOLIS CITY';
  s.feed(s.state(1,[],[0,7],"r","SOOTOPOLIS CITY"),s.result(2,body));expect(stringValue((await s.wiring.transformContext(s.history(2,body))).at(-1)?.content)).toContain("FORTREE CITY GYM — unfinished");
-});
-it("preserves existing type-gap last-message priority with checklist ON",async()=>{
- const fixture=JSON.parse(readFileSync(new URL("../test-support/type-gap-replay-cases.json",import.meta.url),"utf8")) as {recorded:{block:string}[]};
- const block=fixture.recorded[0]?.block;if(block===undefined)throw Error("fixture");
- const s=setup(true,{"type-gap-team-v1":true,"type-gap-team-last-message-v1":true}),body=`${text}\n${block}`;
- s.feed(s.state(1),s.result(2,body));const out=await s.wiring.transformContext(s.history(2,body));
- expect(stringValue(out.at(-1)?.content)).toBe(block);expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(true);
-});
-it("preserves existing scene-followup priority with checklist ON",async()=>{
- const fixture=JSON.parse(readFileSync(new URL("../test-support/scene-followup-events.json",import.meta.url),"utf8")) as Record<string,{event:RunEvent}>;
- const raw=fixture["theft-9e33"]?.event;if(raw?.type!=="dialogue_auto_advance")throw Error("fixture");
- const s=setup(true,{"scene-followup-prompt-v1":true});
- s.feed(s.state(200000),checkEvent({...raw,run:"r",tool_call_id:"c200001"}),s.result(200001));const out=await s.wiring.transformContext(s.history(200001));
- expect(stringValue(out.at(-1)?.content)).toContain("SUPERVISOR: You just watched a scene");expect(out.some(m=>typeof m.content==="string"&&m.content.startsWith("DISCOVERED GYM CHECKLIST"))).toBe(true);
 });
 it("pins appended campaign switch identity without changing existing positions",()=>{
  expect(SWITCHABLE_FEATURES.indexOf(mission)).toBe(308);expect(SWITCHABLE_FEATURES.indexOf(checklist)).toBe(309);

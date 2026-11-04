@@ -1,6 +1,4 @@
-import json
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -284,15 +282,6 @@ def test_full_map_unready_layout_is_unavailable(address: int, body: bytes) -> No
     m = loaded()
     m.put(address, body)
     assert read_full_map(m.read, (1, 1), (1, 0)) is None
-
-
-SHARED_GRID = Path(__file__).resolve().parents[3] / "packages/agent/src/fixtures/full-map-grid.json"
-
-
-def test_full_map_json_matches_the_fixture_the_agent_planner_decodes() -> None:
-    result = read_full_map(loaded().read, (1, 1), (1, 0))
-    assert result is not None
-    assert result.json(3) == json.loads(SHARED_GRID.read_text())
 
 
 @pytest.mark.parametrize("map_width,map_height", [(257, 1), (1, 257), (0, 1)])

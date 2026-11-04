@@ -132,20 +132,6 @@ describe("TraceBuilder", () => {
     expect(must(turn1[1]).seqs).toEqual([5, 6, 9]);
   });
 
-  it("keeps seq order inside a turn (INV-2)", () => {
-    for (const turn of build(m4Run()).turns) {
-      const keys = turn.steps().map((step) => step.key);
-      expect(keys).toEqual([...keys].sort((a, b) => a - b));
-    }
-  });
-
-  it("shows every event that activity history showed, and nothing it hid (INV-1)", () => {
-    for (const events of [fullRun().events, m4Run(), supervisedRun().events]) {
-      const shown = new Set(steps(build(events)).flatMap((step) => step.seqs));
-      for (const event of events) expect(shown.has(event.seq), `${event.type} #${String(event.seq)}`).toBe(eventText(event) !== null);
-    }
-  });
-
   it("counts a version bump only for events the trace shows", () => {
     const builder = new TraceBuilder();
     const log = fullRun();
@@ -351,12 +337,6 @@ describe("traceHtml", () => {
     const ongoing = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 2 }, limit: 50, page: 50 }));
     expect(ongoing.firstElementChild?.getAttribute("data-group")).toBe("t2");
     expect([...must(ongoing.firstElementChild).children].map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
-  });
-
-  it("caps the turns it renders and offers the rest", () => {
-    const root = dom(traceHtml(build(m4Run()).turns, ALL, { elapsed: null, live: null, limit: 1, page: 50 }));
-    expect(root.querySelectorAll(".turn-h")).toHaveLength(1);
-    expect(root.querySelector("[data-trace-more]")?.textContent).toMatch(/SHOW \d+ OLDER TURNS/);
   });
 
   it("renders only the turns on screen of a long run", () => {

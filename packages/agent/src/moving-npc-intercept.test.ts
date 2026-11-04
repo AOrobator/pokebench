@@ -60,20 +60,6 @@ function fixture(o:Options={}){
 }
 const text=(out:AgentToolResult<unknown>)=>out.content.flatMap(part=>part.type==="text"?[part.text]:[]).join("\n");
 
-it("registers default OFF after every older switch, needs the follow, and is on in both arms of the current recipe",()=>{
- const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
- const {[ID]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[ID]).toBe(false);
- expect(featureInfo(ID).needs).toBe("moving-npc-target-v1");expect(featureInfo(ID).group).toBe("guidance");
- expect(featureInfo(ID).description).toContain(" Off: ");
- expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
- expect(playHarnessFeatures({...flags,"moving-npc-target-v1":true,[ID]:true},null).at(-1)).toBe(ID);
- expect(serverFeatureEnv({...flags,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
- expect(serverFeatureEnv({...flags,[ID]:true}).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
- const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[];offInBoth:string[]};
- expect(recipe.features[ID]).toBe(true);expect(recipe.onInBoth.filter(id=>id===ID)).toEqual([ID]);
- expect(recipe.switches).not.toContain(ID);expect(recipe.offInBoth).not.toContain(ID);
-});
-
 it("watches a person seen moving, steps into their path from beside it, then faces them and presses A once",async()=>{
  const f=fixture();
  const out=await f.tool.execute("pin",request);

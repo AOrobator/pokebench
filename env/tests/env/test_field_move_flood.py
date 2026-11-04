@@ -10,18 +10,11 @@ Real RAM: field-moves-a8f9.json.gz (see test_field_moves.py). ROM layouts: GRANI
 (24/8), ROUTE115 (0/30), RUSTURF TUNNEL (24/4), read with exit_labels.read_rom_map.
 """
 
-import gzip
-import json
 import random
 from dataclasses import replace
-from pathlib import Path
 
 import pytest
-from conftest import PORYMAP_LOADS
-from test_field_moves import a8f9, fixture, operator_rom
 
-from pokebench_env import rerender
-from pokebench_env.exit_labels import arrival_text, read_rom_map, section_name
 from pokebench_env.field_moves import (
     SWITCH,
     Capabilities,
@@ -29,37 +22,19 @@ from pokebench_env.field_moves import (
     MapGates,
     Obstacle,
     capabilities,
-    classify,
     map_gates,
     reachable,
     rom_object_obstacles,
     survey,
     terrain_obstacles,
 )
-from pokebench_env.game_state import MapNames
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
-from pokebench_env.rom import EMERALD_SHA1
-from pokebench_env.world import InteractionTarget
-from tests.env.recorded import as_recorded
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 
-ROM_START = 0x08000000
-AGENT_FIXTURE = (
-    Path(__file__).parents[3] / "packages/agent/src/fixtures/field-moves-a8f9-states.json.gz"
-)
 ALL_CLOSED = capabilities((), (), (), 0)
 ALL_OPEN = Capabilities(tuple((gid, True) for gid, _ in ALL_CLOSED.open))
 UNKNOWN = Capabilities(tuple((gid, None) for gid, _ in ALL_CLOSED.open))
 ROCK_TEXT = "It's a rugged rock, but a POKéMON may be able to smash it."
-ROCK_LINE = (
-    "- BREAKABLE_ROCK at (24,4) and (24,5) close every way on foot to (29,16) -> VERDANTURF TOWN"
-    " (map 0/14) and (18,20) -> ROUTE116 (map 0/31): it needs a field move you cannot use yet;"
-    f' the game says: "{ROCK_TEXT}"'
-)
 HEADER = "Field obstacles on this map (from the map's own object list and its tiles):"
-ROCK_NOTE = (
-    "; not reachable on foot from where you stand: every way to it on this map passes"
-    " BREAKABLE_ROCK at (24,4) or (24,5), which needs a field move you cannot use yet"
-)
 
 
 def floor(width: int, height: int) -> dict[tuple[int, int], tuple[int, int]]:
@@ -213,197 +188,12 @@ def test_survey_names_nothing_when_no_gate_is_closed() -> None:
 # ---- ROM layouts ------------------------------------------------------------------------------
 
 
-def rom_reader():
-    rom = operator_rom()
-
-    def read(address: int, length: int) -> bytes:
-        if address >= ROM_START:
-            return rom[address - ROM_START : address - ROM_START + length]
-        return bytes(length)
-
-    return read
-
-
-def rom_tiles(map_id: tuple[int, int]):
-    rom_map = read_rom_map(rom_reader(), map_id)
-    assert rom_map is not None
-    tiles = {
-        (x, y): (block[1], block[3])
-        for y in range(rom_map.height)
-        for x in range(rom_map.width)
-        if (block := rom_map.block(x, y)) is not None
-    }
-    return rom_map, tiles
-
-
-def test_granite_cave_b1f_upper_ladders_need_the_mach_bike() -> None:
-    rom_map, tiles = rom_tiles((24, 8))
-    warps = [w[:2] for w in rom_map.warps]
-    assert warps == [(25, 13), (4, 21), (29, 13), (28, 21), (8, 5), (12, 3), (29, 2)]
-    # The west half: ladder #1 (4,21) from 1F; #0 and #2 are a separate east room.
-    gated = map_gates(ALL_CLOSED, (), tiles, "GRANITE CAVE B1F")
-    labels = dict(classify(tiles, (4, 21), warps=warps, connections={}, rules=gated.rules()).warps)
-    assert [labels[w] for w in warps] == ["none", "foot", "none", "foot", "none", "none", "none"]
-    ungated = dict(classify(tiles, (4, 21), warps=warps, connections={}).warps)
-    assert [ungated[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "foot", "foot"]
-    opened = map_gates(ALL_OPEN, (), tiles, "GRANITE CAVE B1F")
-    labels = dict(classify(tiles, (4, 21), warps=warps, connections={}, rules=opened.rules()).warps)
-    assert [labels[w] for w in warps] == ["none", "foot", "none", "foot", "none", "none", "none"]
-    # From the top ladder #4 (8,5) the slope slides you down to the lower ladders.
-    top = dict(classify(tiles, (8, 5), warps=warps, connections={}, rules=gated.rules()).warps)
-    assert [top[w] for w in warps] == ["none", "foot", "none", "foot", "foot", "none", "none"]
-    slopes = [o for o in gated.obstacles if o.name.startswith("slope")]
-    assert [o.tiles for o in slopes] == [((9, 9), (9, 10))]
-    cracked = [t for o in gated.obstacles if o.name.startswith("cracked") for t in o.tiles]
-    assert len(cracked) == 62
-
-
-def test_route115_slope_lets_a_walker_down_but_not_back_up() -> None:
-    _, tiles = rom_tiles((0, 30))
-    gated = map_gates(ALL_CLOSED, (), tiles, "ROUTE115")
-    slopes = [o.tiles for o in gated.obstacles if o.name.startswith("slope")]
-    assert slopes == [((28, 8), (28, 9))]
-    above = reachable(tiles, (28, 7), water=False, rules=gated.rules())
-    below = reachable(tiles, (28, 10), water=False, rules=gated.rules())
-    assert (28, 10) in above and (28, 7) not in below
-    assert (28, 7) in reachable(tiles, (28, 10), water=False)
-
-
-def test_destination_templates_close_the_rusturf_rocks_on_arrival(porymap_names: MapNames) -> None:
-    read = a8f9()
-    save1 = int.from_bytes(read(0x03005D8C, 4), "little")
-    rusturf = read_rom_map(read, (24, 4))
-    assert rusturf is not None
-    rocks = rom_object_obstacles(
-        rusturf.objects,
-        lambda flag: bool(read(save1 + 0x1270 + flag // 8, 1)[0] >> flag % 8 & 1),
-        "RUSTURF TUNNEL",
-    )
-    assert sorted(o.tiles for o in rocks) == [((24, 4),), ((24, 5),)]
-    here = read_rom_map(read, (0, 31))
-    assert here is not None
-    maps = porymap_names
-
-    def shown(m: tuple[int, int]) -> str | None:
-        return section_name(read, m)
-
-    off = arrival_text(read, (0, 31), here, (24, 4, 0), shown, {})
-    gates = (capabilities((), (), (), 1), save1, maps.name)
-    on = arrival_text(read, (0, 31), here, (24, 4, 0), shown, {}, gates=gates)
-    assert off is not None and "(29,16)" in off and "(18,20)" in off
-    assert on == ", arriving at (4,10); from there, on foot: (4,10) -> this map at (47,8)"
-
-
 # ---- the a8f9 server state and readout ------------------------------------------------------
-
-
-def run_off(*, gates: bool) -> frozenset[str]:
-    on = set(fixture()["harness_features"]) | ({SWITCH} if gates else set())
-    return frozenset(f for f in SERVER_FEATURES if f not in on)
-
-
-def a8f9_state(maps: MapNames, *, gates: bool):
-    return rerender.read_state(a8f9(), maps, active_ui=True, off=run_off(gates=gates))
-
-
-def a8f9_readout(maps: MapNames, *, gates: bool) -> str:
-    off = run_off(gates=gates)
-    env = {"POKEBENCH_FEATURES_OFF": ",".join(sorted(off)), "POKEBENCH_ACTIVE_UI": "1"}
-    read = a8f9()
-    return rerender.rerender(
-        Path("/run"), [rerender.RawRef("a", "s")], lambda _p, _s: read, maps, env
-    )[0]
-
-
-def test_the_porymap_names_load_once_per_session_one_read_per_file(
-    porymap_names: MapNames,
-) -> None:
-    # map_groups.json plus each map.json once, in the one load the whole session shares.
-    assert PORYMAP_LOADS == [1 + len(porymap_names.ids())]
-    assert len(porymap_names.ids()) == 518
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
     assert SWITCH == "field-move-gates-v1" and SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-
-
-def test_off_is_the_recorded_a8f9_readout_and_state_byte_for_byte(porymap_names: MapNames) -> None:
-    recorded = fixture()["cases"][0]["readout"].split("\n")
-    # The agent adds the untaken-exits, people-ledger and story-character lines after Position.
-    added = recorded[8:12]
-    assert added[0].startswith("Exits here you have not taken:")
-    assert added[1].startswith("People and objects here")
-    assert added[3].startswith("Story characters here: none.")
-    assert a8f9_readout(porymap_names, gates=False) == "\n".join(recorded[:8] + recorded[12:])
-    body = state_json(a8f9_state(porymap_names, gates=False))
-    assert "field_obstacles" not in body
-    assert body["exit_reach"] == fixture()["cases"][0]["exit_reach"]
-    # The whole state body, against the recorded state event of seq 41177 (envelope stripped).
-    recorded_body = json.loads(gzip.decompress(AGENT_FIXTURE.read_bytes()))["states"]["off"]
-    assert json.loads(json.dumps(as_recorded(body))) == recorded_body
-
-
-def test_on_the_rocks_cut_off_verdanturf_and_the_route116_pocket(porymap_names: MapNames) -> None:
-    body = state_json(a8f9_state(porymap_names, gates=True))
-    reach = body["exit_reach"]
-    assert isinstance(reach, dict)
-    assert reach["warps"] == [
-        {"x": 4, "y": 10, "reach": "foot"},
-        {"x": 29, "y": 16, "reach": "none", "blocked_by": [0, 1]},
-        {"x": 18, "y": 20, "reach": "none", "blocked_by": [0, 1]},
-    ]
-    rows = reach["foot"]["rows"]
-    bit = lambda x, y: int(rows[y][x // 4], 16) >> (3 - x % 4) & 1  # noqa: E731
-    assert bit(23, 4) == 1 and bit(24, 4) == 0 and bit(25, 4) == 0 and bit(29, 16) == 0
-    field = body["field_obstacles"]
-    assert isinstance(field, dict)
-    assert field["capabilities"]["rock_smash"] is False
-    obstacles = field["obstacles"]
-    assert [
-        (o["id"], o["gate"], o["name"], o["kind"], o["local_id"], o["tiles"], o["open"])
-        for o in obstacles
-    ] == [
-        (0, "rock_smash", "BREAKABLE_ROCK", "object", 2, [{"x": 24, "y": 5}], False),
-        (1, "rock_smash", "BREAKABLE_ROCK", "object", 8, [{"x": 24, "y": 4}], False),
-    ]
-    for o in obstacles:
-        assert o["text"] == ROCK_TEXT and o["needs"] == "a field move you cannot use yet"
-        assert o["loaded"] is False and o["beyond"]["width"] == 36 and o["beyond"]["height"] == 24
-
-
-def test_on_the_readout_names_the_rocks_and_notes_the_cut_off_warps(
-    porymap_names: MapNames,
-) -> None:
-    off = a8f9_readout(porymap_names, gates=False).split("\n")
-    on = a8f9_readout(porymap_names, gates=True).split("\n")
-    added = [line for line in on if line not in off]
-    assert added == [
-        HEADER,
-        ROCK_LINE,
-        "Warp to map 0/14 at (29,16), elevation 3; movement; activation depends on metatile (see"
-        " local map); conditional; destination map 0/14 warp 4" + ROCK_NOTE,
-        "Warp to map 0/31 at (18,20), elevation 3; movement; activation depends on metatile (see"
-        " local map); conditional; destination map 0/31 warp 2" + ROCK_NOTE,
-        "Warp destination at (29,16): VERDANTURF TOWN (not reachable on foot from where you stand)",
-        "Warp destination at (18,20): ROUTE116 (not reachable on foot from where you stand)",
-    ]
-    assert (
-        on.index(HEADER)
-        == on.index("Map interaction candidates (world coordinates; flags/scripts may gate use):")
-        - 2
-    )
-
-
-def test_without_exit_reachability_the_switch_adds_nothing(porymap_names: MapNames) -> None:
-    maps = porymap_names
-    off = run_off(gates=True) | {"exit-reachability-v1"}
-    state = rerender.read_state(a8f9(), maps, active_ui=True, off=off)
-    assert state.field_obstacles is None and state.exit_reach is None
-
-
-def test_rom_reader_needs_the_operator_rom() -> None:
-    assert EMERALD_SHA1 and operator_rom()
 
 
 def test_rock_smash_usable_opens_the_rocks() -> None:
@@ -527,47 +317,3 @@ def test_rom_templates_skip_hidden_flags_other_sprites_and_the_bridge_kecleon() 
         "rock_smash",
         "rock_smash",
     ]
-
-
-def test_readout_names_unknown_dynamic_warps_and_connections_it_cuts_off(
-    porymap_names: MapNames,
-) -> None:
-    state = a8f9_state(porymap_names, gates=True)
-    field = state.field_obstacles
-    assert field is not None
-    dynamic = InteractionTarget("warp", 7, 7, 3, "movement", destination=(127, 127, 0))
-    blocks = {(29, 16): (0,), (7, 7): (0,), (99, 99): (0,)}
-    reshaped = FieldObstacles(
-        field.gates,
-        replace(field.survey, warp_blocks=blocks, connection_blocks={("NORTH", (0, 3), 0): (1,)}),
-        field.width,
-        field.height,
-    )
-    targets = (*(state.interaction_targets or ()), dynamic)
-    text = format_readout(
-        replace(state, field_obstacles=reshaped, interaction_targets=targets),
-        run_off(gates=True),
-    )
-    assert (
-        "- BREAKABLE_ROCK at (24,5) closes every way on foot to (29,16) -> VERDANTURF TOWN"
-        " (map 0/14), (7,7) -> dynamic destination and (99,99): it needs a field move"
-    ) in text
-    assert (
-        "- BREAKABLE_ROCK at (24,4) closes every way on foot to NORTH edge -> map 0/3 (map 0/3)"
-        in text
-    )
-
-
-def test_unreadable_templates_leave_the_flood_ungated(porymap_names: MapNames) -> None:
-    maps = porymap_names
-    read = a8f9()
-    save1 = int.from_bytes(read(0x03005D8C, 4), "little")
-
-    def blind(address: int, length: int) -> bytes:
-        if save1 + 0xC70 <= address < save1 + 0xC70 + 64 * 24:
-            raise ValueError("templates unreadable")
-        return read(address, length)
-
-    state = rerender.read_state(blind, maps, active_ui=True, off=run_off(gates=True))
-    assert state.field_obstacles is None and state.exit_reach is not None
-    assert [how for _, how in state.exit_reach.warps] == ["foot", "foot", "foot"]

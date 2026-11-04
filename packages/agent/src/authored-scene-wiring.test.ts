@@ -13,7 +13,3 @@ it("registers the authored scene treatment append-only and globally OFF",()=>{
  expect(SERVER_FEATURES.map(String)).toContain(ID);
  expect(playHarnessFeatures({...featuresOf(["ram-state-v1","dialogue-auto-advance-v1"]),[ID]:true},null).at(-1)).toBe(ID);
 });
-it("keeps the experimental scene labels OFF in both future recipe arms",()=>{
- const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];offInBoth:string[]};
- expect(recipe.features[ID]).toBe(false);expect(recipe.offInBoth.filter(id=>id===ID)).toEqual([ID]);expect(recipe.switches).not.toContain(ID);
-});

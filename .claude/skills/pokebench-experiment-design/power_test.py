@@ -1,7 +1,7 @@
 # /// script
 # dependencies = ["scipy", "pytest"]
 # ///
-"""Cross-check power.py against scipy. Run: uv run --with scipy --with pytest pytest power_test.py"""
+"""Cross-check power.py against scipy. The run command is in this skill's SKILL.md."""
 
 import itertools
 import math

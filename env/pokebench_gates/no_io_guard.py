@@ -38,6 +38,7 @@ REPO_MARKERS = (
 )
 MAX_SELF_PIPE_EVENTS = 2
 LOADERS = ("linecache.py", "tokenize.py")
+TOOLS = ("/_pytest/_code/", "/_pytest/assertion/", "/site-packages/coverage/")
 
 violations: list[str] = []
 self_pipe_events = 0
@@ -61,14 +62,14 @@ def _is_test_file(name: str) -> bool:
 
 
 def _from_repo(frame: FrameType | None) -> bool:
-    """True when repo code is on the stack, unless an application module is merely being imported."""
+    """True when repo code is on the stack, unless an application module is being imported."""
     found = False
     tested = False
     while frame is not None:
         name = frame.f_code.co_filename
         if name.startswith("<frozen importlib") and not tested:
             return False
-        if name.endswith(LOADERS) or "/_pytest/_code/" in name or "/_pytest/assertion/" in name:
+        if name.endswith(LOADERS) or any(tool in name for tool in TOOLS):
             return False
         if name != __file__ and any(marker in name for marker in REPO_MARKERS):
             found = True

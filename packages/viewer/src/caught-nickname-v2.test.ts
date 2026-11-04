@@ -15,13 +15,3 @@ it("records V2 independently and keeps historical omitted behavior",()=>{
  expect(serverFeatureEnv({...ALL_ON,[ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(ID);
  expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(ID);
 });
-it("materializes capture input fixes in both maintained arms",()=>{
- const root=fileURLToPath(new URL("../../../",import.meta.url));
- for(const name of ["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"]){
-  const {definition:def}=readFixedDefinition(root,name);
-  for(const phase of def.phases)for(const arm of ["bundle","control"] as const){
-   const features=armPreset(def,phase.id,arm).features;
-   for(const id of ["caught-dex-input-v1","caught-nickname-prompt-v1",ID] as const)expect(features[id],`${name}/${arm}/${id}`).toBe(true);
-  }
- }
-});

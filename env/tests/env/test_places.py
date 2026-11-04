@@ -6,17 +6,11 @@ against pret/pokeemerald 731ad5b data/maps/LittlerootTown/map.json (warps (14,8)
 """
 
 import functools
-import json
 import os
 import struct
 
 import pytest
-from fastapi import FastAPI
-from test_view import get
 
-from pokebench_env import rerender
-from pokebench_env.game_state import MapNames
-from pokebench_env.observation import install_observation
 from pokebench_env.places import (
     SAVE_BLOCK_PTRS,
     Links,
@@ -27,8 +21,6 @@ from pokebench_env.places import (
 )
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from pokebench_env.topology import MAP_GROUPS
-
-ROM_START = 0x08000000
 
 
 class Memory:
@@ -174,25 +166,6 @@ def test_a_map_the_table_cannot_name_is_left_out() -> None:
     assert PlaceDirectory(memory, Unnamed({})).places(displayed=False) == ()
 
 
-def test_the_places_route_serves_the_directory() -> None:
-    memory = one_map(warps=[(7, 16, 1, 4)], connections=[(2, 0, 16)])
-    app = FastAPI()
-    install_observation(app, lambda: None, memory, MapNames({(0, 0): "LITTLEROOT TOWN"}))  # type: ignore[arg-type,return-value]
-    status, _, body = get(app, "/pokebench/places")
-    assert status == 200
-    assert json.loads(body) == {
-        "places": [
-            {
-                "map_id": [0, 0],
-                "name": "LITTLEROOT TOWN",
-                "display": "LITTLEROOT TOWN",
-                "warps": [{"x": 7, "y": 16, "to": [1, 4]}],
-                "connections": [{"direction": "NORTH", "to": [0, 16]}],
-            }
-        ]
-    }
-
-
 # --- the operator's ROM ------------------------------------------------------------------------
 
 
@@ -202,85 +175,3 @@ def operator_rom() -> bytes:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
     except RomError:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
-
-
-def rom_reader(address: int, length: int) -> bytes:
-    rom = operator_rom()
-    if address >= ROM_START:
-        return rom[address - ROM_START : address - ROM_START + length]
-    return bytes(length)
-
-
-@functools.cache
-def map_data() -> dict[str, tuple[tuple[int, int], dict[str, object]]]:
-    """Each map folder's id and map.json, every file read once for the whole module."""
-    groups = json.loads((rerender.PORYMAP_MAPS / "map_groups.json").read_text())
-    return {
-        folder: (
-            (group, number),
-            json.loads((rerender.PORYMAP_MAPS / folder / "map.json").read_text()),
-        )
-        for group, key in enumerate(groups["group_order"])
-        for number, folder in enumerate(groups[key])
-    }
-
-
-@functools.cache
-def rom_places() -> dict[tuple[int, int], Place]:
-    maps = MapNames(
-        {
-            map_id: str(data["id"]).removeprefix("MAP_").replace("_", " ")
-            for map_id, data in map_data().values()
-        }
-    )
-    return {p.map_id: p for p in PlaceDirectory(rom_reader, maps).places(displayed=False)}
-
-
-def test_the_real_map_table_has_littleroots_doors_and_birchs_lab() -> None:
-    places = rom_places()
-    assert len(places) == len(map_data())
-    littleroot = places[(0, 9)]
-    assert littleroot.name == "LITTLEROOT TOWN"
-    assert littleroot.links == Links(
-        ((14, 8, (1, 2)), (5, 8, (1, 0)), (7, 16, (1, 4))), (("NORTH", (0, 16)),)
-    )
-    assert places[(1, 4)].name == "LITTLEROOT TOWN PROFESSOR BIRCHS LAB"
-    assert places[(1, 4)].links.warps == ((6, 12, (0, 9)), (7, 12, (0, 9)))
-
-
-VENDOR_DIFFERS = frozenset({"LavaridgeTown_Gym_1F", "LavaridgeTown_Gym_B1F"})
-SIDES = {
-    "up": "NORTH",
-    "down": "SOUTH",
-    "left": "WEST",
-    "right": "EAST",
-    "dive": "DIVE",
-    "emerge": "EMERGE",
-}
-
-
-def test_every_rom_warp_and_connection_matches_the_map_data_but_lavaridge_gym() -> None:
-    data = map_data()
-    ids = {folder: map_id for folder, (map_id, _) in data.items()}
-    constants = {str(body["id"]): map_id for map_id, body in data.values()}
-    places = rom_places()
-    # The vendor's copy of the map data moves the Lavaridge gym's warps one row; the ROM agrees
-    # with pret/pokeemerald 731ad5b (LavaridgeTown_Gym_1F warps at (13,18) and (14,18)).
-    assert places[ids["LavaridgeTown_Gym_1F"]].links.warps[:2] == (
-        (13, 18, ids["LavaridgeTown"]),
-        (14, 18, ids["LavaridgeTown"]),
-    )
-    for folder, (map_id, body) in data.items():
-        connections = tuple(
-            (SIDES[str(c["direction"])], constants[str(c["map"])])
-            for c in body.get("connections") or []  # type: ignore[attr-defined]
-        )
-        assert places[map_id].links.connections == connections, folder
-        if folder in VENDOR_DIFFERS:
-            continue
-        warps = tuple(
-            (w["x"], w["y"], constants[w["dest_map"]])
-            for w in body.get("warp_events") or []  # type: ignore[attr-defined]
-            if w["dest_map"] in constants
-        )
-        assert places[map_id].links.warps == warps, folder

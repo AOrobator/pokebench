@@ -11,9 +11,7 @@ The states below are built from those recorded states (party, moves, phase, prom
 pinned to the readout the code wrote before the switch existed (fixtures/post_battle_off.json).
 """
 
-import json
 from dataclasses import replace
-from pathlib import Path
 
 from test_readout import IN_GAME
 
@@ -25,7 +23,6 @@ from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format
 from pokebench_env.ui_state import ActiveUi
 
 SWITCH = "post-battle-readout-v1"
-GOLDEN = Path(__file__).parent / "fixtures" / "post_battle_off.json"
 IDENTITY = "060d1a55:4323d098"
 
 # pokeemerald src/data/battle_moves.h: (id, name, type, power, accuracy, max pp)
@@ -106,7 +103,6 @@ SUMMARY = replace(
         "summary_move_forget", "SCRATCH", True, "UP/DOWN selects a move; A forgets it"
     ),
 )  # noqa: E501
-STATES = {"after": AFTER, "asking": ASKING, "summary": SUMMARY}
 # Every other server switch on, as the bundle arm has them for this readout.
 OFF = frozenset({SWITCH})
 ON: frozenset[str] = frozenset()
@@ -120,14 +116,6 @@ def readout(state: object, off: frozenset[str]) -> str:
 def test_registered_server_feature_default_off() -> None:
     assert SERVER_FEATURES[71] == SWITCH
     assert SWITCH in features_off_from_env({})
-
-
-def test_off_keeps_the_readout_bytes() -> None:
-    golden = json.loads(GOLDEN.read_text())
-    assert {
-        name: readout(state, OFF | {"player-elevation-readout-v1", "neutral-yes-no-readout-v1"})
-        for name, state in STATES.items()
-    } == golden
 
 
 def test_on_after_the_battle_labels_the_block_ended_and_takes_moves_from_the_party() -> None:

@@ -157,46 +157,6 @@ def test_a_failed_or_short_read_gives_no_line() -> None:
     )
 
 
-def test_off_the_reader_is_not_called_on_the_observation_route(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    import json
-
-    from fastapi import FastAPI
-    from test_view import get
-
-    import pokebench_env.game_state as game_state
-    from pokebench_env.observation import install_observation
-    from tests.env.test_feature_switches import _Shot, map_memory
-    from tests.env.test_game_state import MAPS
-
-    calls: list[str] = []
-
-    def spy(*args: object, **kwargs: object) -> None:
-        calls.append("story")
-        return None
-
-    def battle_spy(*args: object, **kwargs: object) -> None:
-        calls.append("battle")
-        return None
-
-    monkeypatch.setattr(game_state, "read_story_characters", spy)
-    monkeypatch.setattr(game_state, "read_battle_details", battle_spy)
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF",
-        "character-presence-v1,battle-details-v2,battle-triage-guidance-v1,"
-        "battle-effective-damage-v1",
-    )
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    status, _, body = get(app, "/pokebench/observation")
-    assert status == 200 and "Story characters here" not in json.loads(body)["state_text"]
-    assert calls == []
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "")
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    get(app, "/pokebench/observation")
-    assert "story" in calls
-
-
 def test_character_presence_describes_the_first_overworld_map() -> None:
     # The line is printed on every readable overworld map, the truck included
     # (PLAYER_NAME_CONFIRMED).

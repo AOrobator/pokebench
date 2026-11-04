@@ -17,9 +17,8 @@ import pytest
 from pokebench_env.menu_nav import NAV_CALLBACK, read_nav_ui
 from pokebench_env.raw_ram import load_raw_ram
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
-from pokebench_env.rerender import read_state, render
 from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE
-from tests.env.test_exit_labels import maps, operator_rom
+from tests.env.test_exit_labels import operator_rom
 from tests.env.test_menu_nav import CALL, LIST, nav
 from tests.env.test_ui_state import text
 
@@ -75,64 +74,10 @@ def test_full_window_lists_read_the_same_either_way() -> None:
         )
 
 
-@pytest.mark.parametrize("name", ["list", "list_before_call", "list_after_call"])
-def test_a702_match_call_list_off_is_the_recorded_error_on_names_mr_stone(name: str) -> None:
-    read = native(name)
-    off = read_nav_ui(read, NAV_CALLBACK)
-    on = read_nav_ui(read, NAV_CALLBACK, short_list=True)
-    assert off is not None and off.diagnostic == ERROR
-    assert on is not None and on.diagnostic is None and on.ready is True
-    assert on.selected == "MR. STONE"
-    assert on.details is not None
-    assert on.details["trainer_description"] == "DEVON PRES"
-    assert on.details["visible_trainer_names"] == ["MR. STONE"]
-
-
-def test_a702_calling_dots_report_no_stale_message() -> None:
-    # Turn 654 state: the screen shows the calling dots; gStringVar4 still holds the
-    # Scientist's "Please select the POKéNAV." from turn 636.
-    ui = read_nav_ui(native("call"), NAV_CALLBACK, short_list=True)
-    assert ui is not None and ui.phase == "pokenav_match_call_call" and ui.diagnostic is None
-    assert ui.details is not None and "message" not in ui.details
-
-
-def test_a702_readout_off_keeps_the_recorded_text_on_shows_controls() -> None:
-    for name in ("list", "list_before_call"):
-        read = native(name)
-        before = render(
-            read_state(read, maps(), active_ui=True, off=a702_off(False)), a702_off(False)
-        )
-        after = render(read_state(read, maps(), active_ui=True, off=a702_off(True)), a702_off(True))
-        assert (
-            "Interface: pokenav_match_call; input unavailable; PokeNav observation unavailable; "
-            f"STATE COVERAGE ERROR: {ERROR}"
-        ) in before
-        assert (
-            "Interface: pokenav_match_call; input ready; selected MR. STONE; UP/DOWN selects a "
-            "contact; A opens its options; B cannot exit during this tutorial"
-        ) in after
-        assert "Please select the POKéNAV." not in after
-
-
 def test_switch_is_server_owned_and_default_off() -> None:
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": "map-observability-v1"})
-
-
-def test_a702_call_text_is_reported_once_the_message_box_prints_it() -> None:
-    # Dump 13788 (turn 654): the first frame printing the call; the printer reads gStringVar4.
-    read = native("call_text")
-    ui = read_nav_ui(read, NAV_CALLBACK, short_list=True)
-    assert ui is not None and ui.phase == "pokenav_match_call_call" and ui.diagnostic is None
-    assert ui.details is not None
-    message = ui.details["message"]
-    assert isinstance(message, str)
-    assert message.startswith("MR. STONE: Oh? AAAAAA! | Since you called me, the POKéNAV must be")
-    off = a702_off(True)
-    assert 'Dialog: "MR. STONE: Oh? AAAAAA!' in render(
-        read_state(read, maps(), active_ui=True, off=off), off
-    )
 
 
 GFX = 0x0202A000

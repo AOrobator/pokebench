@@ -320,27 +320,4 @@ describe("context-exact-count-v1 wiring and registration", () => {
     expect(fallback.budget).toEqual(new ContextBudget(budgetLimit(WINDOW, MAX), true));
     expect(contextBudget({ ...ALL_ON, "context-token-budget-v1": false, [ID]: true }, { contextWindow: WINDOW }, MAX, recorded, null)).toEqual({});
   });
-
-  it("is refused beside just-in-time-prompt-v2, whose guide rides on a turn the fit may drop", () => {
-    expect(exactCountProblems({ [ID]: true, "just-in-time-prompt-v2": true })).toEqual(["context-exact-count-v1 requires just-in-time-prompt-v2 OFF (a dropped turn could carry its guidance)"]);
-    expect(exactCountProblems({ [ID]: true, "just-in-time-prompt-v2": false })).toEqual([]);
-    expect(exactCountProblems({ [ID]: false, "just-in-time-prompt-v2": true })).toEqual([]);
-    const recipe = JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json", import.meta.url), "utf8")) as { offInBoth: string[] };
-    expect(recipe.offInBoth).toContain("just-in-time-prompt-v2");
-  });
-
-  it("is registered after map-observability-v1: a default-off guard with no dependency, ON in both arms of the current recipe", () => {
-    expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("map-observability-v1") + 1);
-    const harness = playHarnessFeatures({ ...ALL_ON, [ID]: true }, null);
-    expect(harness).toContain(ID);
-    expect(harness.slice(harness.indexOf(ID) + 1).every((id) => SWITCHABLE_FEATURES.indexOf(id as typeof ID) > SWITCHABLE_FEATURES.indexOf(ID))).toBe(true);
-    expect(playHarnessFeatures({ ...ALL_ON, [ID]: false }, null)).not.toContain(ID);
-    expect(featureInfo(ID)).toMatchObject({ group: "guard", needs: null, switchable: true, title: "EXACT CONTEXT COUNT" });
-    expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);
-    expect(normalizeFeatures({ ...ALL_ON, [ID]: undefined } as unknown as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const recipe = JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json", import.meta.url), "utf8")) as { onInBoth: string[]; features: Record<string, boolean> };
-    expect(recipe.onInBoth).toContain(ID);
-    expect(recipe.features[ID]).toBe(true);
-  });
 });

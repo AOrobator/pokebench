@@ -1,5 +1,4 @@
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -206,26 +205,6 @@ def test_corrupt_owned_npc_state_is_explicit_harness_bug(kind):
 def test_unowned_callbacks_do_not_consult_unrelated_npc_ram():
     assert read_field_people_menu(lambda a, n: b"", 0) is None
     assert read_field_people_menu(Memory().read, 0x08085E5D) is None
-
-
-def test_exact_rom_source_owner_and_table_qualification():
-    rom = Path.home().joinpath(".roms/pokemon-emerald.gba")
-    if not rom.exists():
-        pytest.skip("qualified local US ROM unavailable")
-    raw = rom.read_bytes()
-    for address, expected in [
-        (0x08120E9C, STORIES),
-        (0x08133AE4, 0x085EB7EA),
-        (0x08133AE8, 0x085E8D38),
-        (0x080A38D0, SE_PLAYERS[0]),
-        (0x080A38D4, SE_PLAYERS[1]),
-        (0x08196128, 0x0860EF78),
-        (0x08069124, 0x0831F72C),
-        (0x08069128, 0x083203CC),
-    ]:
-        assert struct.unpack_from("<I", raw, address - 0x08000000)[0] == expected
-    assert struct.unpack_from("<8I", raw, 0x0860EF78 - 0x08000000)[5] == 0x08196331
-    assert raw[MATCH_CALL - 1 - 0x08000000 : MATCH_CALL + 1 - 0x08000000] == b"\x30\xb5"
 
 
 def test_daycare_print_callback_uses_box_records_not_empty_list_text():

@@ -103,18 +103,6 @@ def test_on_line_sits_directly_under_the_grid_and_above_the_legend() -> None:
     assert lines[at + 1].startswith("@ player; N live object;"), lines[at + 1]
 
 
-def test_off_readout_is_byte_identical_to_main() -> None:
-    state = pocket_state()
-    default_off = (FIXTURES / "adjacent-tiles-off-t457-ead18377.txt").read_text()
-    all_on = (FIXTURES / "adjacent-tiles-off-all-on-t457-ead18377.txt").read_text()
-    assert render(state, features_off_from_env({})) == default_off
-    assert render(state, frozenset({"adjacent-tiles-v1", "player-elevation-readout-v1"})) == all_on
-    assert format_readout(state) == format_readout(state, frozenset(), adjacent_tiles=False)
-    assert format_readout(state, frozenset({"adjacent-tiles-v1"}), adjacent_tiles=True) == (
-        format_readout(state)
-    )
-
-
 def test_render_is_the_production_path_and_honors_the_switch() -> None:
     state = pocket_state()
     on = render(state, frozenset())

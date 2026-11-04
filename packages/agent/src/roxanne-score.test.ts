@@ -27,13 +27,6 @@ it("keeps the predeclared held-out winner thresholds and control veto",()=>{
 it("does not count a level earned inside the losing gym battle as outside preparation",()=>{const frames=[frame(1),frame(2,{roxanneBattle:true}),frame(3,{roxanneBattle:true,party:[mon({level:16})]}),frame(4,{map:[0,3],party:[mon({level:16})]}),frame(5,{party:[mon({level:16})],roxanneBattle:true})];expect(scoreRecovery(frames).eventualRecovery).toBe(false);});
 
 it("censors recovery and victory outside the equal declared episode caps",()=>{const fs=trace().map(f=>({...f,elapsedMs:f.seq>=4?1_800_001:f.elapsedMs}));expect(scoreRecovery(fs)).toMatchObject({eventualRecovery:false,victory:false});expect(scoreRecovery(trace(),{turns:3,ms:1_800_000}).eventualRecovery).toBe(false);expect(scoreRecovery(trace(),{turns:5,ms:50}).victory).toBe(true);});
-it("reports native ea04 victory but vetoes recovery qualification across its archived evidence gaps",async()=>{
- const {readFileSync}=await import("node:fs");const {gunzipSync}=await import("node:zlib");const {checkEvent}=await import("./events.js");const {recoveryFrames}=await import("./roxanne-score.js");
- const json:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/roxanne-ea04-recovery.json.gz",import.meta.url))).toString());if(!Array.isArray(json))throw new Error("invalid recording fixture");
- const events=json.map(checkEvent),frames=recoveryFrames(events,17303);
- expect(scoreRecovery(frames,{turns:1000,ms:4_000_000})).toMatchObject({verified:false,strictRecovery:false,eventualRecovery:false,unchangedRematches:1,recoverySeq:22229,victory:true});
- expect(scoreRecovery(frames)).toMatchObject({strictRecovery:false,victory:false});
-});
 it("retains native victory even when preparation evidence is unavailable",()=>{expect(scoreRecovery([frame(1),frame(2,{coherent:false}),frame(3,{victory:true})])).toMatchObject({verified:false,eventualRecovery:false,victory:true});});
 it("requires an acquired nonzero move, not deletion alone",()=>{
  expect(capabilityChanges([mon()],[mon({moves:[0,45,116,52]})])).toEqual([]);

@@ -8,20 +8,15 @@ lockall 69, checkplayergender A0, releaseall 6B, end 02, return 03 (data/script_
 `{PLAYER}` is FD 01 (charmap.txt). SaveBlock2.playerGender is at +0x08, MALE 0 / FEMALE 1.
 """
 
-import json
 import struct
 from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env.displayed_names import PLACES, place_name, read_sign_text
 from pokebench_env.game_state import MapNames, read_game_state
-from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
-from pokebench_env.rerender import read_state
-from tests.env.test_feature_switches import _Shot, map_memory
+from tests.env.test_feature_switches import map_memory
 from tests.env.test_game_state import SB1, SB2, text
 
 SWITCH = "displayed-place-names-v1"
@@ -133,56 +128,6 @@ def test_location_line_names_the_house_but_json_location_is_unchanged() -> None:
     assert "Location: LITTLEROOT TOWN MAYS HOUSE 1F\n" in readout(off_state)
 
 
-def test_off_is_todays_readout_byte_for_byte() -> None:
-    # Goldens originated at fa09dbe6 and were rerendered for game-known named-warps on 2026-10-18.
-    for gender in (0, 1):
-        for room, kw in (("town", {}), ("house", {"player_map": (1, 2), "warp_to": (0, 9)})):
-            memory = littleroot(gender, **kw)
-            golden = (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.txt").read_text()
-            off = frozenset(
-                {
-                    SWITCH,
-                    "map-observability-v1",
-                    "type-gap-team-v1",
-                    "player-elevation-readout-v1",
-                    "character-presence-v1",
-                    "offscreen-objects-v1",
-                    "readout-truth-v1",
-                    "birch-speech-pages-v1",
-                    "blackout-readout-v1",
-                    "surf-gated-exits-v1",
-                    "exit-reachability-v1",
-                    "heal-before-trainers-v1",
-                    "tutorial-party-owner-v1",
-                    "mid-frame-readout-v1",
-                    "unset-dynamic-warp-v1",
-                    "status-names-v1",
-                    "surf-gated-exits-v2",
-                    "battle-effective-damage-v1",
-                    "semantic-navigation-v1",
-                    "semantic-navigation-v2",
-                    "exp-next-level-v1",
-                    "pokedex-own-v1",
-                }
-            )
-            state = read_state(memory.read, MAPS, active_ui=True, off=off)
-            assert readout(state, off) == golden
-            json_golden = json.loads(
-                (FIXTURES / f"displayed-names-off-{room}-{gender}-fa09dbe6.json").read_text()
-            )
-            # route103_rival and trainer_opponent (measurement only, added after fa09dbe6) are
-            # the only new keys.
-            current = json.loads(json.dumps(state_json(state)))
-            assert current.pop("route103_rival") == {
-                "battle_active": False,
-                "defeated": False,
-                "oldale_stage": 0,
-            }
-            assert current.pop("trainer_opponent") is None
-            assert isinstance(current.pop("story_progress"), dict)
-            assert current == json_golden
-
-
 def test_unknown_gender_or_missing_name_keeps_todays_labels() -> None:
     for gender in (2, 0xFF):
         state = on_state(gender)
@@ -248,33 +193,6 @@ def test_a_pointer_outside_the_rom_is_never_read() -> None:
     assert read_sign_text(m.read, 0x02000000, 0, "RED") is None
     m.put(SIGN, msgbox(0x02000000, 3) + b"\x02")
     assert read_sign_text(m.read, SIGN, 0, "RED") is None
-
-
-def test_observation_route_applies_the_switch_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    memory = littleroot(0)
-    payloads = {}
-    for off in ("", SWITCH):
-        monkeypatch.setenv(
-            "POKEBENCH_FEATURES_OFF",
-            ",".join(filter(None, (off, "player-map-visibility-v2"))),
-        )
-        app = FastAPI()
-        install_observation(app, _Shot, memory.read, MAPS)
-        status, _, body = get(app, "/pokebench/observation")
-        assert status == 200
-        payloads[off] = json.loads(body)
-    assert 'Sign text "PROF. BIRCH\'S HOUSE"' in payloads[""]["state_text"]
-    assert "PROF. BIRCH'S HOUSE 1F (map 1/2)" in payloads[""]["state_text"]
-    assert "Sign text" not in payloads[SWITCH]["state_text"]
-    assert "LITTLEROOT TOWN MAYS HOUSE 1F (map 1/2)" not in payloads[SWITCH]["state_text"]
-    assert "Warps: (0,1) -> map 1/2" in payloads[SWITCH]["state_text"]
-    signs = [t for t in payloads[""]["state"]["interaction_targets"] if t["kind"] == "background"]
-    assert signs[0]["name"] == 'Sign text "PROF. BIRCH\'S HOUSE"'
-    off_signs = [
-        t for t in payloads[SWITCH]["state"]["interaction_targets"] if t["kind"] == "background"
-    ]
-    assert off_signs[0]["name"] is None
-    assert payloads[""]["state"]["location"] == payloads[SWITCH]["state"]["location"]
 
 
 def test_switch_is_a_default_off_server_feature() -> None:

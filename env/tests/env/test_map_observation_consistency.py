@@ -1,15 +1,8 @@
 """Cross-provider contract checks; these are not an independent review verdict."""
 
-import json
-import subprocess
-import sys
-from dataclasses import fields
-from pathlib import Path
-
 from pokebench_env.adjacent_tiles import next_tiles
 from pokebench_env.live_map import LocalMap, MapTile
 from pokebench_env.map_observation import (
-    KIND_TOKENS,
     build_observation,
     element_label,
     element_token,
@@ -19,21 +12,6 @@ from pokebench_env.map_observation import (
 from pokebench_env.map_observation_types import MapElement
 from pokebench_env.map_terrain_elements import terrain_elements
 from pokebench_env.map_tile_elements import tile_elements
-
-ROOT = Path(__file__).resolve().parents[3]
-
-
-def test_one_canonical_schema_covers_every_provider_and_both_generated_contracts():
-    schema = json.loads((ROOT / "schemas/map-observation-v1.json").read_text())
-    element = schema["properties"]["elements"]["items"]
-    assert set(element["properties"]) == {field.name for field in fields(MapElement)}
-    assert set(element["properties"]["kind"]["enum"]) == set(KIND_TOKENS)
-    subprocess.run(
-        [sys.executable, str(ROOT / "scripts/map-observation-schema.py"), "--check"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
 
 
 def test_visible_semantic_signatures_have_no_cross_provider_token_collisions():

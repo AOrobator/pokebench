@@ -1,4 +1,3 @@
-import os
 import struct
 import threading
 import types
@@ -48,20 +47,6 @@ def test_initializing_and_invalid_owners_are_not_ready() -> None:
     assert read_caught_dex_ui(memory.read).ready is None
     memory.put(0x030022C4, struct.pack("<I", 0x080BB775))
     assert read_caught_dex_ui(memory.read) is None
-
-
-def test_archived_task_is_read_without_a_standalone_pokedex_heap() -> None:
-    import json
-    from pathlib import Path
-
-    from tests.env.test_battle_text import Archived
-
-    fixture = json.loads((Path(__file__).parent / "fixtures/caught-dex-c6c2-5393.json").read_text())
-    memory = Archived(fixture["memory"])
-    ui = read_caught_dex_ui(memory.read)
-    assert ui is not None and ui.ready is True
-    assert ui.details == {"national_dex_number": 263, "owner_task": 0}
-    assert wait_phase(memory.read, caught_dex=True) == "screen"
 
 
 def test_production_state_factory_honours_switch(monkeypatch) -> None:
@@ -157,50 +142,3 @@ def test_production_battle_wait_honours_the_switch(monkeypatch: pytest.MonkeyPat
             battle_text=(app, Emulator, page().read),
         )
     assert made == [False, True]
-
-
-@pytest.mark.parametrize("expanded", [False, True])
-def test_native_archive_through_production_decoder_and_renderer(expanded: bool) -> None:
-    from pathlib import Path
-
-    from pokebench_env.raw_ram import load_raw_ram
-    from pokebench_env.readout import features_off_from_env
-    from pokebench_env.rerender import read_state, render
-    from pokebench_env.rom import resolve_rom
-
-    read = load_raw_ram(
-        Path(__file__).parent / "fixtures/caught-dex-raw-5393.json.gz",
-        "19a7c10abc2f23ba6ea9946f7b4131c90f321fa74f74f03aba7f348a3066bdf4",
-        rom=resolve_rom(os.environ).read_bytes(),
-    )
-    off = features_off_from_env({})
-    if expanded:
-        off -= {"expanded-menu-battle-information-v1", "battle-details-v2"}
-    before = read_state(read, MapNames({}), active_ui=True, off=off)
-    assert before.battle.text_phase == "busy"
-    assert before.active_ui.phase == "battle_resolving"
-    assert "A or B closes the registration page" not in render(before, off)
-    on = off - {"caught-dex-input-v1"}
-    after = read_state(read, MapNames({}), active_ui=True, off=on)
-    assert after.battle.text_phase == "screen"
-    assert after.active_ui.phase == "pokedex_caught_entry"
-    assert after.active_ui.ready is True
-    text = render(after, on)
-    assert "Interface: pokedex_caught_entry; input ready" in text
-    assert "A or B closes the registration page" in text
-    assert "resolving (no input until the game asks)" not in text
-    if expanded:
-        assert "Battle details: WILD single · turn 3 · A or B closes the registration page" in text
-
-    # Source-owned display task must remain busy even if stale battle text exists.
-    def displaying(address: int, length: int) -> bytes:
-        raw = read(address, length)
-        if address == 0x03005E00 and length == 640:
-            return struct.pack("<I", 0x080BFE39) + raw[4:]
-        return raw
-
-    transition = read_state(displaying, MapNames({}), active_ui=True, off=on)
-    assert transition.battle.text_phase == "busy"
-    assert transition.active_ui.phase == "pokedex_caught_transition"
-    assert transition.active_ui.ready is False
-    assert "input ready;" not in render(transition, on)

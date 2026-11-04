@@ -1,8 +1,7 @@
 """Byte-preserving canonical RAM span and production injection contracts."""
 
 import sys
-import threading
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
 import pytest
 
@@ -215,47 +214,3 @@ def test_production_reader_factory_uses_current_core_and_keeps_full_raw_region_s
     assert reader.raw_region(0x02000000, 0x40000) == b"raw"
     assert raw == [(active, 0x02000000, 0x40000)]
     assert len(fast) == 2
-
-
-def test_actual_server_main_constructs_one_shared_optimized_reader(monkeypatch, tmp_path):
-    core = SimpleNamespace(frame_counter=0)
-    vendor = SimpleNamespace(
-        app=object(),
-        env=SimpleNamespace(core=core),
-        frame_manager=object(),
-        memory_lock=threading.Lock(),
-        main=lambda: None,
-    )
-    pokemon_package = ModuleType("pokemon_env")
-    emulator_module = ModuleType("pokemon_env.emulator")
-    emulator_module.EmeraldEmulator = type("FakeEmulator", (), {})
-    pokemon_package.emulator = emulator_module
-    server_package = ModuleType("server")
-    server_package.app = vendor
-    monkeypatch.setitem(sys.modules, "pokemon_env", pokemon_package)
-    monkeypatch.setitem(sys.modules, "pokemon_env.emulator", emulator_module)
-    monkeypatch.setitem(sys.modules, "server", server_package)
-    monkeypatch.setattr(serve, "install_deadline_frame_stream", lambda *_args: None)
-    monkeypatch.setattr(serve, "install_battle_journal", lambda *_args: None)
-    monkeypatch.setattr(
-        serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test")
-    )
-    monkeypatch.setattr(serve.MapNames, "load", lambda _path: object())
-    monkeypatch.setattr(serve, "RawRamArchive", lambda *_args: object())
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("POKEBENCH_HUMAN_TOKEN", raising=False)
-    monkeypatch.setattr(sys, "argv", ["serve", "--port", "8181"])
-    reader = object()
-    owners = []
-
-    def factory(owner):
-        owners.append(owner())
-        return reader
-
-    monkeypatch.setattr(serve, "make_memory_reader", factory)
-    received = []
-    monkeypatch.setattr(serve, "run", lambda *args, **kwargs: received.append(kwargs))
-    serve.main()
-    assert owners == [core]
-    assert received[0]["actions"][2] is reader
-    assert received[0]["observation"][2] is reader

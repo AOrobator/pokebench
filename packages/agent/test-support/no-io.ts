@@ -37,7 +37,7 @@ function guard(owner: Record<string, unknown>, name: string, label: string): voi
     }
     return new.target === undefined
       ? Reflect.apply(original as (...a: unknown[]) => unknown, this, args)
-      : Reflect.construct(original as new (...a: unknown[]) => object, args, new.target as new (...a: unknown[]) => object);
+      : Reflect.construct(original as unknown as new (...a: unknown[]) => object, args, new.target as new (...a: unknown[]) => object);
   };
   Object.defineProperties(wrapped, Object.getOwnPropertyDescriptors(original));
   owner[name] = wrapped;

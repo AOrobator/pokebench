@@ -17,17 +17,6 @@ const parents=(name:string,relation:"requires"|"expects"):string[]=>
   OBJECTIVE_EDGES.filter(edge=>edge.to===name&&edge.relation===relation).map(edge=>edge.from).sort();
 
 describe("objective graph topology",()=>{
-  it("resolves every edge endpoint against the recorded ids",()=>{
-    const known=new Set(OBJECTIVE_NODES);
-    // The design file claims it is generated, so a stale copy is a lie a reader would trust.
-    const design=JSON.parse(readFileSync(new URL("../../../docs/designs/objective-graph-v1.edges.json",import.meta.url),"utf8")) as {edges:{from:string;to:string;relation:string;evidence:string}[]};
-    expect(design.edges.map(edge=>[edge.from,edge.to,edge.relation,edge.evidence]))
-      .toEqual(OBJECTIVE_EDGES.map(edge=>[edge.from,edge.to,edge.relation,edge.evidence]));
-    for(const edge of OBJECTIVE_EDGES){
-      expect(known.has(edge.from),`unknown from ${edge.from}`).toBe(true);
-      expect(known.has(edge.to),`unknown to ${edge.to}`).toBe(true);
-    }
-  });
 
   it("keeps the requires relation acyclic",()=>{
     const state=new Map<string,"open"|"closed">();

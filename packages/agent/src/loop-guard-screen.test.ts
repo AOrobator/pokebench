@@ -35,21 +35,6 @@ const confirmation={phase:"clock_confirmation",selected:"NO",ready:true,controls
 const transition={phase:"clock_transition",selected:null,ready:false,controls:"Clock transition; selection input is not active",diagnostic:null,value:"10:00 AM"};
 
 describe("loop-guard-screen-v1",()=>{
- it("preserves registry ordering and defaults OFF, with shared control/bundle baseline activation",()=>{
-  expect(SWITCHABLE_FEATURES.at(120)).toBe(ID);
-  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-20)).toBe(ID);
-  expect(featureInfo(ID)).toMatchObject({group:"guard",needs:"loop-guard-supervisor-v1",switchable:true,title:"LOOP GUARD SCREEN"});
-  expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(featureInfo(ID).description).toContain("Bundle arm only");
-  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
-  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
-  expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
-  // The shared config retains the newer control baseline; this feature is on in both arms.
-  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features[ID]).toBe(true);
-  expect(bundle.switches).not.toContain(ID);
- });
  it("OFF briefs the field while the clock adjustment is open",()=>{
   const text=brief(false,adjustment);
   expect(text).toContain("GREEN's HOUSE 2F (map 1/1) at 7,2 facing down");

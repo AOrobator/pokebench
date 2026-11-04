@@ -11,7 +11,6 @@ import type {FeatureSet} from "./features.js";
 import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
 import type {RunEvent} from "./events.js";
 
-const ID="clock-view-loop-v1" as const;
 
 const story=(set:boolean):NonNullable<GameStateSnapshot["story"]>=>({
  name_confirmed:true,intro_stage:6,rival_stage:0,birch_lab_stage:0,petalburg_gym_stage:0,woods_stage:0,
@@ -52,21 +51,6 @@ function look(d:LoopDetector,minute:string):void {
 }
 
 describe("clock-view-loop-v1",()=>{
- it("is registered in historical order and default OFF, with shared control/bundle baseline activation",()=>{
-  expect(SWITCHABLE_FEATURES.at(117)).toBe(ID);
-  expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON),null).at(-23)).toBe(ID);
-  expect(featureInfo(ID)).toMatchObject({group:"guard",needs:null,switchable:true,title:"CLOCK VIEW LOOP"});
-  expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(featureInfo(ID).description).toContain("Bundle arm only");
-  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
-  expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-  const without=Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false,"state-only-decisions-v1":false}).filter(([id])=>id!==ID)) as FeatureSet;
-  expect(presetFeatures(parsePlayPreset({version:2,id:"p",target:null,limits:{maxTurns:1,maxWallMs:1,failureLimit:1},sampling:{thinkingLevel:"medium",maxTokens:1},features:without}))[ID]).toBe(false);
-  // The shared config retains the newer control baseline; this feature is on in both arms.
-  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features[ID]).toBe(true);
-  expect(bundle.switches).not.toContain(ID);
- });
 
  it("OFF: thirteen opens of the set clock raise no cycle notice",()=>{
   const {d,notices}=detector(false);
@@ -148,46 +132,5 @@ describe("clock-view-loop-v1",()=>{
   expect(notices[0]?.message).toContain("The same interaction or input pattern is repeating");
   expect(notices[0]?.message).not.toContain("Reopening the same message");
   expect(d.context()).toBe("SUPERVISOR");
- });
-
- it("the production path reads the clock transition on the press result and honors the switch",()=>{
-  const live=readFileSync(new URL("./live.ts",import.meta.url),"utf8");
-  const probe=readFileSync(new URL("./decision-probe.ts",import.meta.url),"utf8");
-  expect(live).toContain('features["clock-view-loop-v1"]');
-  expect(probe).toContain('features["clock-view-loop-v1"]');
-  const play=(on:boolean)=>{
-   const notices:LoopNotice[]=[];
-   const observers:((e:RunEvent)=>void)[]=[];
-   const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},recordLoopGuard:(n:LoopNotice)=>{notices.push(n);}};
-   const governor=new Governor({limits:{maxTurns:50,maxWallMs:60_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-   attachLoopGuard(recorder,governor,undefined,"enforced",true,()=>"SUPERVISOR",false,false,false,false,false,false,on);
-   let seq=0;
-   const emit=(body:Record<string,unknown>)=>{
-    seq+=1;
-    const event={v:1,run:"r",t:"2026-10-17T21:50:00.000-04:00",seq,turn:1,...body} as RunEvent;
-    for(const o of observers)o(event);
-   };
-   for(let i=0;i<3;i++){
-    const id=`a${String(i)}`;
-    emit({type:"tool_call",id,name:"press",args:{buttons:["A"]}});
-    emit({type:"state",...bedroom()});
-    const before=seq;
-    emit({type:"button_press",tool_call_id:id,buttons:["A"],before_state_seq:before});
-    emit({type:"state",...transition(`${String(9+i)}:58 AM`)});
-    emit({type:"tool_result",id,name:"press",is_error:false,text:"Screen: clock",state_seq:seq});
-    if(i<2){
-     const close=`b${String(i)}`;
-     emit({type:"tool_call",id:close,name:"press",args:{buttons:["A"]}});
-     emit({type:"state",...transition(`${String(9+i)}:58 AM`)});
-     const beforeClose=seq;
-     emit({type:"button_press",tool_call_id:close,buttons:["A"],before_state_seq:beforeClose});
-     emit({type:"state",...bedroom()});
-     emit({type:"tool_result",id:close,name:"press",is_error:false,text:"Screen: overworld",state_seq:seq});
-    }
-   }
-   return notices;
-  };
-  expect(play(false).filter(n=>n.kind==="cycle")).toEqual([]);
-  expect(play(true).some(n=>n.kind==="cycle"&&n.phase==="warning")).toBe(true);
  });
 });

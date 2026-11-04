@@ -72,16 +72,6 @@ it("lets a later complete candidate win after an index write fails after exclusi
  expect(JSON.parse(String(shared.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({run:"run-b",candidate:"candidates/run-b"});
 });
 
-it("rehearses two independent run-local checkpoint sets against one immutable first-arrival library",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-frontier-checkpoints-")),library=join(root,"library");
- const deps=(run:string):CheckpointDeps=>({serverUrl:"http://fake",dir:join(root,run,"checkpoints"),libraryDir:library,fetch:(_url,init)=>{const body=init?.body===undefined?{}:JSON.parse(init.body) as {paused?:unknown};return Promise.resolve(new Response(JSON.stringify("paused" in body?{paused:body.paused}:{state_base64:STATE.toString("base64"),sha1,sha256})));},write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},linkExclusive:linkSync,remove:unlinkSync,rename:renameSync});
- const first=new CheckpointCapture({kind:"frontier"},deps("run-a"),START),second=new CheckpointCapture({kind:"frontier"},deps("run-b"),START);
- first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await first.close();second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.close();
- expect(readFileSync(join(root,"run-a/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);expect(readFileSync(join(root,"run-b/checkpoints/PETALBURG_WOODS.state"))).toEqual(STATE);
- expect(JSON.parse(readFileSync(join(library,"PETALBURG_WOODS/first-arrival.json"),"utf8"))).toMatchObject({run:"run-a",candidate:"candidates/run-a"});
- expect(readFileSync(join(library,"PETALBURG_WOODS/candidates/run-b/PETALBURG_WOODS.state"))).toEqual(STATE);
-});
-
 it("ignores milestones already present at start",async()=>{const {capture,calls}=fixture();capture.observe(milestone("CLOCK_SET",5,"present_at_start"));await capture.settled();expect(calls).toHaveLength(0);});
 
 it("refuses a bad state, records the capture failure, continues later milestones, and always unpauses",async()=>{

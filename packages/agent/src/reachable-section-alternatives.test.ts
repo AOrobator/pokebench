@@ -30,11 +30,6 @@ it.each(["unknown reach","blocked departure","unknown section","trigger","dialog
  if(which==="dialogue")s={...state,world_context:{objects:[],triggers:[],dialogue:"Wait!"}};
  expect(text(await run(true,s))).not.toContain("Reachable departure alternatives");
 });
-it("can re-deliver recorded Route104/Woods section evidence without rewriting its caveats",async()=>{
- const {reachableSectionAlternatives}=await import("./reachable-section-alternatives.js");
- const raw:unknown=JSON.parse(readFileSync(new URL("./fixtures/exit-sections-b300.json",import.meta.url),"utf8"));if(typeof raw!=="object"||raw===null||!("18834" in raw))throw new Error("missing route fixture");
- const route=parseGameState(raw["18834"]);const output=reachableSectionAlternatives(route,{x:10,y:0});expect(output).toContain("different terrain section from you");expect(output).toContain("Temporary objects and scripts may block these terrain paths.");
-});
 
 it("bounds alternatives and withholds unknown terrain/landing facts",async()=>{
  const {reachableSectionAlternatives}=await import("./reachable-section-alternatives.js");

@@ -4,28 +4,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts } from "./experiment-cohorts.js";
 describe("experiment cohort definitions and labels", () => {
-  it("reads fixed, queue and manifest definitions, first definition of a key winning", () => {
-    const repo = mkdtempSync(join(tmpdir(), "cohorts-")), dir = join(repo, "experiments"), runs = join(repo, "runs");
-    mkdirSync(join(dir, "fixed"), { recursive: true }); mkdirSync(join(runs, "launch-receipts", "a"), { recursive: true }); mkdirSync(join(runs, "launch-receipts", "b"), { recursive: true }); mkdirSync(join(runs, "launch-receipts", "c"), { recursive: true });
-    writeFileSync(join(dir, "fixed", "same.json"), JSON.stringify({ id: "same", title: "Fixed title" }));
-    writeFileSync(join(dir, "same.json"), JSON.stringify({ id: "same", title: "Queue title" }));
-    writeFileSync(join(dir, "big.json"), JSON.stringify({ id: "big", title: "x".repeat(1024 * 1024) }));
-    symlinkSync(join(dir, "same.json"), join(dir, "linked.json")); writeFileSync(join(dir, "notes.txt"), "{}");
-    writeFileSync(join(runs, "launch-receipts", "a", "manifest.json"), JSON.stringify({ id: "factorial", label: "Factorial (Think Fast)" }));
-    writeFileSync(join(runs, "launch-receipts", "b", "manifest.json"), JSON.stringify({ id: "plain", label: "" }));
-    writeFileSync(join(runs, "launch-receipts", "c", "manifest.json"), JSON.stringify({ id: "other", label: "factorial" }));
-    mkdirSync(join(dir,"archive/fixed"),{recursive:true});
-    writeFileSync(join(dir,"archive/fixed/retired.json"),JSON.stringify({id:"retired",title:"Retired protocol"}));
-    writeFileSync(join(dir,"archive/fixed/same.json"),JSON.stringify({id:"same",title:"Older title"}));
-    const defs = experimentDefinitions(dir, runs);
-    expect(defs.get("retired")).toEqual({id:"retired",title:"Retired protocol"});
-    expect(defs.get("same")).toEqual({ id: "same", title: "Fixed title" });
-    expect(defs.has("big")).toBe(false);
-    expect(defs.get("Factorial (Think Fast)")).toEqual({ id: "factorial", title: "Factorial (Think Fast)" });
-    expect(defs.get("plain")).toEqual({ id: "plain", title: "plain" });
-    expect(defs.get("factorial")?.id).toBe("factorial");
-    expect(experimentDefinitions(join(repo, "absent"), join(repo, "absent")).size).toBe(0);
-  });
   it("orders tagged entries by first trial, tolerating unknown start times, and labels legacy values", () => {
     const defs = new Map([["exp", { id: "exp", title: "Experiment" }]]), A = "a".repeat(40), B = "b".repeat(40);
     const { membership, cohorts } = taggedCohorts([

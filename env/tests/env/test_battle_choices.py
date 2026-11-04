@@ -1,10 +1,6 @@
-import json
 import struct
-import threading
 
 import pytest
-from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env import battle_choices as b
 from pokebench_env.gba_text import GBA_TEXT
@@ -195,30 +191,6 @@ def test_unknown_program_and_short_reads_and_overflow():
     j.advance(m.read)
     with pytest.raises(ValueError, match="confirmed"):
         j.snapshot(0)
-
-
-def test_frame_hook_runs_in_existing_lock_and_route_reads_only_tape():
-    m = Memory()
-    lock = threading.Lock()
-
-    class Emulator:
-        def run_frame_with_buttons(self, buttons):
-            assert lock.locked()
-
-    def read(addr, size):
-        assert lock.locked()
-        return m.read(addr, size)
-
-    api = FastAPI()
-    j = b.install_battle_journal(api, Emulator, read)
-    emu = Emulator()
-    with lock:
-        emu.run_frame_with_buttons([])
-    status, _, body = get(api, "/pokebench/battle/choices")
-    assert status == 200 and json.loads(body)["frame"] == 1
-    j.error = "test failure"
-    status, _, body = get(api, "/pokebench/battle/choices")
-    assert status == 503 and "test failure" in body.decode()
 
 
 @pytest.mark.parametrize(

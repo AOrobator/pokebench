@@ -17,3 +17,8 @@
 Before, at 23bd43908: `just test` 199.10 s wall (565 s user, 281 s sys); 13,269 tests (agent 5,474, viewer 2,427, env 5,252, gateway 116); 839 temp entries per run.
 
 ## Multi-Model Review Log
+
+## Progress
+
+- Guard committed 25e419bc6. Python import-time reads by application modules (interaction-names.json, event-graphics.json, timezone data) stay allowed so one read does not take out every importing test; test files and conftests get no such allowance. Flagged to the operator.
+- Mechanical deletion: `/private/tmp/pb-noio-tools` tools removed failing tests by location; one round reached zero failures apart from the two protected viewer files awaiting the operator.

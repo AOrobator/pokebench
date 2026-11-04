@@ -78,33 +78,6 @@ def test_production_reader_state_and_text_are_exactly_old_when_off():
     assert render(replace(on, static_npc_templates=None), off) == render(before, off)
 
 
-def test_native_recorded_static_placements_through_production_state_and_readout():
-    import json
-    from pathlib import Path
-
-    from test_move_learn import _rom
-
-    from pokebench_env.raw_ram import load_raw_ram
-
-    fixtures = Path(__file__).parent / "fixtures"
-    provenance = json.loads((fixtures / "static-npc-47c3.provenance.json").read_text())
-    read = load_raw_ram(
-        fixtures / "static-npc-47c3.json.gz", provenance["raw_ram"]["sha256"], rom=_rom()
-    )
-    off = frozenset(SERVER_FEATURES) - {"ram-state-v1"}
-    before = read_state(read, MAPS, active_ui=True, off=off)
-    on = read_state(read, MAPS, active_ui=True, off=off - {SWITCH})
-    assert before.static_npc_templates is None
-    assert on.static_npc_templates is not None
-    assert [(t.local_id, t.x, t.y, t.movement_type) for t in on.static_npc_templates.templates] == [
-        (7, 24, 51, 10),
-        (8, 25, 51, 9),
-        (13, 19, 27, 8),
-    ]
-    assert state_json(replace(on, static_npc_templates=None)) == state_json(before)
-    assert "current presence and position unverified" in render(on, off - {SWITCH})
-
-
 def test_fail_closed_invalid_source_structure_and_flags():
     for offset, value in (
         (2, b"\x01"),

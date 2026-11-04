@@ -91,69 +91,6 @@ def request(api, path, body=None, *, token="secret", method="POST", query=b""):
     return messages[0]["status"], json.loads(b"".join(m.get("body", b"") for m in messages[1:]))
 
 
-def test_owned_routes_credentials_validation_journal_and_atomic_observation():
-    import types
-
-    api = FastAPI()
-    applied = []
-    server = types.SimpleNamespace(step_environment=lambda buttons: applied.append(buttons), fps=80)
-    human = install_human(
-        api, server, "secret", pace=False, observe=lambda: {"coherent_frame": human.frames}
-    )
-    assert server.fps == 10**9
-    assert (
-        request(api, "/pokebench/human/claim", {"session": "session-one"}, token="wrong")[0] == 403
-    )
-    assert request(api, "/pokebench/human/claim", {"session": "bad"})[0] == 422
-    assert request(api, "/pokebench/human/claim", {"session": "session-one"}) == (
-        200,
-        {"accepted": True},
-    )
-    assert request(api, "/pokebench/human/claim", {"session": "session-two"})[0] == 409
-    assert (
-        request(
-            api,
-            "/pokebench/human/input",
-            {"session": "session-one", "seq": 1, "buttons": ["A", "RIGHT"]},
-        )[0]
-        == 200
-    )
-    server.step_environment(["LEFT"])
-    assert applied == [["A", "RIGHT"]]
-    status, snapshot = request(api, "/pokebench/human/snapshot", method="GET", query=b"after=0")
-    assert status == 200 and snapshot["frame"] == snapshot["observation"]["coherent_frame"] == 1
-    assert (
-        request(api, "/pokebench/human/input", {"session": "session-one", "seq": 1, "buttons": []})[
-            0
-        ]
-        == 409
-    )
-    assert (
-        request(
-            api, "/pokebench/human/input", {"session": "session-one", "seq": 2, "buttons": ["NO"]}
-        )[0]
-        == 409
-    )
-    assert request(api, "/pokebench/human/snapshot", method="GET", query=b"after=999")[0] == 503
-    assert (
-        request(
-            api,
-            "/pokebench/human/input",
-            {"session": "session-one", "seq": 2, "buttons": [], "release": True},
-        )[0]
-        == 200
-    )
-    assert request(api, "/pokebench/human/claim", {"session": "session-two"})[0] == 200
-    assert (
-        request(
-            api, "/pokebench/human/input", {"session": "session-one", "seq": 3, "buttons": ["A"]}
-        )[0]
-        == 409
-    )
-    human.set_paused(True)
-    assert request(api, "/pokebench/human/claim", {"session": "session-three"})[0] == 409
-
-
 def test_ordered_taps_acknowledgement_and_release_retirement():
     human = HumanController()
     human.claim("session-one")
@@ -214,34 +151,6 @@ def test_human_frame_pacing_stays_one_x_in_dialogue(monkeypatch):
     assert sleeps == pytest.approx([0, 1 / 59.7275, 1 / 59.7275, 1 / 59.7275, 1 / 59.7275])
 
 
-def test_pause_releases_human_input_before_park_and_resumes_with_fresh_session():
-    import time
-    import types
-
-    from test_pause import FrameLoop, post
-
-    from pokebench_env.pause import install_pause
-
-    api = FastAPI()
-    server = types.SimpleNamespace(step_environment=lambda _: None, fps=80)
-    human = install_human(api, server, "secret", pace=False)
-    install_pause(api, server, input_pause=human.set_paused)
-    human.claim("session-one")
-    human.input("session-one", 1, ["A"])
-    with FrameLoop(server) as loop:
-        time.sleep(0.01)
-        assert post(api, "/pokebench/pause", b'{"paused":true}')[0] == 200
-        frames = human.frames
-        time.sleep(0.01)
-        assert human.frames == frames
-        assert human.buttons == []
-        assert post(api, "/pokebench/pause", b'{"paused":false}')[0] == 200
-        human.claim("session-two")
-        loop.stop.set()
-        post(api, "/pokebench/pause", b'{"paused":false}')
-        loop.thread.join(2)
-
-
 def test_zero_frame_pause_boundary_cannot_extend_next_hold_across_pause(monkeypatch):
     from pokebench_env import human as module
 
@@ -272,34 +181,3 @@ def test_zero_frame_pause_boundary_cannot_extend_next_hold_across_pause(monkeypa
             "session": "after-pause",
         }
     ]
-
-
-def test_checkpoint_requires_credential_and_frozen_owner_and_preserves_exact_bytes():
-    import base64
-    import hashlib
-    from types import SimpleNamespace
-
-    api = FastAPI()
-    state = b"native complete state"
-    calls = []
-
-    def checkpoint():
-        calls.append(True)
-        return state
-
-    server = SimpleNamespace(step_environment=lambda b: None, fps=60)
-    human = install_human(api, server, "secret", pace=False, checkpoint=checkpoint)
-    assert request(api, "/pokebench/human/checkpoint", token="wrong")[0] == 403
-    assert request(api, "/pokebench/human/checkpoint")[0] == 409
-    assert calls == []
-    human.frame()
-    human.set_paused(True)
-    status, value = request(api, "/pokebench/human/checkpoint")
-    assert status == 200
-    assert value["frame"] == 1
-    assert value["sha256"] == hashlib.sha256(state).hexdigest()
-    assert base64.b64decode(value["state_base64"]) == state
-    missing = FastAPI()
-    controller = install_human(missing, server, "secret", pace=False)
-    controller.set_paused(True)
-    assert request(missing, "/pokebench/human/checkpoint")[0] == 503

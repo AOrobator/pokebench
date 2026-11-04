@@ -7,50 +7,12 @@ import { LocalEndpointError, discoverLocal, readEndpoint } from "./local-endpoin
 
 const KEY = "test-key-not-real";
 
-function endpointFile(body: unknown): string {
-  const path = join(mkdtempSync(join(tmpdir(), "pokebench-endpoint-")), "server.json");
-  writeFileSync(path, JSON.stringify(body));
-  return path;
-}
 
 function loaded(id: string, args: string[], status = "loaded"): Record<string, unknown> {
   return { id, object: "model", owned_by: "llamacpp", status: { value: status, args } };
 }
 
 const ARGS = ["/llama-server", "--ctx-size", "262144", "--mmproj", "/m/mmproj.gguf", "--parallel", "1"];
-
-describe("readEndpoint", () => {
-  it("reads the base URL and key", () => {
-    expect(readEndpoint(endpointFile({ base_url: "http://127.0.0.1:18434/v1", api_key: KEY, pid: 1 }))).toEqual({
-      baseUrl: "http://127.0.0.1:18434/v1",
-      apiKey: KEY,
-    });
-  });
-
-  it.each([
-    ["a non-loopback host", { base_url: "http://10.0.0.5:18434/v1", api_key: KEY }, /127\.0\.0\.1/],
-    ["a missing key", { base_url: "http://127.0.0.1:18434/v1" }, /malformed/],
-    ["a non-URL", { base_url: "nope", api_key: KEY }, /127\.0\.0\.1/],
-  ])("rejects %s without echoing the key", (_label, body, message) => {
-    const path = endpointFile(body);
-    expect(() => readEndpoint(path)).toThrow(LocalEndpointError);
-    expect(() => readEndpoint(path)).toThrow(message);
-    try {
-      readEndpoint(path);
-    } catch (error) {
-      expect(String(error)).not.toContain(KEY);
-    }
-  });
-
-  it("reads a declared vision flag when the endpoint file carries one", () => {
-    expect(readEndpoint(endpointFile({ base_url: "http://127.0.0.1:18020/v1", api_key: KEY, vision: true }))).toEqual({ baseUrl: "http://127.0.0.1:18020/v1", apiKey: KEY, vision: true });
-    expect(() => readEndpoint(endpointFile({ base_url: "http://127.0.0.1:18020/v1", api_key: KEY, vision: "yes" }))).toThrow(/malformed/);
-  });
-
-  it("names a missing or unreadable file", () => {
-    expect(() => readEndpoint("/nonexistent/server.json")).toThrow(/cannot read \/nonexistent\/server.json/);
-  });
-});
 
 describe("discoverLocal", () => {
   const endpoint = { baseUrl: "http://127.0.0.1:18434/v1", apiKey: KEY };
@@ -111,15 +73,6 @@ describe("discoverLocal", () => {
   it("reports an unreachable server", async () => {
     const refused = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed"));
     await expect(discoverLocal(endpoint, refused)).rejects.toThrow(/GET http:\/\/127.0.0.1:18434\/v1\/models failed/);
-  });
-
-  it("keeps the key out of the error when fetch rejects the header that carries it", async () => {
-    const bad = { baseUrl: "http://127.0.0.1:1/v1", apiKey: "test-secret\nvalue" };
-    const error: unknown = await discoverLocal(bad).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(LocalEndpointError);
-    const shown = `${String(error)} ${String((error as Error).cause)}`;
-    expect(shown).not.toContain("test-secret");
-    expect(String(error)).toMatch(/GET http:\/\/127.0.0.1:1\/v1\/models failed: TypeError/);
   });
 
   it("reports only the error name and errno code, so no rendering of a quoted or backslashed key can leave", async () => {

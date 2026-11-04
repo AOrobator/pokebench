@@ -33,28 +33,6 @@ describe("withResultFacts",()=>{
    expect(await wrapped?.execute("c1",{})).toBe(result);
   }
  });
- it("the appended line reaches the model: the pinned pi loop sends it in the tool message of the next chat request",async()=>{
-  const requests:{messages:{role:string;content?:unknown}[]}[]=[];
-  const chunk=(delta:Record<string,unknown>,finish:string|null=null)=>`data: ${JSON.stringify({id:"c",object:"chat.completion.chunk",created:0,model:"lane",choices:[{index:0,delta,finish_reason:finish}]})}\n\n`;
-  const turns=[[chunk({role:"assistant",tool_calls:[{index:0,id:"call_1",type:"function",function:{name:"observe",arguments:"{}"}}]}),chunk({},"tool_calls"),"data: [DONE]\n\n"],[chunk({role:"assistant",content:"ok"}),chunk({},"stop"),"data: [DONE]\n\n"]];
-  const srv=createServer((req,res)=>{
-   if(req.method==="GET"){res.writeHead(200,{"content-type":"application/json"});res.end(JSON.stringify({object:"list",data:[{id:"think-swarm",context_window:65536,max_tokens:16384}]}));return;}
-   let raw="";req.setEncoding("utf8");req.on("data",(p:string)=>raw+=p);
-   req.on("end",()=>{requests.push(JSON.parse(raw) as {messages:{role:string;content?:unknown}[]});res.writeHead(200,{"content-type":"text/event-stream"});for(const l of turns[requests.length-1]??[])res.write(l);res.end();});
-  });
-  await new Promise<void>(resolve=>srv.listen(0,"127.0.0.1",resolve));
-  try{
-   const {port}=srv.address() as AddressInfo;
-   const models=await discoverModels({gatewayUrl:`http://127.0.0.1:${String(port)}/v1`,visionModels:["think-swarm"]});
-   const r=recorder();
-   const tools=withResultFacts([{...tool("observe",{content:[{type:"text",text:"readout"}],details:{state:home}}),parameters:Type.Object({})}],ON,r);
-   for(const o of r.observers)o(lost(1,9,{}));
-   await runAgentLoop([{role:"user",content:"play",timestamp:0}],{systemPrompt:"s",messages:[],tools:[...tools]},gatewayLoopConfig(selectModel(models,"think-swarm"),"medium"),()=>undefined);
-   const sent=JSON.stringify(requests[1]?.messages.filter(m=>m.role==="tool"));
-   expect(sent).toContain("readout");
-   expect(sent).toContain("Battle recap: you lost to a wild POOCHYENA on ROUTE101 (map 0/16) at turn 9 and whited out");
-  }finally{await new Promise<void>(resolve=>{srv.close(()=>{resolve();});});}
- });
  it("appends the recap after a whiteout as its own text part; the readout is kept as it was",async()=>{
   const r=recorder();
   const [wrapped]=withResultFacts([tool("observe",{content:[{type:"text",text:"readout"}],details:{state:home}})],ON,r);

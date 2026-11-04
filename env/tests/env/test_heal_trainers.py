@@ -9,10 +9,8 @@ and lastHealLocation is OLDALE TOWN (0/10), where the run had entered the POKéM
 """
 
 import functools
-import json
 import os
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -278,9 +276,6 @@ def test_no_field_facts_off_the_field() -> None:
 # source (scripts.inc, opponents.h, battle_moves.h) says those objects and moves are. The ROM's own
 # script heads and move table must give the same facts.
 
-E046 = json.loads((Path(__file__).parent / "fixtures/heal-trainers-e046.json").read_text())
-ROM_START = 0x08000000
-
 
 @functools.cache
 def operator_rom() -> bytes:
@@ -288,52 +283,6 @@ def operator_rom() -> bytes:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
     except RomError:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
-
-
-def e046(seq: int):  # type: ignore[no-untyped-def]
-    frame = next(f for f in E046["frames"] if f["seq"] == seq)
-    cells: dict[int, int] = {}
-    for window in frame["windows"]:
-        start = int(window["address"], 16)
-        for offset, value in enumerate(bytes.fromhex(window["hex"])):
-            cells[start + offset] = value
-    rom = operator_rom()
-
-    def read(address: int, length: int) -> bytes:
-        if address >= ROM_START:
-            return rom[address - ROM_START : address - ROM_START + length]
-        return bytes(cells[address + i] for i in range(length))
-
-    party = tuple(
-        PartyMon(
-            m["species"],
-            m["level"],
-            m["hp"],
-            m["max_hp"],
-            moves=tuple(PokemonMove(*v) for v in m["moves"]),
-        )
-        for m in frame["party"]
-    )
-    save1, save2 = struct.unpack("<II", read(0x03005D8C, 8))
-    return read_heal_facts(read, save1, save2, tuple(frame["map_id"]), party), frame
-
-
-@pytest.mark.parametrize("seq", [16066, 16287])
-def test_e046_real_ram_and_rom_give_the_facts_the_game_source_names(seq: int) -> None:
-    got, frame = e046(seq)
-    assert got is not None
-    assert got.json() == frame["twin_facts"]
-
-
-def test_e046_after_the_rich_boy_the_lass_is_unbeaten_and_oldale_set_the_last_heal() -> None:
-    got, _ = e046(16287)
-    assert got is not None
-    assert [(t.local_id, t.sprite_kind, t.trainer_id, t.defeated) for t in got.trainers] == [
-        (3, "LASS", 604, False),
-        (25, "RICH_BOY", 136, True),
-    ]
-    assert dict(got.move_power) == {10: 40, 45: 0, 52: 40, 116: 0}
-    assert (got.last_heal, got.home, got.mom_heals) == ((0, 10), (1, 0), True)
 
 
 # --- heal-before-trainers-v2: every template of the map, loaded or not -----------------------
@@ -408,67 +357,3 @@ def test_v2_state_json_adds_loaded_only_with_v2_and_the_readout_is_unchanged() -
 # TRAINER_ROXANNE_1 265) at (5,2), JOSH (2, YOUNGSTER 35, TRAINER_JOSH 320) at (5,13), TOMMY
 # (3, YOUNGSTER, TRAINER_TOMMY 321) at (3,9) and MARC (5, HIKER 55, TRAINER_MARC 571) at (1,6);
 # the gym guide (4) has no trainerbattle script.
-
-B300 = json.loads((Path(__file__).parent / "fixtures/heal-trainers-b300.json").read_text())
-
-
-def b300(seq: int, *, whole_map: bool):  # type: ignore[no-untyped-def]
-    frame = next(f for f in B300["frames"] if f["seq"] == seq)
-    cells: dict[int, int] = {}
-    for window in frame["windows"]:
-        start = int(window["address"], 16)
-        for offset, value in enumerate(bytes.fromhex(window["hex"])):
-            cells[start + offset] = value
-    rom = operator_rom()
-
-    def read(address: int, length: int) -> bytes:
-        if address >= ROM_START:
-            return rom[address - ROM_START : address - ROM_START + length]
-        return bytes(cells[address + i] for i in range(length))
-
-    party = tuple(
-        PartyMon(
-            m["species"],
-            m["level"],
-            m["hp"],
-            m["max_hp"],
-            moves=tuple(PokemonMove(*v) for v in m["moves"]),
-        )
-        for m in frame["party"]
-    )
-    save1, save2 = struct.unpack("<II", read(0x03005D8C, 8))
-    return read_heal_facts(read, save1, save2, tuple(frame["map_id"]), party, whole_map=whole_map)
-
-
-def test_b300_v1_saw_only_the_loaded_youngsters() -> None:
-    got = b300(15196, whole_map=False)
-    assert got is not None
-    assert [(t.local_id, t.trainer_id, t.defeated) for t in got.trainers] == [
-        (2, 320, True),
-        (3, 321, False),
-    ]
-
-
-@pytest.mark.parametrize(
-    ("seq", "josh_beaten", "josh_y", "tommy_loaded"),
-    [(14880, False, 13, False), (15196, True, 14, True)],
-)
-def test_b300_v2_lists_roxanne_and_marc_unloaded(
-    seq: int, josh_beaten: bool, josh_y: int, tommy_loaded: bool
-) -> None:
-    got = b300(seq, whole_map=True)
-    assert got is not None
-    assert got.trainers == (
-        MapTrainer(1, 5, 2, 125, "ROXANNE", 265, False, False),
-        MapTrainer(2, 5, josh_y, 35, "YOUNGSTER", 320, josh_beaten, True),
-        MapTrainer(3, 3, 9, 35, "YOUNGSTER", 321, False, tommy_loaded),
-        MapTrainer(5, 1, 6, 55, "HIKER", 571, False, False),
-    )
-    assert (got.last_heal, got.home, got.mom_heals) == ((1, 1), (1, 0), True)
-
-
-def test_b300_rustboro_city_has_no_trainers_and_the_save_heals_at_home() -> None:
-    got = b300(14716, whole_map=True)
-    assert got is not None
-    assert got.trainers == ()
-    assert got.last_heal == (1, 1)

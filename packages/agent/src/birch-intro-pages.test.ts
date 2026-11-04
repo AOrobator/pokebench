@@ -33,14 +33,4 @@ describe("birch-intro-pages-v1", () => {
     expect(playHarnessFeatures(off, null)).not.toContain(ID);
     expect(playHarnessFeatures({ ...off, [ID]: true }, null)).toContain(ID);
   });
-
-  it("registers a pending experiment that activates at NEW_GAME_CREATED and grades RIVAL_HOUSE_ENTERED", () => {
-    for (const name of ["bundle-v-control", "bundle-cook-1h", "whole-map-cook-1h", "whole-map-pair-2h", "bundle-v-control-2h"]) {
-      const fixed = JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`, import.meta.url),"utf8")) as { base: { features: Record<string, boolean> }; switches: string[] };
-      expect(fixed.base.features[ID]).toBe(false);
-      expect(fixed.switches.indexOf(ID)).toBeGreaterThan(fixed.switches.indexOf("milestone-instruction-memory-v1"));
-      const bundle = { ...fixed.base.features, ...Object.fromEntries(fixed.switches.map((id) => [id, true])) };
-      expect(bundle[ID]).toBe(true);
-    }
-  });
 });

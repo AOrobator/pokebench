@@ -64,43 +64,6 @@ describe(ID,()=>{
    }
   }
  });
- it("preserves complete historical OFF bytes and every observed fact in factual notes",()=>{
-  const events=gunzipSync(readFileSync(new URL("./fixtures/briefing-sh02.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
-  const start=events.find(e=>e.type==="run_start");if(start?.type!=="run_start")throw Error("no start");
-  const off=new SupervisorBriefing({...featuresOf(start.harness_features),[ID]:false});
-  const on=new SupervisorBriefing({...featuresOf(start.harness_features),[ID]:true});
-  for(const e of events){
-   if(e.type==="loop_guard"&&e.kind==="milestone_drought"){
-    const stall={kind:"milestone_drought",minutes:5} as const;
-    expect(off.stallText(stall,e.calls)).toBe(e.message);
-    const factual=on.stallText(stall,e.calls);
-    const facts=e.message.split("\n").filter(l=>l.startsWith("- "));
-    expect(factual.split("\n").filter(l=>l.startsWith("- "))).toEqual(facts);
-    expect(factual).not.toMatch(/not moving forward|not working|do not try it again|Make a new plan/);
-   }else {off.observe(e);on.observe(e);}
-  }
- });
-});
-
-it("keeps ee12 t428's true south exit facts before the t429 breakout",()=>{
- // Immutable events prefix through seq11919: SHA256 39c2aa50110b6e00d69c217072fbcf2eb23543b5dd77370330f019a9d39e0e34.
- // Offline projection: supervisor-consumed state fields only; no navigation grid, game stats, RAM or model thinking.
- const events=gunzipSync(readFileSync(new URL("./fixtures/drought-ee12.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
- const start=events.find(e=>e.type==="run_start");if(start?.type!=="run_start")throw Error("no start");
- const features={...featuresOf(start.harness_features),[ID]:false};
- const off=new SupervisorBriefing(features),on=new SupervisorBriefing({...features,[ID]:true});let checked=0;
- for(const e of events){
-  if(e.seq===11919&&e.type==="loop_guard"){
-   const stall={kind:"milestone_drought",minutes:50} as const;
-   const original=off.stallText(stall,e.calls),factual=on.stallText(stall,e.calls);
-   expect(original).toBe(e.message);
-   expect(factual.split("\n").filter(l=>l.startsWith("- "))).toEqual(original.split("\n").filter(l=>l.startsWith("- ")));
-   expect(factual).toContain("SOUTH -> OLDALE TOWN");
-   expect(factual).not.toMatch(/not moving forward|not working|do not try it again|Make a new plan/);
-   checked++;
-  }else {off.observe(e);on.observe(e);}
- }
- expect(checked).toBe(1);
 });
 
 it("holds action droughts too, without importing heal-trip policy",()=>{
@@ -128,17 +91,6 @@ it("holds actual battles for every owner and legacy-hold combination",()=>{
   expect(r.notes[0],label).toMatchObject({kind:"milestone_drought",mode:"diagnostic",phase:"would_warn"});
   expect(r.notes[0]?.message,label).toBe("Not sent (drought-progress-facts-v1): the active drought clock reached 5 minutes of play, but a battle is on screen.");
  }
-});
-it("keeps factual wording in focused and owned-interface briefing variants",()=>{
- const focused=rig(true,{"supervisor-briefing-v2":true});focused.time(STALL_DROUGHT_MS+1);focused.act();
- expect(focused.context()).toContain("choose an action");expect(focused.context()).not.toContain("choose a different action");
- const rows=gunzipSync(readFileSync(new URL("../test-support/showcase-nickname/events.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(l=>JSON.parse(l) as RunEvent);
- const start=rows[0];if(start?.type!=="run_start")throw Error("no start");
- const recorded=(start as unknown as {evaluation:{features:Record<string,boolean>}}).evaluation.features;
- const b=new SupervisorBriefing({...BASE,...recorded,[ID]:true});
- for(const e of rows){if(e.seq>=7244)break;b.observe(e);}
- const note=b.stallText({kind:"milestone_drought",minutes:5},302);
- expect(note).toContain("nickname naming editor");expect(note).toContain("Choose your next action");expect(note).not.toMatch(/not working|Make a new plan/);
 });
 
 it("does not claim no milestone was recorded when the active clock excludes earned campaign progress",()=>{

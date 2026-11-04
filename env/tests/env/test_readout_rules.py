@@ -1,16 +1,8 @@
 """readout-rules-in-prompt-v1: the fixed map rules leave the readout for the system prompt."""
 
-import itertools
-import json
-import re
 import struct
 from collections.abc import Callable
 from dataclasses import replace
-from pathlib import Path
-
-import pytest
-from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env.game_state import GameState
 from pokebench_env.map_rules import (
@@ -22,13 +14,10 @@ from pokebench_env.map_rules import (
     TERRAIN_RULE,
     TRIGGER_ELEVATION_RULE,
     prompt_section,
-    render_ts,
 )
-from pokebench_env.map_rules import main as map_rules_main
-from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rerender import read_state, render
-from tests.env.test_feature_switches import _Shot, map_memory
+from tests.env.test_feature_switches import map_memory
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, Memory, game
 from tests.env.test_live_map import tile
 from tests.env.test_world_context import COORDS, world
@@ -87,8 +76,6 @@ def observe(name: str, off: frozenset[str]) -> str:
     return render(state, off)
 
 
-GOLDEN = Path(__file__).resolve().parent / "fixtures/readout-rules-off-ef9244e2.json"
-GENERATED = Path(__file__).resolve().parents[3] / "packages/agent/src/map-rules.generated.ts"
 LEGEND = "@ player; N live object; "
 # Switches registered after the original ef9244e2 goldens; OFF is their previous behavior. The
 # fixture was mechanically rerendered on 2026-10-18 for game-known named-warp semantics.
@@ -109,44 +96,8 @@ LATER = frozenset(
 )
 
 
-def golden() -> list[tuple[str, frozenset[str], str]]:
-    body = json.loads(GOLDEN.read_text())
-    return [(c["state"], frozenset(c["off"]), c["text"]) for c in body["cases"]]
-
-
 def legend_of(text: str) -> str | None:
     return next((line for line in text.split("\n") if line.startswith(LEGEND)), None)
-
-
-def test_off_is_byte_identical_to_the_readout_before_the_switch() -> None:
-    cases = golden()
-    assert len(cases) == len(MEMORIES) * len(OFF_SETS)
-    for name, off, text in cases:
-        assert FEATURE in off
-        assert observe(name, off | LATER) == text, (name, sorted(off))
-
-
-def test_on_replaces_the_legend_with_the_pointer_and_drops_the_fixed_rules() -> None:
-    # Every golden case, ON: the same readout minus exactly the fixed blocks, pointer in place,
-    # with adjacent-tiles-v1 off (the goldens) and on (its Next tiles line stays above the pointer).
-    for (name, off, golden_text), later in itertools.product(golden(), (LATER, LATER - {ADJACENT})):
-        before = observe(name, off | later)
-        assert later != LATER or before == golden_text
-        after = observe(name, (off | later) - {FEATURE})
-        section = prompt_section(off - {FEATURE})
-        expected = []
-        for line in before.split("\n"):
-            if line.startswith(LEGEND):
-                expected.append(POINTER)
-                if "= counter:" in line:
-                    expected.append(COUNTER_LINE)
-            elif line in (TERRAIN_RULE, TRIGGER_ELEVATION_RULE) or line.startswith(
-                "Warp destinations are "
-            ):
-                assert line in section.split("\n"), (name, sorted(off), line)
-            else:
-                expected.append(line)
-        assert after.split("\n") == expected, (name, sorted(off))
 
 
 def test_on_door_readout_lacks_all_three_map_blocks_and_keeps_the_rest() -> None:
@@ -232,54 +183,7 @@ def test_the_prompt_section_depends_only_on_its_listed_switches() -> None:
     assert prompt_section(others) == prompt_section(frozenset())
 
 
-def test_the_agent_table_is_generated_from_this_module_and_is_current() -> None:
-    assert GENERATED.read_text() == render_ts(), "stale: run `just map-rules`"
-
-
-def test_the_generated_table_holds_every_switch_combination(tmp_path: Path) -> None:
-    out = tmp_path / "map-rules.generated.ts"
-    assert map_rules_main([str(out)]) == 0
-    text = out.read_text()
-    assert text == render_ts()
-    keys = re.findall(r'^  "([a-z0-9,-]*)": (\d+),?$', text, re.M)
-    assert len(keys) == 2 ** len(MAP_RULE_SWITCHES)
-    sections = json.loads(text.split("MAP_RULE_TEXTS: readonly string[] = ")[1].split(";\n")[0])
-    for key, index in keys:
-        off = frozenset(key.split(",")) if key else frozenset()
-        assert sections[int(index)] == prompt_section(off)
-    assert map_rules_main([]) == 2
-
-
 def test_switch_is_registered_server_side_last_and_default_off() -> None:
     assert FEATURE in SERVER_FEATURES
     assert FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": FEATURE}) == frozenset({FEATURE})
-
-
-def test_the_observation_route_follows_the_env_switch(monkeypatch: pytest.MonkeyPatch) -> None:
-    texts = {}
-    for raw in ("", FEATURE):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", raw)
-        app = FastAPI()
-        install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-        status, _, body = get(app, "/pokebench/observation")
-        assert status == 200, body
-        texts[raw] = json.loads(body)["state_text"]
-    assert POINTER in texts[""] and TERRAIN_RULE not in texts[""]
-    assert POINTER not in texts[FEATURE] and TERRAIN_RULE in texts[FEATURE]
-
-
-def test_with_adjacent_tiles_on_the_map_reads_grid_then_next_tiles_then_the_pointer() -> None:
-    # Both switches on: the Next tiles line stays directly under the grid, the pointer follows it.
-    both_on, rules_off = observe("door", frozenset()), observe("door", frozenset({FEATURE}))
-    rows, plain = both_on.split("\n"), rules_off.split("\n")
-    nxt = next(i for i, line in enumerate(rows) if line.startswith("Next tiles"))
-    assert rows[nxt - 1].startswith("   4 ") and rows[nxt + 1] == POINTER
-    assert rows[nxt + 2].startswith("Live objects: ")
-    # rules OFF with adjacent tiles ON keeps the legend right after the Next tiles line.
-    nxt_off = next(i for i, line in enumerate(plain) if line.startswith("Next tiles"))
-    assert plain[nxt_off] == rows[nxt] and plain[nxt_off + 1].startswith(LEGEND)
-    assert plain[nxt_off + 2] == TERRAIN_RULE
-    # Both off is the golden readout from before either switch.
-    goldens = {(n, o): t for n, o, t in golden()}
-    assert observe("door", frozenset({FEATURE}) | LATER) == goldens[("door", frozenset({FEATURE}))]

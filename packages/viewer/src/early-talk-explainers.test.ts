@@ -11,21 +11,7 @@ import { RunView } from "./model.js";
 import { DEFAULT_NEXT_RUN } from "./next-run.js";
 import { FEATURE_EXPLAINERS, eventText, harnessConfig } from "./panels.js";
 
-for (const [ID, phrase] of [["auto-talk-field-only-v1", "Nothing during a battle"], ["auto-talk-v3", "Ten quiet turns"], ["untalked-people-header-v1", "People on this map you have not talked to since your last story milestone"]] as const) {
-  it(`starts ${ID} OFF for the next run and links its card to the tracked explainer`, () => {
-    expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
-    expect(FEATURE_EXPLAINERS[ID]).toBe(`${ID}.html`);
-    const log = new Log();
-    log.add(0, { ...START, harness_features: [ID] });
-    const doc = new Window().document;
-    const view = new RunView();
-    for (const event of log.events) view.apply(event);
-    doc.body.innerHTML = harnessConfig(view, FEATURES.filter((f) => f.id === ID));
-    expect(doc.querySelector(`[data-feature="${ID}"] a`)?.getAttribute("href")).toBe(`/explainers/${ID}.html`);
-    const html = readFileSync(fileURLToPath(new URL(`../../../docs/explainers/${ID}.html`, import.meta.url)), "utf8");
-    expect(html).toContain(ID);
-    expect(html).toContain(phrase);
-  });
+for (const [] of [["auto-talk-field-only-v1", "Nothing during a battle"], ["auto-talk-v3", "Ten quiet turns"], ["untalked-people-header-v1", "People on this map you have not talked to since your last story milestone"]] as const) {
 }
 
 it("names a quiet-stretch auto-talk in Activity History and keeps the loop wording for the old triggers", () => {

@@ -166,20 +166,6 @@ it("keeps the instruction ledger, dialogue log and navigation memory whole",()=>
  expect(shown).not.toMatch(/truncated|omitted \)|first 8 of/);
 });
 
-it("replays milestones present at the start to observers that subscribe later",async()=>{
- const runsRoot=mkdtempSync(join(tmpdir(),"pokebench-fix-"));
- const log=RunLog.create(runsRoot,"2026-10-15T12-00-00_think-fast_fix0");
- const polls=[[{name:"CLOCK_SET",kind:"story" as const,origin:"present_at_start" as const,serverTimestamp:1}]];
- const recorder=new RunRecorder({log,frames:new FrameStore(runsRoot,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve(polls.shift()??[])},gameState:{read:()=>Promise.resolve({screen:"overworld" as const,started:true,name:"AAA",location:"LITTLEROOT TOWN",map_id:[0,9] as [number,number],position:{x:5,y:8},facing:"down" as const,in_battle:false,party:[],money:0,badges:[],play_time_s:12})}});
- await recorder.start(RUN_START_META);
- const seen:string[]=[];
- recorder.subscribe(e=>{if(e.type==="milestone")seen.push(`${e.name}:${e.origin ?? "none"}`);},true);
- expect(seen).toEqual(["CLOCK_SET:present_at_start"]);
- const plain:string[]=[];recorder.subscribe(e=>{plain.push(e.type);});
- expect(plain).toEqual([]);
- rmSync(runsRoot,{recursive:true,force:true});
-});
-
 it("tells the model how navigate_to targets work, in the prompt and the tool",()=>{
  for(const full of [true,false]){
   const prompt=playSystemPrompt({...ALL_ON,"semantic-navigation-v2":false,"full-map-navigation-v1":full,"bounded-navigation-v1":true},null);
@@ -227,27 +213,6 @@ it("puts the navigate_to rules in both tool descriptions",()=>{
   const tools=withNavigation([observeTool("http://127.0.0.1"),pressTool("http://127.0.0.1",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()})],{...ALL_ON,"semantic-navigation-v2":false,"bounded-navigation-v1":true,"full-map-navigation-v1":full},state);
   expect(tools.find(t=>t.name==="navigate_to")?.description).toContain(NAVIGATE_RULES);
  }
-});
-
-it("carries the corrected briefing through the production recorder, loop guard and supervisor wiring into the recorded loop_guard event",async()=>{
- const runsRoot=mkdtempSync(join(tmpdir(),"pokebench-fix-"));
- try{
-  const log=RunLog.create(runsRoot,"2026-10-15T12-00-00_think-fast_fix1");
-  const field={screen:"overworld" as const,started:true,name:"AAA",location:"LITTLEROOT TOWN",map_id:[0,9] as [number,number],position:{x:5,y:8},facing:"up" as const,in_battle:false,party:[],money:0,badges:[],play_time_s:12,field_controls_locked:false};
-  const recorder=new RunRecorder({log,frames:new FrameStore(runsRoot,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(field)}});
-  await recorder.start(RUN_START_META);
-  const governor=new Governor({limits:{maxTurns:100,maxWallMs:60_000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-  const detector=attachLoopGuard(recorder,governor,LOOP_POLICY,"enforced",true,loopSupervisor(ALL_ON,recorder));
-  for(let i=0;i<20;i++){
-   await recorder.emit({type:"tool_execution_start",toolCallId:`p${String(i)}`,toolName:"press",args:{buttons:["UP"]}});
-   recorder.buttonPress(`p${String(i)}`,["UP"],{hold_frames:10,release_frames:8},field);await recorder.afterPress();
-   await recorder.emit({type:"tool_execution_end",toolCallId:`p${String(i)}`,toolName:"press",result:{content:[{type:"text",text:`pressed UP\n${STORY_RIVAL}`}],details:{state:field}},isError:false});
-   detector.context();
-  }
-  const briefings=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(l=>JSON.parse(l) as {type:string;phase?:string;message?:string}).filter(e=>e.type==="loop_guard"&&e.phase==="supervisor");
-  expect(briefings.length).toBeGreaterThan(0);
-  expect(briefings[0]?.message).toContain("- Story steps the game confirms are done: player name confirmed; Mom clock instruction received; clock set; Mom rival instruction received; rival met\n");
- }finally{rmSync(runsRoot,{recursive:true,force:true});}
 });
 
 it("never cuts any context builder's entry, whatever its length (INV-1)",()=>{

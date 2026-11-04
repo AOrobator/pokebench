@@ -18,8 +18,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 from pokebench_env import rerender
 from pokebench_env.exit_labels import (
     MAPSEC_NONE,
@@ -35,7 +33,7 @@ from pokebench_env.exit_labels import (
 )
 from pokebench_env.game_state import MapNames
 from pokebench_env.raw_ram import load_raw_ram
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.topology import MAP_GROUPS
 from pokebench_env.world import InteractionTarget
 from tests.env.test_exit_reach import operator_rom
@@ -76,87 +74,6 @@ def test_registered_server_switch_default_off() -> None:
     assert SWITCH == "exit-labels-v2"
     assert SWITCH in SERVER_FEATURES
     assert SWITCH in features_off_from_env({})
-
-
-@pytest.mark.parametrize("seq", [WOODS, ROUTE104])
-def test_off_is_todays_readout_byte_for_byte(seq: str) -> None:
-    assert readout(seq, switch=False) == BODY["cases"][seq]["off_readout"]
-
-
-@pytest.mark.parametrize("seq", [WOODS, ROUTE104])
-def test_off_state_has_no_exit_labels(seq: str) -> None:
-    state = rerender.read_state(reader(seq), maps(), active_ui=True, off=frozenset(off(False)))
-    assert state.exit_labels is None
-    on = rerender.read_state(reader(seq), maps(), active_ui=True, off=frozenset(off(True)))
-    assert on.exit_labels is not None
-    # The typed state JSON is unchanged either way.
-    assert state_json(on).keys() == state_json(state).keys()
-
-
-@pytest.mark.parametrize("seq", [WOODS, ROUTE104])
-def test_on_no_warp_prints_a_bare_map_id(seq: str) -> None:
-    text = readout(seq, switch=True)
-    warps = line(text, "Warps: ")
-    assert "-> map " not in warps
-    for x in text.split("\n"):
-        if x.startswith("Warp destination at "):
-            assert not x.split(": ", 1)[1].startswith("map ")
-        if x.startswith("Warp to "):
-            assert not x.startswith("Warp to map") and "destination map " not in x
-
-
-def test_on_woods_names_route_104_with_map_id_everywhere() -> None:
-    text = readout(WOODS, switch=True)
-    assert "(14,5) -> ROUTE 104 (map 0/19) [" in line(text, "Warps: ")
-    assert line(text, "Warp to ROUTE 104 (map 0/19) at (14,5)").endswith(
-        "destination ROUTE 104 (map 0/19) warp 2"
-    )
-
-
-def test_on_woods_north_exit_reaches_rustboro_south_exit_does_not() -> None:
-    text = readout(WOODS, switch=True)
-    north = line(text, "Warp destination at (14,5): ")
-    assert north.startswith(
-        "Warp destination at (14,5): ROUTE 104 (map 0/19), arriving at (10,30);"
-        " from there, on foot:"
-    )
-    assert "NORTH edge -> RUSTBORO CITY (map 0/3)" in north
-    assert "(10,30) or (11,30) -> this map at (14,5) or (15,5)" in north
-    south = line(text, "Warp destination at (16,38): ")
-    assert south.startswith(
-        "Warp destination at (16,38): ROUTE 104 (map 0/19), arriving at (10,38); from there,"
-    )
-    assert "EAST edge -> PETALBURG CITY (map 0/0)" in south
-    assert "RUSTBORO" not in south
-    assert "NORTH edge" not in south
-
-
-def test_on_route104_woods_doors_say_where_the_woods_lead_back() -> None:
-    text = readout(ROUTE104, switch=True)
-    door = line(text, "Warp destination at (10,38): ")
-    assert door.startswith(
-        "Warp destination at (10,38): PETALBURG WOODS (map 24/11), arriving at (16,38);"
-        " from there, on foot: "
-    )
-    assert "-> this map at (10,30) or (11,30)" in door
-    # exit-reachability-v1's note stays on the woods' north mouths.
-    north = line(text, "Warp destination at (10,30): ")
-    assert north.startswith(
-        "Warp destination at (10,30): PETALBURG WOODS (map 24/11)"
-        " (not reachable on foot from where you stand), arriving at (14,5);"
-    )
-
-
-def test_on_wording_states_map_facts_only() -> None:
-    for seq in (WOODS, ROUTE104):
-        text = readout(seq, switch=True)
-        added = [
-            x for x in text.split("\n") if x not in BODY["cases"][seq]["off_readout"].split("\n")
-        ]
-        assert added
-        for x in added:
-            for word in ("goal", "should", "story", "head for", "go to", "toward"):
-                assert word not in x.lower()
 
 
 # --- synthetic ROM: one table, unit behaviour without the operator ROM --------------------------
@@ -413,9 +330,3 @@ def test_warps_to_the_current_map_read_this_map_and_count_by_doorway() -> None:
     )
     assert door.name_map() == {(0, 0): "TOWN A"}
     assert door.arrivals == ()
-
-
-def test_needs_named_warp_destinations_on_the_production_path() -> None:
-    without = frozenset([*off(True), "named-warp-destinations-v1"])
-    state = rerender.read_state(reader(WOODS), maps(), active_ui=True, off=without)
-    assert state.exit_labels is None

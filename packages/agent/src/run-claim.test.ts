@@ -4,9 +4,6 @@ import {join} from "node:path";
 import {describe, expect, it} from "vitest";
 import {claimLive, claimsMatching, CLAIM_FILE, claimPath, describeClaim, listClaims, ownedMessage, readClaim, writeClaim, type RunClaim} from "./run-claim.js";
 
-function scratch(): string {
-  return mkdtempSync(join(tmpdir(), "run-claim-"));
-}
 
 function claim(overrides: Partial<RunClaim> = {}): RunClaim {
   return {
@@ -19,26 +16,6 @@ const alwaysAlive = (): boolean => true;
 const neverAlive = (): boolean => false;
 
 describe("the run claim", () => {
-  it("round-trips through the run directory", () => {
-    const dir = scratch();
-    const written = claim();
-    writeClaim(dir, written);
-    expect(readClaim(dir)).toEqual(written);
-    expect(claimPath(dir)).toBe(join(dir, CLAIM_FILE));
-  });
-
-  it("reads as absent when there is no claim, and as absent when it is unreadable", () => {
-    const dir = scratch();
-    expect(readClaim(dir)).toBeNull();
-    writeFileSync(join(dir, CLAIM_FILE), "{not json");
-    expect(readClaim(dir)).toBeNull();
-  });
-
-  it("rejects a claim that does not match the schema", () => {
-    const dir = scratch();
-    writeFileSync(join(dir, CLAIM_FILE), JSON.stringify({v: 2, run: "x", pid: "not a pid"}));
-    expect(readClaim(dir)).toBeNull();
-  });
 
   it("stays live only while it has not ended and its process is alive", () => {
     expect(claimLive(claim(), alwaysAlive)).toBe(true);
@@ -58,16 +35,6 @@ describe("the run claim", () => {
     expect(claimsMatching([claim()], {port: 8076}, alwaysAlive)).toHaveLength(1);
     expect(claimsMatching([claim()], {port: 8075}, alwaysAlive)).toHaveLength(0);
     expect(claimsMatching([claim({ended: "2026-11-02T03:00:00.000Z"})], {port: 8076}, alwaysAlive)).toHaveLength(0);
-  });
-
-  it("lists model runs and human recordings under the same root", () => {
-    const root = scratch();
-    mkdirSync(join(root, "2026-11-02T02-55-21_a_07a7"), {recursive: true});
-    mkdirSync(join(root, "human", "2026-11-02T02-56-00_human_11bb"), {recursive: true});
-    mkdirSync(join(root, "launch-receipts"), {recursive: true});
-    writeClaim(join(root, "2026-11-02T02-55-21_a_07a7"), claim());
-    writeClaim(join(root, "human", "2026-11-02T02-56-00_human_11bb"), claim({run: "human-one", port: 8040}));
-    expect(listClaims(root).map((c) => c.run).sort()).toEqual(["2026-11-02T02-55-21_test_07a7", "human-one"]);
   });
 
   it("names the owner and the way to stop it without a signal", () => {

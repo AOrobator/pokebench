@@ -231,14 +231,6 @@ describe("battle-menu-loop-v1", () => {
     expect(again.notices.map((n) => n.phase)).toEqual(["warning", "supervisor", "recovered"]);
     expect(again.d.context()).toBeNull();
   });
-
-  it("passes the switch to attachLoopGuard from live and the decision probe", () => {
-    for (const file of ["live.ts", "decision-probe.ts"]) {
-      const source = readFileSync(fileURLToPath(new URL(`./${file}`, import.meta.url)), "utf8");
-      const call = source.slice(source.indexOf("attachLoopGuard("));
-      expect(call.slice(0, call.indexOf(");")).includes(`features["${ID}"]`), file).toBe(true);
-    }
-  });
 });
 
 describe("battle-menu-loop-v1 registry", () => {

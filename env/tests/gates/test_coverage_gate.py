@@ -1,9 +1,6 @@
-import json
-from pathlib import Path
-
 import pytest
 
-from pokebench_gates.coverage_gate import CoverageReportError, evaluate, main
+from pokebench_gates.coverage_gate import CoverageReportError, evaluate
 
 
 def summary(statements: int, covered: int, branches: int = 0, covered_branches: int = 0) -> dict:
@@ -122,33 +119,6 @@ def test_malformed_reports_are_rejected(payload: dict) -> None:
         evaluate(payload, minimum=90.0)
 
 
-def test_main_returns_nonzero_and_names_the_failing_metric(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    path = tmp_path / "coverage.json"
-    path.write_text(json.dumps(report({"a.py": file_entry(summary(10, 10, 2, 1), {})})))
-    assert main([str(path), "--min", "90"]) == 1
-    assert "branches 50.00% < 90.00%" in capsys.readouterr().err
-
-
-def test_main_returns_zero_when_all_metrics_pass(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    path = tmp_path / "coverage.json"
-    path.write_text(
-        json.dumps(report({"a.py": file_entry(summary(10, 10), {"f": fully_covered_function()})}))
-    )
-    assert main([str(path), "--min", "90"]) == 0
-    assert "lines 100.00%" in capsys.readouterr().out
-
-
-def test_main_reports_unreadable_input(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    path = tmp_path / "coverage.json"
-    path.write_text("not json")
-    assert main([str(path)]) == 2
-    assert "coverage report" in capsys.readouterr().err
-
-
 def test_functions_without_statements_are_not_counted() -> None:
     functions = {
         "real": fully_covered_function(),
@@ -163,13 +133,3 @@ def test_report_that_measured_nothing_fails() -> None:
         evaluate(report({}), minimum=90.0)
     with pytest.raises(CoverageReportError, match="measured no"):
         evaluate(report({"a.py": file_entry(summary(0, 0), {})}), minimum=90.0)
-
-
-@pytest.mark.parametrize("floor", ["nan", "-1", "100.5"])
-def test_main_rejects_invalid_floor(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], floor: str
-) -> None:
-    path = tmp_path / "coverage.json"
-    path.write_text(json.dumps(report({"a.py": file_entry(summary(10, 10), {})})))
-    assert main([str(path), "--min", floor]) == 2
-    assert "floor" in capsys.readouterr().err

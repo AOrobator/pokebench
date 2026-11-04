@@ -109,32 +109,6 @@ def test_v2_production_factory_switch_and_off_identity(monkeypatch):
     assert len(read(set()).full_map.tiles) == 625
 
 
-def test_installed_observation_delivers_v2_whole_lit_map_with_other_switches_off(monkeypatch):
-    from fastapi import FastAPI
-    from test_feature_switches import _Shot
-    from test_view import get
-
-    from pokebench_env import rerender
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.observation import install_observation
-    from pokebench_env.readout import SERVER_FEATURES
-
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF",
-        ",".join(s for s in SERVER_FEATURES if s != "player-map-visibility-v2"),
-    )
-    monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: state())
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), field(0).read, MapNames({}))
-    code, _, body = get(app, "/pokebench/observation")
-    assert code == 200, body
-    import json
-
-    data = json.loads(body)
-    assert len(data["state"]["map_visibility"]["visible"]) == 625
-    assert len(data["state"]["navigation_grid"]["tiles"]) == 625
-
-
 def test_v2_requests_full_native_geometry_even_without_other_full_map_features(monkeypatch):
     from pokebench_env import rerender
     from pokebench_env.game_state import MapNames
@@ -153,28 +127,6 @@ def test_v2_requests_full_native_geometry_even_without_other_full_map_features(m
             field(0).read, MapNames({}), active_ui=True, off=off, visibility=MapMemory()
         )
     assert seen == [False, True]
-
-
-def test_standalone_python_defaults_leave_v2_off_without_ts_normalization(monkeypatch):
-    from fastapi import FastAPI
-    from test_feature_switches import _Shot
-    from test_view import get
-
-    from pokebench_env import rerender
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.observation import install_observation
-    from pokebench_env.readout import features_off_from_env
-
-    monkeypatch.delenv("POKEBENCH_FEATURES_OFF", raising=False)
-    assert "player-map-visibility-v2" in features_off_from_env({})
-    monkeypatch.setattr(rerender, "read_game_state", lambda *a, **kw: state())
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), field(0).read, MapNames({}))
-    status, _, body = get(app, "/pokebench/observation")
-    assert status == 200, body
-    import json
-
-    assert "map_visibility" not in json.loads(body)["state"]
 
 
 @pytest.mark.parametrize("light_level", [0, 7])

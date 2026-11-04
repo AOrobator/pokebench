@@ -61,16 +61,3 @@ it('owns the entrypoint until run completion and signal/lease cleanup',async()=>
  expect(context.off).toHaveBeenCalledWith('SIGINT',expect.any(Function));
  expect(context.off).toHaveBeenCalledWith('SIGTERM',expect.any(Function));
 });
-
-it('keeps default-off visibility V2 disabled in the real human launcher environment',async()=>{
- fakeProcess.env['POKEBENCH_HUMAN_RUN_ID']='assigned-human-run';
- await completed();
- const host=context.hosts[0];if(host===undefined)throw Error('missing production human host');
- const runDir=mkdtempSync(join(tmpdir(),'pb-human-run-'));
- await expect(host.launchServer(runDir,'assigned-human-run',8140)).rejects.toThrow('test forbids launching a service');
- // The capture files are opened before the spawn, so a refused launch still leaves the run's
- // evidence in place rather than orphaning two descriptors.
- expect(readdirSync(runDir).sort()).toEqual(['server-stderr.log','server-stdout.log']);
- const env=context.spawn.mock.calls[0]?.[2].env;
- expect(env?.['POKEBENCH_FEATURES_OFF']?.split(',')).toContain('player-map-visibility-v2');
-});

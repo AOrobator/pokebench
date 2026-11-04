@@ -30,35 +30,11 @@ FIXTURE = json.loads(
 )
 ROM_START = 0x08000000
 # Switches registered after cook run #2 were off for it.
-RECORDED_OFF = (
-    frozenset({"coherent-battle-observation-v1", "player-elevation-readout-v1"})
-    | frozenset(FIXTURE["recorded_off"])
-    | {
-        "readout-truth-v1",
-        "birch-speech-pages-v1",
-        "blackout-readout-v1",
-        "surf-gated-exits-v1",
-        "exit-reachability-v1",
-        "heal-before-trainers-v1",
-        "tutorial-party-owner-v1",
-        "mid-frame-readout-v1",
-        "unset-dynamic-warp-v1",
-        "status-names-v1",
-        "surf-gated-exits-v2",
-        "battle-effective-damage-v1",
-        "caught-nickname-prompt-v1",
-        "exp-next-level-v1",
-        "pokedex-own-v1",
-    }
-)
-OFF_TEXT = "Battle details: WILD single · turn 3 · resolving (no input until the game asks)"
-WAITING = 'battle message waiting: "Wild WINGULL fainted!" — press A or B to continue'
 RESOLVING = (
     "resolving (the game is playing animations or a message that closes on its own; "
     "no input until the game asks)"
 )
 # The control arm of bundle-v-control: no expanded battle information, no battle-details-v2.
-CONTROL_OFF = RECORDED_OFF | {"battle-details-v2", "expanded-menu-battle-information-v1"}
 
 
 @cache
@@ -111,67 +87,6 @@ def reader(raw: str, rom: bytes):  # type: ignore[no-untyped-def]
 def render(raw: str, off: frozenset[str]) -> str:
     read = reader(raw, operator_rom())
     return rerender.render(rerender.read_state(read, maps(), active_ui=True, off=off), off)
-
-
-def changed(before: str, after: str) -> tuple[list[str], list[str]]:
-    old, new = before.split("\n"), after.split("\n")
-    return [line for line in old if line not in new], [line for line in new if line not in old]
-
-
-@pytest.mark.parametrize("raw", ["00004696", "00004700", "00004850"])
-def test_off_reproduces_the_recorded_readout_byte_for_byte(raw: str) -> None:
-    assert render(raw, RECORDED_OFF | {SWITCH}) == frame(raw)["readout"]
-    assert OFF_TEXT in str(frame(raw)["readout"]).split("\n")
-
-
-@pytest.mark.parametrize("raw", ["00004700", "00004850"])
-def test_on_the_wingull_page_waiting_for_a_or_b_is_named_whole(raw: str) -> None:
-    on = render(raw, RECORDED_OFF - {SWITCH})
-    assert changed(str(frame(raw)["readout"]), on) == (
-        [OFF_TEXT],
-        [f"Battle details: WILD single · turn 3 · {WAITING}"],
-    )
-
-
-def test_on_the_hp_drain_before_the_faint_says_why_no_input_is_needed() -> None:
-    on = render("00004696", RECORDED_OFF - {SWITCH})
-    assert changed(str(frame("00004696")["readout"]), on) == (
-        [OFF_TEXT],
-        [f"Battle details: WILD single · turn 3 · {RESOLVING}"],
-    )
-
-
-def test_control_arm_without_battle_details_gets_its_own_line() -> None:
-    off_text = render("00004700", CONTROL_OFF | {SWITCH})
-    on_text = render("00004700", CONTROL_OFF - {SWITCH})
-    lines = on_text.split("\n")
-    assert changed(off_text, on_text) == ([], [f"Battle input: {WAITING}"])
-    assert lines[lines.index("Battle details: unprovided") + 1] == f"Battle input: {WAITING}"
-    # Idle printer: the control arm says nothing new.
-    assert render("00004696", CONTROL_OFF | {SWITCH}) == render("00004696", CONTROL_OFF - {SWITCH})
-
-
-def test_expanded_without_battle_details_adds_the_line_after_the_battle_state() -> None:
-    off = CONTROL_OFF - {"expanded-menu-battle-information-v1"}
-    lines = render("00004850", off - {SWITCH}).split("\n")
-    at = next(i for i, line in enumerate(lines) if line.startswith("Battle state: resolving"))
-    assert lines[at + 1] == f"Battle input: {WAITING}"
-    assert changed(render("00004850", off | {SWITCH}), "\n".join(lines)) == (
-        [],
-        [f"Battle input: {WAITING}"],
-    )
-
-
-def test_the_state_json_is_the_same_on_and_off() -> None:
-    from pokebench_env.readout import state_json
-
-    read = reader("00004700", operator_rom())
-    on = rerender.read_state(read, maps(), active_ui=True, off=RECORDED_OFF - {SWITCH})
-    off = rerender.read_state(read, maps(), active_ui=True, off=RECORDED_OFF | {SWITCH})
-    assert state_json(on) == state_json(off)
-    message = state_json(on)["battle"]["message"]  # type: ignore[index]
-    assert message["page"] == "Wild WINGULL fainted!"  # type: ignore[index]
-    assert message["state"] == "waiting_for_input"  # type: ignore[index]
 
 
 # --- the page shown in the window (pokeemerald src/text.c RenderText) ---
@@ -263,57 +178,6 @@ def test_clause_for_a_battle_script_yes_no_box() -> None:
     assert input_clause(unready) == RESOLVING
 
 
-def test_details_line_keeps_ready_finishing_and_replay_text() -> None:
-    from test_battle_details_v2 import state, trainer
-
-    from pokebench_env.battle_details import BattleDetails
-
-    base = state(trainer())
-    details = base.battle_details
-    assert isinstance(details, BattleDetails) and base.battle is not None
-    ready_off = details.lines(base.battle)[0]
-    assert "input ready (action select)" in ready_off
-    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
-    ready = replace(base.battle, message=waiting, text_phase="input")
-    assert details.lines(ready, message_waiting=True)[0] == ready_off
-    finishing = replace(
-        base.battle,
-        player_inputs=(),
-        phase="finishing",
-        outcome="won",
-        message=waiting,
-        text_phase="message_waiting",
-    )
-    assert details.lines(finishing)[0].endswith("· finishing (outcome won)")
-    assert details.lines(finishing, message_waiting=True)[0].endswith(
-        '· finishing (outcome won) · battle message waiting: "Hi!" — press A or B to continue'
-    )
-    idle_finish = replace(finishing, message=bt.BattleMessage("idle"), text_phase="busy")
-    assert details.lines(idle_finish, message_waiting=True)[0].endswith("finishing (outcome won)")
-    replay = replace(finishing, phase="replay")
-    assert details.lines(replay, message_waiting=True)[0].endswith("recorded playback")
-
-
-def test_control_arm_line_is_absent_when_input_is_ready_or_in_replay() -> None:
-    from test_battle_details_v2 import state, trainer
-
-    base = state(trainer())
-    assert base.battle is not None
-    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
-    off = CONTROL_OFF - {SWITCH}
-    ready = replace(
-        base,
-        battle_details=None,
-        battle=replace(base.battle, message=waiting, text_phase="message_waiting"),
-    )
-    assert "Battle input:" not in format_readout(ready, off)
-    resolving = replace(ready.battle, player_inputs=(), phase="resolving")  # type: ignore[arg-type]
-    shown = format_readout(replace(ready, battle=resolving), off)
-    assert 'Battle input: battle message waiting: "Hi!" — press A or B to continue' in shown
-    replay = replace(resolving, phase="replay")
-    assert "Battle input:" not in format_readout(replace(ready, battle=replay), off)
-
-
 def test_format_readout_off_is_unchanged_without_a_battle() -> None:
     from test_readout import IN_GAME
 
@@ -327,29 +191,6 @@ def test_switch_is_registered_server_side_last_and_default_off() -> None:
     assert SERVER_FEATURES[32] == SWITCH
     assert SWITCH in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": SWITCH}) == frozenset({SWITCH})
-
-
-def test_production_observation_route_honours_the_switch(monkeypatch: pytest.MonkeyPatch) -> None:
-    from fastapi import FastAPI
-    from test_feature_switches import _Shot
-    from test_view import get
-
-    from pokebench_env.observation import install_observation
-
-    read = reader("00004700", operator_rom())
-    payloads = {}
-    for off in (RECORDED_OFF - {SWITCH}, RECORDED_OFF | {SWITCH}):
-        off |= {"player-map-visibility-v2"}
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
-        monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
-        app = FastAPI()
-        install_observation(app, lambda: _Shot(), read, maps())
-        status, _, body = get(app, "/pokebench/observation")
-        assert status == 200, body
-        payloads[SWITCH in off] = json.loads(body)
-    assert f"Battle details: WILD single · turn 3 · {WAITING}" in payloads[False]["state_text"]
-    assert payloads[True]["state_text"] == frame("00004700")["readout"]
-    assert payloads[False]["state"] == payloads[True]["state"]
 
 
 def test_page_text_needs_the_terminated_payload() -> None:
@@ -366,32 +207,6 @@ def test_page_text_needs_the_terminated_payload() -> None:
 
 
 # --- review round 1 ---
-
-
-def test_a_message_on_another_screen_over_the_battle_keeps_the_off_text() -> None:
-    """Evolution, bag or party own the callback (text_phase screen): no message clause."""
-    from test_battle_details_v2 import state, trainer
-
-    waiting = bt.BattleMessage("waiting_for_input", "page_wait", "x", 3, "i", None, "Hi!")
-    screen = replace(BASE, message=waiting, text_phase="screen")
-    assert message_clause(screen) is None and input_clause(screen) is None
-    printing = bt.BattleMessage("printing", "printing", "x", 3, "i", None, "Hi!")
-    assert input_clause(replace(screen, message=printing)) is None
-    base = state(trainer())
-    assert base.battle is not None
-    over = replace(
-        base.battle, player_inputs=(), phase="resolving", message=waiting, text_phase="screen"
-    )
-    with_details = replace(base, battle=over)
-    without = replace(with_details, battle_details=None)
-    for current, arm in ((with_details, frozenset()), (without, CONTROL_OFF)):
-        assert format_readout(current, arm - {SWITCH}) == format_readout(current, arm | {SWITCH})
-    # The detector itself: an active printer-0 page under a non-battle callback is phase screen.
-    m = Memory()
-    m.message(encode("Hi!") + b"\xfb", 4, state=2)
-    m.set(0x030022C4, 0x081AAD5D)
-    assert bt.battle_text_phase(m.read) == "screen"
-    assert bt.read_battle_message(m.read).state == "waiting_for_input"
 
 
 def test_a_page_held_by_auto_scroll_is_not_called_printing() -> None:

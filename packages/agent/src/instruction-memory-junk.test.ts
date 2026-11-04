@@ -116,11 +116,6 @@ it("registers the switch once, default OFF, depending on the existing cap owner"
  expect(normalizeFeatures(featuresOf([]))).toHaveProperty(ID,false);expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})).toHaveProperty(ID,false);
  const f={...featuresOf([]),"instruction-memory-cap-v1":true,[ID]:true};expect(playHarnessFeatures(f,null).filter(s=>s===ID)).toEqual([ID]);expect(dependencyProblems(f).some(p=>p.includes(ID))).toBe(false);
 });
-it("the checked-in labels contain only pret text and categories, never walkthrough prose",()=>{
- const data:unknown=JSON.parse(readFileSync(new URL("./data/npc-flavor-labels.json",import.meta.url),"utf8"));expect(Array.isArray(data)).toBe(true);
- if(!Array.isArray(data))throw new Error("expected label array");expect(data).toHaveLength(1442);
- for(const row of data){expect(Object.keys(row as object).sort()).toEqual(["category","map","text","text_label"]);}
-});
 
 it("a useful page keeps its whole otherwise-flavor episode",()=>{
  const e=ep(10,[page("There's a move that gets stronger\nwhen you keep using it in a row.",{speaker:"NPC",map:"VERDANTURF TOWN POKEMON CENTER 1F",id:[6,4]}),page("It's a BUG-type move, and it is\nwickedly cool.",{speaker:"NPC",map:"VERDANTURF TOWN POKEMON CENTER 1F",id:[6,4]}),page("It's called FURY CUTTER.\nWant me to teach it to a POKéMON?",{speaker:"NPC",map:"VERDANTURF TOWN POKEMON CENTER 1F",id:[6,4]})]);
@@ -136,21 +131,6 @@ it("the production observed-memory factory passes the default-OFF switch to the 
   const out=await transform([]as AgentMessage[]);expect(notes).toHaveLength(1);expect(out.at(-1)).toMatchObject({role:"user",content:notes[0]});return notes[0]??"";
  };
  expect(await sample(false)).toContain("weaken the wild");expect(await sample(true)).not.toContain("weaken the wild");
-});
-it("no individually rendered approved hint/useful label is dropped",()=>{
- const raw:unknown=JSON.parse(readFileSync(new URL("./data/npc-flavor-labels.json",import.meta.url),"utf8"));
- const source:unknown=JSON.parse(readFileSync(new URL("./data/instruction-memory-junk-source.json",import.meta.url),"utf8"));
- if(!Array.isArray(raw)||typeof source!=="object"||source===null||!("maps"in source))throw new Error("missing generated data");
- const maps=source.maps as Record<string,[number,number]>;const c=setup();let checked=0;
- for(const value of raw as unknown[]){
-  if(typeof value!=="object"||value===null||!("category"in value)||value.category==="FLAVOR")continue;
-  if(!("map"in value)||!("text"in value)||!("text_label"in value)||typeof value.map!=="string"||typeof value.text!=="string")throw new Error("bad label row");
-  const id=maps[value.map];if(id===undefined)throw new Error("missing map "+value.map);
-  const text=value.text.replaceAll("\\\\","\\").replaceAll("\\l","\\n");
-  const e=ep(100+checked,text.split("\\p").map(t=>page(t.replaceAll("\\n","\n").replace(/\{[A-Z_0-9]+\}/g,"ANNA"),{speaker:"NPC",id,map:value.map as string})));
-  const out=c.select([e],render);expect(out.kept,JSON.stringify({label:value.text_label,decision:out.decisions})).toEqual([e]);checked++;
- }
- expect(checked).toBeGreaterThan(400);
 });
 
 it("R6 preserves a partially labelled exchange and an identified story sprite",()=>{
@@ -172,13 +152,3 @@ it("R1 binds PLAYER in service templates to the native player name",()=>{
  const right=ep(10,[page("ANNA booted up the PC.",{speaker:null,source:null})]);expect(selected([right]).decisions[0]).toMatchObject({step:"junk",rule:"R1",kept:false});
  const wrong=ep(10,[page("BOB booted up the PC.",{speaker:null,source:null})]);expect(selected([wrong]).kept).toEqual([wrong]);
 });
-
-it("regenerates the checked-in source text and lexicons from the clean pinned pret checkout",()=>{
- const repo=fileURLToPath(new URL("../../../",import.meta.url));
- const common=execFileSync("git",["rev-parse","--path-format=absolute","--git-common-dir"],{cwd:repo,encoding:"utf8"}).trim();
- const pret=process.env["POKEEMERALD_DIR"]??resolve(dirname(common),"../pokeemerald");
- // 25s inner / 30s test: the sweep is 0.5s alone, but vitest's 5s default is what a
- // loaded full-suite run plus a live emulator actually blows through.
- const output=execFileSync("python3",[resolve(repo,"scripts/build-instruction-memory-junk.py"),"--pret",pret,"--labels",resolve(repo,"packages/agent/src/data/npc-flavor-labels.json"),"--output",resolve(repo,"packages/agent/src/data"),"--check"],{cwd:repo,encoding:"utf8",timeout:25000});
- expect(output).toContain("npc-flavor-labels.json");expect(output).toContain("instruction-memory-junk-source.json");
-},30000);

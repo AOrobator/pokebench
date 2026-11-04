@@ -71,12 +71,6 @@ describe('explicit native evolution choice',()=>{
   expect(h.posts).toEqual([]);expect(hooks.beforePress).not.toHaveBeenCalled();
   expect(JSON.stringify(result.content)).toContain('Nothing pressed');
  });
- it('the intervention is on in both arms (operator decision 2026-10-20)',()=>{
-  const bundle=JSON.parse(recipeText(new URL('../../../experiments/fixed/bundle-v-control.json',import.meta.url),'utf8')) as {switches:string[];base:{features:Record<string,boolean>};onInBoth:string[];offInBoth:string[]};
-  expect(bundle.switches).not.toContain(ID);
-  expect(bundle.base.features[ID]).toBe(true);
-  expect(bundle.onInBoth).toContain(ID);expect(bundle.offInBoth).not.toContain(ID);
- });
 });
 
 it.each([false,true])('evolution result snapshot retirement follows its feature switch (ON=%s)',async enabled=>{

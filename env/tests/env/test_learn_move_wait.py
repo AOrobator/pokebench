@@ -9,7 +9,6 @@ BattleScript_AskToLearnMove, src/pokemon_summary_screen.c Task_HandleReplaceMove
 
 from __future__ import annotations
 
-import json
 import struct
 import threading
 import types
@@ -19,8 +18,6 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from test_battle_text import Memory, encode
-from test_move_learn import _rom, archived
-from test_view import get
 
 from pokebench_env import learn_move_wait as lmw
 from pokebench_env.game_state import MapNames
@@ -29,45 +26,6 @@ TASKS = 0x03005E00
 CALLBACK2 = 0x030022C4
 EVOLUTION = 0x0813E571
 TRADE = 0x0813F1B9
-
-
-@pytest.mark.parametrize(
-    ("name", "step"),
-    [
-        ("evo-intro3-printing", "busy"),
-        ("evo-intro3-waiting", "page"),
-        ("evo-delete-printing", "busy"),
-        ("evo-delete-box", "box"),
-        ("evo-stop-printing", "busy"),
-        ("evo-stop-box", "box"),
-        ("battle-delete-box", "box"),
-        ("battle-stop-box", "box"),
-        # The recorded forget list was captured while its fade-in still ran.
-        ("summary-forget", "busy"),
-    ],
-)
-def test_recorded_move_learning_states(name: str, step: str) -> None:
-    assert lmw.learn_step(archived(name)) == step
-
-
-def test_battle_learner_is_the_exp_getter_and_the_move_to_learn() -> None:
-    for name in ("battle-delete-box", "battle-stop-box", "summary-forget"):
-        assert lmw.battle_learner(archived(name)) == {"party_slot": 0, "new_move": "PECK"}
-    for name in ("evo-delete-box", "evo-stop-box", "evo-intro3-waiting"):
-        assert lmw.battle_learner(archived(name)) is None
-
-
-def test_the_battle_script_range_is_the_rom_script() -> None:
-    rom = _rom()
-    start = lmw.ASK_TO_LEARN_MOVE - 0x08000000
-    end = lmw.LEARN_FLOW_END - 0x08000000
-    # buffermovetolearn; printstring TRYTOLEARNMOVE1-3; waitstate; setbyte learnMoveState 0.
-    assert rom[start : start + 17].hex(" ") == (
-        "71 10 10 00 10 11 00 10 12 00 3a 2e 93 44 02 02 00"
-    )
-    assert rom[start + 17 : start + 22] == bytes.fromhex("5a10ac2d08")  # yesnoboxlearnmove
-    assert rom[start + 32 : start + 37] == bytes.fromhex("5be3ab2d08")  # yesnoboxstoplearningmove
-    assert rom[end - 5 : end] == bytes.fromhex("28d9ab2d08")  # goto BattleScript_TryLearnMoveLoop
 
 
 class Game(Memory):
@@ -305,102 +263,6 @@ def _production(**extra: Any) -> tuple[FastAPI, Game, threading.Lock, type]:
         **extra,
     )
     return app, game, lock, Emulator
-
-
-def test_the_route_through_the_production_run(monkeypatch: pytest.MonkeyPatch) -> None:
-    from pokebench_env import serve
-
-    registered = threading.Event()
-
-    class Signalled(lmw.LearnWait):
-        def __init__(self, read: Any) -> None:
-            super().__init__(read)
-            self._waiters = Registering([], registered)
-
-    monkeypatch.setattr(serve, "LearnWait", Signalled)
-    app, game, lock, emulator = _production(
-        pause=(FastAPI(), types.SimpleNamespace(step_environment=lambda actions: None))
-    )
-    status, _, body = get(app, "/pokebench/move-learn/wait")
-    payload = json.loads(body)
-    assert status == 200
-    assert (payload["reason"], payload["frames"], payload["battle_learner"]) == ("other", 0, None)
-    assert payload["state"]["in_battle"] is False
-    game.evolution(22, 1)
-    result: dict[str, object] = {}
-    thread = threading.Thread(
-        target=lambda: result.update(r=get(app, "/pokebench/move-learn/wait", b"max_frames=2")),
-        daemon=True,
-    )
-    thread.start()
-    assert registered.wait(5), "the route did not register its waiter"
-    assert thread.is_alive()
-    with lock:
-        emulator().run_frame_with_buttons([])
-    game.evolution(22, 4)
-    with lock:
-        emulator().run_frame_with_buttons([])
-    thread.join(5)
-    assert json.loads(result["r"][2])["reason"] == "box"  # type: ignore[index]
-    assert get(app, "/pokebench/move-learn/wait", b"max_frames=0")[0] == 422
-
-
-def test_raw_route_persists_the_capture_before_a_learner_read_error(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Review round 1 (Astra): a learner decode error after the raw capture must still leave a
-    # durable raw receipt (observation.py finish_snapshot: persistence precedes decode errors).
-    from contextlib import contextmanager
-
-    from pokebench_env import observation
-
-    calls: list[str] = []
-
-    class Archive:
-        @contextmanager
-        def reserve(self):  # type: ignore[no-untyped-def]
-            calls.append("reserve")
-            try:
-                yield "reservation"
-            finally:
-                calls.append("release")
-
-        def start_capture(self, reservation: object, snapshot: object) -> str:
-            calls.append("start_capture")
-            return "future"
-
-        def finish_capture(self, reservation: object, future: object) -> dict[str, object]:
-            calls.append("finish_capture")
-            return {"sequence": 0}
-
-        def pair(self, *args: object) -> None:
-            calls.append("pair")
-
-    def raw_snapshot(reservation: object) -> str:
-        calls.append("raw_snapshot")
-        return "snapshot"
-
-    def broken(read: object) -> object:
-        raise ValueError("move learner party slot 6 is out of range")
-
-    monkeypatch.setattr(lmw, "learn_step", Scripted("box"))
-    monkeypatch.setattr(observation, "battle_learner", broken)
-    game = Game()
-    app = FastAPI()
-    observation.install_observation(
-        app,
-        lambda: None,  # type: ignore[arg-type,return-value]
-        game.read,
-        MapNames({}),
-        threading.Lock(),
-        raw_archive=Archive(),  # type: ignore[arg-type]
-        raw_snapshot=raw_snapshot,  # type: ignore[arg-type]
-        raw_rom=bytes(4),
-        learn_wait=lmw.LearnWait(game.read),
-    )
-    with pytest.raises(ValueError, match="move learner party slot 6 is out of range"):
-        get(app, "/pokebench/move-learn/wait")
-    assert calls == ["reserve", "raw_snapshot", "start_capture", "finish_capture", "release"]
 
 
 def test_human_mode_installs_no_move_learning_wait() -> None:

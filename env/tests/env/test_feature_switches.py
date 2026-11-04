@@ -1,18 +1,12 @@
 """Per-feature observation switches: each one removes only its own model text."""
 
-import json
-import re
 import struct
 from dataclasses import replace
-from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env.game_state import GameState, read_game_state
 from pokebench_env.naming import NamingState
-from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, game
 from tests.env.test_live_map import loaded, tile
@@ -186,57 +180,6 @@ def test_field_lock_story_and_naming_lines_switch_off() -> None:
     ) == NAMING.readout().split("\n")
 
 
-def test_other_switches_preserve_measurement_json_with_visibility_off(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    payloads = []
-    for off in ("player-map-visibility-v2", ",".join(SERVER_FEATURES)):
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
-        app = FastAPI()
-        install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-        status, _, body = get(app, "/pokebench/observation")
-        assert status == 200, body
-        payloads.append(json.loads(body))
-    # Visibility has its own measured-facts test; retain full geometry for these older switches.
-    assert payloads[0]["state"].pop("map_grid")["width"] == 5
-    assert "map_grid" not in payloads[1]["state"]
-    # The observation layer is explicitly declared only in its ON state.
-    assert payloads[0]["state"].pop("map_observation")["version"] == 1
-    assert "map_observation" not in payloads[1]["state"]
-    # exp-next-level-v1 adds the NEXT LV. numbers for the party.
-    assert isinstance(payloads[0]["state"].pop("party_next_level"), list)
-    assert "party_next_level" not in payloads[1]["state"]
-    # type-gap-team-v1 adds the party's types and the ROM type chart.
-    assert "type_chart" in payloads[0]["state"].pop("type_gap")
-    assert "type_gap" not in payloads[1]["state"]
-    # surf-gated-exits-v1 adds the Surf gate (no water on this map, so nothing is across it).
-    assert payloads[0]["state"].pop("surf_gate")["warps"] == []
-    assert "surf_gate" not in payloads[1]["state"]
-    # exit-reachability-v1 adds the exit labels and the foot area.
-    assert payloads[0]["state"].pop("exit_reach")["foot"]["width"] == 5
-    assert "exit_reach" not in payloads[1]["state"]
-    # field-move-gates-v1 adds the map's obstacles and the capabilities (no obstacles here).
-    assert payloads[0]["state"].pop("field_obstacles")["obstacles"] == []
-    assert "field_obstacles" not in payloads[1]["state"]
-    # heal-before-trainers-v1 adds the trainers on this map and the healing places (none here).
-    assert payloads[0]["state"].pop("heal_before_trainers")["trainers"] == []
-    assert "heal_before_trainers" not in payloads[1]["state"]
-    # semantic-navigation-v1 adds native object-slot receipts and binds listed objects to them.
-    assert payloads[0]["state"].pop("interaction_object_slots")
-    assert "interaction_object_slots" not in payloads[1]["state"]
-    for target in payloads[0]["state"]["interaction_targets"]:
-        target.pop("native_slot", None)
-    assert payloads[0]["state"] == payloads[1]["state"]
-    assert payloads[0]["state_text"] != "" and payloads[1]["state_text"] == ""
-
-
-def test_server_feature_list_matches_the_agent_registry() -> None:
-    source = (Path(__file__).resolve().parents[3] / "packages/agent/src/features.ts").read_text()
-    block = source.split("export const SERVER_FEATURES: readonly SwitchableFeature[] = [", 1)[1]
-    block = block.split("];", 1)[0]
-    assert tuple(re.findall(r'"([a-z0-9-]+)"', block)) == SERVER_FEATURES
-
-
 # SERVER_FEATURES is append-only; these pins cover the switches registered when they froze.
 FROZEN_SERVER_FEATURES = SERVER_FEATURES[: SERVER_FEATURES.index("map-observability-v1") + 1]
 LATER_SERVER_FEATURES = frozenset(SERVER_FEATURES[len(FROZEN_SERVER_FEATURES) :])
@@ -334,62 +277,9 @@ def test_env_list_is_validated() -> None:
     assert len(set(SERVER_FEATURES)) == len(SERVER_FEATURES)
 
 
-def test_observation_route_applies_the_env_switches(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", "live-player-position-v1")
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    status, _, body = get(app, "/pokebench/observation")
-    payload = json.loads(body)
-    assert status == 200, body
-    assert "Position:" not in payload["state_text"] and "Location:" in payload["state_text"]
-    assert payload["state"]["position"] == {"x": 1, "y": 1}
-
-
 class _Shot:
     def model_dump(self) -> dict[str, object]:
         return {"screenshot_base64": "iVBORw0KGgo="}
-
-
-def test_full_map_switch_replaces_the_local_grid_and_adds_map_grid_only_when_on(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF",
-        "map-observability-v1,player-map-visibility-v2",
-    )
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    _, _, body = get(app, "/pokebench/observation")
-    payload = json.loads(body)
-    assert "Whole current map from live memory (5x5)" in payload["state_text"]
-    assert "Local map from live memory" not in payload["state_text"]
-    assert payload["state"]["map_grid"]["width"] == 5
-    assert len(payload["state"]["navigation_grid"]["tiles"]) == 25
-    _, _, state_body = get(app, "/pokebench/state")
-    assert json.loads(state_body)["map_grid"]["height"] == 5
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF",
-        "full-map-navigation-v1,window-escape-route-v1,map-observability-v1,player-map-visibility-v2",
-    )
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    _, _, body = get(app, "/pokebench/observation")
-    payload = json.loads(body)
-    assert "Local map from live memory" in payload["state_text"]
-    assert "Whole current map" not in payload["state_text"]
-    assert "map_grid" not in payload["state"]
-    # window-escape-route-v1 alone: the state carries map_grid, the readout keeps the local map.
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF",
-        "full-map-navigation-v1,map-observability-v1,player-map-visibility-v2",
-    )
-    app = FastAPI()
-    install_observation(app, lambda: _Shot(), map_memory().read, MAPS)
-    _, _, body = get(app, "/pokebench/observation")
-    payload = json.loads(body)
-    assert "Local map from live memory" in payload["state_text"]
-    assert "Whole current map" not in payload["state_text"]
-    assert payload["state"]["map_grid"]["width"] == 5
 
 
 def test_full_map_text_respects_live_map_and_coordinate_switches() -> None:

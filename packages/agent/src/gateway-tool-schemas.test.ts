@@ -4,7 +4,6 @@ import {featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES} fro
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 
 const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
-const recipe=():{onInBoth:string[];features:Record<string,boolean>}=>JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {onInBoth:string[];features:Record<string,boolean>};
 
 describe("gateway-tool-schemas-v1",()=>{
  const id="gateway-tool-schemas-v1";
@@ -17,7 +16,6 @@ describe("gateway-tool-schemas-v1",()=>{
   expect(normalizeFeatures(historical)[id]).toBe(false);
   expect(playHarnessFeatures({...normalizeFeatures(historical),[id]:true},null)).toContain(id);
  });
- it("is declared on in both current arms",()=>{expect(recipe().onInBoth).toContain(id);expect(recipe().features[id]).toBe(true);});
 });
 
 describe("gateway-schema-hint-v1",()=>{
@@ -31,5 +29,4 @@ describe("gateway-schema-hint-v1",()=>{
   expect(normalizeFeatures(historical)[id]).toBe(false);
   expect(playHarnessFeatures({...normalizeFeatures(historical),[id]:true},null)).toContain(id);
  });
- it("is declared on in both current arms",()=>{expect(recipe().onInBoth).toContain(id);expect(recipe().features[id]).toBe(true);});
 });

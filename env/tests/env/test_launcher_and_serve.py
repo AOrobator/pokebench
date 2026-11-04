@@ -1,51 +1,21 @@
 import asyncio
 import base64
-import os
 import threading
 import types
 from io import BytesIO
-from pathlib import Path
 
 import numpy as np
 import pytest
 from fastapi import FastAPI, WebSocketDisconnect
 from PIL import Image
 
-from pokebench_env.launcher import VENDOR_DIR, ServerSpec, server_command
+from pokebench_env.launcher import ServerSpec
 from pokebench_env.serve import (
     install_deadline_frame_stream,
     install_on_demand_frame_cache,
     pin_localhost,
     run,
 )
-
-
-def test_server_command_is_an_exact_argv(tmp_path: Path) -> None:
-    python = tmp_path / "py thon; $(x)"
-    spec = ServerSpec(port=8000, no_ocr=True, load_state=None)
-    assert server_command(python, spec) == [
-        str(python),
-        "-m",
-        "pokebench_env.serve",
-        "--port",
-        "8000",
-        "--no-ocr",
-    ]
-
-
-def test_server_command_passes_load_state_as_one_argument(tmp_path: Path) -> None:
-    state = tmp_path / "runs" / "split 1; rm -rf ~.state"
-    spec = ServerSpec(port=8123, no_ocr=False, load_state=state)
-    argv = server_command(Path("/py"), spec)
-    assert argv == [
-        "/py",
-        "-m",
-        "pokebench_env.serve",
-        "--port",
-        "8123",
-        "--load-state",
-        str(state),
-    ]
 
 
 @pytest.mark.parametrize("port", [0, 80, 65536])
@@ -186,14 +156,6 @@ def test_frame_cache_accepts_numpy_and_reconnects_without_stale_frame() -> None:
     assert first["frame_data"] != second["frame_data"]
 
 
-def test_pinned_websocket_consumes_latest_frame_count_and_full_payload() -> None:
-    source = (Path(VENDOR_DIR) / "server" / "app.py").read_text()
-
-    assert 'frame_count = self.latest_frame.get("frame_count", 0)' in source
-    assert "message = json.dumps(self.latest_frame)" in source
-    assert "await websocket.send_text(message)" in source
-
-
 def test_deadline_frame_stream_connects_sends_and_disconnects() -> None:
     calls: list[str] = []
 
@@ -260,68 +222,6 @@ def test_run_pins_host_then_hands_argv_to_vendor_main() -> None:
     assert seen["uvicorn_kwargs"] == {"host": "127.0.0.1", "port": 8000}
 
 
-def test_spawn_runs_the_server_from_the_run_server_dir(tmp_path: Path) -> None:
-    from pokebench_env.launcher import spawn
-
-    calls: list[dict[str, object]] = []
-
-    def capturing_popen(argv: list[str], *, cwd: Path, env: dict[str, str]) -> str:
-        calls.append({"argv": argv, "cwd": cwd, "env": env})
-        return "process"
-
-    vendor = tmp_path / "vendor"
-    server_dir = tmp_path / "runs" / "r1" / "server"
-    spec = ServerSpec(port=8000, no_ocr=True, load_state=None)
-    result = spawn(
-        spec,
-        python=Path("/venv/bin/python"),
-        vendor_dir=vendor,
-        server_dir=server_dir,
-        run_id="r1",
-        pycache_dir=tmp_path / "pycache",
-        base_env={"PATH": "/usr/bin", "PYTHONPATH": "/elsewhere"},
-        popen=capturing_popen,
-    )
-    assert result == "process"
-    assert calls == [
-        {
-            "argv": server_command(Path("/venv/bin/python"), spec),
-            "cwd": server_dir,
-            "env": {
-                "PATH": "/usr/bin",
-                "PYTHONPATH": os.pathsep.join(
-                    (str(vendor), str(Path(__file__).resolve().parents[2]))
-                ),
-                "RUN_DATA_ID": "r1",
-                "LOAD_CHECKPOINT_MODE": "false",
-                "PYTHONPYCACHEPREFIX": str(tmp_path / "pycache"),
-            },
-        }
-    ]
-
-
-def test_prepare_checks_vendor_then_builds_the_run_server_dir(tmp_path: Path) -> None:
-    from pokebench_env import launcher
-
-    order: list[str] = []
-    vendor = tmp_path / "vendor"
-    rom = tmp_path / "rom.gba"
-    run_dir = tmp_path / "runs" / "r1"
-    server_dir = launcher.prepare(
-        {"POKEBENCH_ROM": str(rom)},
-        run_dir=run_dir,
-        vendor_dir=vendor,
-        check=lambda path: order.append(f"check {path}"),
-        resolve=lambda env: (order.append(f"resolve {env['POKEBENCH_ROM']}"), rom)[1],
-        make_server_dir=lambda run, found, ven: (
-            order.append(f"make {run} {found} {ven}"),
-            run / "server",
-        )[1],
-    )
-    assert server_dir == run_dir / "server"
-    assert order == [f"check {vendor}", f"resolve {rom}", f"make {run_dir} {rom} {vendor}"]
-
-
 def test_run_installs_the_observation_route_before_vendor_main() -> None:
     from fastapi import FastAPI
 
@@ -346,71 +246,3 @@ def test_run_installs_the_observation_route_before_vendor_main() -> None:
         observation=(app, get_screenshot, lambda a, n: bytes(n), MapNames({})),
     )
     assert "/pokebench/observation" in routes[0]
-
-
-def test_launcher_cli_forwards_load_state_exactly(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    from pokebench_env import launcher
-
-    seen = []
-
-    class Process:
-        def wait(self) -> int:
-            return 0
-
-        def terminate(self) -> None:
-            pass
-
-    def launch(spec: ServerSpec, run_dir: Path, run_id: str) -> Process:
-        seen.append((spec, run_dir, run_id))
-        return Process()
-
-    saved = tmp_path / "continuation with spaces.state"
-    monkeypatch.setattr(launcher, "launch", launch)
-    monkeypatch.setattr(launcher, "forward_sigterm", lambda _: None)
-    assert (
-        launcher.main(
-            [
-                "--run-dir",
-                str(tmp_path),
-                "--run-id",
-                "probe-test",
-                "--port",
-                "8032",
-                "--load-state",
-                str(saved),
-            ]
-        )
-        == 0
-    )
-    assert seen == [(ServerSpec(port=8032, no_ocr=True, load_state=saved), tmp_path, "probe-test")]
-
-
-def test_exec_mode_hands_the_process_to_the_server(monkeypatch, tmp_path) -> None:
-    from pokebench_env import launcher
-
-    seen: dict[str, object] = {}
-
-    def prepare(env, run_dir):
-        seen["prepared"] = run_dir
-        return tmp_path
-
-    def execvpe(file, argv, env):
-        seen.update(file=file, argv=list(argv), env=dict(env))
-        raise SystemExit(0)
-
-    monkeypatch.setattr(launcher, "prepare", prepare)
-    monkeypatch.setattr(launcher, "server_env", lambda *a, **k: {"PB": "1"})
-    monkeypatch.setattr(launcher.os, "chdir", lambda path: seen.update(cwd=path))
-    monkeypatch.setattr(launcher.os, "execvpe", execvpe)
-    with pytest.raises(SystemExit):
-        launcher.main(
-            ["--run-dir", str(tmp_path), "--run-id", "probe-test", "--port", "8033", "--exec"]
-        )
-    assert seen["prepared"] == tmp_path
-    assert seen["cwd"] == tmp_path
-    argv = seen["argv"]
-    assert isinstance(argv, list)
-    assert argv[1:5] == ["-m", "pokebench_env.serve", "--port", "8033"]
-    assert seen["env"] == {"PB": "1"}

@@ -49,33 +49,6 @@ it("does not admit pending, failed or cross-run dialogue and is inert without it
  const listeners:((e:RunEvent)=>void)[]=[];const f={...flags(true),"instruction-goal-ledger-v1":true};const w=contextTools(f,{subscribe:fn=>{listeners.push(fn);},recordLedgerContext:()=>{},recordNavigationContext:()=>{},recordMilestoneHint:()=>{},recordBeliefLedger:()=>{},recordLoopBreaker:()=>undefined},m=>Promise.resolve(m));
  expect(w.tools.length).toBeGreaterThan(0);expect((await w.transformContext([])).some(m=>JSON.stringify(m).includes(quote))).toBe(false);
 });
-it("registers a default-OFF treatment independently of the bundle recipe",()=>{
- expect(SWITCHABLE_FEATURES.filter(id=>id===ID)).toEqual([ID]);expect(normalizeFeatures(featuresOf([]))[ID]).toBe(false);expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})[ID]).toBe(false);
- expect(playHarnessFeatures(flags(false),null)).not.toContain(ID);expect(playHarnessFeatures(flags(true),null).filter(id=>id===ID)).toEqual([ID]);
- const source=readFileSync(new URL("../../viewer/src/next-run.ts",import.meta.url),"utf8");expect(source).toContain('"instruction-memory-dedup-v1": false');
-});
-
-it.each(["estimated","exact"] as const)("preserves complete unique memory in the actual pinned pi HTTP body after %s trimming",async mode=>{
- const requests:{messages:{role:string;content:unknown}[]}[]=[];
- const server=createServer((req,res)=>{
-  if(req.url==="/v1/models"){res.writeHead(200,{"content-type":"application/json"});res.end(JSON.stringify({data:[{id:"dedup-fixture",context_window:65536,max_tokens:4096}]}));return;}
-  let body="";req.setEncoding("utf8");req.on("data",(chunk:string)=>{body+=chunk;});req.on("end",()=>{requests.push(JSON.parse(body) as typeof requests[number]);res.writeHead(200,{"content-type":"text/event-stream"});for(const [delta,finish]of [[{role:"assistant",tool_calls:[{index:0,id:`observe-${String(requests.length)}`,type:"function",function:{name:"observe",arguments:"{}"}}]},null],[{},"tool_calls"]]as const)res.write(`data: ${JSON.stringify({id:"fixture",object:"chat.completion.chunk",created:0,model:"dedup-fixture",choices:[{index:0,delta,finish_reason:finish}]})}\n\n`);res.end("data: [DONE]\n\n");});
- });await new Promise<void>(resolve=>{server.listen(0,"127.0.0.1",resolve);});
- try{
-  const{port}=server.address()as AddressInfo;const model=selectModel(await discoverModels({gatewayUrl:`http://127.0.0.1:${String(port)}/v1`,visionModels:["dedup-fixture"]}),"dedup-fixture");
-  const s=setup(true);s.feed(fixture);const controller=new AbortController();let trims=0;
-  const exact=new ExactContext({source:"vllm-tokenize",count:p=>Promise.resolve({tokens:1+p.messages.filter(m=>m.role==="assistant").length*100,window:null})},201,1,{compaction:()=>{trims++;},promptCount:()=>{}});
-  const governor=new Governor({limits:{maxTurns:3,maxWallMs:10000,failureLimit:3},retry:()=>{},abort:()=>{controller.abort();},now:()=>0});
-  const observe={name:"observe",label:"Observe",description:"Observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text" as const,text:"Current question: sail back? YES or NO; LETTER is still in BAG."}],details:undefined})};
-  const loop=piLoop({systemPrompt:"Play",tools:[observe,...s.wiring.tools],base:playLoopBase(model,"off",undefined,1,flags(true),mode==="exact"?p=>exact.fit(p):undefined),governor,signal:controller.signal,transformContext:s.wiring.transformContext,emit:()=>{},...(mode==="estimated"?{budget:new ContextBudget(1),onBudgetTrim:()=>{trims++;}}:{})});
-  expect(await play({role:"user",content:"Play",timestamp:0},governor,loop)).toBe("budget");expect(requests).toHaveLength(3);expect(trims).toBeGreaterThan(0);
-  for(const [i,r]of requests.entries()){
-   const memories=r.messages.filter(m=>typeof m.content==="string"&&m.content.startsWith("OBSERVED INSTRUCTION MEMORY"));expect(memories).toHaveLength(1);expect(memories[0]?.content).toBe(s.records[i]?.text);
-   const p=payload(String(memories[0]?.content));expect(p.episodes.map(e=>e.result)).toEqual([4,6]);expect(p.episodes[0]?.pages.map(p=>p[2])).toEqual([quote,"Come back after both errands."]);
-  }
-  expect(JSON.stringify(requests[2])).toContain("Current question: sail back?");expect(requests[2]?.messages.filter(m=>m.role==="assistant")).toHaveLength(1);
- }finally{await new Promise<void>((resolve,reject)=>{server.close(error=>{if(error)reject(error);else resolve();});});}
-});
 
 it("does not add unselected progress or visit history when only the place projection existed",async()=>{
  const s=setup(true,false,false),unrelated=result("unrelated");

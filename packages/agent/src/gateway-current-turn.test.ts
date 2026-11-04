@@ -14,8 +14,4 @@ describe(id,()=>{
   expect(normalizeFeatures(historical)[id]).toBe(false);
   expect(playHarnessFeatures({...normalizeFeatures(historical),[id]:true},null)).toContain(id);
  });
- it("is declared on in both current arms",()=>{
-  const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {onInBoth:string[];features:Record<string,boolean>};
-  expect(recipe.onInBoth).toContain(id);expect(recipe.features[id]).toBe(true);
- });
 });

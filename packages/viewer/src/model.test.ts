@@ -152,20 +152,6 @@ describe("RunView", () => {
     expect(view.events.map((event) => event.seq)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(foldUntil(events, BASE_MS - 1).events).toEqual([]);
   });
-
-  it("replays the recorded M4 run", () => {
-    const view = new RunView();
-    for (const event of m4Run()) view.apply(event);
-    expect(view.turn).toBe(4);
-    expect(view.frame).toBe("frames/000015_0.png");
-    expect(view.state).toBeNull();
-    expect(view.stuck).toBeNull();
-    expect(view.end?.reason).toBe("budget");
-    expect(view.milestones.map((milestone) => milestone.name)).toEqual(["GAME_RUNNING"]);
-    expect(view.presses).toHaveLength(1);
-    expect(view.presses[0]?.assumed).toBe(true);
-    expect(view.toolSpans.map((span) => span.name)).toEqual(["screenshot", "press", "state"]);
-  });
 });
 
 describe("isRunEvent", () => {

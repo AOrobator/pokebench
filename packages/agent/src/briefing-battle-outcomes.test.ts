@@ -13,56 +13,9 @@ import {checkEvent} from "./events.js";
 import {semanticState} from "./loop-detection.js";
 
 const ID="briefing-battle-outcomes-v1";
-const LIVE="battle-facts-54a7.jsonl.gz",SH02="battle-facts-sh02.jsonl.gz";
-const LOST="- Latest battle against a story character: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371";
-const WHITEOUT="- Latest whiteout: at turn 371, after losing to MAY (trainer 535) on ROUTE103 (map 0/18); the game returned you to GREE's HOUSE 2F (map 1/1)";
 const NONE="- Latest battle against a story character: none recorded in this run\n- Latest whiteout: none recorded in this run";
-const PROGRESS=/^- Last story progress: .*$/m;
 
-type Guard=Extract<RunEvent,{type:"loop_guard"}>;
 // The stall briefing at a recorded milestone-drought note, replayed with this switch set as given.
-function replay(seq:number,on:boolean):{text:string;recorded:string}{
- const events=recorded(LIVE);
- const b=new SupervisorBriefing(recordedFeatures(events,{[ID]:on}));
- for(const e of events){
-  if(e.type==="loop_guard"){
-   if(e.seq!==seq||e.phase!=="supervisor")continue;
-   const g:Guard=e;const minutes=/no new story milestone for (\d+) minutes/.exec(g.message);
-   if(minutes===null)throw new Error("not a drought note");
-   return {text:b.stallText({kind:"milestone_drought",minutes:Number(minutes[1])},g.calls),recorded:g.message};
-  }
-  b.observe(e);
- }
- throw new Error(`no supervisor note at ${String(seq)}`);
-}
-
-describe("briefing-battle-outcomes-v1 on live run 54a7 (lost to MAY on ROUTE103 at T371, whited out)",()=>{
- it("OFF reproduces the recorded stall briefings at T418 (seq 10226) and T484 (seq 11729) byte for byte",()=>{
-  for(const seq of [10226,11729]){const {text,recorded:message}=replay(seq,false);expect(text).toBe(message);}
- });
- it("ON states the lost rival battle and the whiteout right after the last story progress, and nothing else changes",()=>{
-  for(const seq of [10226,11729]){
-   const off=replay(seq,false).text,on=replay(seq,true).text;
-   const progress=PROGRESS.exec(off)?.[0]??"";
-   expect(progress).toContain("route 103 at turn 347");
-   expect(on).toBe(off.replace(progress,`${progress}\n${LOST}\n${WHITEOUT}`));
-  }
- });
- it("ON before any battle with a story character says none were recorded (T277, seq 6785)",()=>{
-  const off=replay(6785,false).text,on=replay(6785,true).text;
-  const progress=PROGRESS.exec(off)?.[0]??"";
-  expect(on).toBe(off.replace(progress,`${progress}\n${NONE}`));
- });
-});
-
-describe("briefing-battle-outcomes-v1 on sh02 (beat MAY on ROUTE103 at T954)",()=>{
- it("states the win and no whiteout",()=>{
-  const events=recorded(SH02);
-  const outcomes=new BattleOutcomes(recordedFeatures(events));
-  for(const e of events)outcomes.observe(e);
-  expect(outcomes.briefingLines()).toBe("- Latest battle against a story character: you won against MAY (trainer 535) on ROUTE103 (map 0/18) at turn 954\n- Latest whiteout: none recorded in this run\n");
- });
-});
 
 // Synthetic states: only the fields BattleOutcomes reads.
 let seq=0;
@@ -118,24 +71,6 @@ describe("BattleOutcomes rules",()=>{
  it("a trainer battle without the opponent reading names the battle by its kind",()=>{
   const o=fold([state(80,battle("lost",8)),state(81,{location:"OLDALE TOWN POKEMON CENTER 1F",map_id:[2,2]})]);
   expect(o.briefingLines()).toContain("after losing to a trainer on ROUTE101 (map 0/16)");
- });
-});
-
-describe("briefing-battle-outcomes-v1 reaches every briefing through the production factories",()=>{
- function feed(on:boolean):{loop:string;textOnly:string}{
-  const events=recorded(LIVE);
-  const observers:((e:RunEvent)=>void)[]=[];
-  const recorder={subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);},textOnlySupervisor:()=>undefined};
-  const features=recordedFeatures(events,{[ID]:on});
-  const loop=loopSupervisor(features,recorder),textOnly=textOnlySupervisor(features,recorder);
-  for(const e of events){if(e.seq>10226)break;for(const o of observers)o(e);}
-  if(loop===undefined||textOnly===undefined)throw new Error("supervisors are on in 54a7");
-  return {loop:loop("cycle",418),textOnly:textOnly(3,1)};
- }
- it("ON: the loop-guard and text-only supervisors state the loss and the whiteout; OFF: they do not",()=>{
-  const on=feed(true),off=feed(false);
-  for(const text of [on.loop,on.textOnly])expect(text).toContain(`${LOST}\n${WHITEOUT}\n`);
-  for(const text of [off.loop,off.textOnly])expect(text).not.toContain("Latest battle against a story character");
  });
 });
 

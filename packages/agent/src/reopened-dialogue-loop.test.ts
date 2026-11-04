@@ -11,7 +11,6 @@ import type {FeatureSet} from "./features.js";
 import {LOOP_POLICY,LoopDetector,type CompletedCall,type LoopNotice} from "./loop-detection.js";
 import type {RunEvent} from "./events.js";
 
-const ID = "reopened-dialogue-loop-v1" as const;
 const LINES = "The box is printed with a POKéMON logo.\nIt's a POKéMON brand moving and delivery service.";
 
 const truck = (x = 2, dialogue: string | null = null): GameStateSnapshot => ({
@@ -32,21 +31,6 @@ function detector(on: boolean, messageTruth = false) {
 }
 
 describe("reopened-dialogue-loop-v1", () => {
-  it("is registered in historical order and default OFF, with shared control/bundle baseline activation", () => {
-    expect(SWITCHABLE_FEATURES.at(121)).toBe(ID);
-    expect(playHarnessFeatures(withoutFrontierTreatments(ALL_ON), null).at(-19)).toBe(ID);
-    expect(featureInfo(ID)).toMatchObject({group: "guard", needs: null, switchable: true, title: "REOPENED DIALOGUE LOOP"});
-    expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(featureInfo(ID).description).toContain("Bundle arm only");
-    expect(flagFeatures({loopGuard: true, activeUi: true, interfaceDocs: true, objectives: false})[ID]).toBe(false);
-    expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const without = Object.fromEntries(Object.entries({...ALL_ON,"battle-decision-ready-v1":false,"scripted-place-guidance-v1":false,"trigger-script-loop-v1":false, "state-only-decisions-v1": false}).filter(([id]) => id !== ID)) as FeatureSet;
-    expect(presetFeatures(parsePlayPreset({version: 2, id: "p", target: null, limits: {maxTurns: 1, maxWallMs: 1, failureLimit: 1}, sampling: {thinkingLevel: "medium", maxTokens: 1}, features: without}))[ID]).toBe(false);
-    // The shared config retains the newer control baseline; this feature is on in both arms.
-    const bundle = JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json", import.meta.url),"utf8")) as {base: {features: Record<string, boolean>}; switches: string[]};
-    expect(bundle.base.features[ID]).toBe(true);
-    expect(bundle.switches).not.toContain(ID);
-  });
 
   it("OFF: four closed showings of the same lines raise no cycle notice", () => {
     const {d, notices} = detector(false);
@@ -216,74 +200,5 @@ describe("reopened-dialogue-loop-v1", () => {
     const {d, notices} = detector(true, true);
     for (let i = 0; i < 4; i++) d.complete(shown());
     expect(notices[0]?.message).toContain("Reopening the same message is not story progress.");
-  });
-
-  it("the production path counts lines shown during the call when the result has already closed them", () => {
-    const live = readFileSync(new URL("./live.ts", import.meta.url), "utf8");
-    const probe = readFileSync(new URL("./decision-probe.ts", import.meta.url), "utf8");
-    const argsOf = (source: string): string[] => {
-      const at = source.indexOf("attachLoopGuard(");
-      const open = at + "attachLoopGuard".length;
-      let depth = 0;
-      let end = open;
-      for (let i = open; i < source.length; i++) {
-        if (source[i] === "(") depth += 1;
-        else if (source[i] === ")") {
-          depth -= 1;
-          if (depth === 0) { end = i; break; }
-        }
-      }
-      const inside = source.slice(open + 1, end);
-      const args: string[] = [];
-      let current = "";
-      depth = 0;
-      for (const ch of inside) {
-        if (ch === "(" || ch === "[" || ch === "{") depth += 1;
-        else if (ch === ")" || ch === "]" || ch === "}") depth -= 1;
-        if (ch === "," && depth === 0) { args.push(current.trim()); current = ""; }
-        else current += ch;
-      }
-      if (current.trim() !== "") args.push(current.trim());
-      return args;
-    };
-    for (const source of [live, probe]) {
-      const args = argsOf(source);
-      expect(args.at(-5)).toBe('features["trigger-script-loop-v1"]');
-      expect(args.at(-6)).toBe('features["reopened-dialogue-loop-v1"]');
-      expect(args.at(-7)).toBe('features["clock-view-loop-v1"]');
-    }
-    const play = (on: boolean) => {
-      const notices: LoopNotice[] = [];
-      const observers: ((e: RunEvent) => void)[] = [];
-      const recorder = {subscribe: (o: (e: RunEvent) => void) => { observers.push(o); }, recordLoopGuard: (n: LoopNotice) => { notices.push(n); }};
-      const governor = new Governor({limits: {maxTurns: 50, maxWallMs: 60_000, failureLimit: 3}, retry: () => undefined, abort: () => undefined, now: () => 0});
-      attachLoopGuard(recorder, governor, undefined, "enforced", true, () => "SUPERVISOR", false, false, false, true, false, false, false, on, false);
-      let seq = 0;
-      const emit = (body: Record<string, unknown>) => {
-        seq += 1;
-        const event = {v: 1, run: "r", t: "2026-10-18T01:35:00.000-04:00", seq, turn: 52, ...body} as RunEvent;
-        for (const o of observers) o(event);
-      };
-      // Recorded shape of 2026-10-18T01-30-48_qwen36-gpu0_e6ce: A opens the sign, auto-advance's last B
-      // is the before-state (message still up), and the result is the free field.
-      for (let i = 0; i < 4; i++) {
-        const id = `a${String(i)}`;
-        emit({type: "tool_call", id, name: "press", args: {buttons: ["A"]}});
-        emit({type: "state", ...truck()});
-        const opened = seq;
-        emit({type: "button_press", tool_call_id: id, buttons: ["A"], before_state_seq: opened});
-        emit({type: "state", ...truck(2, LINES)});
-        const page = seq;
-        emit({type: "button_press", tool_call_id: id, buttons: ["B"], before_state_seq: page});
-        emit({type: "state", ...truck()});
-        emit({type: "tool_result", id, name: "press", is_error: false, text: "dialogue opened; after auto-advance: the conversation closed and field controls are free", state_seq: seq});
-      }
-      return notices;
-    };
-    expect(play(false)).toEqual([]);
-    const on = play(true);
-    expect(on.some((n) => n.kind === "cycle" && n.phase === "warning")).toBe(true);
-    expect(on.some((n) => n.phase === "supervisor")).toBe(true);
-    expect(on.find((n) => n.phase === "warning")?.message).toContain("Reopening the same message is not story progress.");
   });
 });

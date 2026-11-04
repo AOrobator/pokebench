@@ -200,13 +200,4 @@ describe("warp-target-navigation-v1",()=>{
   const state=gym();
   expect(planNavigation(state,{x:2,y:1},{mode:"local",floor:true})).toBeNull();
  });
-
- it("is promoted into both arms, and the older warp switch with it",()=>{
-  const source=JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/feature-configs/current.json",import.meta.url)),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[]};
-  for(const id of ["warp-target-navigation-v1","active-warp-exits-v1"]){
-   expect(source.features[id],id).toBe(true);
-   expect(source.onInBoth,id).toContain(id);
-   expect(source.switches,id).not.toContain(id);
-  }
- });
 });

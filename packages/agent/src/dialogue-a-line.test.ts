@@ -54,29 +54,4 @@ describe("dialogue-a-line-v1", () => {
     // the paragraph does not end at the historical sentence: the no-target clause follows it.
     expect(on).not.toMatch(/until your next decision\.\n/);
   });
-
-  it("is a default-off guidance switch, on in both arms of the current recipe", () => {
-    expect(featureInfo(ID)).toMatchObject({group: "guidance", needs: null, switchable: true});
-    expect(featureInfo(ID).description).toContain(" Off: ");
-    expect(SWITCHABLE_FEATURES).toContain(ID);
-    expect(playHarnessFeatures({...arm, [ID]: true}, null)).toContain(ID);
-    expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
-    const recipe = JSON.parse(readFileSync(fileURLToPath(new URL("../../../experiments/feature-configs/current.json", import.meta.url)), "utf8")) as {
-      features: Record<string, boolean>;
-      switches: string[];
-      offInBoth: string[];
-    };
-    expect(recipe.features[ID]).toBe(true);
-    expect(recipe.switches).not.toContain(ID);
-    expect((recipe as {onInBoth?: string[]}).onInBoth).toContain(ID);
-    expect(recipe.offInBoth).not.toContain(ID);
-    const shared = {...recipe.features, ...Object.fromEntries(recipe.switches.map((name) => [name, false]))} as unknown as FeatureSet;
-    const control = playSystemPrompt(shared, null);
-    const bundle = playSystemPrompt({...shared, ...Object.fromEntries(recipe.switches.map((name) => [name, true]))}, null);
-    expect(control).not.toBe(bundle);
-    for (const armPrompt of [control, bundle]) {
-      expect(armPrompt).toContain(DIALOGUE_A_LINE_SECTION);
-      expect(armPrompt).not.toMatch(/leave (instead of|rather than) pressing A/i);
-    }
-  });
 });

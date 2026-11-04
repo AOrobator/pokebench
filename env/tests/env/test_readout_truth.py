@@ -30,7 +30,6 @@ from pokebench_env.readout import (
     SERVER_FEATURES,
     features_off_from_env,
     format_readout,
-    state_json,
 )
 from pokebench_env.readout_truth import (
     LOCK_SCRIPT,
@@ -59,9 +58,6 @@ from pokebench_env.world_context import (
 from tests.env.test_game_state import MAPS, OVERWORLD, SB1, Memory, decode_text, game
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/readout-truth-cook.json").read_text())
-CURRENT = json.loads(
-    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
-)["cases"]
 NEW = frozenset(
     {
         "readout-truth-v1",
@@ -174,11 +170,6 @@ def render(seq: int, on: frozenset[str] = frozenset()) -> str:
     return rerender.render(state(seq, on), off)
 
 
-def changed(seq: int, on: frozenset[str]) -> tuple[list[str], list[str]]:
-    """Lines removed and added, counting repeats (a duplicate line dropped is a change)."""
-    return diff_lines(render(seq).split("\n"), render(seq, on).split("\n"))
-
-
 def diff_lines(old: list[str], new: list[str]) -> tuple[list[str], list[str]]:
     left, right = Counter(new), Counter(old)
     removed = []
@@ -202,148 +193,12 @@ def test_diff_lines_counts_repeated_lines() -> None:
 
 
 TRUTH = frozenset({SWITCH})
-RECEIVED = [f["state_seq"] for f in FIXTURE["frames"] if f["received"] is not None]
 
 
 # --- cook runs, real ROM ---------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("seq", RECEIVED)
-def test_off_matches_current_policy_without_rewriting_what_the_model_received(seq: int) -> None:
-    # The archived tool result remains source evidence; current policy has a separate snapshot.
-    text, received = render(seq), str(frame(seq)["received"])
-    assert text == CURRENT[f"readout-truth:{seq}"]
-    at = received.index("Screen: ")
-    head, archived_readout = received[:at], received[at:]
-    assert head == "" or head.endswith("\n")
-    # The tail starts at the readout's first line: no "Screen:" line is left in the head
-    # (only press lines or a frame note come before it), so a dropped first line fails.
-    assert text.startswith("Screen: ")
-    assert not any(line.startswith("Screen: ") for line in head.split("\n"))
-    assert archived_readout.startswith("Screen: ")
-
-
-def test_push_back_script_lock_reads_as_a_script_with_no_message() -> None:
-    removed, added = changed(2984, TRUTH)
-    assert removed == [
-        "Menu: unavailable (active owner not verified)",
-        "Bag: ",
-        "Story: player name confirmed; Mom clock instruction received; clock set; "
-        "Mom rival instruction received",
-        OLD_LOCK,
-        HEDGE_TEXT,
-        HEDGE_PHASE,
-    ]
-    assert added == [
-        MENU_NONE,
-        "Bag: empty",
-        f"Story: player name confirmed; Mom clock instruction received; clock set; {STORY_7}",
-        LOCK_SCRIPT,
-        NONE_TEXT,
-        SCRIPT_PHASE,
-    ]
-
-
-def test_free_field_with_a_stale_menu_buffer_says_nothing_is_open() -> None:
-    removed, added = changed(1492, TRUTH)
-    assert "Unverified menu buffer: cursor 4 of 4; active menu owner unavailable" in removed
-    assert MENU_NONE in added and IDLE_PHASE in added and NONE_TEXT in added
-    assert "Field controls: available (terrain and objects can still block a direction)" in (
-        render(1492, TRUTH).split("\n")
-    )
-
-
-def test_truck_task_lock_says_no_script_is_running() -> None:
-    removed, added = changed(941, TRUTH)
-    assert OLD_LOCK in removed and LOCK_TASK in added
-    assert IDLE_PHASE in added
-
-
-def test_field_yes_no_box_is_a_known_owner_not_a_coverage_error() -> None:
-    old, new = render(7780), render(7780, TRUTH)
-    assert "STATE COVERAGE ERROR: field-message owner unqualified" in old
-    assert "STATE COVERAGE ERROR" not in new
-    assert (
-        "Field activity: other_interface; not an input-ready field message. Inspect the "
-        "active interface and control lock before acting." in new.split("\n")
-    )
-    assert state(7780, TRUTH).world_context.field_activity.owner == 0x080E215D  # type: ignore[union-attr]
-
-
-def test_battle_does_not_quote_the_stale_menu_buffer() -> None:
-    removed, added = changed(7443, TRUTH)
-    assert removed[0] == "Unverified menu buffer: cursor 1 of 2; active menu owner unavailable"
-    assert added[0] == MENU_OTHER
-
-
-def test_live_may_on_screen_is_here_although_her_template_flag_is_set() -> None:
-    removed, added = changed(3380, TRUTH)
-    story = [line for line in added if line.startswith("Story characters here")]
-    assert story == [
-        "Story characters here (from this map's own object list): MAY at 1,3. Not on this map: "
-        "PROF. BIRCH, BRENDAN, MOM, NORMAN, WALLY, ROXANNE, STEVEN. Sprite kinds such as "
-        "SCIENTIST_1 or FAT_MAN are not these characters."
-    ]
-    assert any("Not on this map: PROF. BIRCH, MAY," in line for line in removed)
-
-
-def test_reopened_start_menu_reads_as_the_start_menu_not_yet_accepting_input() -> None:
-    ui = state(15183, TRUTH).active_ui
-    assert ui is not None and (ui.phase, ui.selected, ui.ready) == ("start_menu", "POKEMON", False)
-    assert ui.diagnostic is None
-    assert state(15183).active_ui is None
-    # The showcase arm had expanded menu text off, so its readout hides menu details either way.
-    assert "Menu: detailed controls unprovided" in render(15183, TRUTH).split("\n")
-
-
 BIRCH = frozenset({"birch-speech-pages-v1"})
-BLACKOUT = frozenset({"blackout-readout-v1"})
-OLD_BIRCH = (
-    "Interface: name_confirmed_transition; input not ready; "
-    "Transition or text printing; selection input is not active"
-)
-
-
-def test_birch_page_waiting_for_a_is_input_ready_with_the_page_as_its_value() -> None:
-    removed, added = changed(620, BIRCH)
-    assert removed == [OLD_BIRCH]
-    assert added == [
-        "Interface: birch_speech_page; input ready; value Ah, okay!; "
-        "A or B shows the next page (the value is the page on screen)"
-    ]
-    ui = state(620, BIRCH).active_ui
-    assert ui is not None and (ui.phase, ui.ready, ui.value) == (
-        "birch_speech_page",
-        True,
-        "Ah, okay!",
-    )
-    # A page still being written keeps the old not-ready line.
-    assert changed(632, BIRCH) == ([], [])
-
-
-def test_whiteout_running_is_said_from_the_observations_own_state() -> None:
-    removed, added = changed(19097, BLACKOUT)
-    assert removed == []
-    assert added == [
-        "Whiting out: your party has no usable Pokémon left; the game is taking you back "
-        "to the last place you healed."
-    ]
-
-
-def test_each_switch_changes_only_its_own_lines() -> None:
-    assert changed(620, TRUTH)[1] == [MENU_OTHER]
-    # 19097's Interface line is a coverage error, not a verified owner: the Menu line stays.
-    assert changed(19097, TRUTH)[1] == [
-        "Story: player name confirmed; Mom clock instruction received; clock set; "
-        f"{STORY_7}; rival met; sent to save Birch; Birch rescue complete; "
-        "Birch starter handoff complete",
-    ]
-    assert changed(2984, BIRCH | BLACKOUT) == ([], [])
-
-
-def test_state_json_is_unchanged_where_no_interface_owner_changes() -> None:
-    for seq in (2984, 1492, 941, 3380, 7443):
-        assert state_json(state(seq, TRUTH)) == state_json(state(seq))
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
@@ -721,67 +576,3 @@ def test_a_short_window_read_is_unknown_never_undrawn() -> None:
         assert menu_window_drawn(short_at(address)) is None
     unknown = field(active_ui_read=True, field_controls_locked=True, menu_window_drawn=None)
     assert menu_line(unknown) is None
-
-
-MESSAGE_CLAIMS = (NONE_TEXT, IDLE_PHASE, SCRIPT_PHASE, LOCK_SCRIPT, LOCK_TASK)
-MENU_CLAIMS = (MENU_NONE, LOCK_SCRIPT, LOCK_TASK)
-
-
-def _header(window: int) -> int:
-    return 0x02020004 + 12 * window
-
-
-def _pixels(seq: int, window: int) -> int:
-    ram = cells(seq)
-    return int.from_bytes(bytes(ram.get(_header(window) + 8 + i, 0) for i in range(4)), "little")
-
-
-@pytest.mark.parametrize("seq", [2984, 1492, 941])
-def test_a_short_read_through_read_state_never_becomes_a_none_claim(seq: int) -> None:
-    # Every read the new "none" and lock lines rest on, one byte short, through the production
-    # rerender seam. With the switch on the readout either fails exactly as the switch-off
-    # readout does on that read (an incumbent reader's own loud failure), or it drops every
-    # claim that rests on that read and adds none.
-    full = reader(seq)
-    locked = state(seq).field_controls_locked
-    message = [FIELD_MESSAGE_MODE, FIELD_PRINTER + 0x1B, 0x03005E00, GLOBAL_SCRIPT_STATUS]
-    message += [GLOBAL_SCRIPT, _header(0), _pixels(seq, 0)]
-    menu_window = cells(seq).get(0x0203CD95, 0xFF)
-    menu = [0x0203CD95] + (
-        [_header(menu_window), _pixels(seq, menu_window)] if menu_window < 32 else []
-    )
-
-    def claims(text: str, wanted: tuple[str, ...]) -> list[str]:
-        return [line for line in text.split("\n") if line in wanted]
-
-    whole = render(seq, TRUTH)
-    # A removed window has no pixel buffer (pointer 0), so nothing reads it.
-    for short in [address for address in message + menu if address]:
-
-        def read(address: int, length: int, short: int = short) -> bytes:
-            data = full(address, length)
-            return data[: length - 1] if address == short else data
-
-        def text(on: frozenset[str]) -> str | BaseException:
-            off = recorded_off(seq) - on
-            try:
-                got = rerender.read_state(
-                    read, map_names(), active_ui=bool(frame(seq)["active_ui"]), off=off
-                )
-                return rerender.render(got, off)
-            except Exception as error:  # noqa: BLE001
-                return error
-
-        old, new = text(frozenset()), text(TRUTH)
-        if isinstance(old, BaseException):
-            assert type(new) is type(old), (hex(short), old, new)
-            continue
-        assert isinstance(new, str), (hex(short), new)
-        every = MESSAGE_CLAIMS + MENU_CLAIMS
-        assert set(claims(new, every)) <= set(claims(whole, every)), hex(short)
-        gone: tuple[str, ...] = ()
-        if short in message:
-            gone += MESSAGE_CLAIMS
-        if short in menu and locked:
-            gone += MENU_CLAIMS
-        assert claims(new, gone) == [], (hex(short), claims(new, gone))

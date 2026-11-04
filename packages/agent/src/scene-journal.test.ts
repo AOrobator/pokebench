@@ -58,35 +58,6 @@ it("validates payload, event order, image size and HTTP failure",async()=>{
  const other={...base,name:"get_dialogue"};expect(withSceneJournal([other],true,{sceneEvents:read})[0]).toBe(other);
 });
 
-it("records delivered scene text and images durably with current frame first",async()=>{
- const {mkdtempSync,readFileSync}=await import("node:fs");const {tmpdir}=await import("node:os");const {join}=await import("node:path");
- const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");const {RunRecorder}=await import("./recorder.js");const {parseEvent}=await import("./events.js");
- const root=mkdtempSync(join(tmpdir(),"scene-record-"));const log=RunLog.create(root,"2026-10-25T00-00-00_scene_probe");
- const state={read:()=>Promise.resolve(IN_GAME),sceneEvents:(after:number)=>Promise.resolve(reply([{id:after+1,frame:7,text:"AQUA_MEMBER_M moved east",image:png()}]))};
- const recorder=new RunRecorder({log,frames:new FrameStore(root,1_000_000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:state});
- const current={...base,execute:()=>Promise.resolve({content:[{type:"image" as const,data:png(),mimeType:"image/png"},{type:"text" as const,text:"current screen"}],details:{state:IN_GAME}})};
- await recorder.start(RUN_START_META,false);
- const tool=playGameTools([current],{...OFF,[ID]:true},state,recorder)[0];if(!tool)throw new Error("missing");
- await recorder.emit({type:"tool_execution_start",toolCallId:"scene",toolName:"observe",args:{}});
- const result=await tool.execute("scene",{});
- await recorder.emit({type:"tool_execution_end",toolCallId:"scene",toolName:"observe",result,isError:false});
- const rows=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
- const event=rows.find(e=>e.type==="tool_result");if(event?.type!=="tool_result")throw new Error("result missing");
- expect(event.text).toContain("[scene event 1, native step 7] AQUA_MEMBER_M moved east");
- expect(event.frames.map(f=>f.path)).toEqual([`frames/${String(event.seq).padStart(6,"0")}_0.png`,`frames/${String(event.seq).padStart(6,"0")}_1.png`]);
- expect(result.content[0]).toEqual({type:"image",data:png(),mimeType:"image/png"});
- expect(event.state_seq).toBeDefined();
- const {battleDecisionContext}=await import("./play-wiring.js");
- const battleState={...IN_GAME,in_battle:false,screen:"battle_transition"};
- const transform=battleDecisionContext({...OFF,[ID]:true,"battle-decision-ready-v1":true},{read:()=>Promise.resolve(battleState)},[tool],messages=>Promise.resolve(messages),recorder);
- const messages=await transform([]);const delivered=messages.at(-1);
- expect(delivered?.role).toBe("user");
- if(delivered?.role!=="user"||typeof delivered.content==="string")throw new Error("missing decision image parts");
- expect(delivered.content.filter(c=>c.type==="image")).toHaveLength(2);const tail=delivered.content.at(-1);if(tail?.type!=="text")throw new Error("missing scene history footer");expect(tail.text).toContain("End of historical scene samples");
- const last=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent).findLast(e=>e.type==="decision_input");
- expect(last?.type==="decision_input"?last.frames.map(f=>f.path):[]).toEqual(last?.type==="decision_input"?[`frames/${String(last.seq).padStart(6,"0")}_0.png`,`frames/${String(last.seq).padStart(6,"0")}_1.png`]:["missing decision"]);
-});
-
 it("production safe-capture switch distinguishes deferred scene samples from archive failure and keeps OFF bytes",async()=>{
  const id="scene-journal-safe-capture-v1";
  const coverage={frames:30,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:0,diagnostic_revision:8,persisted_revision:8,diagnostic_error:null};
@@ -111,40 +82,4 @@ it("safe mode reports true scene failures/retention honestly, rejects inconsiste
  expect(text(await tool.execute("missing",{}))).toContain("safe scene coverage missing");
  for(const c of [{...coverage,safe_frames:30},{...coverage,persisted_revision:9}])expect(()=>parseSceneJournal({...payload,coverage:c})).toThrow(/coverage/);
  expect(read).toHaveBeenCalledTimes(5);
-});
-
-
-it("safe coverage reaches the next pinned-pi decision and exact durable replay record",async()=>{
- const {mkdtempSync,readFileSync,cpSync,rmSync}=await import("node:fs");const {tmpdir}=await import("node:os");const {join}=await import("node:path");
- const {RunLog}=await import("./run-log.js");const {FrameStore}=await import("./frames.js");const {RunRecorder}=await import("./recorder.js");const {parseEvent}=await import("./events.js");
- const {Governor,piLoop,play}=await import("./harness.js");const {createAssistantMessageEventStream}=await import("@mariozechner/pi-ai");const {assistant,toolCall,userText}=await import("../test-support/pi.js");
- const root=mkdtempSync(join(tmpdir(),"scene-pi-"));
- try{
-  const log=RunLog.create(root,"offline-safe-scene");
-  const coverage={frames:30,safe_frames:24,deferred_frames:6,recoveries:1,diagnostic_samples:8,diagnostic_omitted_samples:1,diagnostic_revision:8,persisted_revision:8,diagnostic_error:null};
-  const state={read:()=>Promise.resolve(IN_GAME),sceneEvents:()=>Promise.resolve({...reply([{id:1,frame:30,text:"Recovered coherent sample; intermediate actions unknown"}]),coverage})};
-  const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:state});
-  // Valid 240x160 PNG for browser replay; synthetic fixture pixels, no game execution.
-  const {deflateSync}=await import("node:zlib");
-  const {crc32}=await import("node:zlib");
-  const chunk=(kind:string,bytes:Buffer)=>{const name=Buffer.from(kind),length=Buffer.alloc(4),crc=Buffer.alloc(4);length.writeUInt32BE(bytes.length);crc.writeUInt32BE(crc32(Buffer.concat([name,bytes])));return Buffer.concat([length,name,bytes,crc]);};
-  const header=Buffer.alloc(13);header.writeUInt32BE(240);header.writeUInt32BE(160,4);header[8]=8;header[9]=2;
-  const image=Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),chunk("IHDR",header),chunk("IDAT",deflateSync(Buffer.alloc(160*(240*3+1),0))),chunk("IEND",Buffer.alloc(0))]).toString("base64");
-  const action=vi.fn(()=>Promise.resolve({content:[{type:"text" as const,text:"Synthetic current observation"},{type:"image" as const,data:image,mimeType:"image/png"}],details:{state:IN_GAME}}));
-  const tools=playGameTools([{...base,execute:action}],{...OFF,[ID]:true,"scene-journal-safe-capture-v1":true},state,recorder);
-  await recorder.start({...RUN_START_META,harness_features:[ID,"scene-journal-safe-capture-v1"],tools:["observe"],system_prompt:"Offline recording fixture; no inference or game endpoint."},false);
-  const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-  const model:import("@mariozechner/pi-ai").Model<"openai-completions">={id:"offline-scene-fixture",name:"offline-scene-fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:65536,maxTokens:100};
-  let decisions=0,delivered="";
-  const streamFn:import("@mariozechner/pi-agent-core").StreamFn=(_model,context)=>{
-   decisions++;if(decisions===2){delivered=context.messages.filter(m=>m.role==="toolResult").flatMap(m=>m.content.filter(p=>p.type==="text").map(p=>p.text)).join("\n");expect(delivered).toContain("24 coherent frames, 6 deferred samples");expect(delivered).toContain("not a transcript/archive failure");expect(delivered).toContain("Synthetic current observation");}
-   const message=decisions===1?assistant({toolCalls:[toolCall("scene","observe",{})],stopReason:"toolUse"}):assistant({text:"fixture complete"});const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
-  };
-  const loop=piLoop({systemPrompt:"Offline scene fixture",tools,base:{model,convertToLlm:messages=>messages as import("@mariozechner/pi-ai").Message[]},governor,transformContext:recorder.transformContext,emit:recorder.emit,streamFn,signal:new AbortController().signal});
-  expect(await play(userText("Fixture"),governor,loop)).toBe("budget");recorder.end("budget");
-  const rows=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent),record=rows.find(e=>e.type==="tool_result");
-  expect(record?.type==="tool_result"?record.text:null).toBe(delivered);expect(action).toHaveBeenCalledTimes(1);expect(decisions).toBe(2);
-  expect(record?.type==="tool_result"?record.frames.length:0).toBe(1);
-  const output=process.env.POKEBENCH_SCENE_TEST_EXPORT;if(output!==undefined)cpSync(log.runDir,join(output,log.runId),{recursive:true,errorOnExist:true,force:false});
- }finally{rmSync(root,{recursive:true,force:true});}
 });

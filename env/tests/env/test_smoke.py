@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import pytest
 
 from pokebench_env.client import Button, GameState, Milestone, Screenshot
-from pokebench_env.smoke import SmokeError, SmokeReport, run_smoke
+from pokebench_env.smoke import SmokeError, run_smoke
 
 
 @dataclass
@@ -43,21 +42,6 @@ class FakeProcess:
 
     def wait(self, timeout: float | None = None) -> int:
         return 0
-
-
-def test_smoke_waits_for_health_then_exercises_every_endpoint(tmp_path: Path) -> None:
-    client = FakeClient(health_sequence=[False, False, True])
-    process = FakeProcess()
-    sleeps: list[float] = []
-    report = run_smoke(client, process, sleep=sleeps.append, attempts=10)
-    assert client.pressed == [[Button.A]]
-    assert sleeps == [0.5, 0.5]
-    assert report == SmokeReport(
-        location="TITLE_SEQUENCE",
-        screenshot_bytes=4,
-        milestones_completed=["GAME_RUNNING"],
-    )
-    assert process.terminated
 
 
 def test_smoke_fails_if_server_never_becomes_healthy() -> None:

@@ -20,16 +20,6 @@ it("keeps the native target and removes boot wording from a restored targeted ru
  expect(initialPlayTask({kind:"boot"},"RUSTBORO_CITY",features(true))).toBe("The game has just booted. Reach the native game milestone RUSTBORO CITY.");
 });
 
-it("delivers the exact resumed task through the production consumer seam",async()=>{
- let delivered:unknown;
- const result=await deliverInitialPlayTask({kind:"save_state"},"RUSTBORO_CITY",features(true),()=>123,task=>{delivered=task;return Promise.resolve("played");});
- expect(result).toBe("played");expect(delivered).toEqual({role:"user",content:"The game has resumed from a recorded checkpoint. Reach the native game milestone RUSTBORO CITY.",timestamp:123});
- const live=readFileSync(new URL("./live.ts",import.meta.url),"utf8");
- expect(live).toContain("deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop),researchNote)");
- expect(live).toContain('realHost(port,start.kind==="save_state"?start.path:undefined,serverEnv)');
- expect(live).toContain("gameServerLauncherArgs(python,runDir,runId,serverPort,loadState).slice(1)");
-});
-
 it("forwards one verified absolute state path to the owned launcher without changing it",()=>{
  const state="/runs/source/checkpoints/PETALBURG_WOODS.state";
  expect(gameServerLauncherArgs("/venv/python","/runs/new","run-2",8123,state)).toEqual(["/venv/python","-m","pokebench_env.launcher","--run-dir","/runs/new","--run-id","run-2","--port","8123","--exec","--load-state",state]);

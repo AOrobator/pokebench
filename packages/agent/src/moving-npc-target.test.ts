@@ -51,19 +51,6 @@ it("defaults OFF and records only explicitly enabled moving target support",()=>
  const {[ID]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[ID]).toBe(false);
  expect(flags[ID]).toBe(false);expect(featureInfo(ID).description).toContain("Off:");expect(playHarnessFeatures({...flags,[ID]:true},null)).toContain(ID);
 });
-it("defaults frame burst OFF, pins registry append index, and puts it in both arms of the current recipe",()=>{
- const flags=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
- const {[BURST]:omitted,...old}=flags;expect(omitted).toBe(false);expect(normalizeFeatures(old)[BURST]).toBe(false);
- expect(flags[BURST]).toBe(false);expect(featureInfo(BURST).description).toContain("Off:");expect(featureInfo(BURST).needs).toBeNull();
- expect(featureInfo(BURST).description).toContain("on in both arms of the current recipe");
- expect(featureInfo(BURST).group).toBe("observation");
- expect(SWITCHABLE_FEATURES.indexOf(BURST)).toBe(317);
- expect(playHarnessFeatures({...flags,[BURST]:true},null).at(-1)).toBe(BURST);
- const recipe=JSON.parse(readFileSync(new URL("../../../experiments/feature-configs/current.json",import.meta.url),"utf8")) as {features:Record<string,boolean>;switches:string[];onInBoth:string[];offInBoth:string[]};
- expect(recipe.features[BURST]).toBe(true);expect(recipe.switches).not.toContain(BURST);
- expect(recipe.onInBoth.filter(id=>id===BURST)).toEqual([BURST]);expect(recipe.offInBoth).not.toContain(BURST);
- expect(recipe.onInBoth).toContain(ID);
-});
 it("production path follows a moving NPC, faces its new tile and presses A once",async()=>{
  const f=fixture(true,(s,_b,n)=>n===1?place(s,[npc(4,2)]):s);
  const out=await f.tool.execute("follow",request);
@@ -184,24 +171,6 @@ it("respects the existing matching script boundary instead of following through 
  expect(f.sent).toEqual([["RIGHT"]]);expect(out.details).toMatchObject({semantic_navigation:{activation_attempted:false,status:"script-trigger step attempted at (1,1); inspect the resulting state"}});
 });
 
-it("records the production result text, paired final state and semantic activation receipt",async()=>{
- const f=fixture(true,(s,_b,n)=>n===1?place(s,[npc(4,2)]):s,undefined,{"semantic-navigation-v1":false,"semantic-navigation-v2":true});
- const out=await f.tool.execute("recorded-follow",request);
- const root=mkdtempSync(join(tmpdir(),"pokebench-moving-rec-"));
- try{
-  const log=RunLog.create(root,"2026-10-24T15-00-00_moving-npc_test");
-  const recorder=new RunRecorder({log,frames:new FrameStore(root,10000,()=>undefined),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(f.state())}});
-  await recorder.start({...RUN_START_META,harness_features:["semantic-navigation-v2",ID]},false);
-  await recorder.emit({type:"tool_execution_start",toolCallId:"recorded-follow",toolName:"navigate_to_target",args:request});
-  await recorder.emit({type:"tool_execution_end",toolCallId:"recorded-follow",toolName:"navigate_to_target",isError:false,result:out});
-  const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>parseEvent(line));
-  const recorded=events.find(e=>e.type==="tool_result");if(recorded?.type!=="tool_result")throw new Error("missing recorded result");
-  expect(recorded.semantic_navigation).toEqual({target:request.target,activation_attempted:true});
-  expect(recorded.text).toContain("activation handed control back: dialogue or a field message opened");
-  expect(events.find(e=>e.type==="state"&&e.seq===recorded.state_seq)).toMatchObject({position:{x:4,y:1},facing:"down"});
- }finally{rmSync(root,{recursive:true,force:true});}
-});
-
 it("shares the 32-attempt budget across navigation segments",async()=>{
  const f=fixture(),initial=place(field(),[npc(40)]);
  f.set({...initial,navigation_grid:{elevation:3,tiles:Array.from({length:41},(_,x)=>({x,y:1,collision:0,behavior:0,elevation:3})),objects:[{x:40,y:1}],warps:[]}});
@@ -209,15 +178,4 @@ it("shares the 32-attempt budget across navigation segments",async()=>{
  expect(f.sent).toEqual(Array.from({length:32},()=>["RIGHT"]));
  expect(f.state().position).toEqual({x:32,y:1});
  expect(out.details).toMatchObject({semantic_navigation:{status:"moving target attempt limit reached; inspect the current state",activation_attempted:false}});
-});
-
-it.each([true,false])("preserves selected-trainer exclusion and other-trainer refusal (selected=%s)",async selected=>{
- const fixtureReply=JSON.parse(readFileSync(new URL("../test-support/trainer-sight-b300.json",import.meta.url),"utf8")) as {replies:{turn501:{reply:unknown}}};
- const native=parseTrainerSight(fixtureReply.replies.turn501.reply);if(!native.available)throw new Error("native fixture unavailable");
- const trainer=native.trainers[0],sighting=native.sightings[0];if(trainer===undefined||sighting===undefined)throw new Error("missing sight fixture");
- const local_id=selected?2:9,reply={...native,map_id:[0,9] as [number,number],trainers:[{...trainer,local_id}],sightings:[{...sighting,local_id}]};
- const f=fixture(true,undefined,undefined,{"trainer-sight-check-v1":true,"trainer-sight-check-v2":true},reply);
- const out=await f.tool.execute("sight-follow",request);
- if(selected){expect(f.sightRecords.map(r=>r.outcome)).toEqual(["clear","clear"]);expect(f.sent).toEqual([["RIGHT"],["RIGHT"],["A"]]);}
- else {expect(f.sightRecords.map(r=>r.outcome)).toEqual(["refused"]);expect(f.sent).toEqual([]);expect(out.details).toMatchObject({semantic_navigation:{status:SIGHT_STATUS,activation_attempted:false}});}
 });

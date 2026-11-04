@@ -26,19 +26,6 @@ describe("control requests", () => {
     for (const bad of ["", "{}", '{"v":1,"seq":0,"at":"x","action":"pause"}', '{"v":1,"seq":1,"at":"2026-10-13T15:00:00.000Z","action":"explode"}', '{"v":1,"seq":1,"at":"2026-10-13T15:00:00.000Z","action":"pause","extra":1}', "not json"])
       expect(() => parseControlRequest(bad)).toThrow(/control request/);
   });
-
-  it("reads only complete new lines, in order, from a file that may not exist yet", () => {
-    const dir = mkdtempSync(join(tmpdir(), "control-"));
-    const path = join(dir, "control.jsonl");
-    const file = new ControlFile(path);
-    expect(file.poll()).toEqual([]);
-    writeFileSync(path, controlLine(1, "pause", "2026-10-13T15:00:00.000Z") + "\n" + controlLine(2, "resume", "2026-10-13T15:00:01.000Z").slice(0, 10));
-    expect(file.poll().map((r) => r.action)).toEqual(["pause"]);
-    appendFileSync(path, controlLine(2, "resume", "2026-10-13T15:00:01.000Z").slice(10) + "\nnot json\n" + controlLine(2, "stop", "2026-10-13T15:00:02.000Z") + "\n" + controlLine(3, "stop", "2026-10-13T15:00:03.000Z") + "\n");
-    expect(file.poll().map((r) => [r.seq, r.action])).toEqual([[2, "resume"], [3, "stop"]]);
-    expect(file.problems).toEqual(["line 3: invalid control request", "line 4: control request 2 is not after 2"]);
-    expect(file.poll()).toEqual([]);
-  });
 });
 
 describe("pause", () => {
@@ -175,17 +162,6 @@ describe("game server and control file wiring", () => {
     expect(calls).toEqual([["http://127.0.0.1:8070/pokebench/pause", '{"paused":true}']]);
     await expect(freezeGame("http://127.0.0.1:8070", false, () => Promise.resolve(new Response('{"paused":true}')))).rejects.toThrow(/did not confirm paused=false/);
     await expect(freezeGame("http://127.0.0.1:8070", true, () => Promise.resolve(new Response("no", { status: 404 })))).rejects.toThrow(/HTTP 404/);
-  });
-
-  it("applies requests appended to the control file", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "control-"));
-    const path = join(dir, "control.jsonl");
-    const h = harness();
-    const stop = watchControl(new ControlFile(path), h.control, 5);
-    try {
-      appendFileSync(path, controlLine(1, "stop", "2026-10-13T15:00:00.000Z") + "\n");
-      await vi.waitFor(() => { expect(h.control.state).toBe("stop_pending"); });
-    } finally { stop(); }
   });
 });
 

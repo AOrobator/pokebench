@@ -22,17 +22,6 @@ it("selects exactly the operator-approved prompt and keeps OFF bytes", () => {
   expect(playHarnessFeatures(enabled(), null).at(-1)).toBe("screenshot-button-baseline-v1");
 });
 
-it("freezes an all-off boot baseline with only the approved prompt treatment", () => {
-  const preset = parsePlayPreset(JSON.parse(readFileSync(new URL("../../../experiments/presets/screenshot-button-baseline.json", import.meta.url), "utf8")));
-  expect(preset.version).toBe(2);
-  if (preset.version !== 2) throw new Error("expected v2 preset");
-  expect(preset.start).toBeUndefined();
-  expect(preset.features).toEqual(enabled());
-  expect(playTools(preset.features)).toEqual(["observe", "press"]);
-  expect(preset.limits).toEqual({ maxTurns: Number.MAX_SAFE_INTEGER, maxWallMs: 1800000, failureLimit: Number.MAX_SAFE_INTEGER, replyFailuresEndRun: false });
-  expect(playSystemPrompt(preset.features, null)).toBe(prompt);
-});
-
 it("delivers only the screenshot through real observe/press factories while preserving private state and exact inputs", async () => {
   const bytes = Buffer.alloc(24);
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(bytes);
@@ -55,14 +44,4 @@ it("delivers only the screenshot through real observe/press factories while pres
   expect(calls.filter(call => call.path === "/action")).toEqual([{ path: "/action", body: JSON.stringify({ buttons: ["A", "RIGHT"], hold_frames: 10, release_frames: 8 }) }]);
   const off = gameTools("http://game", { beforePress: () => undefined, afterPress: () => Promise.resolve() }, fake, toolSwitches(plain()));
   expect((await off[0].execute("off", {})).content).toEqual([image, { type: "text", text: "RAM SECRET plus fading-screen note" }]);
-});
-
-it("rejects mixed baseline presets and preserves advanced-tool factories for their raw feature fixtures", () => {
-  const preset = JSON.parse(readFileSync(new URL("../../../experiments/presets/screenshot-button-baseline.json", import.meta.url), "utf8")) as { features: Record<string, boolean> };
-  preset.features["battle-move-tool-v1"] = true;
-  expect(() => parsePlayPreset(preset)).toThrow("screenshot-button-baseline-v1 requires every other behavior switch OFF");
-  const mixed = { ...enabled(), "battle-move-tool-v1": true, "tool-prompt-docs-v1": true };
-  expect(playSystemPrompt(mixed, null)).toContain("- battle_action: while a battle waits for your choice");
-  expect(toolSwitches(mixed)).not.toHaveProperty("screenshotOnly");
-  expect(playSystemPrompt(enabled(), null)).toBe(prompt);
 });

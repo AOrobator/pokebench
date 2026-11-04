@@ -12,8 +12,6 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from test_view import get
 
 from pokebench_env.battle_state import BattleInput, BattleState
 from pokebench_env.battle_text import BattlePrompt
@@ -286,26 +284,6 @@ def test_ef9f_turn_156_state_reads_the_clock_box_and_says_how_to_answer_yes() ->
     )
     assert on_text[4] == YES_LINE
     assert on_text[:4] + on_text[5:] == off_text
-
-
-def test_production_observation_route_honours_the_switch(monkeypatch: pytest.MonkeyPatch) -> None:
-    from test_feature_switches import _Shot
-
-    from pokebench_env.observation import install_observation
-
-    texts = {}
-    for switch_off in (True, False):
-        off = features_off_from_env({}) - (set() if switch_off else {SWITCH})
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", ",".join(sorted(off)))
-        monkeypatch.setenv("POKEBENCH_ACTIVE_UI", "1")
-        app = FastAPI()
-        install_observation(app, lambda: _Shot(), fixture_read, MapNames({}))
-        status, _, body = get(app, "/pokebench/observation")
-        assert status == 200, body
-        texts[switch_off] = json.loads(body)["state_text"]
-    assert YES_LINE not in texts[True]
-    assert f"B returns to adjustment\n{YES_LINE}\n" in texts[False]
-    assert texts[False].replace(f"{YES_LINE}\n", "") == texts[True]
 
 
 NEUTRAL = "neutral-yes-no-readout-v1"

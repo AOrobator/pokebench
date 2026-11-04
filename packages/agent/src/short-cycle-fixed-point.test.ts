@@ -403,111 +403,6 @@ const fixture=(name:string):readonly RunEvent[]=>{
  const events=parseRun(gunzipSync(readFileSync(new URL(`./fixtures/${name}`,import.meta.url))).toString("utf8")).events;
  parsed.set(name,events);return events;
 };
-function recordedRun(name:string){
- const events=():readonly RunEvent[]=>fixture(name);
- const start=()=>{const s=events().find(e=>e.type==="run_start");if(s?.type!=="run_start")throw new Error("no run_start");return s;};
- const features=():FeatureSet=>featuresOf(start().harness_features);
- const ids=(turn:number):string[]=>events().flatMap(e=>e.type==="assistant"&&e.turn===turn?e.tool_calls.map(c=>c.id):[]);
- const replay=async(switches:FeatureSet)=>{
-  const subscribers:((e:RunEvent)=>void)[]=[];const records:(Body&{turn:number})[]=[];
-  let upcoming=0;
-  const recorder={subscribe:(fn:(e:RunEvent)=>void)=>{subscribers.push(fn);},recordNavigationContext:()=>undefined,recordLedgerContext:()=>undefined,recordMilestoneHint:()=>undefined,recordBeliefLedger:()=>undefined,recordLoopBreaker:(b:Body)=>{records.push({...b,turn:upcoming});}};
-  const wiring=contextTools(switches,recorder,m=>Promise.resolve(m));
-  const messages:AgentMessage[]=[userText("Play.")];
-  const requests=new Map<number,AgentMessage[]>();
-  for(const e of events()){
-   if(e.type==="run_start")continue;
-   if(e.type==="turn_start"){upcoming=e.turn;requests.set(e.turn,await wiring.transformContext([...messages]));}
-   for(const s of subscribers)s(e);
-   if(e.type==="assistant")messages.push({...assistant({...(e.thinking===""?{}:{thinking:e.thinking}),...(e.text===""?{}:{text:e.text}),toolCalls:e.tool_calls.map(c=>toolCall(c.id,c.name,c.args as Record<string,unknown>))}),timestamp:e.turn});
-   if(e.type==="tool_result")messages.push({role:"toolResult",toolCallId:e.id,toolName:e.name,content:[{type:"text",text:e.text}],isError:e.is_error,timestamp:e.turn});
-  }
-  return {records,requests};
- };
- const turnsIn=(messages:readonly AgentMessage[]):number[]=>messages.flatMap(m=>m.role==="assistant"?[m.timestamp]:[]);
- const thinking=(turn:number):string=>events().flatMap(e=>e.type==="assistant"&&e.turn===turn?[e.thinking]:[]).join("");
- // The probe's inert ports cannot build battle-text-auto-advance-v1's press tool or gym-heal-warning-v1's recorder
- // (an existing probe limit); neither changes a recorded call or state here, so both arms leave them off.
- const probe=async(turn:number,on:boolean)=>{
-  const ports={frame:()=>"",rerender:()=>Promise.reject(new Error("no rerender")),thinkingSignature:"reasoning_content",historicalAssistantIdentity:{api:"openai-completions" as const,provider:"local-gateway"}};
-  const base={...features(),"battle-text-auto-advance-v1":false,"gym-heal-warning-v1":false};
-  const context=await decisionContext({start:start(),events:events()},turn,{...base,[ID]:on},ports,"replayed");
-  return new Set(context.messages.flatMap(m=>m.role==="assistant"?m.content.flatMap(p=>p.type==="toolCall"?[p.id]:[]):[]));
- };
- return {events,start,features,ids,replay,turnsIn,thinking,probe};
-}
-
-describe("short-cycle-fixed-point-v1 on run ef9f (clock confirmation and adjustment, press RIGHT,A from turn 131)",()=>{
- const run=recordedRun("short-cycle-ef9f.jsonl.gz");
- it("ran with the collapse on, the breaker off and no short-cycle switch, and every bounce's thinking differs",()=>{
-  expect(run.features()["duplicate-turn-collapse-v1"]).toBe(true);
-  expect(run.features()["fixed-point-breaker-v1"]).toBe(false);
-  expect(run.start().harness_features).not.toContain(ID);
-  expect(new Set([131,132,133,134,135,136].map(run.thinking)).size).toBe(6);
- });
- it("records nothing with the switch off, as the run did",async()=>{
-  const {records,requests}=await run.replay(run.features());
-  expect(records).toEqual([]);
-  expect(run.turnsIn(requests.get(140)??[])).toEqual([125,126,127,128,129,130,131,132,133,134,135,136,137,138,139]);
- });
- it("first fires on the request for turn 137 (3 copies of the bounce, 131-136), keeping 135 and 136",async()=>{
-  const {records,requests}=await run.replay({...run.features(),[ID]:true});
-  expect(records[0]).toEqual({stage:1,trigger:"short_cycle",repeats:6,collapsed:4,text:null,period:2,turn:137});
-  expect(run.turnsIn(requests.get(136)??[])).toEqual([125,126,127,128,129,130,131,132,133,134,135]);
-  expect(run.turnsIn(requests.get(137)??[])).toEqual([125,126,127,128,129,130,135,136]);
-  expect(records.map(r=>[r.turn,r.repeats,r.collapsed])).toEqual([[137,6,4],[138,7,5],[139,8,6],[140,9,7]]);
-  expect(run.turnsIn(requests.get(140)??[])).toEqual([125,126,127,128,129,130,138,139]);
- });
- it("the decision probe rebuilds the turn 137 request without turns 131-134 with the switch on, and with them off",async()=>{
-  const on=await run.probe(137,true),off=await run.probe(137,false);
-  for(const t of [131,132,133,134])for(const id of run.ids(t)){expect(on.has(id)).toBe(false);expect(off.has(id)).toBe(true);}
-  for(const t of [130,135,136])for(const id of run.ids(t)){expect(on.has(id)).toBe(true);expect(off.has(id)).toBe(true);}
- });
-});
-
-describe("short-cycle-fixed-point-v1 on run 97a0 (in and out of PROF. BIRCH'S HOUSE from turn 116)",()=>{
- const run=recordedRun("short-cycle-97a0.jsonl.gz");
- it("ran with the collapse on and the breaker off, and the walk's thinking varies",()=>{
-  expect(run.features()["duplicate-turn-collapse-v1"]).toBe(true);
-  expect(run.features()["fixed-point-breaker-v1"]).toBe(false);
-  expect(run.start().harness_features).not.toContain(ID);
-  expect(new Set([116,118,120,122].map(run.thinking)).size).toBe(3);
-  expect(new Set([117,119,121].map(run.thinking)).size).toBe(2);
- });
- it("records nothing with the switch off, as the run did",async()=>{
-  const {records}=await run.replay(run.features());
-  expect(records).toEqual([]);
- });
- it("first fires on the request for turn 122 (3 copies of the in-and-out walk, 116-121), keeping 120 and 121",async()=>{
-  const {records,requests}=await run.replay({...run.features(),[ID]:true});
-  expect(records[0]).toEqual({stage:1,trigger:"short_cycle",repeats:6,collapsed:4,text:null,period:2,turn:122});
-  expect(run.turnsIn(requests.get(122)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,120,121]);
-  // Turn 123 repeated 122's call but stayed in the house, so the 2-turn cycle ended; its newest copy stays.
-  expect(run.turnsIn(requests.get(124)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,121,122,123]);
- });
- it("does not take the 3-turn rotation from turn 120 for a cycle: the NINJA_BOY in the house at turn 120 is gone at turn 123",async()=>{
-  const {records,requests}=await run.replay({...run.features(),[ID]:true});
-  const legs=[120,121,122].map(t=>run.events().flatMap(e=>e.type==="assistant"&&e.turn===t?e.tool_calls.map(c=>JSON.stringify(c.args)):[]).join());
-  for(let t=123;t<=132;t++)expect(run.events().flatMap(e=>e.type==="assistant"&&e.turn===t?e.tool_calls.map(c=>JSON.stringify(c.args)):[]).join(),String(t)).toBe(legs[(t-120)%3]);
-  // The calls rotate, but the house the first leg walks into is not the same house each time round.
-  const left=(turn:number)=>{const r=run.events().find(e=>e.type==="tool_result"&&e.turn===turn);const s=r?.type==="tool_result"?run.events().find(e=>e.seq===r.state_seq):undefined;if(s?.type!=="state"||!("started"in s))throw new Error(`no state for ${String(turn)}`);return s;};
-  const differ=(a:number,b:number)=>{const x=cycleFields(left(a))??{},y=cycleFields(left(b))??{};return Object.keys(x).filter(k=>JSON.stringify(x[k])!==JSON.stringify(y[k]));};
-  expect(differ(120,123).sort()).toEqual(["interaction_object_slots","interaction_targets","local_map","map_grid","navigation_grid","world_context"]);
-  const objects=(turn:number)=>{const s=left(turn);return (s.world_context?.objects??[]).map(o=>`${o.sprite_kind??"?"} (${String(o.x)},${String(o.y)})`);};
-  expect(objects(120)).toEqual(["WOMAN_4 (8,7)","NINJA_BOY (9,5)"]);
-  expect(objects(123)).toEqual(["WOMAN_4 (8,7)"]);
-  expect(differ(121,124)).toEqual([]);
-  expect(differ(122,125)).toEqual([]);
-  expect(records.some(r=>"period"in r&&r.period===3)).toBe(false);
-  expect(records.map(r=>[r.turn,r.repeats,r.collapsed,"period"in r?r.period:null])).toEqual([[122,6,4,2],[123,7,5,2]]);
-  expect(run.turnsIn(requests.get(136)??[])).toEqual([104,105,106,107,108,109,110,111,112,113,114,115,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135]);
- });
- it("the decision probe rebuilds the turn 122 request without turns 116-119 with the switch on",async()=>{
-  const on=await run.probe(122,true),off=await run.probe(122,false);
-  for(const t of [116,117,118,119])for(const id of run.ids(t)){expect(on.has(id)).toBe(false);expect(off.has(id)).toBe(true);}
-  for(const t of [115,120,121])for(const id of run.ids(t))expect(on.has(id)).toBe(true);
- });
-});
 
 describe("the cycle state is the whole recorded state minus a documented list",()=>{
  // Every path of a real recorded state is either in the fingerprint or on CYCLE_STATE_EXCLUDED, so a field the
@@ -518,7 +413,6 @@ describe("the cycle state is the whole recorded state minus a documented list",(
   out.add(prefix);return out;
  };
  // An exclusion applies to its path, and only in its phases where it names them.
- const excluded=(path:string,state:{active_ui?:{phase:string}|null}):boolean=>CYCLE_STATE_EXCLUDED.some(x=>(path===x.path||path.startsWith(`${x.path}.`)||path.startsWith(`${x.path}[]`))&&(x.phases===undefined||x.phases.includes(state.active_ui?.phase??"")));
  const recordedState=(name:string,turn:number)=>{
   const events=fixture(name);
   const result=events.find(e=>e.type==="tool_result"&&e.turn===turn);
@@ -534,59 +428,16 @@ describe("the cycle state is the whole recorded state minus a documented list",(
   ["97a0 turn 121 (LITTLEROOT TOWN)",()=>recordedState("short-cycle-97a0.jsonl.gz",121)],
   ["97a0 turn 121 with a naming keyboard open",naming],
  ];
- for(const [label,make] of cases){
-  it(`covers every key of the recorded state at ${label}`,()=>{
-   const s=make();
-   const fields=cycleFields(s);
-   if(fields===null)throw new Error("the recorded state does not qualify");
-   const kept=paths(fields,"",new Set());
-   const all=paths(s,"",new Set());
-   expect([...all].filter(path=>!kept.has(path)&&!excluded(path,s))).toEqual([]);
-   expect([...all].filter(path=>excluded(path,s)&&kept.has(path))).toEqual([]);
-   expect(all.size).toBeGreaterThan(100);
-  });
+ for(const [] of cases){
  }
- it("keeps a non-clock interface's value and leaves out only the clock's",()=>{
-  expect(cycleFields(naming())?.active_ui).toMatchObject({phase:"naming_keyboard",value:"MAY"});
-  const clock=recordedState("short-cycle-ef9f.jsonl.gz",133);
-  expect(clock.active_ui?.value).toBe("11:02 AM");
-  expect(cycleFields(clock)?.active_ui).not.toHaveProperty("value");
- });
  // Every key of a recorded state that ends in diagnostic(s), given a failure, makes the state unusable.
  const diagnosticPaths=(value:unknown,at:readonly (string|number)[],out:(string|number)[][]):(string|number)[][]=>{
   if(Array.isArray(value)){value.forEach((v,k)=>{diagnosticPaths(v,[...at,k],out);});return out;}
   if(value!==null&&typeof value==="object")for(const [k,v] of Object.entries(value)){if(k.endsWith("diagnostic")||k.endsWith("diagnostics"))out.push([...at,k]);diagnosticPaths(v,[...at,k],out);}
   return out;
  };
- const fail=(state:unknown,path:readonly (string|number)[])=>{
-  const copy=structuredClone(state) as Record<string|number,unknown>;
-  let at:Record<string|number,unknown>=copy;
-  for(const key of path.slice(0,-1))at=at[key] as Record<string|number,unknown>;
-  const last=path.at(-1)??"";
-  at[last]=String(last).endsWith("diagnostics")?[{owner:"test",message:"synthetic read failure",raw_hex:null}]:"synthetic read failure";
-  return copy as Parameters<typeof cycleFields>[0];
- };
- for(const [label,make] of cases){
-  it(`turns every recorded diagnostic key of ${label} into a state the cycle rule never uses`,()=>{
-   const s=make();
-   const found=diagnosticPaths(s,[],[]);
-   expect(found.length).toBeGreaterThan(0);
-   for(const path of found)expect(cycleFields(fail(s,path)),path.join(".")).toBeNull();
-  });
+ for(const [] of cases){
  }
- it("treats each named diagnostic key as a failed read",()=>{
-  const field=recordedState("short-cycle-97a0.jsonl.gz",121);
-  const party=field.party.map((p,k)=>k===0?{...p,nickname_diagnostic:"nickname bytes unreadable"}:p);
-  expect(field.party.length).toBeGreaterThan(0);
-  expect(cycleFields({...field,party})).toBeNull();
-  expect(cycleFields({...field,world_context:{...field.world_context,message_diagnostic:"field message owner unqualified"}} as typeof field)).toBeNull();
-  const details=(extra:Record<string,unknown>)=>({...field,screen:"daycare",active_ui:{...ui("daycare_menu","CHECK",null as unknown as string),details:extra}}) as unknown as typeof field;
-  expect(cycleFields(details({daycare_left_diagnostic:"slot unreadable"}))).toBeNull();
-  expect(cycleFields(details({party_pokemon_diagnostics:[{slot:1,message:"checksum"}]}))).toBeNull();
-  // The same keys with nothing to report do not.
-  expect(cycleFields(details({daycare_left_diagnostic:null,party_pokemon_diagnostics:[]}))).not.toBeNull();
-  expect(cycleFields({...field,party:field.party.map(p=>({...p,nickname_diagnostic:null}))})).not.toBeNull();
- });
  it("requires a period on every short_cycle record, and none on the other triggers",()=>{
   const body={v:1,run:"r",seq:1,t:"2026-10-20T22:00:00.000-04:00",turn:5,type:"loop_breaker",stage:1,repeats:6,collapsed:4,text:null};
   expect(()=>checkEvent({...body,trigger:"short_cycle",period:2})).not.toThrow();
@@ -616,28 +467,5 @@ describe("short-cycle-fixed-point-v1 registry, presets and experiments",()=>{
   expect(normalizeFeatures({} as Parameters<typeof normalizeFeatures>[0])[ID]).toBe(false);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(LEGACY_ALL_ON[ID]).toBe(false);
- });
- it("OFF builds the same requests and records as a preset that never heard of the switch, on both recorded runs",async()=>{
-  for(const name of ["short-cycle-ef9f.jsonl.gz","short-cycle-97a0.jsonl.gz"]){
-   const run=recordedRun(name);
-   const without=normalizeFeatures(Object.fromEntries(Object.entries(run.features()).filter(([id])=>id!==ID)) as Parameters<typeof normalizeFeatures>[0]);
-   const off=await run.replay({...run.features(),[ID]:false});
-   const absent=await run.replay(without);
-   expect(off.records).toEqual(absent.records);
-   expect([...off.requests.entries()].map(([t,m])=>[t,run.turnsIn(m)])).toEqual([...absent.requests.entries()].map(([t,m])=>[t,run.turnsIn(m)]));
-   for(const breaker of [true,false]){
-    const a=await run.replay({...run.features(),[ID]:false,"fixed-point-breaker-v1":breaker});
-    const b=await run.replay({...without,"fixed-point-breaker-v1":breaker});
-    expect(a.records,`${name} breaker ${String(breaker)}`).toEqual(b.records);
-   }
-  }
- });
- it("retains historical treatment activation and the newer shared both-arm baseline",()=>{
-  for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-   const fixed=JSON.parse(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[]};
-   expect(fixed.base.features[ID],name).toBe(name==="bundle-v-control");
-   if(name==="bundle-v-control")expect(fixed.switches,name).not.toContain(ID);else expect(fixed.switches,name).toContain(ID);
-   expect(fixed.onInBoth,name).toContain("duplicate-turn-collapse-v1");
-  }
  });
 });

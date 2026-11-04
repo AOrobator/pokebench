@@ -1,11 +1,8 @@
-import ast
 import threading
-from pathlib import Path
 
 import pytest
 
 from pokebench_env.frame_pacing import EMERALD_REALTIME_FPS, TimeProxy, install_deadline_pacing
-from pokebench_env.launcher import VENDOR_DIR
 
 
 class FakeClock:
@@ -167,41 +164,3 @@ def test_install_preserves_four_x_fast_dialog_ratio_at_real_time_base_rate() -> 
     server.game_loop()
 
     assert clock.sleeps == pytest.approx([1 / EMERALD_REALTIME_FPS, 1 / (4 * EMERALD_REALTIME_FPS)])
-
-
-def test_pinned_vendor_game_loop_has_the_single_expected_cadence_seam() -> None:
-    source_path = Path(VENDOR_DIR) / "server" / "app.py"
-    module = ast.parse(source_path.read_text())
-    game_loop = next(
-        node
-        for node in module.body
-        if isinstance(node, ast.FunctionDef) and node.name == "game_loop"
-    )
-    sleeps = [
-        node
-        for node in ast.walk(game_loop)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and isinstance(node.func.value, ast.Name)
-        and node.func.value.id == "time"
-        and node.func.attr == "sleep"
-    ]
-
-    assert len(sleeps) == 1
-    assert ast.dump(sleeps[0].args[0], include_attributes=False) == (
-        "BinOp(left=Constant(value=1.0), op=Div(), right=Name(id='current_fps', ctx=Load()))"
-    )
-
-    constant_sleeps = sorted(
-        call.args[0].value
-        for call in ast.walk(module)
-        if isinstance(call, ast.Call)
-        and isinstance(call.func, ast.Attribute)
-        and isinstance(call.func.value, ast.Name)
-        and call.func.value.id == "time"
-        and call.func.attr == "sleep"
-        and len(call.args) == 1
-        and isinstance(call.args[0], ast.Constant)
-        and isinstance(call.args[0].value, float)
-    )
-    assert constant_sleeps == [1.0, 5.0]

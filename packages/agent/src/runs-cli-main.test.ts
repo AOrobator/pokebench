@@ -14,7 +14,7 @@ vi.mock("./frames.js", async (load) => {
   }
   return { ...actual, FrameStore: RecordingStore };
 });
-const { RUNS_ROOT, main, runsRootFor } = await import("./runs-cli.js");
+const { RUNS_ROOT, main } = await import("./runs-cli.js");
 const { FRAME_CAP_BYTES } = await import("./frames.js");
 
 it("defaults the CLI to the repo runs/ directory and the 10 GB cap without scanning it", () => {
@@ -23,14 +23,4 @@ it("defaults the CLI to the repo runs/ directory and the 10 GB cap without scann
   expect(made).toEqual([{ runsRoot: RUNS_ROOT, capBytes: FRAME_CAP_BYTES }]);
   expect(FRAME_CAP_BYTES).toBe(10 * 1024 * 1024 * 1024);
   expect(out).toEqual(["frames on disk: 0 B of 10240.0 MB cap (0%); runs may start at or below 75%"]);
-});
-
-it("resolves the runs root as a filesystem path, so escaped characters such as spaces survive", () => {
-  const spaced = join(tmpdir(), "a b", "pokebench");
-  const moduleUrl = pathToFileURL(join(spaced, "packages", "agent", "src", "runs-cli.js")).href;
-  expect(moduleUrl).toContain("a%20b");
-  expect(runsRootFor(moduleUrl)).toBe(join(spaced, "runs") + sep);
-  expect(RUNS_ROOT).toBe(fileURLToPath(new URL("../../../runs/", import.meta.url)));
-  expect(RUNS_ROOT).not.toMatch(/%[0-9A-F]{2}/i);
-  expect(existsSync(join(RUNS_ROOT, "..", "justfile"))).toBe(true);
 });

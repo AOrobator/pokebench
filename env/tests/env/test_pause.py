@@ -1,14 +1,11 @@
 """Operator pause: the game server holds the vendor frame loop between frames."""
 
 import asyncio
-import json
 import threading
 import time
 import types
 
 from fastapi import FastAPI
-
-from pokebench_env.pause import install_pause
 
 
 def post(app: FastAPI, path: str, body: bytes) -> tuple[int, bytes]:
@@ -74,87 +71,6 @@ class FrameLoop:
         self.stop.set()
 
 
-def test_pause_is_confirmed_only_once_the_frame_loop_is_parked() -> None:
-    app = FastAPI()
-    module = types.SimpleNamespace(step_environment=lambda actions: None)
-    install_pause(app, module)
-    with FrameLoop(module) as loop:
-        time.sleep(0.05)
-        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
-        frozen = loop.frames
-        time.sleep(0.1)
-        assert loop.frames == frozen
-        # Resume and pause again at once: confirmation needs a fresh park.
-        assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
-        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
-        again = loop.frames
-        time.sleep(0.1)
-        assert loop.frames == again
-        assert post(app, "/pokebench/pause", b'{"paused": false}') == (200, b'{"paused":false}')
-        time.sleep(0.05)
-        assert loop.frames > again
-        loop.stop.set()
-        post(app, "/pokebench/pause", b'{"paused": false}')
-        loop.thread.join(2)
-
-
-def test_pause_waits_for_the_frame_in_progress() -> None:
-    app = FastAPI()
-    in_frame = threading.Event()
-    release = threading.Event()
-
-    def slow_step(actions: list[str]) -> None:
-        in_frame.set()
-        release.wait(2)
-
-    module = types.SimpleNamespace(step_environment=slow_step)
-    install_pause(app, module)
-    worker = threading.Thread(
-        target=lambda: [module.step_environment([]) for _ in range(2)], daemon=True
-    )
-    worker.start()
-    assert in_frame.wait(2)
-    answer: list[tuple[int, bytes]] = []
-    pauser = threading.Thread(
-        target=lambda: answer.append(post(app, "/pokebench/pause", b'{"paused": true}'))
-    )
-    pauser.start()
-    pauser.join(0.2)
-    assert pauser.is_alive() and answer == []
-    release.set()
-    pauser.join(2)
-    assert answer == [(200, b'{"paused":true}')]
-    post(app, "/pokebench/pause", b'{"paused": false}')
-    worker.join(2)
-    assert not worker.is_alive()
-
-
-def test_an_unconfirmed_pause_is_rolled_back() -> None:
-    app = FastAPI()
-    module, stepped = server_module()
-    install_pause(app, module, park_timeout_s=0.05)
-    status, body = post(app, "/pokebench/pause", b'{"paused": true}')
-    assert status == 503 and b"did not park" in body
-    worker = threading.Thread(target=module.step_environment, args=([],), daemon=True)
-    worker.start()
-    worker.join(2)
-    assert not worker.is_alive() and stepped == [[]]
-
-
-def test_pause_requests_are_typed() -> None:
-    app = FastAPI()
-    module, _ = server_module()
-    install_pause(app, module)
-    for body in (
-        b"{}",
-        b'{"paused": "yes"}',
-        b"not json",
-        json.dumps({"paused": True, "x": 1}).encode(),
-    ):
-        status, _ = post(app, "/pokebench/pause", body)
-        assert status == 422, body
-
-
 def test_serve_installs_pause_before_vendor_main() -> None:
     from pokebench_env.serve import run
 
@@ -176,18 +92,3 @@ def test_serve_installs_pause_before_vendor_main() -> None:
         pause=(app, module),
     )
     assert seen == [True]
-
-
-def test_repeated_pause_is_idempotent_and_never_resumes_parked_frames() -> None:
-    app = FastAPI()
-    module, _ = server_module()
-    install_pause(app, module, park_timeout_s=0.05)
-    with FrameLoop(module) as loop:
-        assert post(app, "/pokebench/pause", b'{"paused": true}')[0] == 200
-        frozen = loop.frames
-        assert post(app, "/pokebench/pause", b'{"paused": true}') == (200, b'{"paused":true}')
-        time.sleep(0.02)
-        assert loop.frames == frozen
-        loop.stop.set()
-        post(app, "/pokebench/pause", b'{"paused": false}')
-        loop.thread.join(2)

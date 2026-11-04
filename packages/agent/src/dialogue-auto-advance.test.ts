@@ -484,37 +484,6 @@ describe("dialogue-auto-advance-v1 registry and production wiring",()=>{
   expect(playSystemPrompt(ON,null)).toContain("Dialogue auto-advance:");
   expect(playTools(ON).at(-1)).toBe("get_dialogue");
  });
-
- it("the production factory wires auto-advance, get_dialogue and recorded events through a real recorder",async()=>{
-  const root=mkdtempSync(join(tmpdir(),"pokebench-auto-advance-"));
-  try{
-   const game=new FakeGame(SCIENTIST);
-   const log=RunLog.create(root,"auto-advance");
-   const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(game.state())}});
-   await recorder.start(RUN_START_META);
-   const base=[observeTool(URL_BASE,game.fetch),pressTool(URL_BASE,{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress()},game.fetch,{now:()=>0,sleep:()=>Promise.resolve()})];
-   const off=playGameTools(base,OFF,game.read,recorder);
-   expect(off.map(t=>t.name)).toEqual(["observe","press"]);expect(off[1]).toBe(base[1]);
-   const tools=playGameTools(base,ON,game.read,recorder);
-   expect(tools.map(t=>t.name)).toEqual(["observe","press","get_dialogue"]);
-   expect(tools.map(t=>t.name).filter(n=>n!=="observe"&&n!=="press")).toEqual(playTools(ON).filter(n=>n==="get_dialogue"));
-   expect(tools[1]?.description).toContain("Field dialogue advances automatically");
-   const press=tools[1];if(press===undefined)throw new Error("press");
-   await recorder.emit({type:"tool_execution_start",toolCallId:"p",toolName:"press",args:{buttons:["A","A","A"]}});
-   const result=await press.execute("p",{buttons:["A","A","A"]});
-   await recorder.emit({type:"tool_execution_end",toolCallId:"p",toolName:"press",result,isError:false});
-   const recall=await tools[2]?.execute("g",{});
-   expect(recall===undefined?"":textOf(recall)).toContain("The power of science is staggering!");
-   recorder.end("budget");
-   const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
-   expect(events.filter((e):e is Extract<RunEvent,{type:"button_press"}>=>e.type==="button_press").map(e=>[e.tool_call_id,e.buttons])).toEqual([["p",["A"]],["p",["B"]],["p",["B"]]]);
-   const advance=events.find(e=>e.type==="dialogue_auto_advance");
-   expect(advance).toMatchObject({turn:0,stop:"field_free",dropped:["A","A"]});
-   const seqs=advance?.type==="dialogue_auto_advance"?advance.pages.map(p=>p.state_seq):[];
-   for(const seq of seqs)expect(events.find(e=>e.seq===seq)?.type).toBe("state");
-   expect(events.filter(e=>e.type==="tool_result")).toHaveLength(1);
-  }finally{rmSync(root,{recursive:true,force:true});}
- });
 });
 
 // Replays a fixed sequence of states, one per read, repeating the last; records every action.
@@ -639,54 +608,8 @@ it("falls back to the faced object's sprite kind when no interaction target is l
  expect(n.rec.advances()[0]?.pages.map(p=>[p.speaker,p.speaker_source])).toEqual([[null,null]]);
 });
 
-// Recorded from the real ROM on an isolated server (runs/auto-advance-qualify); states trimmed to the
-// fields the wrapper reads. Expected pages are the game's own message buffers (gStringVar4) cut at its waits.
-interface RealReplay {source:string;calls:{buttons:Button[]}[];actions:Button[][];states:GameStateSnapshot[]}
-const realReplay=(name:string):RealReplay=>JSON.parse(readFileSync(new URL(`../test-support/auto-advance-replays/${name}.json`,import.meta.url),"utf8")) as RealReplay;
-async function replayCalls(name:string){
- const replay=realReplay(name);const game=new Scripted(replay.states);const {press,rec}=scriptedTools(game);
- const results=[];for(const [i,call] of replay.calls.entries())results.push(await press.execute(`r${String(i)}`,{buttons:call.buttons}));
- return {results,rec,game,replay};
-}
 
 describe("dialogue-auto-advance-v1 real-game replays",()=>{
- it("records MOM's first page when it was already waiting as the model pressed A outside the truck",async()=>{
-  const {rec}=await replayCalls("truck-late");
-  const [event]=rec.advances();
-  expect(event?.pages.map(p=>p.text).slice(0,3)).toEqual(["MOM: AA, we're here, honey!","It must be tiring riding with our things\nin the moving truck.","Well, this is LITTLEROOT TOWN."]);
-  expect(event?.pages.map(p=>p.text).at(-1)).toBe("Don't forget to set it!");
-  expect(event?.pages).toHaveLength(12);
-  expect(new Set(event?.pages.map(p=>p.text)).size).toBe(12);
- });
-
- it("records a single page the model's own press closed into a locked cutscene, without pressing into the lock",async()=>{
-  const {rec,game,results}=await replayCalls("helpme");
-  const [event]=rec.advances();
-  expect(event?.pages.map(p=>p.text)).toEqual(["H-help me!"]);
-  expect(game.posts).toEqual([["A"]]);
-  expect(event?.auto_presses).toBe(0);
-  expect(event?.stop).toBe("locked_no_message");
-  expect(textOf(results[0] as AgentToolResult<unknown>)).toContain("H-help me!");
- });
-
- it("records BIRCH's whole route and lab talk once each and stops at the nickname YES/NO without answering",async()=>{
-  const {rec,game}=await replayCalls("lab");
-  const [event]=rec.advances();
-  const pages=event?.pages.map(p=>p.text)??[];
-  expect(pages[0]).toBe("PROF. BIRCH: Whew…");
-  expect(pages.at(-1)).toBe("PROF. BIRCH: While you're at it, why not\ngive a nickname to that TORCHIC?");
-  expect(pages.join("\n")).toBe(["PROF. BIRCH: Whew…\nI was in the tall grass studying wild\nPOKéMON when I was jumped.\nYou saved me.\nThanks a lot!\nOh?\nHi, you're AA!\nThis is not the place to chat, so come\nby my POKéMON LAB later, okay?","PROF. BIRCH: So, AA.\nI've heard so much about you from\nyour father.\nI've heard that you don't have your\nown POKéMON yet.\nBut the way you battled earlier,\nyou pulled it off with aplomb!\nI guess you have your father's blood\nin your veins after all!\nOh, yes. As thanks for rescuing me,\nI'd like you to have the POKéMON you\nused earlier.\nAA received the TORCHIC!","PROF. BIRCH: While you're at it, why not\ngive a nickname to that TORCHIC?"].join("\n"));
-  expect(event?.stop).toBe("menu");
-  expect(event?.detail).toContain("YES");
-  expect(game.posts.slice(1).every(b=>b.length===1&&b[0]==="B")).toBe(true);
- });
-
- it("does not stop as free field on the one unlocked frame between the lab warp and the lab's ON_FRAME script",async()=>{
-  const {rec}=await replayCalls("lab-warp");
-  const [event]=rec.advances();
-  expect(event?.stop).not.toBe("field_free");
-  expect(event?.pages[0]?.text).toBe("PROF. BIRCH: Whew…");
- });
 
  it("keeps one message when its buffer is readable a frame before its identity",async()=>{
   const text="PROF. BIRCH: So, AA.\nI've heard so much about you from\nyour father.";

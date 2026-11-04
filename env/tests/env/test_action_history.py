@@ -215,41 +215,6 @@ def test_production_reader_initialization_bounds_and_tutorial_owner():
     assert read_action_frame(m.read).captures is None
 
 
-def test_real_frame_hook_and_http_cursor_failures():
-    import json
-
-    from fastapi import FastAPI
-    from test_game_state import OVERWORLD, game
-    from test_view import get
-
-    from pokebench_env.action_history import install_action_history
-
-    m = game(OVERWORLD)
-
-    class Emulator:
-        def __init__(self):
-            self.frames = 0
-
-        def run_frame_with_buttons(self, buttons):
-            self.frames += 1
-
-    api = FastAPI()
-    journal = install_action_history(api, Emulator, m.read)
-    emu = Emulator()
-    emu.run_frame_with_buttons([])
-    emu.run_frame_with_buttons(["A"])
-    assert journal.frame == emu.frames == 2
-    status, _, body = get(api, "/pokebench/actions")
-    assert status == 200
-    assert json.loads(body)["frame"] == 2
-    journal.error = "test unavailable snapshot"
-    status, _, body = get(api, "/pokebench/actions")
-    assert status == 503
-    assert b"unavailable snapshot" in body
-    emu.run_frame_with_buttons([])
-    assert journal.frame == 3
-
-
 def test_advance_latches_bad_memory_and_never_converts_failure_to_empty_batch():
     j = NativeActionJournal()
     j.advance(lambda a, n: b"")

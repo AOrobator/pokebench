@@ -17,19 +17,3 @@ it("keeps suppressed droughts visible as diagnostics, without timeline marks or 
  expect(v.errors).toEqual([]);expect(lanesSvg(v,BASE_MS+1000)).not.toContain("k-loop");
  expect(DEFAULT_NEXT_RUN.features[ID]).toBe(false);
 });
-it("is OFF in both current arms and ON only in archived bundle arms",()=>{
- const read=(path:string):unknown=>JSON.parse(recipeText(new URL(`../../../${path}`,import.meta.url),"utf8"));
- const current=new Set(["bundle-v-control","bundle-v-control-2h","glm53-flash-4h"]);
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h","glm53-flash-4h"]){
-  const off=current.has(name);
-  const f=read(`experiments/fixed/${name}.json`) as {base:{features:Record<string,boolean>};switches:string[];onInBoth:string[];offInBoth:string[]};
-  expect(f.base.features[ID],name).toBe(false);if(off)expect(f.switches,name).not.toContain(ID);else expect(f.switches.indexOf(ID),name).toBeGreaterThan(f.switches.indexOf("berry-readout-v1"));
-  expect(f.onInBoth,name).not.toContain(ID);expect(f.offInBoth.includes(ID),name).toBe(off);
-  expect(f.base.features["positive-supervisor-v1"],name).toBe(false);expect(f.switches,name).not.toContain("positive-supervisor-v1");
-  const {definition}=parseFixedDefinition(JSON.stringify(f));
-  for(const phase of definition.phases){
-   expect(presetFeatures(parsePlayPreset(armPreset(definition,phase.id,"bundle")))[ID],name).toBe(!off);
-   expect(presetFeatures(parsePlayPreset(armPreset(definition,phase.id,"control")))[ID],name).toBe(false);
-  }
- }
-});

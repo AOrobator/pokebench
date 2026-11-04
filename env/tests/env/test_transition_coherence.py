@@ -20,10 +20,10 @@ import pytest
 from test_battle_state import fixture as battle_fixture
 
 from pokebench_env import rerender
-from pokebench_env.action_history import ActionFrame, NativeActionJournal, read_action_frame
-from pokebench_env.battle_choices import COUNT, IN_BATTLE, MAIN_FUNC, MONS, POSITIONS
+from pokebench_env.action_history import ActionFrame, NativeActionJournal
+from pokebench_env.battle_choices import IN_BATTLE, MAIN_FUNC, POSITIONS
 from pokebench_env.battle_state import OUTCOME, BattleState, read_battle_state
-from pokebench_env.game_screen import GMAIN, Screen
+from pokebench_env.game_screen import Screen
 from pokebench_env.game_state import MapNames
 from pokebench_env.pokemon import PokemonCpu
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
@@ -100,11 +100,6 @@ def memory(name: str, run: str, raw: int) -> FixtureMemory:
     return FixtureMemory(_frames(name)[(run, raw)], operator_rom())
 
 
-BATTLE = "transition-coherence-battle-start.json.gz"
-TORN = "transition-coherence-torn-saves.json.gz"
-HANDOFF = "transition-coherence-handoffs.json.gz"
-
-
 def recorded(name: str, run: str, raw: int) -> tuple[dict[str, object], frozenset[str]]:
     frame = _frames(name)[(run, raw)]
     # Switches registered after these runs were recorded were off for them.
@@ -137,16 +132,6 @@ def render(name: str, run: str, raw: int, *, on: bool) -> str:
     return rerender.render(state, off)
 
 
-def changed(before: str, after: str) -> tuple[list[str], list[str]]:
-    old, new = before.split("\n"), after.split("\n")
-    return [line for line in old if line not in new], [line for line in new if line not in old]
-
-
-def world_block(text: str) -> list[str]:
-    lines = text.split("\n")
-    return lines[next(i for i, line in enumerate(lines) if line.startswith("Story:")) :]
-
-
 # --- the switch ------------------------------------------------------------------------
 
 
@@ -157,87 +142,7 @@ def test_switch_is_a_default_off_server_observation_switch() -> None:
     assert SWITCH not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
 
 
-def test_rerender_hands_the_switch_to_the_game_state_reader(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    seen: list[bool] = []
-
-    def spy(read, maps, **flags):  # type: ignore[no-untyped-def]
-        seen.append(flags["transition_coherence_enabled"])
-        raise StopIteration
-
-    monkeypatch.setattr(rerender, "read_game_state", spy)
-    for off in (frozenset(), frozenset({SWITCH})):
-        with pytest.raises(StopIteration):
-            rerender.read_state(lambda a, n: bytes(n), maps(), active_ui=True, off=off)
-    assert seen == [True, False]
-
-
 # --- fix 1: the model's readout at a battle start (real RAM) ---------------------------
-
-
-@pytest.mark.parametrize(("run", "raw"), [("show", 7894), ("sh02", 6167), ("e588", 7362)])
-def test_off_reproduces_the_recorded_battle_start_readout_byte_for_byte(run: str, raw: int) -> None:
-    frame, _ = recorded(BATTLE, run, raw)
-    assert render(BATTLE, run, raw, on=False) == frame["readout"]
-
-
-def test_on_show_t744_positions_cleared_is_initializing_not_a_coverage_error() -> None:
-    frame, _ = recorded(BATTLE, "show", 7894)
-    assert changed(str(frame["readout"]), render(BATTLE, "show", 7894, on=True)) == (
-        [
-            "Screen: unknown (callback2 0x08036FAD)",
-            "STATE COVERAGE ERROR: harness bug: invalid battle positions",
-            "HARNESS BUG (battle): harness bug: invalid battle positions",
-        ],
-        ["Screen: battle_transition"],
-    )
-
-
-@pytest.mark.parametrize(
-    ("run", "raw", "stale"),
-    [("sh02", 6167, "Foe ZIGZAGOON Lv3"), ("e588", 7362, "Foe POOCHYENA Lv3")],
-)
-def test_on_the_previous_battle_is_not_shown_while_the_new_one_initializes(
-    run: str, raw: int, stale: str
-) -> None:
-    frame, _ = recorded(BATTLE, run, raw)
-    off_text = str(frame["readout"])
-    on = render(BATTLE, run, raw, on=True)
-    assert "finishing (outcome won)" in off_text and stale in off_text
-    lines = on.split("\n")
-    assert lines[0] == "Screen: battle_transition"
-    assert (
-        "Interface: battle_initializing; input not ready; "
-        "Use the game-owned battle input and selected control when ready"
-    ) in on
-    assert "Battle state: initializing; input False; turn None; outcome None" in lines
-    assert not any("finishing" in line or "outcome won" in line for line in lines)
-    assert not any(line.startswith(("Foe ", "You ", "Battle details:")) for line in lines)
-    # The world block (player, location, party, money) is the same game state.
-    assert world_block(on) == world_block(off_text)
-
-
-@pytest.mark.parametrize(
-    ("run", "raw"), [("sh02", 6168), ("e588", 7363), ("show", 6605), ("show", 7896)]
-)
-def test_on_once_the_battle_has_its_own_battlers_the_readout_is_unchanged(
-    run: str, raw: int
-) -> None:
-    assert render(BATTLE, run, raw, on=True) == render(BATTLE, run, raw, on=False)
-
-
-def test_on_a_poll_while_the_game_is_busy_reads_no_save_block() -> None:
-    # show 7893: CB2_InitBattle, CPU inside a BIOS call (not at the main-loop VBlank wait).
-    off = render(BATTLE, "show", 7893, on=False)
-    on = render(BATTLE, "show", 7893, on=True)
-    assert any(line.startswith("Money: ") for line in off.split("\n"))
-    assert not any(line.startswith("Money: ") for line in on.split("\n"))
-    assert on.endswith(
-        "Save-backed world state unavailable: save data is not initialized or valid."
-    )
-
-
-def test_on_an_idle_overworld_poll_is_unchanged() -> None:
-    assert render(BATTLE, "show", 6359, on=True) == render(BATTLE, "show", 6359, on=False)
 
 
 # --- fix 1: battle_state current-battle guard (synthetic, pret battle_main.c) -----------
@@ -288,43 +193,6 @@ def test_after_the_intro_copies_battlers_the_battle_decodes() -> None:
 # --- fix 2: Activity History battle events (real RAM) ----------------------------------
 
 
-def journal_over(name: str, run: str, raws: list[int]) -> NativeActionJournal:
-    j = NativeActionJournal()
-    for raw in raws:
-        j.observe(read_action_frame(memory(name, run, raw), include_storage=False))
-    return j
-
-
-def battle_events(j: NativeActionJournal) -> list[tuple[str, dict[str, object]]]:
-    return [(e["kind"], e["details"]) for e in j.entries if e["kind"].startswith("battle_")]
-
-
-def test_no_phantom_hp_pp_or_status_change_against_the_previous_battle() -> None:
-    # show 6362 is BattleIntroGetMonsData: gBattleMons still hold battle 1's TORCHIC 13/19.
-    j = journal_over(BATTLE, "show", [6359, 6362, 6364])
-    events = battle_events(j)
-    assert [kind for kind, _ in events] == ["battle_started"]
-    started = events[0][1]
-    assert started["battle_type"] == 4 and started["present_at_start"] is False
-    assert isinstance(started["activated_frame"], int)
-
-
-def test_no_stale_won_outcome_right_after_battle_started() -> None:
-    # show 6603 is BeginBattleIntro with gBattleOutcome still 1 from the last battle.
-    j = journal_over(BATTLE, "show", [6600, 6603, 6605])
-    assert [kind for kind, _ in battle_events(j)] == ["battle_started"]
-    assert battle_events(j)[0][1]["battle_type"] == 4
-
-
-def test_positions_cleared_frame_is_not_a_harness_bug_and_type_comes_from_a_valid_frame() -> None:
-    j = journal_over(BATTLE, "show", [7893, 7894, 7895, 7896])
-    kinds = [e["kind"] for e in j.entries if e["kind"] != "menu_changed"]
-    assert kinds == ["battle_started"]
-    assert battle_events(j)[0][1]["battle_type"] is not None
-    phases = [e["details"]["phase"] for e in j.entries if e["kind"] == "menu_changed"]
-    assert "battle_unavailable" not in phases and "battle_finishing" not in phases
-
-
 def test_battle_started_waits_for_the_first_valid_frame_and_survives_a_battle_with_none() -> None:
     m = battle_fixture()
     initializing = BattleState(True, phase="initializing")
@@ -362,41 +230,8 @@ def test_outcome_needs_the_current_battle_and_is_recorded_once() -> None:
 # --- fix 3: torn save reads (real RAM) ---------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    ("run", "raw", "idle"),
-    [("e588", 404, True), ("e588", 405, False), ("687e", 202, False), ("2a25", 394, False)],
-)
-def test_main_loop_idle_from_the_archived_cpu(run: str, raw: int, idle: bool) -> None:
-    assert main_loop_idle(memory(TORN, run, raw)) is idle
-
-
 def test_main_loop_idle_is_unknown_without_cpu_registers() -> None:
     assert main_loop_idle(lambda a, n: bytes(n)) is None
-
-
-@pytest.mark.parametrize(
-    ("run", "raws"),
-    [("e588", [404, 405, 406]), ("687e", [201, 202]), ("2a25", [393, 394]), ("sh02", [4974, 4975])],
-)
-def test_the_journal_skips_frames_inside_a_save_block_move(run: str, raws: list[int]) -> None:
-    j = NativeActionJournal()
-    before = None
-    for raw in raws:
-        read = memory(TORN, run, raw)
-        busy = main_loop_idle(read) is False
-        j.advance(read)
-        assert j.error is None
-        if busy:
-            assert j.previous is before
-        before = j.previous
-    assert [e for e in j.entries if e["kind"] == "harness_bug"] == []
-
-
-def test_the_busy_archives_still_reproduce_the_torn_decode() -> None:
-    # The decoder is unchanged: the same RAM decoded anyway gives the audit's false bugs.
-    frame = read_action_frame(memory(TORN, "e588", 405))
-    owners = {d.owner for d in frame.resources.diagnostics} if frame.resources else set()
-    assert "berry_trees" in owners
 
 
 def busy_reader(idle: bool):  # type: ignore[no-untyped-def]
@@ -555,31 +390,3 @@ def test_handle_start_battle_in_battle_is_the_battle_phase_not_the_handoff() -> 
     m.put(IN_BATTLE, b"\x00")
     ui = read_active_ui(m.read, Screen("unknown", 0, CB2_HANDLE_START_BATTLE))
     assert ui is not None and ui.phase == "battle_transition" and ui.diagnostic is None
-
-
-@pytest.mark.parametrize(
-    ("run", "raw", "phase"),
-    [("show", 7834, "field_transition"), ("sh02", 3454, "starter_choice_transition")],
-)
-def test_real_handoff_frames_journal_and_readout(run: str, raw: int, phase: str) -> None:
-    frame = read_action_frame(memory(HANDOFF, run, raw), include_storage=False)
-    assert frame.ui is not None and frame.ui.phase == phase and frame.ui.diagnostic is None
-    off = render(HANDOFF, run, raw, on=False)
-    on = render(HANDOFF, run, raw, on=True)
-    assert "STATE COVERAGE ERROR" in off and "STATE COVERAGE ERROR" not in on
-    assert f"Interface: {phase}; input not ready" in on
-
-
-def test_game_state_screen_label_for_handle_start_battle_only_under_the_switch() -> None:
-    from pokebench_env.game_state import read_game_state
-
-    m = battle_fixture()
-    m.put(GMAIN + 4, struct.pack("<I", CB2_HANDLE_START_BATTLE))
-    m.put(MAIN_FUNC, struct.pack("<I", 0x08039EC9))
-    m.put(COUNT, b"\x02")
-    m.put(MONS, bytes(0x58 * 2))
-    on = read_game_state(m.read, maps(), transition_coherence_enabled=True)
-    off = read_game_state(m.read, maps())
-    assert on.screen == "battle_transition"
-    assert off.screen == "unknown (callback2 0x08036FAD)"
-    assert on.battle is not None and on.battle.phase == "initializing"

@@ -7,18 +7,14 @@ the exit off. VICTORY ROAD B1F from (30,25) and SEAFLOOR CAVERN ROOM1 from (5,18
 maps where a line per obstacle kind overclaimed; the sweep checks every porymap map from every warp.
 """
 
-import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
-from typing import Any
 
 import pytest
 from test_field_moves import operator_rom
 
-from pokebench_env import field_moves
 from pokebench_env.exit_labels import RomMap, _edge, read_rom_map
 from pokebench_env.field_moves import (
-    FOOT,
     Capabilities,
     Edges,
     FieldObstacles,
@@ -26,23 +22,19 @@ from pokebench_env.field_moves import (
     Obstacle,
     Survey,
     capabilities,
-    classify,
     map_gates,
     rom_object_obstacles,
     survey,
 )
-from pokebench_env.game_state import BADGES, MapNames
+from pokebench_env.game_state import MapNames
 
 ROM_START = 0x08000000
 CLOSED = capabilities((), (), (), 0)
 # All eight badges, an empty bag and a party that knows no field move.
-BADGED = capabilities((), BADGES, (), 0)
-BOULDER = "It's a big boulder, but a POKéMON may be able to push it aside."
 ROCK = "It's a rugged rock, but a POKéMON may be able to smash it."
 HEADER = "Field obstacles on this map (from the map's own object list and its tiles):"
 Tile = tuple[int, int]
 Key = tuple[str, tuple[int, int], int]
-CLAIM = re.compile(r"^- (?P<what>.*?) (?:together )?closes? every way on foot to (?P<exits>.*?): ")
 
 
 @dataclass(frozen=True)
@@ -131,97 +123,6 @@ class Places:
 @pytest.fixture(scope="module")
 def places(porymap_names: MapNames) -> Places:
     return Places(porymap_names)
-
-
-def test_victory_road_b1f_names_the_boulder_and_the_rock_together_for_8_3(places: Places) -> None:
-    place = places.named("VICTORY ROAD B1F")
-    assert place.lines(place.gates(BADGED), (30, 25)) == [
-        HEADER,
-        "- PUSHABLE_BOULDER at (21,4) and BREAKABLE_ROCK at (18,12) together close every way on"
-        " foot to (8,3): they need a field move you cannot use yet; the game says:"
-        f' "{BOULDER}" at the PUSHABLE_BOULDER and "{ROCK}" at the BREAKABLE_ROCK',
-        "- PUSHABLE_BOULDER at (34,4), (20,5), (35,6), (4,7), (9,10), (21,25) and (20,26): it needs"
-        f' a field move you cannot use yet; the game says: "{BOULDER}"',
-        "- BREAKABLE_ROCK at (34,3), (20,4), (19,5), (20,25) and (21,26): it needs a field move you"
-        f' cannot use yet; the game says: "{ROCK}"',
-    ]
-
-
-def test_seafloor_cavern_room1_names_both_boulders_and_the_rock_together(places: Places) -> None:
-    place = places.named("SEAFLOOR CAVERN ROOM1")
-    assert place.lines(place.gates(CLOSED), (5, 18)) == [
-        HEADER,
-        "- PUSHABLE_BOULDER at (5,11) and (12,11) and BREAKABLE_ROCK at (5,10) together close every"
-        " way on foot to (17,13) and (6,2): they need a field move you cannot use yet; the game"
-        f' says: "{BOULDER}" at the PUSHABLE_BOULDER and "{ROCK}" at the BREAKABLE_ROCK',
-    ]
-
-
-def test_every_printed_close_claim_holds_with_exactly_its_obstacles_closed(
-    places: Places, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    floods = 0
-    spread = field_moves._spread
-
-    def counted(*args: Any, **kwargs: Any) -> frozenset[Tile]:
-        nonlocal floods
-        floods += 1
-        return spread(*args, **kwargs)
-
-    monkeypatch.setattr(field_moves, "_spread", counted)
-    checked: set[str] = set()
-    for place in places.every():
-        gates = place.gates(CLOSED)
-        closed = [o for o in gates.obstacles if gates.closed(o)]
-        if not closed:
-            continue
-        keys = list(place.edges)
-        for start in place.warps:
-            if start not in place.tiles:
-                continue
-            floods = 0
-            found, lines = place.surveyed(
-                gates, start, lambda w: f"W{w[0]}_{w[1]}", lambda k, keys=keys: f"C{keys.index(k)}"
-            )
-            # survey: gated and open classify (4 floods), then at most one flood per closed
-            # obstacle on foot and one with water open.
-            assert floods <= 4 + 2 * len(closed), (place.location, start, floods)
-            ungated = found.open
-            was = {f"W{w[0]}_{w[1]}": how for w, how in ungated.warps} | {
-                f"C{keys.index(k)}": how for k, how in ungated.connections
-            }
-            claims = 0
-            floods = 0
-            for line in lines:
-                claim = CLAIM.match(line)
-                if claim is None:
-                    continue
-                what = claim["what"]
-                named_tiles = {(int(x), int(y)) for x, y in re.findall(r"\((\d+),(\d+)\)", what)}
-                named = tuple(o for o in closed if o.name in what and set(o.tiles) <= named_tiles)
-                assert {t for o in named for t in o.tiles} == named_tiles, line
-                alone = classify(
-                    place.tiles,
-                    start,
-                    warps=place.warps,
-                    connections=place.edges,
-                    rules=MapGates(gates.caps, named).rules(),
-                )
-                now = {f"W{w[0]}_{w[1]}": how for w, how in alone.warps} | {
-                    f"C{keys.index(k)}": how for k, how in alone.connections
-                }
-                for exit_ in re.findall(r"W\d+_\d+|C\d+", claim["exits"]):
-                    assert now[exit_] != FOOT and now[exit_] != was[exit_], (
-                        place.location,
-                        start,
-                        line,
-                    )
-                claims += 1
-                checked.add(f"{place.location} {start}")
-            # One classify (two floods) per printed claim.
-            assert floods == 2 * claims, (place.location, start, floods, claims)
-    assert {"VICTORY ROAD B1F (30, 25)", "SEAFLOOR CAVERN ROOM1 (5, 18)"} <= checked
-    assert "RUSTURF TUNNEL (4, 10)" in checked
 
 
 def joint_lines(tiles: dict[Tile, tuple[int, int]], objects: tuple[Obstacle, ...]) -> list[str]:

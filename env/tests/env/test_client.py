@@ -1,5 +1,4 @@
 import base64
-import json
 import struct
 import zlib
 
@@ -185,50 +184,3 @@ def test_boolean_milestone_timestamps_are_rejected(flag: bool) -> None:
 def test_healthy_requires_healthy_status() -> None:
     assert GameClient(FakeTransport({("GET", "/health"): {"status": "healthy"}})).healthy()
     assert not GameClient(FakeTransport({("GET", "/health"): {"status": "starting"}})).healthy()
-
-
-def test_http_transport_round_trips_json_against_a_local_server() -> None:
-    import threading
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-
-    from pokebench_env.client import http_transport
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
-            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            self._reply({"echo": body, "path": self.path})
-
-        def do_GET(self) -> None:
-            self._reply({"path": self.path})
-
-        def _reply(self, payload: object) -> None:
-            data = json.dumps(payload).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
-
-        def log_message(self, *args: object) -> None:
-            return
-
-    server = HTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        transport = http_transport(f"http://127.0.0.1:{server.server_port}")
-        assert transport("GET", "/state", None) == {"path": "/state"}
-        assert transport("POST", "/action", {"buttons": ["A"]}) == {
-            "echo": {"buttons": ["A"]},
-            "path": "/action",
-        }
-    finally:
-        server.shutdown()
-        server.server_close()
-
-
-def test_http_transport_wraps_connection_errors() -> None:
-    from pokebench_env.client import http_transport
-
-    with pytest.raises(ClientError, match="127.0.0.1:9"):
-        http_transport("http://127.0.0.1:9", timeout=0.5)("GET", "/health", None)

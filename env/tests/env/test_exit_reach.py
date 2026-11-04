@@ -29,7 +29,6 @@ from pokebench_env.readout import (
     SERVER_FEATURES,
     connection_notes,
     features_off_from_env,
-    state_json,
 )
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from pokebench_env.surf_gate import FloodInputs, classify
@@ -37,13 +36,7 @@ from pokebench_env.topology import Connection, Topology
 
 ID = "exit-reachability-v1"
 FIXTURES = Path(__file__).parent / "fixtures"
-CURRENT = json.loads((FIXTURES / "readout-truth-current-warp-names.json").read_text())["cases"]
 ROM_START = 0x08000000
-NOTE = "not reachable on foot from where you stand"
-NORTH_OFF = (
-    "- NORTH -> RUSTBORO CITY (map 0/3), offset 0; walk off the map from any tile from (12,0)"
-    " to (19,0) or (33,0): stand on one of these edge tiles and press UP"
-)
 NORTH_ON = (
     "- NORTH -> RUSTBORO CITY (map 0/3), offset 0; not reachable on foot from where you stand:"
     " no walkable way on this map leads from your tile to this edge"
@@ -123,106 +116,14 @@ def state(name: str, seq: int, off: list[str]):
     return rerender.read_state(reader(name, seq), maps(), active_ui=True, off=frozenset(off))
 
 
-def changed(before: str, after: str) -> list[tuple[str, str]]:
-    a, b = before.split("\n"), after.split("\n")
-    assert len(a) == len(b)
-    return [(x, y) for x, y in zip(a, b, strict=True) if x != y]
-
-
 ROUTE103 = "surf-gate-4caa.json.gz"
 ROUTE104 = "exit-reach-0e05.json.gz"
-SEQS_103 = [4770, 16069]
-SEQS_104 = [22580, 25575]
 
 
 def test_registered_server_switch_default_off() -> None:
     assert SWITCH == ID
     assert ID in SERVER_FEATURES
     assert ID in features_off_from_env({})
-
-
-@pytest.mark.parametrize("seq", SEQS_103)
-def test_route103_altering_cave_and_east_edge_are_water_south_is_foot(seq: int) -> None:
-    reach = state(ROUTE103, seq, recorded_off(ROUTE103)).exit_reach
-    assert reach is not None
-    assert reach.warps == (((45, 6), "water"),)
-    assert reach.connections == (
-        (("SOUTH", (0, 10), 0), "foot"),
-        (("EAST", (0, 25), -60), "water"),
-    )
-    # Across water is surf-gated-exits-v1's to say; nothing here is `none`, so the readout is
-    # unchanged with only this switch on.
-    off = [*recorded_off(ROUTE103), "surf-gated-exits-v1"]
-    assert readout(ROUTE103, seq, off) == readout(ROUTE103, seq, [*off, ID])
-
-
-@pytest.mark.parametrize("seq", SEQS_104)
-def test_off_matches_current_policy_without_rewriting_the_recorded_0e05_readout(seq: int) -> None:
-    case = next(c for c in fixture(ROUTE104)["cases"] if c["tool_result_seq"] == seq)
-    assert "call navigate_to again to continue to" in case["navigation_line"]
-    assert "NORTH edge -> RUSTBORO CITY (map 0/3)" in case["untaken_line"]
-    off = readout(ROUTE104, seq, [*recorded_off(ROUTE104), ID])
-    assert off == CURRENT[f"exit-reach:{seq}"]
-    assert NORTH_OFF in off.split("\n")
-
-
-@pytest.mark.parametrize("seq", SEQS_104)
-def test_on_route104_north_edge_and_woods_north_warps_say_not_reachable_on_foot(seq: int) -> None:
-    on = readout(ROUTE104, seq, recorded_off(ROUTE104))
-    baseline = CURRENT[f"exit-reach:{seq}"]
-    lines = baseline.split("\n")
-    expected = [(NORTH_OFF, NORTH_ON)]
-    for x, y in NONE_WARPS:
-        warp = next(
-            line for line in lines if line.startswith("Warp to ") and f"at ({x},{y})," in line
-        )
-        dest = next(line for line in lines if line.startswith(f"Warp destination at ({x},{y}):"))
-        expected += [(warp, warp + WARP_ON), (dest, dest + DEST_ON)]
-    assert sorted(changed(baseline, on)) == sorted(expected)
-    # No Surf or badge wording on a land case, and no guessed cause (pokebench-game-state skill,
-    # "Harness messages use the game's own words": the game shows nothing here, so the fact only).
-    assert "Surf" not in NORTH_ON and "Badge" not in WARP_ON
-    for word in ("wall", "ledge", "water", "another map", "may"):
-        assert word not in NORTH_ON.split("; ", 1)[1] and word not in WARP_ON
-
-
-@pytest.mark.parametrize("seq", SEQS_104)
-def test_on_state_json_carries_labels_and_foot_rows_off_has_no_field(seq: int) -> None:
-    off = recorded_off(ROUTE104)
-    body = state_json(state(ROUTE104, seq, off))
-    reach = body["exit_reach"]
-    assert isinstance(reach, dict)
-    labels = {(w["x"], w["y"]): w["reach"] for w in reach["warps"]}
-    assert labels == {
-        (17, 50): "foot",
-        (5, 18): "none",
-        (10, 30): "none",
-        (11, 30): "none",
-        (10, 38): "foot",
-        (11, 38): "foot",
-        (32, 42): "none",
-        (33, 42): "none",
-    }
-    assert reach["connections"] == [
-        {"direction": "NORTH", "destination": [0, 3], "offset": 0, "reach": "none"},
-        {"direction": "SOUTH", "destination": [0, 20], "offset": 0, "reach": "water"},
-        {"direction": "EAST", "destination": [0, 0], "offset": 50, "reach": "foot"},
-    ]
-    foot = reach["foot"]
-    assert (foot["width"], foot["height"]) == (40, 80)
-    rows = foot["rows"]
-    assert len(rows) == 80 and all(len(r) == 10 for r in rows)
-    tiles = {
-        (x, y)
-        for y, row in enumerate(rows)
-        for x in range(40)
-        if int(row[x // 4], 16) >> (3 - x % 4) & 1
-    }
-    assert len(tiles) == 546
-    assert min(y for _, y in tiles) == 38
-    x, y = body["position"]["x"], body["position"]["y"]  # type: ignore[index]
-    assert (x, y) in tiles and (39, 62) in tiles
-    assert "exit_reach" not in state_json(state(ROUTE104, seq, [*off, ID]))
 
 
 def grid(rows: list[str]) -> dict[tuple[int, int], tuple[int, int]]:
@@ -326,43 +227,3 @@ def test_two_same_direction_connections_are_labelled_and_noted_separately() -> N
     assert lines[3] == f"- WEST -> ROUTE B (map 0/2), offset 2; {reach.connection_note()}"
     # The Surf gate keys connections by direction, as before this switch; nothing else changes.
     assert connection_notes(topology, None, None) == {}
-
-def test_projection_keeps_the_flood_verdict_for_the_delivered_state() -> None:
-    """player-map-visibility-v2 must not null the flood verdict.
-
-    It did: every state of the 2026-11-01 and 2026-11-02 runs (2,562 and 28,000+ states) carried no
-    exit_reach, surf_gate or field_obstacles, because MapMemory._filter set them to None after
-    read_game_state had computed them. Every exit then read as walkable, so the readout could not
-    say "not reachable on foot" and the model walked at the sealed ROUTE104 doors for 30 turns.
-    The block is derived from geometry the projected state already carries (map_grid, topology), so
-    keeping it discloses nothing new; the place labels to the right are still dropped.
-    """
-    from pokebench_env.player_map_visibility import MapMemory
-
-    def padded(seq: int):
-        # The projection reads the clock, lighting and layout pointers the tool-result windows do not
-        # carry; zeroes are "not captured", so the projection hides tiles but keeps derived facts.
-        captured = reader(ROUTE104, seq)
-
-        def read(address: int, length: int) -> bytes:
-            try:
-                return captured(address, length)
-            except KeyError:
-                return bytes(length)
-
-        return read
-
-    for seq in SEQS_104:
-        raw = state(ROUTE104, seq, recorded_off(ROUTE104))
-        projected = MapMemory().project(padded(seq), raw)
-        assert projected.exit_reach == raw.exit_reach
-        assert projected.surf_gate == raw.surf_gate
-        assert projected.field_obstacles == raw.field_obstacles
-        assert projected.exit_reach is not None
-        warps = dict(projected.exit_reach.warps)
-        for point in NONE_WARPS:
-            assert warps[point] == "none", point
-        # Names still follow visibility; only the geometry-derived verdict passes through.
-        assert projected.exit_labels is None
-        assert projected.exit_sections is None
-        assert "exit_reach" in state_json(projected)

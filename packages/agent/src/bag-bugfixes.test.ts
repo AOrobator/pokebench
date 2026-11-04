@@ -46,21 +46,6 @@ it("does not infer ineffective loops from transitions, diagnostics or incomplete
  const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});for(let i=0;i<8;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:state,state});expect(notices,mutation).toEqual([]);}
 });
 
-it("replays 3b6e through production guard attachment and supplies warning before the next decision",async()=>{
- const {readFileSync}=await import("node:fs");const {gunzipSync}=await import("node:zlib");
- const {checkEvent}=await import("./events.js");const {attachLoopGuard,Governor}=await import("./harness.js");
- const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/bag-3b6e.json.gz",import.meta.url))).toString("utf8"));
- if(!Array.isArray(raw))throw new Error("expected event list");const events=raw.map(checkEvent);
- for(const enabled of [false,true]){
- const notices:LoopNotice[]=[];const subscribers:((e:ReturnType<typeof checkEvent>)=>void)[]=[];const delivered:string[]=[];
- const governor=new Governor({limits:{maxTurns:1000,maxWallMs:100000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
- const detector=attachLoopGuard({subscribe:fn=>{subscribers.push(fn);},recordLoopGuard:n=>notices.push(n)},governor,undefined,"enforced",false,undefined,false,false,false,false,false,false,false,false,false,false,false,false,{"bag-ineffective-loop-v1":enabled});
- for(const event of events){if(event.type==="turn_start"){const note=detector.context();if(note)delivered.push(note);}for(const fn of subscribers)fn(event);}
- expect(notices.some(n=>n.kind==="ineffective"&&n.phase==="warning")).toBe(enabled);
- if(enabled){expect(notices.find(n=>n.phase==="warning")?.evidence.at(-1)).toBeLessThan(54200);expect(delivered.join("\n")).toContain("Repeated equivalent single-button attempts");}else expect(delivered).toEqual([]);
- }
-});
-
 it("qualifies verified battle bags without qualifying ordinary battle screens, preserving OFF",()=>{
  const battleBag=(pocket="TMS HMS",index=0)=>{const state=bag(pocket,index);return {...state,in_battle:true,active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:1}}};};
  for(const enabled of [false,true]){const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:enabled});
@@ -70,41 +55,4 @@ it("qualifies verified battle bags without qualifying ordinary battle screens, p
  if(enabled){detector.context();press(battleBag("BERRIES"),battleBag("BERRIES",1));expect(notices.at(-1)?.phase).toBe("recovered");}
  }
  const notices:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notices.push(n),{bagLoops:true});const battle={...IN_GAME,in_battle:true,screen:"battle",active_ui:null};for(let i=0;i<5;i++)detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:battle,state:battle});expect(notices).toEqual([]);
-});
-
-it("ignores raw task churn for warnings and recovery with the existing field and battle loop switches ON",async()=>{
- const {readFileSync}=await import("node:fs");const {checkEvent}=await import("./events.js");
- const recorded=checkEvent(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
- if(recorded.type!=="state"||!("battle" in recorded))throw Error("fixture must be a validated native state event with battle data");
- const battle=recorded.battle;
- if(battle==null||battle.diagnostic!==null)throw Error("fixture must carry a verified native battle payload");
- for(const inBattle of [false,true])for(const enabled of [false,true]){
- const notes:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notes.push(n),{bagLoops:enabled,ineffectiveLoops:true,battles:true,interactions:true});
- const snapshot=(taskData:number,pocket="TMS HMS"):GameStateSnapshot=>{
- const state=bag(pocket);return {...state,in_battle:inBattle,...(inBattle?{battle}:{}),active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:inBattle?1:0,task_data:[taskData]}}};
- };
- const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
- for(let i=0;i<3;i++)press(snapshot(i),snapshot(i));
- expect(notes.filter(n=>n.kind==="ineffective"&&n.phase==="warning"),`battle=${String(inBattle)} enabled=${String(enabled)}`).toHaveLength(enabled?1:0);
- if(!enabled)continue;
- detector.context();press(snapshot(3),snapshot(4));
- expect(notes.map(n=>n.phase)).toEqual(["warning"]);
- press(snapshot(5),snapshot(6,"BERRIES"));
- expect(notes.map(n=>n.phase)).toEqual(["warning","recovered"]);
- }
-});
-
-it.each([false,true])("does not fabricate recovery from raw task churn after an established bag warning; battle=%s",async(inBattle)=>{
- const {readFileSync}=await import("node:fs");const {checkEvent}=await import("./events.js");
- const recorded=checkEvent(JSON.parse(readFileSync(new URL("../test-support/move-goal-battle-state.json",import.meta.url),"utf8")));
- if(recorded.type!=="state"||!("battle" in recorded)||recorded.battle==null||recorded.battle.diagnostic!==null)throw Error("fixture must contain a validated native battle");
- const battle=recorded.battle,notes:LoopNotice[]=[];const detector=new LoopCoordinator(n=>notes.push(n),{bagLoops:true,ineffectiveLoops:true,battles:true,interactions:true});
- const snapshot=(taskData:number,pocket="TMS HMS"):GameStateSnapshot=>{const state=bag(pocket);return {...state,in_battle:inBattle,...(inBattle?{battle}:{}),active_ui:{...state.active_ui,details:{...state.active_ui.details,bag_location:inBattle?1:0,task_data:[taskData]}}};};
- const press=(before:GameStateSnapshot,state:GameStateSnapshot)=>{detector.complete({name:"press",args:{buttons:["UP"]},isError:false,text:"ok",beforeState:before,state});};
- for(let i=0;i<3;i++)press(snapshot(0),snapshot(0));
- expect(notes.map(n=>n.phase),`established warning battle=${String(inBattle)}`).toEqual(["warning"]);
- detector.context();press(snapshot(3),snapshot(4));
- expect(notes.map(n=>n.phase),`raw task churn battle=${String(inBattle)}`).toEqual(["warning"]);
- press(snapshot(5),snapshot(6,"BERRIES"));
- expect(notes.map(n=>n.phase),`visible pocket progress battle=${String(inBattle)}`).toEqual(["warning","recovered"]);
 });

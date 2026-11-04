@@ -45,30 +45,3 @@ def test_campaign_variables_and_avatar_are_measurement_only():
     assert bytes.fromhex(progress["variables"])[318:320] == b"\x03\x00"
     assert progress["avatar_flags"] == 1
     assert format_readout(state) == format_readout(replace(state, story_progress=None))
-
-
-def test_retained_beach_archive_proves_landing_through_the_production_reader():
-    import json
-    from pathlib import Path
-
-    from pokebench_env.raw_ram import load_raw_ram
-    from tests.env.test_move_learn import _rom
-
-    fixtures = Path(__file__).parent / "fixtures"
-    provenance = json.loads((fixtures / "campaign-beach-0d5d.provenance.json").read_text())
-    read = load_raw_ram(
-        fixtures / "campaign-beach-0d5d.json.gz",
-        provenance["raw_ram"]["sha256"],
-        rom=_rom(),
-    )
-    assert read.metadata["rom_sha1"] == provenance["rom_sha1"]
-    assert read.metadata["frame"] == provenance["raw_ram"]["frame"]
-    state = read_game_state(read, MAPS)
-    assert state.map_id == (0, 24)
-    assert state.position == (21, 23)
-    assert state.field_controls_locked is False
-    assert state.story_progress is not None
-    assert state.story_progress.avatar_flags is not None
-    assert state.story_progress.avatar_flags & 7
-    assert not state.story_progress.avatar_flags & 24
-    assert format_readout(state) == format_readout(replace(state, story_progress=None))

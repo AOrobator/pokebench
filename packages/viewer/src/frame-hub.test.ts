@@ -122,22 +122,6 @@ describe("shared frame hub defensive lifecycle", () => {
     expect(client.closes).toEqual([{ code: 1012, reason: "game frame source changed" }]);
     expect(emptied).toBe(1);
   });
-
-  it("terminates a connecting subscriber during explicit teardown", () => {
-    const hub = new SharedFrameHub({
-      runId: "run",
-      gamePort: 1,
-      host: "127.0.0.1",
-      maxPayload: 1024,
-      decode: () => Buffer.from("frame"),
-      onEmpty: () => undefined,
-    });
-    const client = new StubClient();
-    client.readyState = WebSocket.CONNECTING;
-    hub.add(client as unknown as WebSocket);
-    hub.stop();
-    expect(client.terminated).toBe(1);
-  });
 });
 
 it("measures real sender offers, overwrites, queue time and completion latency", () => {

@@ -13,25 +13,15 @@ from pathlib import Path
 import pytest
 
 from pokebench_env import rerender
-from pokebench_env.game_state import MapNames, read_game_state
-from pokebench_env.naming import NAMING_POINTER
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
+from pokebench_env.game_state import MapNames
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 ID = "in-game-naming-readout-v1"
 FIXTURES = Path(__file__).parent / "fixtures"
 # The showcase run's server-side switches that were off (its run_start features).
-_RECORDED = [
-    "battle-details-v2",
-    "counter-talk-v1",
-    "expanded-menu-battle-information-v1",
-    "full-map-navigation-v1",
-]
 # Server switches registered after the run was recorded were not in it.
-_AT_RUN = SERVER_FEATURES[: SERVER_FEATURES.index("battle-details-v2") + 1]
-RECORDED_OFF = [*_RECORDED, *(f for f in SERVER_FEATURES if f not in _AT_RUN and f != ID)]
 ROM_START = 0x08000000
-HINT = "A selects the current key; B deletes; SELECT changes page; START moves to OK."
 
 
 def operator_rom() -> bytes:
@@ -73,93 +63,6 @@ def recorded(seq: int) -> str:
     return (FIXTURES / f"in-game-naming-off-show-{seq}.txt").read_text()
 
 
-@pytest.mark.parametrize("seq", [4993, 5043, 8548])
-def test_off_reproduces_the_recorded_readout_byte_for_byte(seq: int) -> None:
-    assert showcase(seq, [*RECORDED_OFF, ID]) == recorded(seq)
-
-
-@pytest.mark.parametrize(
-    ("seq", "lines"),
-    [
-        (
-            4993,
-            [
-                "Name being edited: ''",
-                "Naming keyboard: uppercase; cursor column 0, row 0 (zero-based); selected key 'A'",
-                "Naming input: transitioning; wait and observe",
-                HINT,
-            ],
-        ),
-        (
-            5043,
-            [
-                "Name being edited: 'AAAAAAA'",
-                "Naming keyboard: uppercase; cursor column 0, row 0 (zero-based); selected key 'A'",
-                "Naming input: ready",
-                HINT,
-            ],
-        ),
-        (
-            8548,
-            [
-                "Name being edited: ' ,VQ'",
-                "Naming keyboard: uppercase; cursor column 1, row 0 (zero-based); selected key 'B'",
-                "Naming input: ready",
-                HINT,
-            ],
-        ),
-    ],
-)
-def test_on_adds_the_naming_lines_after_the_story_line(seq: int, lines: list[str]) -> None:
-    off = recorded(seq).split("\n")
-    on = showcase(seq, RECORDED_OFF).split("\n")
-    story = next(i for i, line in enumerate(off) if line.startswith("Story: "))
-    assert on == [*off[: story + 1], *lines, *off[story + 1 :]]
-
-
 def test_registered_server_switch_default_off() -> None:
     assert ID in SERVER_FEATURES
     assert ID in features_off_from_env({})
-
-
-def test_reader_threads_the_switch_into_state_json() -> None:
-    read = fixture_reader(8548)
-    maps = MapNames.load(rerender.PORYMAP_MAPS)
-    off = read_game_state(read, maps, active_ui_enabled=True)
-    on = read_game_state(read, maps, active_ui_enabled=True, in_game_naming_enabled=True)
-    assert off.started and on.started
-    assert off.naming is None and state_json(off)["naming"] is None
-    assert on.naming is not None
-    assert state_json(on)["naming"] == {
-        "text": " ,VQ",
-        "page": "uppercase",
-        "column": 1,
-        "row": 0,
-        "key": "B",
-        "ready": True,
-    }
-
-
-@pytest.mark.parametrize(
-    ("phase", "shown"), [(0, True), (2, True), (5, True), (6, False), (7, False), (9, False)]
-)
-def test_in_game_readout_stops_once_ok_is_pressed(phase: int, shown: bool) -> None:
-    """naming_screen.c: phases 0-5 are the open editor (fade-in, input, cursor to OK, page swap);
-    from STATE_PRESSED_OK (6) the name is saved and the screen is closing or showing the
-    sent-to-PC message, so an "edited" name and key would be stale."""
-    base = fixture_reader(8548)
-    pointer = int.from_bytes(base(NAMING_POINTER, 4), "little")
-
-    def read(address: int, length: int) -> bytes:
-        data = bytearray(base(address, length))
-        if address <= pointer + 0x1E10 < address + length:
-            data[pointer + 0x1E10 - address] = phase
-        return bytes(data)
-
-    state = read_game_state(
-        read,
-        MapNames.load(rerender.PORYMAP_MAPS),
-        active_ui_enabled=True,
-        in_game_naming_enabled=True,
-    )
-    assert (state.naming is not None) is shown

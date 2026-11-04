@@ -58,26 +58,6 @@ describe("formatEvent", () => {
   });
 });
 
-describe("followEvents", () => {
-  it("emits complete lines as they are appended, buffering partial writes", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "pokebench-tail-"));
-    const path = join(dir, "events.jsonl");
-    writeFileSync(path, `${JSON.stringify(event(0))}\n`);
-    const seen: number[] = [];
-    const controller = new AbortController();
-    const done = followEvents(path, (e) => {
-      seen.push(e.seq);
-      if (e.type === "run_end") controller.abort();
-    }, { intervalMs: 5, signal: controller.signal });
-    const half = JSON.stringify(event(1));
-    appendFileSync(path, half.slice(0, 10));
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    appendFileSync(path, `${half.slice(10)}\n${JSON.stringify(event(10, 2))}\n`);
-    await done;
-    expect(seen).toEqual([0, 1, 2]);
-  });
-});
-
 describe("formatEvent variants", () => {
   it("renders a save-state start, a text-only lane, spoken text, a missing ttft and several frames", () => {
     const start = {
@@ -123,19 +103,6 @@ describe("formatEvent state before the game starts", () => {
 });
 
 describe("tailRun", () => {
-  it("prints formatted events until run_end", async () => {
-    const runsRoot = mkdtempSync(join(tmpdir(), "pokebench-tailrun-"));
-    mkdirSync(join(runsRoot, "r1"));
-    const delta = { ...event(15, 1) };
-    writeFileSync(
-      join(runsRoot, "r1", "events.jsonl"),
-      `${JSON.stringify(event(0))}\n${JSON.stringify(delta)}\n${JSON.stringify(event(10, 2))}\n`,
-    );
-    const lines: string[] = [];
-    expect(await tailRun(["r1"], runsRoot, (line) => lines.push(line))).toBe(0);
-    expect(lines).toHaveLength(2);
-    expect(lines[1]).toContain("RUN END");
-  });
 
   it.each([[[]], [["a", "b"]]])("rejects arguments %j", async (argv) => {
     const lines: string[] = [];

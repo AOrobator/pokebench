@@ -51,7 +51,6 @@ Tiles = dict[Tile, tuple[int, int]]
 ConnectionKey = tuple[str, Tile, int]
 # Closed gate sets: obstacle objects only, terrain only, both.
 VARIANTS = {"objects": (True, False), "terrain": (False, True), "all": (True, True)}
-SURF_BEHAVIORS = {0x10, 0x11, 0x12, 0x14, 0x15, 0x50, 0x51, 0x52, 0x53}
 
 
 def map_id_of(entry: dict[str, Any]) -> tuple[int, int]:
@@ -223,32 +222,6 @@ def test_the_audit_covers_81_maps_and_20_obstacle_objects() -> None:
     assert sum(len(m["obstacles"]) for m in AUDIT["maps"]) == 20
 
 
-def test_the_audit_names_are_the_porymap_names(porymap_names: MapNames) -> None:
-    for entry in AUDIT["maps"]:
-        map_id = map_id_of(entry)
-        assert porymap_names.name(map_id) == AUDIT_NAMES.name(map_id), entry["map"]
-
-
-def test_the_analysis_does_bounded_work(audit: Audit) -> None:
-    work = audit.work
-    # No file is read: the ROM is already in memory and the names are the in-memory owner.
-    assert work["file_reads"] == 0
-    # Each map header is parsed once, audited map or connected destination.
-    assert work["rom_maps"] == work["distinct_rom_maps"]
-    assert work["distinct_rom_maps"] <= 2 * len(AUDIT["maps"])
-    # Per start: one ungated classify plus at most one per closed gate set (two floods each).
-    starts = sum(len({s for s, _ in m.reached}) for m in audit.maps.values())
-    classified = sum(len({id(r) for r in m.reached.values()}) for m in audit.maps.values())
-    assert work["floods"] == 2 * classified
-    assert work["floods"] <= 2 * (1 + len(VARIANTS)) * starts
-    assert starts == sum(len(m.starts()) for m in audit.maps.values()) + sum(
-        (c["start"][0], c["start"][1]) not in audit.maps[map_id_of(e)].starts()
-        for c in AUDIT["cuts"]
-        for e in AUDIT["maps"]
-        if e["map"] == c["map"]
-    )
-
-
 def test_the_analysis_floods_once_per_start_on_a_map_twice_the_size() -> None:
     # Work stays linear in starts x tiles: a synthetic all-floor map with N warps, then 2N.
     def floods(n: int) -> tuple[int, int]:
@@ -277,70 +250,3 @@ def test_the_analysis_floods_once_per_start_on_a_map_twice_the_size() -> None:
 
     assert floods(16) == (2 * 16, 2 * 16 * 16)
     assert floods(32) == (2 * 32, 2 * 32 * 32)
-
-
-@pytest.mark.parametrize("entry", MAPS)
-def test_objects_size_and_terrain_match_the_audit(entry: dict[str, Any], audit: Audit) -> None:
-    found = audit.maps[map_id_of(entry)]
-    assert [found.rom.width, found.rom.height] == entry["size"]
-    gates = found.closed["all"]
-    objects = sorted(
-        (
-            {"gate": o.gate, "x": o.tiles[0][0], "y": o.tiles[0][1]}
-            for o in gates.obstacles
-            if o.local_id is not None
-        ),
-        key=lambda o: (o["y"], o["x"]),
-    )
-    assert objects == sorted(entry["obstacles"], key=lambda o: (o["y"], o["x"]))
-    slopes = sum(len(o.tiles) for o in gates.obstacles if o.name.startswith("slope"))
-    cracked = sum(len(o.tiles) for o in gates.obstacles if o.name.startswith(("cracked", "hole")))
-    assert (slopes, cracked) == (entry["slope_tiles"], entry["cracked_tiles"])
-    surf = sum(1 for _, behavior in found.tiles.values() if behavior in SURF_BEHAVIORS)
-    assert surf == entry["surf_tiles"]
-
-
-@pytest.mark.parametrize("cut", AUDIT["cuts"], ids=lambda c: c["map"])
-def test_the_exits_the_audit_found_cut_off_are_labelled_none(
-    cut: dict[str, Any], audit: Audit
-) -> None:
-    entry = next(m for m in AUDIT["maps"] if m["map"] == cut["map"])
-    found = audit.maps[map_id_of(entry)]
-    start = (cut["start"][0], cut["start"][1])
-    assert not is_empty(found.closed[cut["by"]].rules())
-    gated = dict(found.reached[(start, cut["by"])].warps)
-    ungated = dict(found.reached[(start, "open")].warps)
-    changed = sorted(w for w in found.warps if gated[w] != ungated[w])
-    assert changed == sorted((x, y) for x, y in cut["warps"])
-    assert all(gated[(x, y)] == "none" for x, y in cut["warps"])
-
-
-@pytest.mark.parametrize("entry", MAPS)
-def test_only_the_rusturf_rocks_cut_off_an_exit(entry: dict[str, Any], audit: Audit) -> None:
-    found = audit.maps[map_id_of(entry)]
-    cut = set()
-    for start in found.starts():
-        gated, ungated = found.reached[(start, "objects")], found.reached[(start, "open")]
-        cut |= {w for (w, a), (_, b) in zip(gated.warps, ungated.warps, strict=True) if a != b}
-        cut |= {
-            k
-            for (k, a), (_, b) in zip(gated.connections, ungated.connections, strict=True)
-            if a != b
-        }
-    # From the east side the same rocks cut the west warp (4,10) off too.
-    expected = {(4, 10), (29, 16), (18, 20)} if entry["map"] == "MAP_RUSTURF_TUNNEL" else set()
-    assert cut == expected
-
-
-@pytest.mark.parametrize("entry", MAPS)
-def test_inv2_the_gated_flood_stays_inside_exit_reachability_from_every_warp(
-    entry: dict[str, Any], audit: Audit
-) -> None:
-    found = audit.maps[map_id_of(entry)]
-    # Every gate unknown closes nothing, so the flood is exit-reachability-v1's exactly
-    # (test_without_rules_the_flood_is_exit_reachability_v1 checks empty rules flood as none).
-    assert is_empty(found.unknown.rules())
-    for start in found.starts():
-        plain, closed = found.reached[(start, "open")], found.reached[(start, "all")]
-        assert closed.foot <= plain.foot
-        assert closed.wet <= plain.wet

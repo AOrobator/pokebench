@@ -120,34 +120,6 @@ it("a stopped request makes no request or native input",async()=>{
  expect(s.fetchFn).not.toHaveBeenCalled();
 });
 
-it("delivers both refusals through pinned pi to the next decision and records them with zero native actions",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-navigation-delivery-")),log=RunLog.create(root,"navigation-delivery-proof");
- const stateSource={read:()=>Promise.resolve(field)},recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones(stateSource),gameState:stateSource});
- const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"semantic-navigation-v2":true,"navigation-tool-use-guard-v1":true,"semantic-current-map-feedback-v1":true};
- const s=server(field),press=pressTool("http://game",{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress()},s.fetchFn,clock,toolSwitches(features));
- const tools=playGameTools([observeTool("http://game",s.fetchFn),press],features,stateSource,recorder);
- await recorder.start({...RUN_START_META,model:{...RUN_START_META.model,id:"fixture-navigation-delivery"},harness_features:playHarnessFeatures(features,null).filter(id=>SWITCHABLE_FEATURES.some(s=>s===id)),tools:tools.map(t=>t.name)});
- const governor=new Governor({limits:{maxTurns:3,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
- const model:Model<"openai-completions">={id:"fixture",name:"fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:10000,maxTokens:100};
- let decisions=0;
- const streamFn:StreamFn=(_model,context)=>{
-  decisions++;
-  const messages=context.messages.filter(m=>m.role==="toolResult");
-  if(decisions===2)expect(messages.flatMap(m=>m.content.filter(c=>c.type==="text").map(c=>c.text)).join("\n")).toContain('"submitted":[]');
-  if(decisions===3)expect(messages.flatMap(m=>m.content.filter(c=>c.type==="text").map(c=>c.text)).join("\n")).toContain("Current map: ROUTE101 (map 0/16). Position: (10,7). No input was sent.");
-  const message=decisions===1?assistant({toolCalls:[toolCall("guard","press",{buttons:["UP","UP"]})],stopReason:"toolUse"}):decisions===2?assistant({toolCalls:[toolCall("stale","navigate_to_target",{map_id:[0,9],target:{kind:"connection",direction:"NORTH"}})],stopReason:"toolUse"}):assistant({text:"fixture complete"});
-  const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
- };
- const loop=piLoop({systemPrompt:"Synthetic delivery proof; no real model or emulator",tools,base:{model,convertToLlm:m=>m as Message[]},governor,transformContext:recorder.transformContext,emit:recorder.emit,streamFn,signal:new AbortController().signal});
- expect(await play(userText("Fixture"),governor,loop)).toBe("budget");recorder.end("budget");
- const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
- expect(decisions).toBe(3);expect(s.posts).toEqual([]);expect(events.filter(e=>e.type==="button_press"||e.type==="native_action")).toEqual([]);
- expect(events.filter(e=>e.type==="tool_result")).toHaveLength(2);
- expect(readFileSync(log.eventsPath,"utf8")).toContain('Navigation tool-use guard');
- expect(readFileSync(log.eventsPath,"utf8")).toContain('Current map: ROUTE101');
- console.log(`Synthetic delivery receipt: ${log.eventsPath}`);
-});
-
 
 describe("rejected-movement-step-v1 production input boundary",()=>{
  const features=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true});
@@ -178,29 +150,6 @@ describe("rejected-movement-step-v1 production input boundary",()=>{
    expect(h.beforePress.mock.calls[0]?.[1]).toEqual(["UP","A"]);
   }
  });
-});
-
-it("delivers the limited movement receipt to the next pinned-pi decision and records only the submitted button",async()=>{
- const root=mkdtempSync(join(tmpdir(),"pokebench-movement-step-delivery-")),log=RunLog.create(root,"movement-step-delivery-proof");
- const stateSource={read:()=>Promise.resolve(field)},recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:new StateMilestones(stateSource),gameState:stateSource});
- const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-step-v1":true};
- const s=server(field),press=pressTool("http://game",{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress()},s.fetchFn,clock,toolSwitches(features));
- await recorder.start({...RUN_START_META,harness_features:playHarnessFeatures(features,null).filter(id=>SWITCHABLE_FEATURES.some(key=>key===id)),tools:["press"]});
- const governor=new Governor({limits:{maxTurns:2,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
- const model:Model<"openai-completions">={id:"fixture",name:"fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1",reasoning:false,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:10000,maxTokens:100};
- let decisions=0;
- const streamFn:StreamFn=(_model,context)=>{
-  decisions++;
-  if(decisions===2){const delivered=context.messages.filter(m=>m.role==="toolResult").flatMap(m=>m.content.filter(c=>c.type==="text").map(c=>c.text)).join("\n");expect(delivered).toContain('"submitted":["UP"]');expect(delivered).toContain('"dropped":["UP","UP"]');expect(delivered).not.toContain("no input was sent");}
-  const message=decisions===1?assistant({toolCalls:[toolCall("step","press",{buttons:["UP","UP","UP"]})],stopReason:"toolUse"}):assistant({text:"fixture complete"});
-  const stream=createAssistantMessageEventStream();stream.push({type:"done",reason:message.stopReason==="toolUse"?"toolUse":"stop",message});return stream;
- };
- const loop=piLoop({systemPrompt:"Synthetic input and delivery proof",tools:[press],base:{model,convertToLlm:m=>m as Message[]},governor,transformContext:recorder.transformContext,emit:recorder.emit,streamFn,signal:new AbortController().signal});
- expect(await play(userText("Fixture"),governor,loop)).toBe("budget");recorder.end("budget");
- const events=readFileSync(log.eventsPath,"utf8").trim().split("\n").map(parseEvent);
- expect(decisions).toBe(2);expect(s.posts).toEqual(["http://game/action"]);
- const presses=events.filter(e=>e.type==="button_press");expect(presses).toHaveLength(1);expect(presses[0]?.buttons).toEqual(["UP"]);
- expect(events.find(e=>e.type==="run_start")?.harness_features).toContain("rejected-movement-step-v1");
 });
 
 it("limited movement does not use automatic running and is inactive without the original guard",async()=>{

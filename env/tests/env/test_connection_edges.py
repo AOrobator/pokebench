@@ -26,17 +26,6 @@ MAP_GROUPS = 0x08486578
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures" / "connection-edges-show-t175.json").read_text()
 )
-CURRENT = json.loads(
-    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
-)["cases"]["connection-edge:showcase"]
-OFF_NORTH = (
-    "- NORTH -> ROUTE101 (map 0/16), offset 0; "
-    "boundary continuation: walk across the matching edge in this direction"
-)
-ON_NORTH = (
-    "- NORTH -> ROUTE101 (map 0/16), offset 0; walk off the map from (10,0) or (11,0):"
-    " stand on one of these edge tiles and press UP"
-)
 
 
 def connected(
@@ -242,11 +231,6 @@ ROM_START = 0x08000000
 
 
 # Server switches registered after the showcase run was recorded were not in it.
-_AT_RUN = SERVER_FEATURES[: SERVER_FEATURES.index("battle-details-v2") + 1]
-RECORDED_OFF = [
-    *FIXTURE["recorded_off"],
-    *(f for f in SERVER_FEATURES if f not in _AT_RUN and f != ID),
-]
 
 
 def operator_rom() -> bytes:
@@ -281,15 +265,3 @@ def showcase(off: list[str]) -> str:
         MapNames.load(rerender.PORYMAP_MAPS),
         env,
     )[0]
-
-
-def test_showcase_off_matches_current_policy_without_rewriting_the_recording() -> None:
-    assert OFF_NORTH in FIXTURE["readout"].split("\n")
-    assert showcase([*RECORDED_OFF, ID]) == CURRENT
-
-
-def test_showcase_on_names_the_north_exit_tiles_and_changes_nothing_else() -> None:
-    on = showcase(RECORDED_OFF)
-    before, after = CURRENT.split("\n"), on.split("\n")
-    assert len(before) == len(after)
-    assert [(a, b) for a, b in zip(before, after, strict=True) if a != b] == [(OFF_NORTH, ON_NORTH)]

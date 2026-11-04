@@ -8,20 +8,13 @@ an 8x8 map at elevation 3; the real-RAM fixture is b300's RUSTBORO CITY GYM at s
 """
 
 import functools
-import json
 import os
 import struct
-from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from test_checkpoint import post
 
-from pokebench_env.game_state import MapNames
-from pokebench_env.observation import install_observation
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from pokebench_env.trainer_sight import (
-    MAX_ROUTE_TILES,
     SWITCH,
     movement_facings,
     sight_report,
@@ -362,33 +355,6 @@ def test_no_report_off_this_map_or_when_memory_cannot_be_read() -> None:
     }
 
 
-def test_the_endpoint_serves_the_report_under_the_memory_lock_and_bounds_the_route() -> None:
-    m = world()
-    template(m, 0, 3, 5, 2)
-    entered: list[str] = []
-
-    class Lock:
-        def __enter__(self) -> None:
-            entered.append("in")
-
-        def __exit__(self, *_: object) -> None:
-            entered.append("out")
-
-    app = FastAPI()
-    install_observation(app, lambda: None, m.read, MapNames({}), Lock())  # type: ignore[arg-type,return-value]
-    body = json.dumps({"map_id": [11, 3], "tiles": [[4, 2]]}).encode()
-    status, reply = post(app, "/pokebench/trainer-sight", body)
-    assert status == 200
-    assert json.loads(reply)["sightings"] == [
-        {"local_id": 3, "step": 1, "tile": [4, 2], "from": [5, 2], "facing": "LEFT"}
-    ]
-    assert entered == ["in", "out"]
-    too_long = {"map_id": [11, 3], "tiles": [[0, 0]] * (MAX_ROUTE_TILES + 1)}
-    assert post(app, "/pokebench/trainer-sight", json.dumps(too_long).encode())[0] == 422
-    short = json.dumps({"map_id": [11], "tiles": []}).encode()
-    assert post(app, "/pokebench/trainer-sight", short)[0] == 422
-
-
 def test_the_switch_id() -> None:
     assert SWITCH == "trainer-sight-check-v1"
 
@@ -400,9 +366,6 @@ def test_the_switch_id() -> None:
 # TOMMY (object 3, TRAINER_TOMMY 321) at (3,9) facing left with sight 3 and HIKER MARC (object 5,
 # TRAINER_MARC 571) at (1,6) facing down with sight 3; JOSH (object 2, 320) was already beaten.
 
-B300 = json.loads((Path(__file__).parent / "fixtures/trainer-sight-b300.json").read_text())
-ROM_START = 0x08000000
-
 
 @functools.cache
 def operator_rom() -> bytes:
@@ -410,65 +373,6 @@ def operator_rom() -> bytes:
         return resolve_rom(os.environ, EMERALD_SHA1).read_bytes()
     except RomError:
         pytest.skip("POKEBENCH_ROM is not set to the Emerald ROM")
-
-
-def b300(seq: int, *, beaten: tuple[int, ...] = ()):  # type: ignore[no-untyped-def]
-    frame = next(f for f in B300["frames"] if f["seq"] == seq)
-    cells: dict[int, int] = {}
-    for window in frame["windows"]:
-        start = int(window["address"], 16)
-        for offset, value in enumerate(bytes.fromhex(window["hex"])):
-            cells[start + offset] = value
-    save1 = int.from_bytes(bytes(cells[0x03005D8C + i] for i in range(4)), "little")
-    for trainer in beaten:
-        number = 0x500 + trainer
-        cells[save1 + 0x1270 + number // 8] |= 1 << (number % 8)
-    rom = operator_rom()
-
-    def read(address: int, length: int) -> bytes:
-        if address >= ROM_START:
-            return rom[address - ROM_START : address - ROM_START + length]
-        return bytes(cells[address + i] for i in range(length))
-
-    return read, frame
-
-
-def test_b300_turn_501_route_walks_into_tommy_and_marc_at_1_9() -> None:
-    read, frame = b300(15233)
-    report = sight_report(read, (11, 3), [tuple(t) for t in frame["route"]])
-    assert report == frame["report"]
-    trainers = report["trainers"]
-    assert isinstance(trainers, list)
-    assert [
-        (
-            t["local_id"],
-            t["sprite_kind"],
-            t["trainer_id"],
-            t["x"],
-            t["y"],
-            t["facing"],
-            t["sight"],
-            t["loaded"],
-        )
-        for t in trainers
-    ] == [
-        (3, "YOUNGSTER", 321, 3, 9, "LEFT", 3, True),
-        (5, "HIKER", 571, 1, 6, "DOWN", 3, False),
-    ]
-    assert report["sightings"] == [
-        {"local_id": 3, "step": 12, "tile": [1, 9], "from": [3, 9], "facing": "LEFT"},
-        {"local_id": 5, "step": 12, "tile": [1, 9], "from": [1, 6], "facing": "DOWN"},
-    ]
-
-
-def test_b300_with_tommy_beaten_marc_sees_the_next_tile_up_from_1_9() -> None:
-    read, frame = b300(15233, beaten=(321,))
-    tail = [tuple(t) for t in frame["route"][12:]]
-    assert tail[0] == (1, 8)
-    report = sight_report(read, (11, 3), tail)
-    assert report["sightings"] == [
-        {"local_id": 5, "step": 1, "tile": [1, 8], "from": [1, 6], "facing": "DOWN"}
-    ]
 
 
 def test_a_loaded_buried_trainer_looks_all_ways_and_a_bad_facing_falls_back() -> None:

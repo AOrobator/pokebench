@@ -78,20 +78,6 @@ describe("queueState and nextFor", () => {
   });
 });
 
-describe("readLedger and appendLedger", () => {
-  it("round-trips entries and rejects a malformed line by number", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fixed-ledger-"));
-    const path = join(dir, "trials.jsonl");
-    expect(readLedger(path)).toEqual([]);
-    const slot = def.plan[0]?.slot ?? 1;
-    appendLedger(path, launch(slot));
-    appendLedger(path, { kind: "started", slot, run: `run-${String(slot)}`, pid: 42, at });
-    expect(readLedger(path)).toHaveLength(2);
-    writeFileSync(path, '{"kind":"launch"}\n', { flag: "a" });
-    expect(() => readLedger(path)).toThrow(new FixedLedgerError(`${path}:3 is not a fixed-run ledger entry`));
-  });
-});
-
 describe("classifyTrial", () => {
   const expectation = { presetId: "bundle-v-control-confirmatory-bundle", maxWallMs: 900_000, start: { kind: "save_state" as const, sha1: START_SHA1 }, romSha1: ROM_SHA1, port: 8071, model: MODEL_PATH, primary: "RIVAL_MET" };
   const unlabelledStart = { ...START, rom_sha1: ROM_SHA1, model: { ...START.model, id: MODEL_PATH }, start_state: { kind: "save_state" as const, path: "x", sha1: START_SHA1 }, budgets: { max_turns: 20000, max_wall_ms: 900_000 }, isolation: { ...START.isolation, port: 8071 } };

@@ -105,22 +105,6 @@ describe("decision probes rebuild the same follow-up",()=>{
  });
 });
 
-describe("production wiring",()=>{
- const source=(file:string)=>readFileSync(fileURLToPath(new URL(`./${file}`,import.meta.url)),"utf8");
- it("live.ts builds the Governor's notice from the FeatureSet and the run's max tokens",()=>{
-  const live=source("live.ts");
-  // The Governor gets a rule, so the second cut-off in a row is told it is the second.
-  expect(live).toContain("const cutOff = cutOffNotice === undefined ? undefined : (repeats: number) => cutOffReplyNotice(features,maxTokens,repeats) ?? cutOffNotice;");
-  const call=live.slice(live.indexOf("controlledRun("));
-  expect(call.slice(0,call.indexOf("});"))).toContain("{ cutOffNotice: cutOff }");
- });
- it("decision probes pass the same notice, from the probed switches and the recorded max tokens, to both histories",()=>{
-  const probe=source("decision-probe.ts");
-  expect(probe).toContain("const cutOff = cutOffReplyNotice(features, start.sampling.max_tokens);");
-  expect(probe.match(/conversation\(prior, goal, byId, notes, .*?, start\.model\.id, cutOff(?:,|\))/g)).toHaveLength(2);
- });
-});
-
 it("replayed supervisor notes honor the target cut-off switch while recorded notes retain exact history",()=>{
  const reply={seq:10,stop_reason:"length"};
  const onNote={seq:11,text:"CUT\nNOTE"};

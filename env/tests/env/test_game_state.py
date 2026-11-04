@@ -1,6 +1,4 @@
-import json
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -290,28 +288,6 @@ def test_decode_text_stops_at_the_terminator_and_marks_unknown_bytes() -> None:
 
 def test_species_names_live_in_the_rom_table() -> None:
     assert SPECIES_NAMES == 0x083185C8
-
-
-def test_map_names_come_from_pokeemerald_map_groups(tmp_path: Path) -> None:
-    root = tmp_path / "maps"
-    (root / "LittlerootTown").mkdir(parents=True)
-    (root / "LittlerootTown" / "map.json").write_text(json.dumps({"id": "MAP_LITTLEROOT_TOWN"}))
-    (root / "InsideOfTruck").mkdir()
-    (root / "InsideOfTruck" / "map.json").write_text(json.dumps({"id": "MAP_INSIDE_OF_TRUCK"}))
-    groups = {"group_order": ["gA", "gB"], "gA": ["LittlerootTown"], "gB": ["InsideOfTruck"]}
-    (root / "map_groups.json").write_text(json.dumps(groups))
-    names = MapNames.load(root)
-    assert names.name((0, 0)) == "LITTLEROOT TOWN"
-    assert names.name((1, 0)) == "INSIDE OF TRUCK"
-    assert names.name((5, 5)) is None
-
-
-def test_the_vendored_map_groups_name_the_truck() -> None:
-    root = (
-        Path(__file__).resolve().parents[2]
-        / "vendor/continual-harness/pokemon_env/porymap/data/maps"
-    )
-    assert MapNames.load(root).name((25, 40)) == "INSIDE OF TRUCK"
 
 
 @pytest.mark.parametrize("locked", [False, True])

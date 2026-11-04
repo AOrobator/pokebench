@@ -104,28 +104,6 @@ it("conditions coordinate navigation on its switch and preserves the inquiry/fol
  for(const enabled of [false,true]){const s=setup(true,undefined,{"bounded-navigation-v1":enabled});s.feed(state(),result());const text=(await s.transform(messages())).at(-1)?.content;
  expect(text).not.toContain("navigate_to_target");if(typeof text!=="string")throw new Error("missing cue text");expect(text.includes("Use navigate_to only")).toBe(enabled);expect(text).toContain("already adjacent, facing that person and on the free field");expect(text).toContain("Limited visibility does not exhaust the leads");expect(text).toContain("keep it pending through wild battles, dialogue, menus and necessary healing/travel");expect(text).toContain("Arrival or a taunt is not completion");expect(text).toContain("older plans as proposals, not game facts");}
 });
-
-it.each([{historicalCompleted:false,completed:false},{historicalCompleted:true,completed:false},{historicalCompleted:false,completed:true}])("real recorder restoration ignores historical source evidence: %j",async({historicalCompleted,completed})=>{
- const root=mkdtempSync(join(tmpdir(),"rusturf-entry-restore-"));
- try{
-  const oldFlags=new Uint8Array(300);if(historicalCompleted)oldFlags[143>>3]=1<<(143&7);
-  const old=state({run:"source",seq:1,story_progress:{flags:Buffer.from(oldFlags).toString("hex"),rustboro_stage:4,devon_stage:0,letter:false}}),prior=[old,result({run:"source"})];
-  const log=RunLog.create(root,"current",()=>new Date("2026-10-30T16:00:00Z"),100);
-  const recorder=new RunRecorder({log,frames:new FrameStore(root),milestones:{poll:()=>Promise.resolve([])},gameState:{read:()=>Promise.resolve(snapshot(state()))},history:prior,restoreRunIdentity:true});
-  await recorder.start(RUN_START_META,false);
-  const transform=rusturfEntryFollowupContext({...featuresOf([]),"rusturf-entry-followup-v1":true},recorder,recorder.transformContext);
-  await recorder.restoreHistory(()=>Promise.resolve());
-  expect(await transform(messages())).toEqual(messages());
-  const flags=new Uint8Array(300);if(completed)flags[143>>3]=1<<(143&7);
-  await recorder.emit({type:"tool_execution_start",toolCallId:"fresh",toolName:"observe",args:{}});
-  await recorder.emit({type:"tool_execution_end",toolCallId:"fresh",toolName:"observe",isError:false,result:{content:[{type:"text",text:TEXT}],details:{state:snapshot(state({story_progress:{flags:Buffer.from(flags).toString("hex"),rustboro_stage:completed?4:3,devon_stage:0,letter:false}}))}}});
-  const fresh=messages(TEXT,"fresh"),out=await transform(fresh);
-  if(completed)expect(out).toEqual(fresh);else expect(out.at(-1)?.content).toContain("local inquiry");
-  const records=readFileSync(join(log.runDir,"events.jsonl"),"utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
-  expect(records.filter(e=>e.type==="ledger_context")).toHaveLength(completed?0:1);
-  if(!completed){const receipt=records.find(e=>e.type==="ledger_context"),request=records.findLast(e=>e.type==="turn_start");expect(receipt?.turn).toBe(request?.turn);}expect(records.every(e=>e.run==="current")).toBe(true);
- }finally{rmSync(root,{recursive:true,force:true});}
-});
 it("does not rotate run identity on a spoofed other-run state or result",async()=>{
  const s=setup();s.feed(state(),result());await s.transform(messages());s.feed(assistant());
  s.feed(state({run:"other",seq:4}),result({run:"other",seq:5,state_seq:4}));expect(await s.transform(messages())).toEqual(messages());

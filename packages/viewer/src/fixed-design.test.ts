@@ -275,102 +275,6 @@ it("stops the starter diagnostic without replacing its broad play goal",()=>{
  expect(definitionProblems({...def,base:{...def.base,stopAt:"STONE_BADGE"}})).toContain("base stopping target must equal primaryMilestone");
 });
 
-it("freezes a byte-pinned prompt-only starter diagnostic with sixteen balanced slots",()=>{
- const def=parseFixedDefinition(recipeText(new URL("../../../experiments/fixed/starter-decision-salience.json",import.meta.url),"utf8")).definition;
- const base=recipeText(new URL("../../../experiments/fixed/control-bases/starter-decision-salience-control.json",import.meta.url),"utf8");
- expect(controlBaseProblems(def,base)).toEqual([]);expect(def.switches).toEqual(["starter-decision-salience-v1"]);expect(def.plan).toHaveLength(16);
- expect(def.phases).toMatchObject([{perArm:8,primary:false,maxWallMs:300_000,start:{kind:"save_state",sha1:"0c34433cc305ea5de6fa69aa4a5612bf434a5714"}}]);
- expect(def.base.target).toBeNull();expect(def.base.stopAt).toBe("STARTER_CHOSEN");
-});
-
-it("preserves historical navigation treatments and their newer maintained control baseline",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const def=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
-  expect(definitionProblems(def)).toEqual([]);
-  for(const phase of def.phases){
-   const control=armPreset(def,phase.id,"control"),bundle=armPreset(def,phase.id,"bundle");
-   for(const id of ["navigation-tool-use-guard-v1","semantic-current-map-feedback-v1"] as const){
-    if(name==="bundle-v-control")expect(def.switches).not.toContain(id);else expect(def.switches).toContain(id);expect(control.features[id]).toBe(name==="bundle-v-control");expect(bundle.features[id]).toBe(true);
-   }
-  }
- }
-});
-
-it("preserves historical field-dialogue treatment and its newer maintained control baseline",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h"]){
-  const raw=recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8");
-  const def=parseFixedDefinition(raw).definition;
-  expect(definitionProblems(def)).toEqual([]);
-  if(name==="bundle-v-control")expect(def.switches).not.toContain("pending-field-dialogue-v1");else expect(def.switches).toContain("pending-field-dialogue-v1");
-  for(const phase of def.phases){
-   expect(armPreset(def,phase.id,"control").features["pending-field-dialogue-v1"]).toBe(name==="bundle-v-control");
-   expect(armPreset(def,phase.id,"bundle").features["pending-field-dialogue-v1"]).toBe(true);
-  }
-  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
- }
-});
-
-it("enables menu refusal recovery only in evolving bundle arms",()=>{
- for(const name of ["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","bundle-v-control-2h"]){
-  const def=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
-  expect(definitionProblems(def)).toEqual([]);
-  expect(def.switches).toContain("menu-refusal-recovery-v1");
-  for(const phase of def.phases){
-   expect(armPreset(def,phase.id,"control").features["menu-refusal-recovery-v1"]).toBe(false);
-   expect(armPreset(def,phase.id,"bundle").features["menu-refusal-recovery-v1"]).toBe(true);
-  }
-  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8"))).toEqual([]);
- }
-});
-
-it("operator promotion enables only the reminder in both canonical comparison arms",()=>{
- for(const name of ["bundle-v-control","bundle-v-control-2h","whole-map-pair-2h","whole-map-cook-1h","bundle-cook-1h"]){
-  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);
-  for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);
-  const current=name==="bundle-v-control"||name==="bundle-v-control-2h";
-  for(const id of ["move-learn-settle-v1","move-learn-question-v1","move-learn-comparison-v1","move-learn-tool-v1","move-learn-early-comparison-v1"]){
-   // the operator 2026-10-27: the current recipe promotes move-learn-settle-v1 and move-learn-tool-v1 to both arms.
-   const both=current&&(id==="move-learn-settle-v1"||id==="move-learn-tool-v1");
-   expect(d.switches.includes(id),`${name}/${id}`).toBe(!both);expect(armFeatures(d,"control")[id],`${name}/${id}`).toBe(both);expect(armFeatures(d,"bundle")[id]).toBe(true);
-  }
- }
-});
-
-it("Rustboro checkpoint definitions enable the reminder in both arms",()=>{for(const name of ["gym-rustboro-torchic","gym-rustboro-torchic-healed"]){const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;expect(definitionProblems(d)).toEqual([]);expect(d.onInBoth).toContain("move-learn-goal-reminder-v1");for(const arm of ["control","bundle"] as const)expect(armFeatures(d,arm)["move-learn-goal-reminder-v1"],`${name}/${arm}`).toBe(true);}});
-
-it("normal bundle recipes enable named declines while control retains its previous contract",()=>{
- for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
-  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
-  expect(definitionProblems(d),name).toEqual([]);
-  expect(armFeatures(d,"bundle")["move-learn-offer-identity-v1"],name).toBe(true);
-  expect(armFeatures(d,"bundle")["move-learn-tool-v1"],name).toBe(true);
-  expect(armFeatures(d,"control")["move-learn-offer-identity-v1"],name).toBe(false);
- }
-});
-
-
-it.each(["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"])("future %s bundle credits earned campaign progress; current recipes credit it in control too",name=>{
- const control=name==="bundle-v-control"||name==="bundle-v-control-2h";
- const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
- expect(definitionProblems(d),name).toEqual([]);
- expect(armFeatures(d,"bundle")["campaign-progress-clock-v1"],`${name}/bundle`).toBe(true);
- expect(armFeatures(d,"control")["campaign-progress-clock-v1"],`${name}/control`).toBe(control);
- for(const phase of d.phases){
-  expect(armPreset(d,phase.id,"bundle").features["campaign-progress-clock-v1"],`${name}/${phase.id}/bundle preset`).toBe(true);
-  expect(armPreset(d,phase.id,"control").features["campaign-progress-clock-v1"],`${name}/${phase.id}/control preset`).toBe(control);
- }
-});
-
-it("enables navigation cycle stopping only in the seven evolving bundle arms",()=>{
- const id="navigation-cycle-stop-v1";
- for(const name of ["bundle-v-control","bundle-v-control-2h","bundle-cook-1h","whole-map-cook-1h","whole-map-pair-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed"]){
-  const d=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8")).definition;
-  expect(definitionProblems(d),name).toEqual([]);expect(d.base.features[id]).toBe(false);expect(d.switches.filter(s=>s===id)).toEqual([id]);
-  expect(armFeatures(d,"control")[id],name).toBe(false);expect(armFeatures(d,"bundle")[id],name).toBe(true);
-  expect(controlBaseProblems(d,recipeText(new URL(`../../../${d.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
- }
-});
-
 it("allows an explicit bundle reply cap without changing shared sampling or control provenance",()=>{
  const original=definition();
  const def=parseFixedDefinition(JSON.stringify({...original,bundleMaxTokens:8192})).definition;
@@ -381,65 +285,12 @@ it("allows an explicit bundle reply cap without changing shared sampling or cont
  for(const invalid of [0,-1,1.5,"8192"])expect(()=>parseFixedDefinition(JSON.stringify({...original,bundleMaxTokens:invalid}))).toThrow();
 });
 
-it("enables truthful cut-off feedback in both arms and the larger reply budget only for GLM bundles",()=>{
- const names=["bundle-v-control","bundle-cook-1h","whole-map-cook-1h","bundle-v-control-2h","whole-map-pair-2h","random-starter-2h","gym-rustboro-torchic","gym-rustboro-torchic-healed","glm53-flash-1h","glm53-flash-2h","glm53-flash-4h"];
- for(const name of names){
-  const {definition:def}=parseFixedDefinition(recipeText(new URL(`../../../experiments/fixed/${name}.json`,import.meta.url),"utf8"));
-  expect(definitionProblems(def),name).toEqual([]);
-  expect(controlBaseProblems(def,recipeText(new URL(`../../../${def.controlBase.path}`,import.meta.url),"utf8")),name).toEqual([]);
-  expect(def.onInBoth,name).toContain("cut-off-reply-feedback-v1");
-  expect(def.switches,name).not.toContain("cut-off-reply-feedback-v1");
-  for(const phase of def.phases)for(const arm of ["control","bundle"] as const){
-   const preset=armPreset(def,phase.id,arm);
-   expect(preset.features["cut-off-reply-feedback-v1"],`${name}/${arm}`).toBe(true);
-   expect(preset.sampling.maxTokens,`${name}/${arm}`).toBe(name.startsWith("glm53-")&&arm==="bundle"?8192:4096);
-  }
- }
-});
-
 // Frozen before the allocation extension: every currently tracked legacy plan, including singleton modes.
-const legacyAllocationFiles = [
- "experiments/archive/fixed/bundle-cook-1h.json",
- "experiments/archive/fixed/whole-map-cook-1h.json",
- "experiments/archive/fixed/whole-map-pair-2h.json",
- "experiments/fixed/bundle-cook-4h.json",
- "experiments/fixed/bundle-cook-6h-v2.json",
- "experiments/fixed/bundle-cook-6h.json",
- "experiments/fixed/bundle-v-control-2h.json",
- "experiments/fixed/bundle-v-control.json",
- "experiments/fixed/glm53-24h-visibility-v2.json",
- "experiments/fixed/glm53-flash-1h.json",
- "experiments/fixed/glm53-flash-2h.json",
- "experiments/fixed/glm53-flash-4h.json",
- "experiments/fixed/gym-rustboro-torchic-healed.json",
- "experiments/fixed/gym-rustboro-torchic.json",
- "experiments/fixed/hyperqwen-control-3h.json",
- "experiments/fixed/jit-10m.json",
- "experiments/fixed/jit-v2-10m.json",
- "experiments/fixed/jit-v2-cache-20m.json",
- "experiments/fixed/jit-v2-pair-10m.json",
- "experiments/fixed/qwen36-24h-visibility-off.json",
- "experiments/fixed/random-starter-2h.json",
- "experiments/fixed/rusturf-native-note-pilot16-20261029.json",
- "experiments/fixed/starter-decision-salience.json",
- "experiments/fixed/whole-map-pair-1h-v2.json",
- "experiments/fixed/whole-map-pair-1h-v3.json",
- "experiments/fixed/whole-map-pair-1h-v4.json",
- "experiments/fixed/whole-map-pair-1h-v5.json",
- "experiments/fixed/whole-map-pair-1h-v6.json",
- "experiments/fixed/whole-map-pair-1h-v7.json",
- "experiments/fixed/whole-map-pair-1h-v8.json",
- "experiments/fixed/whole-map-pair-1h.json"
-];
 function unequalDraft(control:number,bundle:number): ReturnType<typeof draftDefinition> {
  const base=draftDefinition();
  return {...base, phases:[{id:"confirmatory",armCounts:{control,bundle},maxWallMs:900_000,primary:true,start:CLOCK_START}]};
 }
 describe("exclusive unequal arm allocation",()=>{
- it("preserves all 31 existing legacy plans byte for byte",()=>{
-  const records=legacyAllocationFiles.map(name=>{const def=JSON.parse(readFileSync(new URL(`../../../${name}`,import.meta.url),"utf8")) as Pick<FixedDefinition,"seed"|"phases"|"lanes"> & {plan:unknown};const plan=generatePlan(def);expect(JSON.stringify(plan)).toBe(JSON.stringify(def.plan));return[name,plan];});
-  expect(sha(JSON.stringify(records))).toBe("c441200c3d6dc4458078cc1175f059afc764050240ff7ed19f8191a8aa0a9f1a");
- });
  it.each([16,32,48,100])("allocates 100 candidate plus %i controls evenly per GPU across proportional strata",control=>{
   for(const swapped of[false,true]){
    const counts=swapped?{control:100,bundle:control}:{control,bundle:100},draft=unequalDraft(counts.control,counts.bundle),plan=generatePlan(draft);

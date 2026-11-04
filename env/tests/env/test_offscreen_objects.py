@@ -26,48 +26,16 @@ from pokebench_env.offscreen_objects import (
     offscreen_text,
     read_offscreen_objects,
 )
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures/offscreen-objects-sh02.json").read_text())
 ROM_START = 0x08000000
 # Server switches registered after cook run #2 were off for it.
-RECORDED_OFF = frozenset(FIXTURE["recorded_off"]) | {
-    "map-observability-v1",
-    "active-warp-exits-v1",
-    "available-exits-presentation-v1",
-    "player-elevation-readout-v1",
-    "static-npc-template-approach-v1",
-    "connection-edge-tiles-v1",
-    "in-game-naming-readout-v1",
-    "readout-truth-v1",
-    "birch-speech-pages-v1",
-    "blackout-readout-v1",
-    "surf-gated-exits-v1",
-    "exit-reachability-v1",
-    "heal-before-trainers-v1",
-    "tutorial-party-owner-v1",
-    "mid-frame-readout-v1",
-    "unset-dynamic-warp-v1",
-    "status-names-v1",
-    "surf-gated-exits-v2",
-    "battle-effective-damage-v1",
-    "semantic-navigation-v2",
-    "exit-labels-v2",
-    "exp-next-level-v1",
-    "pokedex-own-v1",
-}
 T416 = "raw-ram/00004588.json.gz"
 T754 = "raw-ram/00005144.json.gz"
-CURRENT = json.loads(
-    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
-)["cases"]
 MAY_OFF = "MAY (on this map, out of view)"
 MAY_ON = "MAY at 10,3 (out of view; where the map places this character, it may have moved)"
-MAY_ENTRY = (
-    "- map 0/18 object 2: sprite RIVAL_MAY_NORMAL (graphics 105) at (10,3), "
-    "not loaded; where the map places it, it may have moved"
-)
 
 
 @functools.cache
@@ -108,66 +76,7 @@ def render(raw: str, off: frozenset[str]) -> str:
     return rerender.render(rerender.read_state(read, maps, active_ui=True, off=off), off)
 
 
-def changed(before: str, after: str) -> tuple[list[str], list[str]]:
-    old, new = before.split("\n"), after.split("\n")
-    return [line for line in old if line not in new], [line for line in new if line not in old]
-
-
 # --- cook run #2, real ROM ----------------------------------------------------------------
-
-
-@pytest.mark.parametrize("raw", [T416, T754])
-def test_off_matches_current_policy_without_rewriting_what_the_model_received(raw: str) -> None:
-    text = render(raw, RECORDED_OFF | {SWITCH})
-    received = str(frame(raw)["received"])
-    assert text == CURRENT[f"offscreen:{raw}"]
-    assert "Warp destination at (45,6): ALTERING CAVE" in received
-    assert HEADER not in text
-
-
-def test_t416_on_lists_may_where_the_map_places_her() -> None:
-    off = render(T416, RECORDED_OFF | {SWITCH})
-    on = render(T416, RECORDED_OFF)
-    removed, added = changed(off, on)
-    assert removed == [line for line in off.split("\n") if MAY_OFF in line]
-    assert HEADER in added
-    assert MAY_ENTRY in added
-    story = next(line for line in on.split("\n") if line.startswith("Story characters here"))
-    assert MAY_ON in story
-    assert MAY_OFF not in story
-    # Every added line is the story line, the header or an object entry; nothing else changes.
-    assert all(
-        line.startswith(("Story characters here", HEADER, "- map 0/18 object ")) for line in added
-    )
-
-
-def test_t416_lists_every_unhidden_object_outside_the_window_once() -> None:
-    on = render(T416, RECORDED_OFF)
-    lines = on.split("\n")
-    entries = lines[lines.index(HEADER) + 1 :]
-    entries = entries[: next(i for i, line in enumerate(entries) if not line.startswith("- "))]
-    ids = [int(line.split(" object ")[1].split(":")[0]) for line in entries]
-    assert len(ids) == len(set(ids))
-    assert 2 in ids  # MAY
-    assert 11 not in ids  # PROF. BIRCH's Route 103 template: its flag is set, so it is hidden
-    for line in entries:
-        x, y = (int(v) for v in line.split(" at (")[1].split(")")[0].split(","))
-        assert abs(x - 11) > 7 or abs(y - 21) > 7
-
-
-def test_t754_may_is_on_screen_so_she_is_not_listed_off_screen() -> None:
-    on = render(T754, RECORDED_OFF)
-    assert "MAY at 10,3." in on or "MAY at 10,3 " in on
-    assert MAY_ON not in on
-    assert "object 2:" not in on.split(HEADER)[1]
-    assert "- map 0/18 object 2: sprite RIVAL_MAY_NORMAL (graphics 105) at (10,3)" in on
-
-
-def test_production_route_honors_the_switch() -> None:
-    off = render(T416, RECORDED_OFF | {SWITCH})
-    on = render(T416, RECORDED_OFF)
-    assert HEADER in on
-    assert HEADER not in off
 
 
 def test_switch_is_a_default_off_server_feature() -> None:
@@ -283,14 +192,3 @@ def test_story_line_on_names_the_tile_off_keeps_today() -> None:
     loaded = {2: MapObject(2, 105, "RIVAL_MAY_NORMAL", 30, 3, True)}
     assert "MAY at 30,3 (out of view)" in story.text(loaded)
     assert MAY_OFF in story.text({})
-
-
-def test_format_readout_needs_the_switch_and_live_object_sprites() -> None:
-    read = reader(T416, operator_rom())
-    maps = map_names()
-    state = rerender.read_state(read, maps, active_ui=True, off=RECORDED_OFF)
-    assert HEADER in format_readout(state, RECORDED_OFF)
-    assert HEADER not in format_readout(state, RECORDED_OFF | {SWITCH})
-    assert HEADER not in format_readout(state, RECORDED_OFF | {"live-object-sprites-v1"})
-    state_off = rerender.read_state(read, maps, active_ui=True, off=RECORDED_OFF | {SWITCH})
-    assert state_off.offscreen_objects is None

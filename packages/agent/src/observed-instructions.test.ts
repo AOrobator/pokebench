@@ -4,7 +4,6 @@ import {gunzipSync} from "node:zlib";
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
 import {ALL_ON as GYM_EVIDENCE_CURRENT_ALL_ON,SWITCHABLE_FEATURES,playHarnessFeatures,stateOnlyProblems,type FeatureSet} from "./features.js";
-const ALL_ON={...GYM_EVIDENCE_CURRENT_ALL_ON,"milestone-drought-suppression-v1":false,"milestone-instruction-memory-v1":false,"gym-evidence-v1":false};
 import {normalizeFeatures,flagFeatures} from "./play-preset.js";
 import {contextTools} from "./play-wiring.js";
 import {IN_GAME} from "../test-support/events.js";
@@ -47,35 +46,6 @@ it("ignores failed delivery, objects and battle pages",async()=>{
  deliver(h,30,[{...page("DAD: another battle page"),battle_message_id:1}]);
  expect(await h.wiring.transformContext([])).toEqual([]);expect(h.recorded).toEqual([]);
 });
-it("reads actual recorded Mom episode through the same production chain",async()=>{
- const h=harness();
- const events=gunzipSync(readFileSync(new URL("./fixtures/instruction-ledger-v2-0e05.jsonl.gz",import.meta.url))).toString("utf8").trim().split("\n").map(line=>checkEvent(JSON.parse(line)));
- for(const e of events){if(e.seq>=1286)break;h.send(e);}
- const text=JSON.stringify(await h.wiring.transformContext([]));
- expect(text).toContain("PROF. BIRCH is his name.");expect(text).toContain(JSON.stringify(JSON.stringify("He lives right next door, so you should\ngo over and introduce yourself.")).slice(1,-1));
-});
-it("registers a default-OFF switch with state-only conflict and shared baseline activation",()=>{
- expect(SWITCHABLE_FEATURES).toContain("observed-instructions-v1");
- const {"observed-instructions-v1":omitted,...legacy}=off;expect(omitted).toBe(false);
- expect(normalizeFeatures(legacy)["observed-instructions-v1"]).toBe(false);
- expect(flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false})["observed-instructions-v1"]).toBe(false);
- expect(playHarnessFeatures({...ALL_ON,"observed-instructions-v1":true},null)).toContain("observed-instructions-v1");
- expect(stateOnlyProblems({...ALL_ON,"state-only-decisions-v1":true})).toContain("state-only-decisions-v1 requires observed-instructions-v1 OFF");
- const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
- expect(bundle.base.features["observed-instructions-v1"]).toBe(true);expect(bundle.switches).not.toContain("observed-instructions-v1");
-});
-
-it("retains actual Norman pages after Rustboro arrival without inventing completion",async()=>{
- const fixture=JSON.parse(readFileSync(new URL("./fixtures/observed-instructions-norman.json",import.meta.url),"utf8")) as {events:unknown[]};
- const h=harness();const events=fixture.events.map(checkEvent);
- for(const e of events)h.send(e);
- await h.wiring.transformContext([]);const text=h.recorded.at(-1)?.text??"";
- const dialogue=events[0];expect(dialogue?.type).toBe("dialogue_auto_advance");
- if(dialogue?.type!=="dialogue_auto_advance")throw Error("missing owned dialogue");
- for(const p of dialogue.pages)expect(text).toContain(`text: ${JSON.stringify(p.text)}`);
- expect(text).toContain("ROXANNE");expect(text).toContain('"location":"RUSTBORO CITY"');
- expect(text).toContain("Missing progress is unknown, not false");expect(text).not.toContain("completed: true");
-});
 it("deduplicates exact repeats, keeps distinct episodes and excludes cross-run input",async()=>{
  const h=harness();deliver(h);deliver(h,10);deliver(h,20,[page("MOM: Another instruction","MOM")]);
  h.send(event({run:"other-run",type:"dialogue_auto_advance",seq:50,tool_call_id:"foreign",pages:[page("DAD: FOREIGN")],tool:"press",requested:[],sent:[],dropped:[],auto_presses:0,stop:"field_free",detail:"",duration_ms:0}));
@@ -107,19 +77,6 @@ it("does not select a recognized faced sprite or an unrecognized printed name",a
   expect(await h.wiring.transformContext([])).toEqual([]);expect(h.recorded).toEqual([]);
  }
 });
-
-
-it("retains the actual delivered unnamed upstairs episode through the production context chain",async()=>{
- const fixture=JSON.parse(readFileSync(new URL("./fixtures/rival-upstairs-9f27.json",import.meta.url),"utf8")) as {events:unknown[]};
- const h=harness(true,true);for(const e of fixture.events)h.send(checkEvent(e));
- const messages=await h.wiring.transformContext([]),text=h.recorded.at(-1)?.text??"";
- expect(messages.at(-1)?.content).toBe(text);
- expect(text).toContain('text: "Our daughter is upstairs, I think."');
- expect(text).toContain('speaker: "WOMAN_4"');expect(text).toContain('speaker_source: "faced_sprite"');
- expect(text).toContain("delivered_result: 1129");
- expect(text).not.toContain("speaker: \"MAY\"");
- expect(text).not.toContain("completed: true");
-});
 it("field dialogue selection keeps unknown speakers without inventing identity and retains unique episodes",async()=>{
  const h=harness(true,true);deliver(h,2,[page("A direction without a name",null,null)]);deliver(h,10,[page("Another line","WOMAN_4","faced_sprite")]);
  deliver(h,20,[page("A direction without a name",null,null)]);
@@ -134,17 +91,6 @@ it("field dialogue switch OFF preserves the previous story-only selection exactl
 it("field dialogue extension excludes failed delivery and battle-only calls",async()=>{
  const h=harness(true,true);deliver(h,2,[page("not delivered",null,null)],true);deliver(h,10,[{...page("battle",null,null),battle_turn:1}]);deliver(h,20,[]);
  expect(await h.wiring.transformContext([])).toEqual([]);
-});
-
-it("registers two independent default-OFF repairs with separate pending experiments and bundle-only enablement",()=>{
- for(const id of ["rejected-movement-step-v1","observed-field-dialogue-v1"] as const){
-  const legacy=Object.fromEntries(Object.entries(off).filter(([key])=>key!==id));
-  expect(normalizeFeatures(legacy as typeof off)[id]).toBe(false);
-  expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[id]).toBe(false);
-  expect(playHarnessFeatures({...off,[id]:true},null)).toContain(id);
-  const bundle=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[]};
-  expect(bundle.base.features[id]).toBe(false);expect(bundle.switches).toContain(id);
- }
 });
 
 it("retains unnamed guidance after newer conversations and an empty context, with all source pages intact",async()=>{

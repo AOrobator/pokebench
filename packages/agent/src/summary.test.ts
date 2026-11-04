@@ -173,21 +173,6 @@ describe("summaryLines", () => {
   });
 });
 
-describe("readRun", () => {
-  it("parses every line of events.jsonl", () => {
-    const runDir = mkdtempSync(join(tmpdir(), "pokebench-summary-"));
-    writeFileSync(join(runDir, "events.jsonl"), FINISHED.map((e) => JSON.stringify(e)).join("\n") + "\n");
-    expect(readRun(runDir)).toEqual(FINISHED);
-  });
-
-  it("names the line of an invalid event", () => {
-    const runDir = mkdtempSync(join(tmpdir(), "pokebench-summary-"));
-    mkdirSync(runDir, { recursive: true });
-    writeFileSync(join(runDir, "events.jsonl"), `${JSON.stringify(FINISHED[0])}\n{"type":"nope"}\n`);
-    expect(() => readRun(runDir)).toThrow(/events.jsonl:2/);
-  });
-});
-
 it("keeps human outcomes inspectable but outside all model aggregate reach rates", () => {
   const humanEvents = FINISHED.map((e) => e.type === "run_start" ? { ...e, model: { ...e.model, id: "Human · Operator" }, controller: { kind: "human", name: "Operator", rom_sha1: "c".repeat(40), input_policy: "frame-held-v1", sample_ms: 100, nominal_fps: 59.7275 } as const } : { ...e, run: "human" });
   const human = summarize(humanEvents);

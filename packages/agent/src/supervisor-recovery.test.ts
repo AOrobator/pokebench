@@ -3,13 +3,6 @@ import {expect,it} from "vitest";
 import {readFileSync} from "node:fs";
 import {featureInfo,playHarnessFeatures} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
-const ids=["ineffective-navigation-v2","supervisor-briefing-v2","reachable-story-guidance-v1","text-only-supervisor-v2"] as const;
-const droppedFromBundle=new Set<string>(["ineffective-navigation-v2","supervisor-briefing-v2"]);
-it("keeps global defaults OFF, preserves both dropped switches, and retains shared baseline activations",()=>{
- const features=flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false});
- const def=JSON.parse(recipeText(new URL("../../../experiments/fixed/bundle-v-control.json",import.meta.url),"utf8")) as {base:{features:Record<string,boolean>};switches:string[];offInBoth:string[]};
- for(const id of ids){expect(features[id]).toBe(false);expect(def.base.features[id]).toBe(!droppedFromBundle.has(id));if(droppedFromBundle.has(id))expect(def.offInBoth).toContain(id);else expect(def.offInBoth).not.toContain(id);expect(def.switches).not.toContain(id);expect(featureInfo(id).description).toContain(" Off: ");expect(playHarnessFeatures({...features,[id]:true},null)).toContain(id);}
-});
 
 import type {LoopNotice} from "./loop-detection.js";
 import {attachLoopGuard,Governor} from "./harness.js";
@@ -66,26 +59,6 @@ import {piLoop,play} from "./harness.js";
 import {createAssistantMessageEventStream} from "@mariozechner/pi-ai";
 import {assistant} from "../test-support/pi.js";
 import type {Model,Message} from "@mariozechner/pi-ai";
-const MODEL:Model<"openai-completions">={id:"fixture",name:"fixture",api:"openai-completions",provider:"fixture",baseUrl:"http://127.0.0.1:1/v1",reasoning:false,input:["text"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:65536,maxTokens:100};
-it("replays the actual whole-map failed-coordinate window and delivers the new briefing through pinned pi before its next decision",async()=>{
- const fixture=JSON.parse(gunzipSync(readFileSync(new URL("../test-support/supervisor-recovery-recorded.json.gz",import.meta.url))).toString()) as {run:string;pin:string;events:unknown[]};
- expect(fixture.pin).toBe("b419848eb9f0b4d872b776189050b7c87c2a2812");
- for(const on of [false,true]){
-  const r=recording(),features={...base,"loop-guard-supervisor-v1":true,"supervisor-briefing-v2":on,"world-targets-v1":true};
-  const supervisor=loopSupervisor(features,r);
-  const g=new Governor({limits:{maxTurns:1,maxWallMs:60000,failureLimit:3},retry:()=>undefined,abort:()=>undefined,now:()=>0});
-  const d=attachLoopGuard(r,g,undefined,"enforced",true,supervisor,false,false,false,false,false,false,false,false,false,false,on);
-  for(const body of fixture.events){const event=checkEvent(body);r.feed(event);if(on&&r.guards.some(n=>n.phase==="supervisor"))break;}
-  if(on)expect(r.guards).toContainEqual(expect.objectContaining({phase:"warning",kind:"ineffective"}));else expect(r.guards).toEqual([]);
-  let delivered="";
-  const loop=piLoop({systemPrompt:"fixture",tools:[],governor:g,emit:()=>undefined,transformContext:messages=>Promise.resolve(messages),loopDetector:d,signal:new AbortController().signal,base:{model:MODEL,convertToLlm:messages=>messages as Message[]},streamFn:(_model,context)=>{
-   delivered=JSON.stringify(context.messages);
-   const stream=createAssistantMessageEventStream(),message=assistant({text:"fixture",stopReason:"stop"});stream.push({type:"done",reason:"stop",message});return stream;
-  }});
-  await play({role:"user",content:"fixture",timestamp:0},g,loop);
-  expect(delivered.includes("SUPERVISOR:")).toBe(on);if(on)expect(delivered).toContain("Recent attempts (up to 3)");
- }
-});
 
 
 

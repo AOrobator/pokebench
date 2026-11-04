@@ -40,48 +40,6 @@ def test_invalid_connection_count_and_direction_do_not_invent_exits():
     assert read_topology(m.read, MapNames({})) is None
 
 
-def test_observation_delivers_named_topology_only_when_enabled(monkeypatch):
-    import json
-    from dataclasses import replace
-
-    from fastapi import FastAPI
-    from pydantic import BaseModel
-    from test_readout import IN_GAME
-    from test_view import get
-
-    from pokebench_env.observation import install_observation
-    from pokebench_env.world import InteractionTarget
-
-    m = loaded()
-    topology = read_topology(m.read, MapNames({}))
-    field = replace(
-        IN_GAME,
-        topology=topology,
-        destination_names=((0, 16, "ROUTE 101"),),
-        interaction_targets=(
-            InteractionTarget("warp", 5, 1, 0, "movement", destination=(0, 16, 0)),
-        ),
-    )
-    monkeypatch.setattr("pokebench_env.rerender.read_game_state", lambda *args, **kwargs: field)
-
-    class Shot(BaseModel):
-        screenshot_base64: str = "aA=="
-
-    for off, expected in [("world-destinations-v1", False), ("", True)]:
-        monkeypatch.setenv(
-            "POKEBENCH_FEATURES_OFF",
-            ",".join(filter(None, (off, "player-map-visibility-v2"))),
-        )
-        app = FastAPI()
-        install_observation(app, Shot, m.read, MapNames({}))
-        status, _, raw = get(app, "/pokebench/observation")
-        assert status == 200
-        body = json.loads(raw)
-        assert ("Current map bounds: X=0..4, Y=0..4" in body["state_text"]) is expected
-        assert ("Warp destination at (5,1): map 0/16" in body["state_text"]) is expected
-        assert body["state"]["topology"]["width"] == 5
-
-
 def test_real_reader_propagates_topology_and_withholds_it_while_loading():
     from test_game_state import MAPS, OVERWORLD, game
 

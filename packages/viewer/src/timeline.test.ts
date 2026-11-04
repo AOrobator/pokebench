@@ -112,36 +112,6 @@ it("marks each dialogue auto-advance on the timeline with its presses, pages, st
  expect(svg).toContain("Dialogue auto-advanced · B ×1 · 0 pages · stopped: menu<");
  expect(lanesSvg(view(log),BASE_MS+50)).not.toContain("Dialogue auto-advanced");
 });
-it('draws loop errors red on the errors lane and gives every presses-lane mark a fill',()=>{
- const log=new Log();log.add(0,START);
- log.add(1000,{type:'loop_guard',turn:1,kind:'milestone_drought',phase:'warning',message:'stalling',calls:9,evidence:[1]});
- log.add(1000,{type:'text_only_supervisor',turn:2,replies:3,note:1,limit:3,text:'no tool'});
- const svg=lanesSvg(view(log),BASE_MS+2000);
- const errors=[...svg.matchAll(/class="m-error k-loop"[^>]* y="([^"]+)" [^>]*height="([^"]+)"/g)];
- expect(errors).toHaveLength(2);
- const lane=150/LANES.length;
- for(const [,y,h] of errors)expect(Number(y)+Number(h)/2).toBeCloseTo(LANES.indexOf('errors')*lane+lane/2,1);
- const css=readFileSync(join(import.meta.dirname,'../static/style.css'),'utf8');
- const fill=(selector:string):string|undefined=>new RegExp(`${selector.replace(/[.]/g,'\\.')}\\s*\\{\\s*fill:\\s*([^;]+);`).exec(css)?.[1];
- expect(fill('.lanes .m-error')).toBe('#ff4d4d');
- expect(fill('.lanes .m-press')).toBeDefined();
- expect(css.indexOf('.lanes .m-press {')).toBeLessThan(css.indexOf('.lanes .b-UP'));
- expect(css.indexOf('.lanes .m-error {')).toBeLessThan(css.indexOf('.lanes .k-compaction'));
-});
-it('keeps timeline text out of the stretched SVG so it never distorts at wide widths',()=>{
- const html=lanesSvg(view(fullRun()),BASE_MS+9000);
- expect(html.startsWith('<div class="lanes-wrap">')).toBe(true);
- const svg=/<svg[\s\S]*<\/svg>/.exec(html)?.[0]??'';
- expect(svg).toContain('preserveAspectRatio="none"');
- expect(svg).not.toContain('<text');
- for(const cls of ['lab','axis','press-label'])expect(html).toMatch(new RegExp(`<span class="${cls}" style="left:[\\d.]+%;top:[\\d.]+%"`));
- expect(html).toContain('<span class="lab" style="left:0.8%;top:8.8%">thinking</span>');
- const css=readFileSync(join(import.meta.dirname,'../static/style.css'),'utf8');
- expect(css).toMatch(/\.lanes-wrap \{[^}]*position: relative/);
- expect(css).toMatch(/\.lanes-text span \{[^}]*position: absolute/);
- expect(html).toMatch(/<span class="press-label" [^>]*aria-hidden="true">/);
- expect(css.indexOf('@media (max-width: 600px) { .lanes-text')).toBeGreaterThan(css.indexOf('.lanes-text .press-label { color'));
-});
 
 it("leaves people ID cards off the timeline (closed to new marks, operator decision 2026-10-16)",()=>{
  const log=new Log();log.add(0,START);

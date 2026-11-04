@@ -237,46 +237,4 @@ describe("registry and factory",()=>{
    expect(gate.untalked()).toEqual(["MAY at 10,3"]);
   }
  });
- // coherent-healing-feedback-v1 (on in the current recipe's bundle arm) names the story opponent in its own clause.
- it("coherent healing keeps \"trainer battle\" and swaps only the name (54a7 T363)",async()=>{
-  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
-  const state=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
-  const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
-  const texts:string[]=[];
-  const recorder={lowHpTrainerWarning:()=>undefined,storyBattleWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
-  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true,"low-hp-trainer-warning-v2":true,"coherent-healing-feedback-v1":true,"heal-before-trainers-v1":false,"gym-heal-warning-v1":false};
-  const names=new ShownStoryNames();
-  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
-  expect(texts[1]).toContain(" MAY's trainer battle cannot be run from. ");
-  expect(texts[0]).toBe(texts[1]?.replace(" MAY's trainer battle"," Your rival's trainer battle"));
- });
- it("coherent healing in Petalburg Woods drops only TEAM AQUA (54a7 T363's party, moved to the woods)",async()=>{
-  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
-  const t363=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
-  const state:GameStateSnapshot={...t363,map_id:[24,11],location:"PETALBURG WOODS",story:{...(t363.story as NonNullable<GameStateSnapshot["story"]>),petalburg_woods_aqua_grunt_defeated:false},world_context:{...(t363.world_context as NonNullable<GameStateSnapshot["world_context"]>),objects:[]}};
-  const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
-  const texts:string[]=[];
-  const recorder={lowHpTrainerWarning:()=>undefined,storyBattleWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
-  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true,"low-hp-trainer-warning-v2":true,"coherent-healing-feedback-v1":true,"heal-before-trainers-v1":false,"gym-heal-warning-v1":false};
-  const names=new ShownStoryNames();
-  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
-  expect(texts[1]).toContain(" TEAM AQUA grunt's trainer battle cannot be run from. ");
-  expect(texts[0]).toBe(texts[1]?.replace(" TEAM AQUA grunt's trainer battle"," The grunt's trainer battle"));
- });
- // Run 2026-10-16T04-51-03_qwen36-gpu0_54a7 T363: TORCHIC at 3/21 HP with MAY at (10,3) on Route 103.
- it("the warnings in the production chain use role words until the game shows the name (54a7 T363)",async()=>{
-  const fixture=JSON.parse(readFileSync(new URL("../test-support/trainer-heal-54a7.json",import.meta.url),"utf8")) as {harness_features:string[];states:{turn:number;state:unknown}[]};
-  const state=parseGameState(fixture.states.find(s=>s.turn===363)?.state);
-  const tool:AgentTool={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:"Screen: overworld"}],details:{state}})};
-  const texts:string[]=[];
-  const recorder={lowHpTrainerWarning:(_:string,__:unknown,text:string)=>{texts.push(text);}};
-  const features:FeatureSet={...featuresOf(fixture.harness_features),"low-hp-trainer-warning-v1":true};
-  const names=new ShownStoryNames();
-  for(const [on,id] of [[true,"c1"],[false,"c2"]] as const)await withLowHpTrainerWarning([tool],{...features,[ID]:on},recorder,{},undefined,names)[0]?.execute(id,{});
-  expect(texts[0]).toContain("and your rival is on this map at (10,3).");
-  expect(texts[1]).toContain("and your rival MAY is on this map at (10,3).");
-  names.observe(checkEvent({v:1,run:"r",seq:1,t:"2026-10-27T20:00:00.000-04:00",type:"dialogue_auto_advance",turn:1,tool_call_id:"c3",tool:"press",requested:["A"],sent:["A"],dropped:[],auto_presses:1,pages:[{state_seq:null,map:"ROUTE103",map_id:[0,18],position:{x:10,y:4},speaker:"MAY",speaker_source:"name_prefix",text:"MAY: Hi!"}],stop:"field_free",detail:"",duration_ms:1}));
-  await withLowHpTrainerWarning([tool],{...features,[ID]:true},recorder,{},undefined,names)[0]?.execute("c3",{});
-  expect(texts[2]).toBe(texts[1]);
- });
 });

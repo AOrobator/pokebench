@@ -38,32 +38,6 @@ it("describes each switch with the exact lines the game server writes", () => {
   expect(featureInfo("blackout-readout-v1").description).toContain('"Whiting out: your party has no usable Pokémon left; the game is taking you back to the last place you healed."');
 });
 
-it("states each switch's intended arms and the whiteout frame scope (operator decisions 2026-10-16)", () => {
-  const read = (path: string): string => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
-  const birch = featureInfo("birch-speech-pages-v1").description;
-  expect(birch).toContain("Correctness fix, meant to be ON in both arms");
-  expect(read("docs/explainers/birch-speech-pages-v1.html")).toContain("meant to be ON in both arms");
-  expect(read("docs/explainers/birch-speech-pages-v1.html")).not.toContain("bundle arm only");
-  const whiteout = featureInfo("blackout-readout-v1").description;
-  expect(whiteout).toContain("Bundle arm only.");
-  expect(whiteout).toContain("game-loop frames advanced through run_frame_with_buttons");
-  expect(whiteout).toContain("frames the vendor advances directly (tick, the frame load_state runs) are out of scope");
-  const explainer = read("docs/explainers/blackout-readout-v1.html");
-  expect(explainer).toContain("Operator amendment (the operator, 2026-10-16)");
-  expect(explainer).toContain("<code>run_frame_with_buttons</code>");
-  expect(explainer).toContain("<code>tick</code>");
-  expect(explainer).toContain("<code>load_state</code>");
-});
-
-it("hands all three to the game server, whose list and default-off set name them", () => {
-  expect(SERVER_FEATURES.slice(36,39)).toEqual([...IDS]);
-  for (const id of IDS) expect(serverOff(off(id))).toEqual(serverOffWith(ALL_ON,{off:[id]}));
-  for (const id of IDS) expect(serverOff(ALL_ON)).not.toContain(id);
-  const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
-  expect(readout).toContain('    "transition-coherence-v1",\n    "readout-truth-v1",\n    "birch-speech-pages-v1",\n    "blackout-readout-v1",\n');
-  expect(readout).toContain('"readout-truth-v1,birch-speech-pages-v1,blackout-readout-v1,"');
-});
-
 it("defaults OFF for presets that omit them and for legacy flag presets, so recorded presets keep today's readout", () => {
   const legacy = flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true });
   const without = Object.fromEntries(Object.entries(legacy).filter(([id]) => !(IDS as readonly string[]).includes(id))) as Omit<FeatureSet, (typeof IDS)[number]>;

@@ -94,7 +94,7 @@ How `power.py` works:
 - Exact power saw-tooths as N grows. The tool reports the first crossing, and plans on the smallest N whose power stays at the target for 10 consecutive N.
 - GPU-hours are an upper bound on trial time: every launched trial, re-runs included, runs to the cap. Boot and save-load overhead are not counted. The budget line is an expectation; outages can push spend over it.
 - Wall hours divide GPU-hours by the number of executors.
-- `power_test.py` cross-checks it against scipy: `uv run --with scipy --with pytest pytest .claude/skills/pokebench-experiment-design/power_test.py`.
+- `power_test.py` cross-checks it against scipy: `PYTHONPATH=env uv run --no-project --with scipy --with pytest pytest -p pokebench_gates.no_io_guard .claude/skills/pokebench-experiment-design/power_test.py`.
 
 Read the output plainly:
 - What lift the budget can detect at the target power.

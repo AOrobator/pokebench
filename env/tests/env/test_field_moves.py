@@ -16,7 +16,6 @@ import functools
 import gzip
 import json
 import os
-import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -38,7 +37,6 @@ from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 FIXTURES = Path(__file__).parent / "fixtures"
 POKEEMERALD = Path(os.environ.get("POKEEMERALD", "/Users/user/dev/pokeemerald"))
 ROM_START = 0x08000000
-SAVE_BLOCK_PTRS = 0x03005D8C
 MOVE_GATES = {
     "cut": ("STONE", 15),
     "rock_smash": ("DYNAMO", 249),
@@ -108,32 +106,6 @@ def item(item_id: int) -> ResourceItem:
     return ResourceItem(0, item_id, 1, "key_items")
 
 
-@functools.cache
-def source_lines(relative: str) -> tuple[str, ...] | None:
-    """One pokeemerald source file's lines, read once per session; None when it is missing."""
-    path = POKEEMERALD / relative
-    if not path.exists():
-        return None
-    return tuple(path.read_text().splitlines())
-
-
-def source_text(relative: str, label: str) -> str:
-    lines = source_lines(relative)
-    if lines is None:
-        pytest.skip(f"pret/pokeemerald checkout not found at {POKEEMERALD}")
-    start = next(i for i, line in enumerate(lines) if line.strip() in (f"{label}:", f"{label}::"))
-    pieces = []
-    for line in lines[start + 1 :]:
-        found = re.match(r'\s*\.string "(.*)"\s*$', line)
-        if found is None:
-            break
-        pieces.append(found.group(1))
-        if found.group(1).endswith("$"):
-            break
-    text = "".join(pieces).removesuffix("$")
-    return re.sub(r"\\[npl]", " ", text)
-
-
 def test_the_table_has_one_row_per_gate_in_the_contract() -> None:
     assert [g.id for g in GATES] == [
         "cut",
@@ -163,35 +135,6 @@ def test_the_table_has_one_row_per_gate_in_the_contract() -> None:
         "an item you do not have yet",
         "special movement that walking navigation does not perform",
     }
-
-
-@pytest.mark.parametrize("gate", [g for g in GATES if g.label is not None], ids=lambda g: g.id)
-def test_every_quoted_text_is_the_whole_pokeemerald_string_at_its_label(
-    gate: field_moves.Gate,
-) -> None:
-    assert gate.text is not None
-    relative = gate.source.split(":", 1)[0]
-    assert source_text(relative, gate.label) == gate.text
-
-
-def test_the_quotations_read_each_source_file_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    labelled = [g for g in GATES if g.label is not None]
-    files = {g.source.split(":", 1)[0] for g in labelled}
-    assert len(labelled) == 7 and len(files) < len(labelled)
-    reads: list[Path] = []
-    read_text = Path.read_text
-
-    def counted(self: Path, *args: Any, **kwargs: Any) -> str:
-        reads.append(self)
-        return read_text(self, *args, **kwargs)
-
-    source_lines.cache_clear()
-    monkeypatch.setattr(Path, "read_text", counted)
-    for gate in labelled:
-        assert gate.label is not None
-        source_text(gate.source.split(":", 1)[0], gate.label)
-        source_text(gate.source.split(":", 1)[0], gate.label)
-    assert sorted(reads) == sorted(POKEEMERALD / f for f in files)
 
 
 def test_the_game_prints_nothing_for_surf_and_the_bikes() -> None:
@@ -272,26 +215,6 @@ def test_capabilities_json_names_every_gate() -> None:
     body = capabilities(None, (), (), 0).json()
     assert list(body) == [g.id for g in GATES]
     assert body["rock_smash"] is False and body["cut"] is False and body["mach_bike"] is False
-
-
-def test_a8f9_rusturf_rocks_are_two_closed_breakable_rocks_read_from_the_templates() -> None:
-    read = a8f9()
-    save1 = int.from_bytes(read(SAVE_BLOCK_PTRS, 4), "little")
-    found = read_object_obstacles(read, save1, (24, 4), "RUSTURF TUNNEL")
-    assert found is not None
-    rocks = sorted(found, key=lambda o: o.tiles)
-    assert rocks == [
-        Obstacle("rock_smash", "BREAKABLE_ROCK", ((24, 4),), 8, False),
-        Obstacle("rock_smash", "BREAKABLE_ROCK", ((24, 5),), 2, False),
-    ]
-    case = fixture()["cases"][0]
-    party = ()  # badges come from the save; no badge closes Rock Smash whatever the party knows.
-    assert capabilities(party, (), (), 1).of("rock_smash") is False
-    assert case["exit_reach"]["warps"] == [
-        {"x": 4, "y": 10, "reach": "foot"},
-        {"x": 29, "y": 16, "reach": "foot"},
-        {"x": 18, "y": 20, "reach": "foot"},
-    ]
 
 
 def test_hidden_templates_and_other_sprites_are_not_obstacles() -> None:

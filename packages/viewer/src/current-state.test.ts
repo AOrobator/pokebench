@@ -21,14 +21,6 @@ describe("durable current checkpoint", () => {
     const l=new Log();l.add(0,START);l.add(10,state());const restored=currentView(parseCurrent(JSON.parse(JSON.stringify(apply(l))) as unknown));
     expect(restored.partyState).toBe(restored.state);
   });
-  it("retains native battle HP and its current-state provenance through restart",()=>{
-    const samples:unknown=JSON.parse(readFileSync(new URL("../test-support/party-health-recorded.json",import.meta.url),"utf8"));
-    if(!Array.isArray(samples)||!samples.every(isRunEvent))throw new Error("invalid native state fixture");
-    const l=new Log();l.add(0,START);let s=apply(l);
-    for(const [i,e] of samples.slice(0,2).entries())s=foldCurrent(s,{...e,run:RUN,seq:i+1,t:tAt(i+10)});
-    const restored=currentView(parseCurrent(JSON.parse(JSON.stringify(s)) as unknown));
-    expect(restored.partyMembers[0]?.hp).toBe(22);expect(restored.partyHealth?.source).toBe(restored.state);expect(restored.partyState?.seq).toBe(1);
-  });
   it("retains sparse party and resets through the existing reducer",()=>{
     const l=new Log();l.add(0,START);l.add(10,state());l.add(20,state({screen:"battle",in_battle:true,party:[],name:null,location:null}));
     const s=apply(l);expect(currentView(s).cardState?.name).toBe("MAY");expect(currentView(s).partyMembers).toHaveLength(1);

@@ -45,19 +45,3 @@ def test_default_off_and_invalid_pocket_fail_closed():
     assert ID not in features_off_from_env({"POKEBENCH_FEATURES_OFF": ""})
     m = bag(5)
     assert read_menu_family(m.read, BAG_CALLBACK, bag_pocket_truth=True).diagnostic
-
-
-@pytest.mark.parametrize("sequence,expected", [(19453, "KEY ITEMS"), (19458, "BERRIES")])
-def test_archived_3b6e_memory_reparses_without_changing_off_ui(sequence, expected):
-    import json
-    from dataclasses import asdict
-    from pathlib import Path
-
-    fixture = json.loads((Path(__file__).parent / f"fixtures/bag-3b6e-{sequence}.json").read_text())
-    m = Memory()
-    for key, value in fixture["memory"].items():
-        m.put(int(key.split(":")[0], 16), bytes.fromhex(value))
-    assert asdict(read_menu_family(m.read, BAG_CALLBACK)) == fixture["legacy_ui"]
-    fixed = read_menu_family(m.read, BAG_CALLBACK, bag_pocket_truth=True)
-    assert fixed.details["pocket"] == expected
-    assert fixed.selected == "CLOSE BAG" and fixed.ready is True

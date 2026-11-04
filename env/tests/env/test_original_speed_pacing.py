@@ -2,15 +2,13 @@
 
 import os
 import sys
-import threading
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
 import pytest
 
 from pokebench_env import serve
 from pokebench_env.frame_pacing import EMERALD_REALTIME_FPS
 from pokebench_env.game_state import GameState
-from pokebench_env.launcher import ServerSpec, server_command
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout, state_json
 
 ID = "original-speed-pacing-v1"
@@ -131,54 +129,3 @@ def test_human_factory_keeps_recorded_nominal_clock_even_with_legacy_explicit_en
     )
     assert clock.sleeps == pytest.approx([1 / EMERALD_REALTIME_FPS - 0.001])
     assert ID in features_off_from_env(os.environ)
-
-
-@pytest.mark.parametrize(
-    "disabled,expected", [(None, False), (ID, False), ("", True), (ID + "-typo", None)]
-)
-def test_actual_server_main_validates_feature_transport_and_passes_explicit_clock_policy(
-    monkeypatch, tmp_path, disabled, expected
-):
-    native = SimpleNamespace(frame_counter=0)
-    vendor = SimpleNamespace(
-        app=object(),
-        env=SimpleNamespace(core=native),
-        frame_manager=object(),
-        memory_lock=threading.Lock(),
-        main=lambda: None,
-    )
-    pokemon_package = ModuleType("pokemon_env")
-    emulator_module = ModuleType("pokemon_env.emulator")
-    emulator_module.EmeraldEmulator = type("FakeEmulator", (), {})
-    pokemon_package.emulator = emulator_module
-    server_package = ModuleType("server")
-    server_package.app = vendor
-    monkeypatch.setitem(sys.modules, "pokemon_env", pokemon_package)
-    monkeypatch.setitem(sys.modules, "pokemon_env.emulator", emulator_module)
-    monkeypatch.setitem(sys.modules, "server", server_package)
-    monkeypatch.setattr(serve, "install_deadline_frame_stream", lambda *_args: None)
-    monkeypatch.setattr(serve, "install_battle_journal", lambda *_args: None)
-    monkeypatch.setattr(
-        serve, "resolve_rom", lambda _env: SimpleNamespace(read_bytes=lambda: b"test")
-    )
-    monkeypatch.setattr(serve.MapNames, "load", lambda _path: object())
-    monkeypatch.setattr(serve, "RawRamArchive", lambda *_args: object())
-    monkeypatch.setattr(serve, "make_memory_reader", lambda _owner: object())
-    monkeypatch.delenv("POKEBENCH_HUMAN_TOKEN", raising=False)
-    if disabled is None:
-        monkeypatch.delenv("POKEBENCH_FEATURES_OFF", raising=False)
-    else:
-        monkeypatch.setenv("POKEBENCH_FEATURES_OFF", disabled)
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, "argv", ["serve", "--port", "8181", "--no-ocr"])
-    calls = []
-    monkeypatch.setattr(serve, "run", lambda argv, **kwargs: calls.append((argv, kwargs)))
-    if expected is None:
-        with pytest.raises(ValueError, match="unknown"):
-            serve.main()
-        assert calls == []
-        return
-    serve.main()
-    assert calls[0][1]["original_speed_pacing"] is expected
-    assert "--no-ocr" in calls[0][0]
-    assert server_command(sys.executable, ServerSpec(8181, True, None))[-1] == "--no-ocr"

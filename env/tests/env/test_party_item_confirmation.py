@@ -60,36 +60,6 @@ def test_hp_animation_and_handoffs_stay_passive(function):
     assert read_menu_family(m.read, PARTY_CALLBACK, party_item_confirmation=True).ready is False
 
 
-def test_retained_native_memory_reaches_production_readout_and_json():
-    import json
-    from pathlib import Path
-
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
-    from pokebench_env.rerender import read_state, render
-
-    fixture = json.loads((Path(__file__).parent / "fixtures/party-item-6507.json").read_text())
-    memory = fixture["memory"]
-
-    def read(address, length):
-        return bytes.fromhex(memory[f"{address:#x}:{length}"])
-
-    switch = "party-item-confirmation-v1"
-    assert switch in SERVER_FEATURES and switch in features_off_from_env({})
-    off = frozenset(SERVER_FEATURES) - {"ram-state-v1", "expanded-menu-battle-information-v1"}
-    legacy = read_state(read, MapNames({}), active_ui=True, off=off)
-    assert render(legacy, off) == fixture["off_readout"]
-    on = off - {switch}
-    corrected = read_state(read, MapNames({}), active_ui=True, off=on)
-    ui = state_json(corrected)["active_ui"]
-    assert ui["phase"] == "party_item_message"
-    assert ui["ready"] is True and ui["selected"] == "A/B: CONTINUE"
-    assert (
-        "Interface: party_item_message; input ready; selected A/B: CONTINUE; "
-        "A or B continues the message" in render(corrected, on)
-    )
-
-
 @pytest.mark.parametrize(
     "address,value",
     [

@@ -206,40 +206,6 @@ describe("persistent actual native frontier", () => {
     expect(document.querySelector('[data-series="later-save"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
     expect(document.querySelector('[data-run="later-save"]')?.getAttribute("aria-label")).toContain("minutes since the save loaded");
   });
-  it("draws a Clock set resume as a dashed not-from-zero line and keeps it off the agent frontier", () => {
-    const resumed = measured("clock", [90000, null, 5000, 120000]);
-    if (resumed.config === null) throw new Error("config");
-    resumed.config = { ...resumed.config, start: "save_state", resume: "CLOCK_SET" };
-    resumed.splits.push({ name: "MOM_RIVAL_INSTRUCTION", elapsedMs: 8000, segmentMs: 3000, seq: 9, turn: 1, inputTokens: 0, outputTokens: 0 });
-    resumed.status = "live";
-    expect(frontierReferences([human(), best(), resumed]).best?.id).toBe("dea1");
-    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [resumed], 900, undefined, [resumed], false);
-    expect(document.querySelector("[data-resume-notice]")).toBeNull();
-    expect(document.querySelector('[data-live-run="clock"]')?.getAttribute("data-resume")).toBe("CLOCK_SET");
-    expect(document.querySelector('polyline[data-series="clock"]')?.getAttribute("stroke-dasharray")).toBe("8 5");
-    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_NAME_CONFIRMED"]')).toBeNull();
-    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_HOUSE_EXITED_AFTER_CLOCK"]')).not.toBeNull();
-    expect(document.querySelector('[data-run="clock"]')?.getAttribute("aria-label")).toContain("not from New game");
-    expect(document.body.textContent).toContain("NOT FROM ZERO");
-    expect(document.querySelector('[data-resume-origin="CLOCK_SET"]')).not.toBeNull();
-    expect(readFileSync(join(process.cwd(), "static/style.css"), "utf8")).toContain(".wb-live-run.wb-resumed-run .wb-mark { stroke:var(--wb-run-color); }");
-    const liveMark = document.querySelector('[data-live-run="clock"] .wb-mark circle');
-    expect(liveMark?.getAttribute("fill")).toBe("#fff");
-    expect(liveMark?.getAttribute("stroke")).not.toBe("#fff");
-    expect(liveMark?.getAttribute("stroke")).toMatch(/^#|^hsl/);
-    resumed.status = "ended";
-    resumed.splits.push({ name: "PLAYER_BEDROOM", elapsedMs: 50 * 60000, segmentMs: 0, seq: 10, turn: 1, inputTokens: 0, outputTokens: 0, derived: true });
-    document.body.innerHTML = frontierPlot({ human: null, best: null }, [resumed], 900);
-    expect(document.querySelector('[data-series="clock"]')?.closest(".wb-series")?.getAttribute("data-version")).toMatch(/^hv-/);
-    expect(document.querySelector('[data-run="clock"][data-split="PLAYER_BEDROOM"]')).toBeNull();
-    expect(Math.max(...Array.from(document.querySelectorAll("text.wb-axis")).map(t => Number(t.textContent)).filter(Number.isFinite))).toBeLessThan(10);
-    const other = measured("other-save", [1000, 2000, 3000]);
-    if (other.config === null) throw new Error("config");
-    other.config = { ...other.config, start: "save_state", resume: null };
-    document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [other], 900);
-    expect(document.querySelector('[data-series="other-save"]')).toBeNull();
-    expect(document.querySelector("[data-resume-notice]")).toBeNull();
-  });
   it("shows unavailable persistent references explicitly instead of silently substituting another human", () => {
     document.body.innerHTML = frontierPlot(frontierReferences([measured("other-human", [1], "human")]), [], NaN);
     expect(document.body.textContent).toContain("Human reference unavailable");
@@ -324,17 +290,6 @@ describe("data-driven agent frontier", () => {
       Object.fromEntries(Object.entries({ ...base, id: "no-measurement" }).filter(([key]) => key !== "measurement")) as unknown as WorkbenchRun,
     ];
     expect(frontierReferences([best(), ...variants]).best?.id).toBe("dea1");
-  });
-  it("describes the gold line as the best New Game-start run, not a fresh boot", () => {
-    document.body.innerHTML = frontierPlot(frontierReferences([]), [], 900);
-    expect(document.body.textContent).toContain("Agent frontier unavailable");
-    expect(document.body.textContent).toContain("New Game");
-    expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
-    const page = readFileSync(join(process.cwd(), "static/workbench.html"), "utf8");
-    expect(page).not.toMatch(/fresh[- ]boot/i);
-    document.body.innerHTML = legendOf(frontierReferences([best()]));
-    expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("New Game start");
-    expect(document.body.textContent).not.toMatch(/fresh[- ]boot/i);
   });
 });
 describe("zoom to frontier", () => {

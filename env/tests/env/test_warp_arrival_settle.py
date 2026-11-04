@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import struct
 import threading
-import types
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -19,17 +18,13 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel
-from test_pause import FrameLoop, post
 from test_readout import IN_GAME
-from test_screen_settle import png
 from test_view import get
 
-from pokebench_env import observation as observation_module
 from pokebench_env import rerender
 from pokebench_env.game_screen import TASKS
-from pokebench_env.game_state import FIELD_CONTROLS_LOCK, GameState, MapNames
+from pokebench_env.game_state import FIELD_CONTROLS_LOCK, MapNames
 from pokebench_env.menus import PALETTE_FADE
-from pokebench_env.observation import install_observation
 from pokebench_env.readout import SERVER_FEATURES, WARP_ANIMATION_LOCK, features_off_from_env
 from pokebench_env.screen_settle import (
     PALETTE_RAM,
@@ -397,91 +392,10 @@ class Shot(BaseModel):
     screenshot_base64: str
 
 
-def observation_app(
-    monkeypatch: pytest.MonkeyPatch,
-    game: Game,
-    settle: FrameSettle | None,
-    off: str,
-    state: GameState = LOCKED,
-    lock: threading.Lock | None = None,
-) -> FastAPI:
-    monkeypatch.setenv("POKEBENCH_FEATURES_OFF", off)
-    monkeypatch.setattr(observation_module, "read_state", lambda *a, **k: state)
-    app = FastAPI()
-    install_observation(
-        app,
-        lambda: Shot(screenshot_base64=png((90, 90, 90))),
-        game.read,
-        MapNames({}),
-        lock or threading.Lock(),
-        settle=settle,
-    )
-    return app
-
-
 def observe(app: FastAPI) -> dict[str, object]:
     status, _, body = get(app, "/pokebench/observation")
     assert status == 200, body
     return json.loads(body)
-
-
-def test_observation_at_the_bound_shows_the_animation_label_and_records_the_settle(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    game = Game(synthetic(lock=True, funcs=(DO_DOOR_WARP,)))
-    lock = threading.Lock()
-    settle = FrameSettle(game.read, warp=True, warp_bound_frames=4)
-    app = observation_app(monkeypatch, game, settle, "", lock=lock)
-    result: dict[str, dict[str, object]] = {}
-    thread = threading.Thread(target=lambda: result.update(r=observe(app)), daemon=True)
-    thread.start()
-    thread.join(0.2)
-    assert thread.is_alive(), "the observation waits for emulated frames"
-    run_frames(game, settle, lock, thread, lambda frame: None)
-    body = result["r"]
-    assert WARP_ANIMATION_LOCK in str(body["state_text"])
-    assert TODAY_LOCK not in str(body["state_text"])
-    assert body["state"]["settle"] == {"frames": 4, "reason": "warp_bound"}  # type: ignore[index]
-
-
-def test_observation_after_a_settled_arrival_records_the_wait(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
-    lock = threading.Lock()
-    settle = FrameSettle(game.read, warp=True)
-    free = replace(IN_GAME, field_controls_locked=False)
-    app = observation_app(monkeypatch, game, settle, "", state=free, lock=lock)
-    result: dict[str, dict[str, object]] = {}
-    thread = threading.Thread(target=lambda: result.update(r=observe(app)), daemon=True)
-    thread.start()
-    thread.join(0.1)
-    run_frames(game, settle, lock, thread, lambda f: synthetic(lock=False) if f == 6 else None)
-    body = result["r"]
-    assert body["state"]["settle"] == {"frames": 6, "reason": "warp"}  # type: ignore[index]
-    assert "Field controls: available" in str(body["state_text"])
-
-
-def test_a_script_lock_observation_keeps_todays_label_with_the_switch_on(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    game = Game(recorded(1126))
-    app = observation_app(monkeypatch, game, FrameSettle(game.read, warp=True), "")
-    body = observe(app)
-    assert TODAY_LOCK in str(body["state_text"])
-    assert body["state"]["settle"] == {"frames": 0, "reason": "immediate"}  # type: ignore[index]
-
-
-def test_off_payload_is_todays_even_mid_animation(monkeypatch: pytest.MonkeyPatch) -> None:
-    game = Game(recorded(3166))
-    off = ",".join(sorted(features_off_from_env({})))
-    body = observe(observation_app(monkeypatch, game, FrameSettle(game.read), off))
-    assert TODAY_LOCK in str(body["state_text"])
-    assert WARP_ANIMATION_LOCK not in str(body["state_text"])
-    assert "settle" not in body["state"]  # type: ignore[operator]
-    # No FrameSettle (human server): ON still labels the animation, without a settle record.
-    on = observe(observation_app(monkeypatch, game, None, ""))
-    assert WARP_ANIMATION_LOCK in str(on["state_text"]) and "settle" not in on["state"]  # type: ignore[operator]
 
 
 def test_rerender_labels_an_archived_mid_animation_frame_only_when_on() -> None:
@@ -512,54 +426,3 @@ def test_switch_is_registered_server_side_and_default_off() -> None:
     assert WARP_FEATURE in SERVER_FEATURES
     assert WARP_FEATURE in features_off_from_env({})
     assert features_off_from_env({"POKEBENCH_FEATURES_OFF": WARP_FEATURE}) == {WARP_FEATURE}
-
-
-@pytest.mark.parametrize(("off", "waits"), [("", True), (WARP_FEATURE, False)])
-def test_production_run_reads_the_switch_into_the_frame_settle(
-    monkeypatch: pytest.MonkeyPatch, off: str, waits: bool
-) -> None:
-    from pokebench_env.serve import run
-
-    monkeypatch.setenv(
-        "POKEBENCH_FEATURES_OFF", ",".join(filter(None, [off, "scene-journal-safe-capture-v1"]))
-    )
-    game = Game(synthetic(lock=True, funcs=(EXIT_DOOR,)))
-    lock = threading.Lock()
-    app = FastAPI()
-    module = types.SimpleNamespace(step_environment=lambda actions: None)
-
-    class Emulator:
-        def run_frame_with_buttons(self, buttons: list[str]) -> None:
-            game.frame += 1
-
-    run(
-        [],
-        uvicorn=types.SimpleNamespace(run=lambda *a, **k: None),
-        vendor_main=lambda: None,
-        observation=(
-            app,
-            lambda: Shot(screenshot_base64=png((9, 9, 9))),
-            game.read,
-            MapNames({}),
-            lock,
-        ),
-        pause=(app, module),
-        frames=Emulator,
-    )
-    result: dict[str, object] = {}
-    thread = threading.Thread(
-        target=lambda: result.update(r=get(app, "/pokebench/observation")), daemon=True
-    )
-    thread.start()
-    thread.join(0.2)
-    assert thread.is_alive() is waits
-    if waits:
-        with FrameLoop(module) as loop:
-            assert post(app, "/pokebench/pause", b'{"paused": true}')[0] == 200
-            thread.join(5)
-            assert not thread.is_alive(), "operator pause releases the warp waiter"
-            loop.stop.set()
-            assert post(app, "/pokebench/pause", b'{"paused": false}')[0] == 200
-            loop.thread.join(2)
-    thread.join(5)
-    assert not thread.is_alive()

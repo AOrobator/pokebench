@@ -12,15 +12,15 @@ import pytest
 from pokebench_env.live_map import FullMap, MapTile
 from pokebench_env.map_observation import (
     CODE_LETTERS,
-    CodeBook,
-    reset_codebook,
     COLOR_TOKENS,
     DIRECTION_TOKENS,
     KIND_TOKENS,
     STATE_TOKENS,
+    CodeBook,
     build_observation,
     compact_codes,
     render_observation,
+    reset_codebook,
 )
 from pokebench_env.map_observation_types import MapElement
 

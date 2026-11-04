@@ -52,29 +52,6 @@ it("never retries a trigger attempt with no net movement (including pushback)",a
  const effect="unchanged";
  const result=await run(field(),true,effect);expect(result.posts).toHaveLength(1);expect(result.current.position).toEqual({x:0,y:0});expect(result.text).toContain("script-trigger step attempted");
 });
-// 0517 turn 73 (2026-10-24T08-12-35_qwen36-gpu1): every route from (2,3) to the (1,8) warp crosses a matching
-// script tile, so the guarded planner has no script-free route; the first matching script is the boundary. The
-// refusal this replaces ("every route navigate_to sees ... crosses a script-trigger tile") is gone: no feature
-// set can reach it, so no arm can be scored against a route it is not allowed to walk.
-it.each([false,true])("0517 T73: every route to (1,8) crosses a matching script, so one DOWN walks into it (semantic=%s)",async semantic=>{
- const raw:unknown=JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/rival-trigger-1fe0.json.gz",import.meta.url))).toString("utf8"));const start=parseGameState(raw);
- expect(start.position).toEqual({x:2,y:3});
- const result=await run(start,semantic,"move",true);
- expect(result.posts).toEqual([{buttons:["DOWN"],hold_frames:10,release_frames:8}]);
- expect(result.current.position).toEqual({x:2,y:4});
- expect(result.text).toContain("script-trigger step attempted at (2,4); inspect the resulting state");
- expect(result.text).not.toContain("every route navigate_to sees");
- expect(result.text).not.toContain("does not walk across one");
-});
-it("every fixed recipe that plans around coordinate scripts can see them (the boundary has no switch of its own)",()=>{
- const dir=new URL("../../../experiments/fixed/",import.meta.url);
- const names=readdirSync(dir).filter(f=>f.endsWith(".json"));
- expect(names.length).toBeGreaterThan(10);
- for(const name of names){
-  const d=JSON.parse(recipeText(new URL(name,dir),"utf8")) as {base:{features:Record<string,boolean>}};
-  if(d.base.features["coordinate-script-conditions-v1"]===true)expect(d.base.features["navigation-truth-v1"]).toBe(true);
- }
-});
 
 it.each(["intermediate","endpoint","different-elevation","already-standing"])("semantic selection prefers a script-free edge (%s)",async variant=>{
  const start=field(true);

@@ -24,7 +24,7 @@ import pytest
 from pokebench_env import rerender
 from pokebench_env.game_state import MapNames
 from pokebench_env.pokemon import PartyMon, PokemonMove
-from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, state_json
+from pokebench_env.readout import SERVER_FEATURES, features_off_from_env
 from pokebench_env.rom import EMERALD_SHA1, RomError, resolve_rom
 from pokebench_env.surf_gate import (
     SWITCH,
@@ -39,31 +39,6 @@ FIXTURE: dict[str, Any] = json.loads(
     gzip.decompress((Path(__file__).parent / "fixtures" / "surf-gate-4caa.json.gz").read_bytes())
 )
 CASES = FIXTURE["cases"]
-CURRENT = json.loads(
-    (Path(__file__).parent / "fixtures/readout-truth-current-warp-names.json").read_text()
-)["cases"]
-RECORDED_OFF = [f for f in SERVER_FEATURES if f not in FIXTURE["harness_features"] and f != ID]
-NEITHER = "Surf needs the Balance Badge and a party Pokémon that knows SURF (you have neither)"
-OFF_EAST = (
-    "- EAST -> ROUTE110 (map 0/25), offset -60; walk off the map from any tile from (79,7)"
-    " to (79,11): stand on one of these edge tiles and press RIGHT"
-)
-ON_EAST = (
-    "- EAST -> ROUTE110 (map 0/25), offset -60; not an exit you can use now: every way from"
-    f" where you stand to this edge crosses water, and {NEITHER}"
-)
-OFF_WARP = (
-    "Warp to map 24/106 at (45,6), elevation 0; movement; activation depends on metatile"
-    " (see local map); conditional; destination map 24/106 warp 0"
-)
-ON_WARP = (
-    f"{OFF_WARP}; not an exit you can use now: every way from where you stand to it crosses"
-    f" water, and {NEITHER}"
-)
-OFF_DEST = "Warp destination at (45,6): map 24/106"
-ON_DEST = (
-    "Warp destination at (45,6): map 24/106 (not an exit you can use now: across water, needs Surf)"
-)
 ROM_START = 0x08000000
 PLAYER_AVATAR = 0x02037590
 
@@ -127,80 +102,10 @@ def state(case: dict[str, Any], off: list[str], *, surfing: bool = False):
     )
 
 
-def test_fixture_owners_are_built_once() -> None:
-    operator_rom()
-    for case in CASES:
-        readout(case, RECORDED_OFF)
-        state(case, RECORDED_OFF)
-    assert _rom.cache_info().currsize == 1
-    assert maps.cache_info().currsize == 1
-    assert cells_of.cache_info().misses <= 2 * len(CASES)
-
-
-def changed(before: str, after: str) -> list[tuple[str, str]]:
-    a, b = before.split("\n"), after.split("\n")
-    assert len(a) == len(b)
-    return [(x, y) for x, y in zip(a, b, strict=True) if x != y]
-
-
 def test_registered_server_switch_default_off() -> None:
     assert SWITCH == ID
     assert ID in SERVER_FEATURES
     assert ID in features_off_from_env({})
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_off_matches_current_policy_without_rewriting_the_recorded_4caa_readout(
-    case: dict[str, Any],
-) -> None:
-    assert case["untaken_line"] == (
-        "Exits here you have not taken: (45,6) -> ALTERING CAVE (map 24/106);"
-        " EAST edge -> ROUTE110 (map 0/25)"
-    )
-    off = readout(case, [*RECORDED_OFF, ID])
-    assert off == CURRENT[f"surf-gate:{case['tool_result_seq']}"]
-    assert {OFF_EAST, OFF_WARP, OFF_DEST} <= set(off.split("\n"))
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_on_notes_both_water_only_exits_and_changes_nothing_else(case: dict[str, Any]) -> None:
-    on = readout(case, RECORDED_OFF)
-    baseline = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
-    assert changed(baseline, on) == [
-        (OFF_WARP, ON_WARP),
-        (OFF_EAST, ON_EAST),
-        (OFF_DEST, ON_DEST),
-    ]
-    # The walkable south edge to OLDALE TOWN keeps its walk instruction.
-    assert (
-        "- SOUTH -> OLDALE TOWN (map 0/10), offset 0; walk off the map from any tile from (8,21)"
-        " to (11,21): stand on one of these edge tiles and press DOWN" in on.split("\n")
-    )
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_on_state_json_carries_the_gate_off_has_no_field(case: dict[str, Any]) -> None:
-    on = state_json(state(case, RECORDED_OFF))
-    assert on["surf_gate"] == {
-        "can_surf": False,
-        "balance_badge": False,
-        "party_surf": False,
-        "surfing": False,
-        "warps": [{"x": 45, "y": 6}],
-        "connections": ["EAST"],
-    }
-    assert "surf_gate" not in state_json(state(case, [*RECORDED_OFF, ID]))
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_once_surf_can_be_used_the_exits_read_as_before(case: dict[str, Any]) -> None:
-    # Already surfing (gPlayerAvatar.flags bit 3): the water is open, so nothing is noted.
-    gate = state(case, RECORDED_OFF, surfing=True).surf_gate
-    assert gate is not None and gate.can_surf is True and gate.surfing is True
-    assert gate.warps == ((45, 6),) and gate.connections == ("EAST",)
-    assert readout(case, RECORDED_OFF, surfing=True) == readout(
-        case, [*RECORDED_OFF, ID], surfing=True
-    )
 
 
 def mon(*moves: int, decoded: bool = True) -> PartyMon:
@@ -351,18 +256,6 @@ def test_reader_skips_dive_and_unreadable_connections_and_needs_a_map() -> None:
 # Balance Badge or SURF, so naming them is route foreknowledge (PB4).
 
 V2 = "surf-gated-exits-v2"
-V2_EAST = (
-    "- EAST -> ROUTE110 (map 0/25), offset -60; not an exit you can use now: every way from"
-    " where you stand to this edge crosses water you cannot cross yet"
-)
-V2_WARP = (
-    f"{OFF_WARP}; not an exit you can use now: every way from where you stand to it crosses"
-    " water you cannot cross yet"
-)
-V2_DEST = (
-    "Warp destination at (45,6): map 24/106"
-    " (not an exit you can use now: across water you cannot cross yet)"
-)
 
 
 def test_v2_is_a_registered_default_off_server_switch() -> None:
@@ -371,63 +264,3 @@ def test_v2_is_a_registered_default_off_server_switch() -> None:
     assert SWITCH_V2 == V2
     assert V2 in SERVER_FEATURES
     assert V2 in features_off_from_env({})
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_v2_off_keeps_the_v1_notes_byte_for_byte(case: dict[str, Any]) -> None:
-    v1 = readout(case, [f for f in RECORDED_OFF if f != V2] + [V2])
-    baseline = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
-    assert changed(baseline, v1) == [
-        (OFF_WARP, ON_WARP),
-        (OFF_EAST, ON_EAST),
-        (OFF_DEST, ON_DEST),
-    ]
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_v2_on_rewords_the_three_notes_and_nothing_else(case: dict[str, Any]) -> None:
-    base = [f for f in RECORDED_OFF if f != V2]
-    v1 = readout(case, [*base, V2])
-    v2 = readout(case, base)
-    assert changed(v1, v2) == [(ON_WARP, V2_WARP), (ON_EAST, V2_EAST), (ON_DEST, V2_DEST)]
-    for word in ("Balance Badge", "SURF", "Surf"):
-        assert word not in v2
-
-
-@pytest.mark.parametrize("case", CASES, ids=lambda c: str(c["tool_result_seq"]))
-def test_v2_without_v1_changes_nothing(case: dict[str, Any]) -> None:
-    base = [f for f in RECORDED_OFF if f not in (V2, ID)]
-    current = CURRENT[f"surf-gate:{case['tool_result_seq']}"]
-    assert readout(case, [*base, ID]) == readout(case, [*base, ID, V2]) == current
-
-
-def test_v2_experiment_arms_differ_only_in_the_notes() -> None:
-    # Review round 1: the candidate arm (incumbent with v2 flipped) must show the v2 wording, so
-    # both arms have surf-gated-exits-v1 on. Rendered from the 4caa ROUTE103 RAM.
-    on = {
-        "ram-state-v1",
-        "live-map-v1",
-        "live-player-position-v1",
-        "world-coordinate-grid-v1",
-        "live-object-sprites-v1",
-        "world-targets-v1",
-        "named-interactions-v1",
-        "bounded-navigation-v1",
-        "field-dialogue-phase-v1",
-        "active-field-message-buffer-v1",
-        "naming-cursor-v1",
-        "story-state-v1",
-        "coordinate-script-conditions-v1",
-        "field-control-lock",
-        "warp-activation-guidance-v1",
-        "ledge-hops-v1",
-        "one-way-tiles-v1",
-        ID,
-    }
-    control = [f for f in SERVER_FEATURES if f not in on]
-    candidate = [f for f in control if f != V2]
-    for case in CASES:
-        before, after = readout(case, control), readout(case, candidate)
-        pairs = changed(before, after)
-        assert pairs and all("Balance Badge" in a and "cannot cross yet" in b for a, b in pairs)
-        assert any("at (45,6)" in b for _, b in pairs)

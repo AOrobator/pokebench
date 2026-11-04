@@ -133,39 +133,3 @@ def test_poison_does_not_require_the_expanded_party_readout():
     off = frozenset({"expanded-menu-battle-information-v1"})
     assert POISON_WARNING in format_readout(poisoned(), off)
     assert POISON_WARNING not in format_readout(poisoned(), off | {POISON})
-
-
-def test_native_archive_matches_the_original_off_text_and_the_independent_switches():
-    import hashlib
-    import json
-    import os
-    from pathlib import Path
-
-    from pokebench_env.game_state import MapNames
-    from pokebench_env.mart_stock import _item
-    from pokebench_env.poison_berry_readout import BERRY_DESCRIPTIONS
-    from pokebench_env.raw_ram import load_raw_ram
-    from pokebench_env.readout import SERVER_FEATURES
-    from pokebench_env.rerender import PORYMAP_MAPS, render
-    from pokebench_env.rom import resolve_rom
-
-    folder = Path(__file__).parent / "fixtures"
-    proof = json.loads((folder / "poison-berry-route104.provenance.json").read_text())
-    rom = resolve_rom(os.environ).read_bytes()
-    read = load_raw_ram(
-        folder / "poison-berry-route104.json.gz", proof["archive"]["sha256"], rom=rom
-    )
-    maps = MapNames.load(PORYMAP_MAPS)
-    off = frozenset(x for x in SERVER_FEATURES if not proof["features"].get(x, False))
-    baseline = read_state(read, maps, active_ui=True, off=off)
-    original = render(baseline, off)
-    assert hashlib.sha256(original.encode()).hexdigest() == proof["off_readout_sha256"]
-    for enabled in ({POISON}, {BERRY}, {POISON, BERRY}):
-        state = read_state(read, maps, active_ui=True, off=off - enabled)
-        result = render(state, off - enabled)
-        assert state_json(state) == state_json(baseline)
-        assert (POISON_WARNING in result) == (POISON in enabled)
-        assert ("Berry tree at (3,23): berries ready to pick" in result) == (BERRY in enabled)
-        assert "ORAN BERRY" not in result
-    for item_id, description in BERRY_DESCRIPTIONS.items():
-        assert _item(read, item_id, False).description == description

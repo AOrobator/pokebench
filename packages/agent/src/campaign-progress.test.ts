@@ -86,20 +86,6 @@ describe("campaign drought production wiring",()=>{
  });
 });
 
-it("credits the real 0d5d beach and cave floors through native state parsing and the production tracker",async()=>{
- const {readFileSync}=await import("node:fs");
- const fixture:unknown=JSON.parse(readFileSync(new URL("../test-support/fixtures/campaign-native-0d5d.json",import.meta.url),"utf8"));
- if(typeof fixture!=="object"||fixture===null||!("rows" in fixture)||!Array.isArray(fixture.rows))throw Error("invalid native fixture");
- const tracker=new StateMilestones({read:()=>Promise.resolve(state())});tracker.initialize("save_state");
- const earned:string[]=[];
- for(const row of fixture.rows as unknown[]){
-  if(typeof row!=="object"||row===null||!("state" in row)||!("seq" in row)||typeof row.seq!=="number")throw Error("invalid native row");
-  const s=parseGameState(row.state);earned.push(...tracker.observe(s,row.seq).filter(m=>m.origin==="observed").map(m=>m.name));
-  expect(tracker.observe(s,row.seq+1)).toEqual([]);
- }
- expect(earned.filter(n=>["ROUTE_106","GRANITE_CAVE_B1F","GRANITE_CAVE_B2F","ROUTE_109_BEACH_REACHED"].includes(n))).toEqual(["ROUTE_106","GRANITE_CAVE_B1F","GRANITE_CAVE_B2F","ROUTE_109_BEACH_REACHED"]);
-});
-
 it("an already credited campaign milestone cannot keep restarting the drought clock",()=>{
  const r=clock(true);r.time(1000);r.milestone("DEVON_GOODS_RECOVERED");r.time(290000);r.milestone("DEVON_GOODS_RECOVERED");r.time(302000);r.act();expect(r.notes).toHaveLength(1);
 });

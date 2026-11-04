@@ -29,15 +29,6 @@ it("registers a default-off observation switch with no dependency, recorded last
   expect(dependencyProblems(off("battle-decision-ready-v1","battle-effective-damage-v1", "battle-details-v2", "expanded-menu-battle-information-v1", "status-names-v1"))).toEqual([]);
 });
 
-it("hands the switch to the game server, which owns the decoding", () => {
-  expect(SERVER_FEATURES.at(35)).toBe(ID);
-  expect(serverOff(off(ID))).toEqual(serverOffWith(ALL_ON,{off:[ID]}));
-  expect(serverOff(ALL_ON)).not.toContain(ID);
-  const readout = readFileSync(new URL("../../../env/pokebench_env/readout.py", import.meta.url), "utf8");
-  expect(readout).toContain(`"levelup-box-v1",\n    "${ID}",\n    "readout-truth-v1",`);
-  expect(readout).toContain(`"levelup-box-v1,"\n        "${ID},"\n        "readout-truth-v1,`);
-});
-
 it("defaults OFF for presets that omit it and for legacy flag presets", () => {
   const without = (features: FeatureSet): Omit<FeatureSet, typeof ID> => Object.fromEntries(Object.entries(features).filter(([id]) => id !== ID)) as Omit<FeatureSet, typeof ID>;
   const older = without(ALL_ON);

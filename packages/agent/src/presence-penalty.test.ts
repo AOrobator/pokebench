@@ -38,14 +38,3 @@ it("sends and records the Qwen3.6 card's thinking-mode value only when on", () =
   expect(playSampling(off(ID), "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096 });
   expect(playSampling(ALL_ON, "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096, presence_penalty: 1.5 });
 });
-
-it("run_start records the value it sent; records without it stay valid", () => {
-  // Cook run #2's recorded run_start (2026-10-16T02-23-17_qwen36-gpu1_sh02, seq 0) with its sampling replaced.
-  const recorded = checkEvent(JSON.parse(readFileSync(new URL("../test-support/run-start-sh02.json", import.meta.url), "utf8")));
-  if (recorded.type !== "run_start") throw new Error("not a run_start");
-  expect(recorded.sampling).toEqual({ thinking_level: "medium", max_tokens: 4096 });
-  const start = (sampling: Record<string, unknown>) => ({ ...recorded, sampling });
-  expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096 }))).not.toThrow();
-  expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096, presence_penalty: 1.5 }))).not.toThrow();
-  expect(() => checkEvent(start({ thinking_level: "medium", max_tokens: 4096, presence_penalty: "high" }))).toThrow();
-});

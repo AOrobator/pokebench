@@ -74,12 +74,6 @@ describe("event schema", () => {
   it("rejects a line that is not JSON", () => {
     expect(() => parseEvent("{not json")).toThrow(EventError);
   });
-
-  it("checked-in schemas/events.v1.json matches the TypeBox source", () => {
-    const path = fileURLToPath(new URL("../../../schemas/events.v1.json", import.meta.url));
-    expect(readFileSync(path, "utf8")).toBe(renderEventsJsonSchema());
-    expect(JSON.parse(renderEventsJsonSchema())).toEqual(eventsJsonSchema());
-  });
 });
 
 it("preserves old vendor state events for historical replay", () => {

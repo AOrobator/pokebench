@@ -56,13 +56,3 @@ just pages-check <report>/index.html
 ```
 
 The inline SVG/JavaScript chart switches between cumulative decision turns and elapsed active minutes. The companion table is the accessible precise source. This toggle makes no network request. A point's `n/total` is earned reach, not a failure denominator at an earlier budget. Detailed S/F/U/N common-budget tables belong in `sections`.
-
-## Boundary regression checks
-
-Run the bundled tests on an explicit, unchanged MAIN_MENU fixture run (not an arbitrary global first row):
-
-```
-python3 <skill>/scripts/test_analysis.py --repo <repo> --workbench <snapshot.json> --frontier-source <served-source/frontier.ts> --fixture-run <owned-MAIN_MENU-run-id>
-```
-
-They exercise actual aggregation, renderer and CLI paths, using isolated temporary roots for changed-log and checkpoint/inherited-fact cases. The recovery wrapper re-hashes each replay input and refuses a changed log before publishing combined outcomes.

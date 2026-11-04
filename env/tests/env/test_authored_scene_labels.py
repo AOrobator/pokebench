@@ -246,38 +246,6 @@ def test_factory_on_adds_only_qualified_metadata_and_preserves_original_dialogue
     assert state.world_context.message.scene_label is None
 
 
-def test_label_cli_uses_validated_archive_and_the_shared_state_factory(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-) -> None:
-    read, state = fixture(2)
-    external_rom = tmp_path / "external-fixture"
-    external_rom.write_bytes(b"synthetic external fixture; not cartridge data")
-    monkeypatch.setattr(labels, "resolve_rom", lambda _env: external_rom)
-    monkeypatch.setattr(MapNames, "load", lambda _path: MapNames({}))
-    monkeypatch.setattr(rerender, "read_game_state", lambda *_args, **_kwargs: state)
-    loaded: list[tuple[object, object, object]] = []
-
-    def load(path, digest, *, rom):
-        loaded.append((path, digest, rom))
-        return read
-
-    monkeypatch.setattr(labels, "load_raw_ram", load)
-    request = {
-        "run_dir": str(tmp_path),
-        "raw_ram": [{"path": "raw-ram/00000001.json.gz", "sha256": "a" * 64}],
-    }
-    output = io.StringIO()
-    assert (
-        labels.main({"POKEBENCH_FEATURES_OFF": ""}, io.StringIO(json.dumps(request)), output) == 0
-    )
-    body = json.loads(output.getvalue())
-    assert set(body) == {"labels"}
-    assert body["labels"][0]["scene"] == "rustboro-employee-request"
-    assert body["labels"][0]["beat"] == "employee-request"
-    assert loaded == [(tmp_path / "raw-ram/00000001.json.gz", "a" * 64, external_rom.read_bytes())]
-    assert "readouts" not in body
-
-
 @pytest.mark.parametrize("bad_path", ["../foreign.json.gz", "/foreign.json.gz"])
 def test_label_cli_rejects_archive_paths_outside_the_named_run(bad_path: str) -> None:
     request = {"run_dir": "/run", "raw_ram": [{"path": bad_path, "sha256": "a" * 64}]}

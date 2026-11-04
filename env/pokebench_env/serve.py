@@ -404,6 +404,8 @@ def run(
             *travel,
             safe_strides="safe-navigation-strides-v1" not in features_off_from_env(os.environ),
             intercept="moving-npc-intercept-v1" not in features_off_from_env(os.environ),
+            bike_register="bike-register-v1" not in features_off_from_env(os.environ),
+            bike_toggle="bike-auto-mount-v1" not in features_off_from_env(os.environ),
         )
     if (
         observation is not None

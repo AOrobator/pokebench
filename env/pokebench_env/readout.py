@@ -14,6 +14,9 @@ from pokebench_env.battle_message_waiting import SWITCH as MESSAGE_WAITING
 from pokebench_env.battle_message_waiting import message_clause
 from pokebench_env.battle_triage import SWITCH as TRIAGE
 from pokebench_env.battle_triage import battle_triage_lines, field_triage_line
+from pokebench_env.bike import MOUNT_SWITCH as BIKE_MOUNT
+from pokebench_env.bike import REGISTER_SWITCH as BIKE_REGISTER
+from pokebench_env.bike import bike_line
 from pokebench_env.birch_pages import INTRO_PHASE, INTRO_SWITCH
 from pokebench_env.birch_pages import PHASE as BIRCH_PAGE
 from pokebench_env.birch_pages import SWITCH as BIRCH_PAGES
@@ -209,6 +212,8 @@ SERVER_FEATURES = (
     "deep-south-warp-label-v1",
     "moving-npc-intercept-v1",
     WARP_AREAS,
+    BIKE_REGISTER,
+    BIKE_MOUNT,
 )
 
 
@@ -239,7 +244,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
-        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1",
+        "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
+        "bike-register-v1,bike-auto-mount-v1",
     )
     if raw == "":
         return frozenset()
@@ -686,6 +692,10 @@ def format_readout(
         lines.append(
             respawn_line(state.respawn, state.money, respawn_memory, places, here=state.location)
         )
+    # bike-register-v1 / bike-auto-mount-v1: one line, only when a bike is on SELECT or ridden.
+    bike = bike_line(state.bike, register=BIKE_REGISTER not in off, mount=BIKE_MOUNT not in off)
+    if bike is not None:
+        lines.append(bike)
     lines += [
         f"Badges: {', '.join(state.badges or ()) or 'none'}",
         f"In battle: {'yes' if state.in_battle else 'no'}",
@@ -1257,6 +1267,8 @@ def state_json(state: GameState) -> dict[str, object]:
         "resources": None if state.resources is None else state.resources.json(),
         "battle": None if state.battle is None else state.battle.json(),
         "running": None if state.running is None else state.running.json(),
+        # bike-register-v1 / bike-auto-mount-v1: present only with a switch (OFF state unchanged).
+        **({} if state.bike is None else {"bike": state.bike.json()}),
         "blackout_active": state.blackout_active,
         "money": state.money,
         "badges": list(state.badges or ()),

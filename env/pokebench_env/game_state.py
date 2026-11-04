@@ -10,6 +10,7 @@ import json
 import struct
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pokebench_env.battle_details import BattleDetails, read_battle_details
 from pokebench_env.battle_state import BattleState, read_battle_state
@@ -84,6 +85,9 @@ from pokebench_env.ui_state import (
 )
 from pokebench_env.warp_areas import AreaFacts, AreaVisits
 from pokebench_env.world_context import GRAPHICS, SAVE_VARIABLES, WorldContext, read_world_context
+
+if TYPE_CHECKING:
+    from pokebench_env.bike import BikeState
 
 __all__ = ["GBA_TEXT", "GameState", "MapNames", "PartyMon", "decode_text", "read_game_state"]
 from pokebench_env.world import (
@@ -169,6 +173,8 @@ class GameState:
     resources: Resources | None = None
     battle: BattleState | None = None
     running: RunningPermission | None = None
+    # bike-register-v1 / bike-auto-mount-v1: owned bikes, registration, riding; None when off.
+    bike: "BikeState | None" = None
     game_stats: dict[str, int | None] | None = None
     blackout_active: bool | None = None
     destination_names: tuple[tuple[int, int, str], ...] = ()

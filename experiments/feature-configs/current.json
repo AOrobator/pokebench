@@ -74,7 +74,10 @@
     "drought-progress-credit-v2",
     "open-milestone-stall-v1",
     "objective-graph-supervisor-v1",
-    "story-route-plan-v1"
+    "story-route-plan-v1",
+    "bike-navigation-v1",
+    "bike-register-v1",
+    "bike-auto-mount-v1"
   ],
   "offInBoth": [
     "screenshot-button-baseline-v1",
@@ -511,6 +514,9 @@
     "objective-graph-supervisor-v1": false,
     "story-route-plan-v1": false,
     "moving-npc-intercept-v1": true,
-    "warp-areas-v1": true
+    "warp-areas-v1": true,
+    "bike-navigation-v1": false,
+    "bike-register-v1": false,
+    "bike-auto-mount-v1": false
   }
 }

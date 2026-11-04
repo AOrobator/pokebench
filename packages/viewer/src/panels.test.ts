@@ -1168,6 +1168,18 @@ it("links the moving-NPC path step-in card without inferring historical activati
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector(".config-badge")?.textContent).toBe("ON");
 });
 
+it("links all three auto-bike cards to the one explainer without inferring historical activation",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ for(const id of ["bike-navigation-v1","bike-register-v1","bike-auto-mount-v1"]){
+  expect(DEFAULT_NEXT_RUN.features[id as keyof typeof DEFAULT_NEXT_RUN.features]).toBe(false);
+  expect(FEATURE_EXPLAINERS[id]).toBe("bike-navigation-v1.html");
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+  const card=must(doc.querySelector(`[data-feature="${id}"]`));
+  expect(card.querySelector("a")?.getAttribute("href")).toBe("/explainers/bike-navigation-v1.html");
+  expect(card.textContent).toContain("NOT RECORDED");
+ }
+});
+
 it("links the authored Rustboro scene labels card without inferring historical activation",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="authored-scene-labels-v1";

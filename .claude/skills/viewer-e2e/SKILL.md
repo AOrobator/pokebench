@@ -39,7 +39,7 @@ Keep navigation timing separate from time to playback/frame readiness. Measure e
 
 ## Failure and recovery
 
-Exercise concrete loading, failed snapshot and unavailable-run paths through isolated fixtures or an owned test server; do not stop the real benchmark or shared backend. For polling changes, prove stable focused/clicked elements across unchanged and changed data, then disappearance/status changes. For performance fixes, show which expensive requests leave startup and verify they remain reachable through the relevant UI.
+Exercise concrete loading, failed snapshot and unavailable-run paths through isolated fixtures or an owned test server; do not stop the real benchmark or shared backend. For polling changes, prove stable focused/clicked elements across unchanged and changed data, then disappearance/status changes. For anything that redraws by itself, also prove the reader's row stays put with [steady-screen](../steady-screen/SKILL.md). For performance fixes, show which expensive requests leave startup and verify they remain reachable through the relevant UI.
 
 If browser control or the page becomes unresponsive, inspect the documented troubleshooting state and available surface. Do not count a timed-out click, an unresponsive old tab, a new-tab-only success or a later screenshot as the missing transition proof. Fix the demonstrated owner or retain an explicit unresolved finding.
 

@@ -15,11 +15,15 @@ Headless reproduction on live 8790, six client-side injected `/api/cards` splits
 
 ## Scope
 
-- [ ] `steady-scroll.ts`: read the first visible keyed row, put it back after the redraw, restore focus with preventScroll.
-- [ ] Race rows and controls carry `data-keep` and `data-focus`; renderRace redraws through the helper.
-- [ ] A same-run refresh never blanks a painted race or resets its filter and folds.
-- [ ] Repo skill for auto-updating UI, linked from CLAUDE.md.
+- [x] `steady-scroll.ts`: read the first visible keyed row, put it back after the redraw, restore focus with preventScroll.
+- [x] Race rows and controls carry `data-keep` and `data-focus`; renderRace redraws through the helper.
+- [x] A same-run refresh never blanks a painted race or resets its filter and folds.
+- [x] Repo skill for auto-updating UI, linked from CLAUDE.md.
 - [ ] Browser proof, gates, review, landing, viewer refresh, live proof.
 
 ## Log
 
+COMMIT: `test(viewer): a redraw keeps the reader's row and focus` (e3c0c3045). RED: the helper does not exist.
+GREEN: focused steady-scroll, splits-race, splits-race-honest and run-splits tests, 58 passed; viewer tsc and eslint pass on changed files.
+Candidate browser proof: the three changed client modules routed from this branch's dist onto live 8790, same injected splits, rows grew by 6. Tracked row moved 0px Chromium desktop, 1px Chromium phone, 0px WebKit desktop, 0px WebKit phone (was 235, 308, 235, 307).
+Ten-minute untouched probes on live 8790 saw real splits land (pane height +97 phone) and the document never moved, so the jump lives in the pane.

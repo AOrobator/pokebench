@@ -18,6 +18,7 @@ import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runS
 import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
+import { readPlace, returnToPlace, type Place } from "./steady-scroll.js";
 import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -260,6 +261,7 @@ export class App {
   private raceFilter: RaceFilter = "all";
   private readonly raceOpen = new Map<number, boolean>();
   private raceMemo: { key: string; race: Race; now: number } | null = null;
+  private racePainted: string | null = null;
   private racePlotMemo: { key: string; html: string } | null = null;
   private trainerFacts: TrainerFacts | null = null;
   private gymPicked: number | null = null;
@@ -1160,34 +1162,48 @@ export class App {
     return this.raceMemo;
   }
 
+  // The place is read only when a redraw is really coming, so an unchanged tick touches nothing.
   private renderRace(view: RunView, nowMs: number, recorded: BestSplits | null | undefined): void {
-    if (this.ui("race").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    const pane = this.ui("race");
+    if (pane.closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    let place = null as Place | null;
+    this.drawRace(view, nowMs, recorded, (name, html) => {
+      if (this.html.get(this.ui(name)) !== html) place ??= readPlace(pane, this.doc.activeElement);
+      this.setHtml(name, html);
+    });
+    if (place !== null) returnToPlace(pane, place);
+  }
+
+  private drawRace(view: RunView, nowMs: number, recorded: BestSplits | null | undefined, draw: (name: string, html: string) => void): void {
     const source = tableSplits(this.mode, recorded), panes = ["race-rail", "race-gains", "race-losses", "race-filters", "race-list", "race-map", "race-plot"];
     if (source === null || view.startMs === null) {
-      this.setHtml("race-head", `<p class="race-sub">${this.runId === null ? "No run selected." : "Loading recorded splits…"}</p>`);
-      for (const pane of panes) this.setHtml(pane, "");
+      // A refresh of the run on screen keeps the last page: blanking it would throw the reader back to the top.
+      if (this.runId !== null && this.racePainted === this.runId) return;
+      draw("race-head", `<p class="race-sub">${this.runId === null ? "No run selected." : "Loading recorded splits…"}</p>`);
+      for (const pane of panes) draw(pane, "");
       return;
     }
+    this.racePainted = this.runId;
     const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
     const knowledge = view.start?.harness_features.find(id => KNOWLEDGE_SWITCHES.has(id));
     const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
     const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
     const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
-    this.setHtml("race-head", raceHeadline(race, label, now, loading, side));
-    this.setHtml("race-rail", raceRail(race));
-    this.setHtml("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
-    this.setHtml("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));
-    this.setHtml("race-filters", raceFilters(this.raceFilter, race));
-    this.setHtml("race-list", raceList(race, this.raceFilter, open));
-    this.setHtml("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label, side.name));
+    draw("race-head", raceHeadline(race, label, now, loading, side));
+    draw("race-rail", raceRail(race));
+    draw("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
+    draw("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));
+    draw("race-filters", raceFilters(this.raceFilter, race));
+    draw("race-list", raceList(race, this.raceFilter, open));
+    draw("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label, side.name));
     const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640;
-    if (frontier === null || recording === undefined || recording.config === null) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : side.save ? "No earlier run from this save to plot." : "No frontier run to plot."}</p>`); return; }
+    if (frontier === null || recording === undefined || recording.config === null) { draw("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : side.save ? "No earlier run from this save to plot." : "No frontier run to plot."}</p>`); return; }
     // Rewinding hides later splits from the graph as it does from the list.
     const shown = new Set(race.rows.map(row => row.name)), splits = this.mode === "replay" ? recording.splits.filter(split => shown.has(split.name)) : recording.splits;
     const key = [run, splits.map(split => `${split.name}:${String(split.elapsedMs)}`).join(), recording.status, frontierKey(frontier), width].join("|");
     if (this.racePlotMemo?.key !== key) this.racePlotMemo = { key, html: racePlot(frontier, { ...recording, splits }, width) };
-    this.setHtml("race-plot", this.racePlotMemo.html);
+    draw("race-plot", this.racePlotMemo.html);
   }
 
   private raceClick(target: HTMLElement): void {
@@ -1250,6 +1266,7 @@ export class App {
   }
 
   private resetSelection(runId:string,automatic:boolean):void {
+    const sameRun = this.runId === runId;
     this.extensionDialog().close();
     this.extensionPending = null;
     this.extensionMessage = "";
@@ -1269,12 +1286,15 @@ export class App {
     this.partyUi = { slot: 0, tab: 0, move: null };
     this.clock = null;
     this.mode = "loading";
-    this.raceFilter = "all"; this.raceOpen.clear(); this.raceMemo = null; this.racePlotMemo = null;
-    this.frontier = null;
-    this.frontierSave = false;
-    this.frontierStart = null;
-    this.frontierSettled = false;
-    this.frontierRetry = false;
+    this.raceMemo = null; this.racePlotMemo = null;
+    if (!sameRun) {
+      this.raceFilter = "all"; this.raceOpen.clear(); this.racePainted = null;
+      this.frontier = null;
+      this.frontierSave = false;
+      this.frontierStart = null;
+      this.frontierSettled = false;
+      this.frontierRetry = false;
+    }
     this.recordedThinkingRequest += 1;
     this.recordedThinking = null;
     this.recordedThinkingTrace = null;

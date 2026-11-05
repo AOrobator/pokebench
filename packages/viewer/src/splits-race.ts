@@ -128,7 +128,7 @@ export function raceRail(race: Race): string {
   return race.legs.map(leg => {
     const art = `<i class="race-badge" style="--badge:${String(leg.index)}"></i>`;
     if (leg.rows.length === 0 && !leg.current) return `<span class="race-stop off">${art}<span>${leg.badge}<br>???</span></span>`;
-    return `<button type="button" class="race-stop" data-race-jump="${String(leg.index)}">${art}<span>${leg.badge}${leg.current ? " · NOW" : ""}<br>${race.compared ? gainHtml(leg.gain, Math.abs(leg.gain) < EVEN_SECONDS ? "ev" : leg.gain > 0 ? "up" : "dn") : `${String(leg.rows.length)} splits`}</span>${race.compared ? bar(leg.gain, scale) : ""}</button>`;
+    return `<button type="button" class="race-stop" data-race-jump="${String(leg.index)}" data-focus="jump:${String(leg.index)}">${art}<span>${leg.badge}${leg.current ? " · NOW" : ""}<br>${race.compared ? gainHtml(leg.gain, Math.abs(leg.gain) < EVEN_SECONDS ? "ev" : leg.gain > 0 ? "up" : "dn") : `${String(leg.rows.length)} splits`}</span>${race.compared ? bar(leg.gain, scale) : ""}</button>`;
   }).join("");
 }
 
@@ -138,7 +138,7 @@ export function raceSwings(rows: readonly RaceRow[], title: string): string {
 
 function rowHtml(row: RaceRow, scale: number): string {
   const times = row.frontier === null ? hms(row.at) : `${hms(row.at)} vs ${hms(row.frontier)}${row.gap === null ? "" : ` · ${stand(row.gap)}`}`;
-  return `<li class="race-row"><span class="race-name">${esc(row.label)}</span>${bar(row.gain, scale)}${gainHtml(row.gain, row.kind)}<span class="race-times">${times}</span></li>`;
+  return `<li class="race-row" data-keep="row:${esc(row.name)}"><span class="race-name">${esc(row.label)}</span>${bar(row.gain, scale)}${gainHtml(row.gain, row.kind)}<span class="race-times">${times}</span></li>`;
 }
 
 // `open` holds the folded state; a filter opens whatever matches instead.
@@ -148,14 +148,14 @@ export function raceList(race: Race, filter: RaceFilter, open: ReadonlySet<numbe
     const rows = filter === "all" ? leg.rows : leg.rows.filter(r => r.kind === filter);
     if (rows.length === 0 && !(filter === "all" && leg.current)) return [];
     const expanded = filter !== "all" || open.has(leg.index), summary = !race.compared ? `${String(leg.rows.length)} splits` : `${String(leg.faster)} faster · ${String(leg.slower)} slower${leg.gap === null ? "" : ` · ${stand(leg.gap)}`}`;
-    return [`<section class="race-leg" data-race-section="${String(leg.index)}"><button type="button" class="race-head" data-race-leg="${String(leg.index)}" aria-expanded="${String(expanded)}"><i class="race-badge" style="--badge:${String(leg.index)}"></i><span class="race-title">${expanded ? "▾" : "▸"} ${leg.title.toUpperCase()}${leg.current ? " · NOW" : ""}</span>${race.compared ? bar(leg.gain, legScale) : "<span></span>"}${race.compared ? gainHtml(leg.gain, Math.abs(leg.gain) < EVEN_SECONDS ? "ev" : leg.gain > 0 ? "up" : "dn") : "<span></span>"}<span class="race-count">${summary}</span></button>${expanded ? `<ol>${[...rows].reverse().map(r => rowHtml(r, scale)).join("")}</ol>` : ""}</section>`];
+    return [`<section class="race-leg" data-race-section="${String(leg.index)}"><button type="button" class="race-head" data-race-leg="${String(leg.index)}" data-keep="leg:${String(leg.index)}" data-focus="leg:${String(leg.index)}" aria-expanded="${String(expanded)}"><i class="race-badge" style="--badge:${String(leg.index)}"></i><span class="race-title">${expanded ? "▾" : "▸"} ${leg.title.toUpperCase()}${leg.current ? " · NOW" : ""}</span>${race.compared ? bar(leg.gain, legScale) : "<span></span>"}${race.compared ? gainHtml(leg.gain, Math.abs(leg.gain) < EVEN_SECONDS ? "ev" : leg.gain > 0 ? "up" : "dn") : "<span></span>"}<span class="race-count">${summary}</span></button>${expanded ? `<ol>${[...rows].reverse().map(r => rowHtml(r, scale)).join("")}</ol>` : ""}</section>`];
   });
   return groups.length === 0 ? `<p class="race-sub">No ${filter === "all" ? "" : filter === "dn" ? "slower " : "faster "}milestones yet.</p>` : groups.join("");
 }
 
 export function raceFilters(filter: RaceFilter, race: Race): string {
   const count = filter === "all" ? race.rows.length : filter === "up" ? race.faster : race.slower;
-  const button = (value: RaceFilter, text: string): string => `<button type="button" data-race-filter="${value}" aria-pressed="${String(filter === value)}">${text}</button>`;
+  const button = (value: RaceFilter, text: string): string => `<button type="button" data-race-filter="${value}" data-focus="filter:${value}" aria-pressed="${String(filter === value)}">${text}</button>`;
   return `${button("all", "ALL")}${race.compared ? `${button("up", "FASTER")}${button("dn", "SLOWER")}` : ""}<span>${String(count)} milestones</span>`;
 }
 

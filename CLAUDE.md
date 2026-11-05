@@ -29,6 +29,8 @@ To launch, restart or stop a fixed-N experiment (`just fixed-run`), use `.claude
 
 **Long-lived processes are never LLM-owned (operator 2026-11-01).** Gameplay (`live.js play`), fixed-run runners, the served viewer, and model proxies must outlive Cursor/Claude/Codex restarts. Use `.claude/skills/detached-long-lived-processes/SKILL.md`: `nohup` + logs + pid + `disown` with a launching shell that returns immediately. Forbidden: Cursor/agent background terminals (`block_until_ms: 0`, `run_in_background`, lingering `exec`) as the process owner — that pattern aborted a live DeepSeek control run on Cursor restart.
 
+Auto-updating viewer content never moves the reader (operator decision 2026-11-05). When a viewer surface redraws by itself, use `.claude/skills/steady-screen/SKILL.md` to hold scroll position, focus and open sections.
+
 For viewer navigation, playback or polling interaction changes, use `.claude/skills/viewer-e2e/SKILL.md` and verify the real click through to the selected run and visible frame before claiming it works.
 
 Browser verification must preserve the operator's desktop focus (operator decision 2026-10-22). Use an agent-owned headless browser or a documented background context. Do not activate apps/windows/tabs, use desktop mouse/keyboard input, or open screenshot files in desktop apps for routine verification. If the available tool cannot guarantee background operation, leave that check pending and report the limitation; do not take focus to satisfy a proof requirement. A request to test, land or verify is not permission to take focus. Explicit requests to show or interact with a foreground surface authorize only that operation. Follow `.claude/skills/viewer-e2e/SKILL.md` and pass this boundary to every subagent.

@@ -54,8 +54,25 @@ describe("GuidePosition early milestones", () => {
     guide.observe(milestone("STEP_25"));
     guide.observe(milestone("STEP_20"));
     expect(guide.current().after).toBe("RUN_START");
-    for (const n of [5, 10, 15]) guide.observe(milestone(`STEP_${String(n)}`));
-    expect(guide.current().after).toBe("STEP_25");
+    for (const n of [5, 10, 15, 19]) guide.observe(milestone(`STEP_${String(n)}`));
+    expect(guide.current().after).toBe("STEP_20");
+  });
+
+  it("does not skip unfinished steps to reach a remembered early milestone", () => {
+    const guide = new GuidePosition(long);
+    for (const n of [20, 21]) guide.observe(milestone(`STEP_${String(n)}`));
+    for (const n of [6, 12]) guide.observe(milestone(`STEP_${String(n)}`));
+    expect(guide.current().after).toBe("STEP_12");
+    guide.observe(milestone("STEP_13"));
+    expect(guide.current().after).toBe("STEP_13");
+    guide.observe(milestone("STEP_19"));
+    expect(guide.current().after).toBe("STEP_21");
+  });
+
+  it("chains over gaps between milestones present at a checkpoint start", () => {
+    const guide = new GuidePosition(long);
+    for (const n of [5, 11, 17]) guide.observe(milestone(`STEP_${String(n)}`, "present_at_start"));
+    expect(guide.current().after).toBe("STEP_17");
   });
 
   it("chains forward through milestones present at a checkpoint start", () => {

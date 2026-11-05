@@ -19,3 +19,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Replay: all guide steps fire on 8 recorded runs. Fixed: STONE_BADGE and ROCK_TOMB_RECEIVED land about 9 seconds apart, so the theft note moved to ROCK_TOMB_RECEIVED; 52 steps.
 - Lavaridge: eight-vent chain verified leg by leg against ROM layouts and metatile behaviors; tracker floor labels around (0,6) to (2,3) were wrong.
 - Delete-the-wiring check: removing `rayquazaGuideContext` from `contextTools` turned the factory test red; restored.
+- Fact check of 6c7440200: 40 confirmed, 11 wrong, 1 unconfirmed; all 12 fixed, with new Route 109 and Route 113 steps; 54 steps.

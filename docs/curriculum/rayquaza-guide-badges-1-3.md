@@ -10,7 +10,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| RUN_START | - | Choose NEW GAME. Accept the defaults and give a one-letter name. | KI 1, GR |
+| RUN_START | - | Choose NEW GAME, choose Girl and confirm a one-letter name. | KI 1, GR, fact check |
 | PLAYER_NAME_CONFIRMED | InsideOfTruck | You are in the moving truck. Press RIGHT to walk out of the open back. The boxes do nothing, so do not press A on them. | The operator, ROM, TR 07a7:29 |
 | FIRST_TRUCK_EXIT | LittlerootTown | Mom leads you into your house. Follow her, then go upstairs to your bedroom. | KI 2, GR |
 | PLAYER_BEDROOM | - | Set the wall clock: face it, press A, accept the time and confirm. Then go back downstairs. | KI 2, GR |
@@ -40,31 +40,32 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | TEAM_AQUA_WOODS_EVENT_COMPLETE | PetalburgWoods | Leave Petalburg Woods by the north exit, then go north on Route 104 to Rustboro City. | KI 8, 9 |
 | RUSTBORO_CITY | RustboroCity | Train Mudkip to level 10 for Water Gun before the Gym. Rock types take big damage from it. | KI 10, GR |
 | RUSTBORO_CITY_GYM | RustboroCity_Gym | Beat Josh, Tommy and Marc with Water Gun on the way. Roxanne is at the back. | KI 10, GR |
-| ROXANNE_FIRST_INTERACTION | RustboroCity_Gym | Use Water Gun. It one-shots both Geodude. Nosepass takes several hits, so heal below half HP. | KI battle plans |
+| ROXANNE_FIRST_INTERACTION | RustboroCity_Gym | Use Water Gun on both Geodude and Nosepass. Check the damage after each hit, and heal if the next attack could knock you out. | KI battle plans, fact check |
 
 ## Devon Goods, Dewford and Slateport
 
 | After | Map | Note | Source |
 |---|---|---|---|
 | ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow and Abra on the way. Mr. Briney's boat is not available until this story is done. | KI 11, 12, ROM, TR 7da5:560 |
-| RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Take the Devon Goods back to Rustboro and enter the Devon Corporation building. | KI 12, 13 |
+| RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
-| POKENAV_RECEIVED | Route104 | Get to Dewford by boat. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board the boat from the pier. | KI 15, tested 2026-11-05 |
+| POKENAV_RECEIVED | Route104 | Finish Mr. Stone's talk and the Match Call tutorial. Buy X Attack and X Speed at Petalburg Mart if you can afford them. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board the boat from the pier. | KI 15, tested 2026-11-05, fact check |
 | DEWFORD_TOWN | DewfordTown | Skip the Gym for now. Go north to Route 106 and into Granite Cave. Steven is in the deepest room. | KI 16 |
 | GRANITE_CAVE | GraniteCave_1F | Steven is in the cave, not in Dewford. Route: 1F (17,11), B1F (28,21), B2F (29,13), back up B1F, 1F (35,3), then the door at (5,10). You do not need Flash. | KI 16, TR 429f:684 |
 | STEVEN_REGISTERED | DewfordTown | Leave the cave and talk to Mr. Briney at the Dewford dock, about (12,9). Sail to Slateport. | KI 17, ROM, TR 0517:2830 |
-| SLATEPORT_CITY | SlateportCity | Get the Soft Sand from the kids on the beach and give it to Mudkip. Visit Stern's shipyard, then the Oceanic Museum. Captain Stern is in the museum. | KI 17, TR d41e:4130 |
-| OCEANIC_MUSEUM_ENTERED | - | Pay the ₽50 fee, go upstairs, beat both Team Aqua grunts, then talk to Captain Stern to hand over the goods. | KI 17 |
+| ROUTE_109_BEACH_REACHED | Route109 | Get the Soft Sand from the kids on the beach and give it to Mudkip. Then go north to Slateport City. | KI 17, ROM, fact check |
+| SLATEPORT_CITY | SlateportCity | Visit Stern's shipyard, then the Oceanic Museum. Captain Stern is upstairs in the museum. | KI 17, TR d41e:4130, fact check |
+| OCEANIC_MUSEUM_ENTERED | - | Pay the ₽50 fee, go upstairs and talk to Captain Stern. Beat both Team Aqua grunts and finish the dialogue to hand over the Devon Goods. | KI 17, fact check |
 | DEVON_GOODS_DELIVERED | Route110 | Go north out of Slateport onto Route 110 and stay on the walking path, not the Cycling Road. Mauville is at the north end. | KI 18 |
 
 ## Mauville and the Dynamo Badge
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROUTE_110 | Route110 | Your rival waits on this route and is a hard fight, so heal first and arrive around level 20. Open with X Attack and X Speed. Use Mud Shot on Grovyle. CHECK | KI battle plans, GR, TR 274b:730 |
+| ROUTE_110 | Route110 | Your rival waits on this route and is a hard fight, so heal first. Use X Attack and X Speed when safe. Use Mud Shot on Grovyle, then finish with a neutral move, healing when needed. | KI battle plans, GR, TR 274b:730, fact check |
 | ROUTE_110_RIVAL_DEFEATED | Route110 | Continue north to Mauville City. | KI 18 |
-| MAUVILLE_CITY | MauvilleCity | Get HM06 Rock Smash from the scientist in the house with the door at (32,14). Get the Mach Bike from the shop right of the Pokémon Center. | KI 19, ROM, WT 03 |
-| HM_ROCK_SMASH_RECEIVED | MauvilleCity | Teach Rock Smash in place of Tackle. Wally stops you outside the Gym. Beat him, then enter the Gym. | KI 19, WT 03 |
+| MAUVILLE_CITY | MauvilleCity | Get HM06 Rock Smash from the scientist in the house with the door at (32,14). | KI 19, ROM, WT 03, fact check |
+| HM_ROCK_SMASH_RECEIVED | MauvilleCity | Get the Mach Bike from the shop east of the Pokémon Center. Teach Rock Smash in place of Tackle. Talk to Wally outside the Gym, beat him, then enter. | KI 19, WT 03, fact check |
 | MAUVILLE_GYM_ENTERED | MauvilleCity_Gym | Step on the floor switch at (3,9) to open the way, then walk up to Wattson at (5,2). Use X Speed and X Attack first, then Mud Shot. Electric moves cannot hit Marshtomp. | KI 20, ROM, TR d41e:4880 |
 
 ## Fallarbor, Meteor Falls and the Heat Badge
@@ -73,17 +74,18 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 |---|---|---|---|
 | DYNAMO_BADGE | Route111 | Go north on Route 111 and use Rock Smash on the rocks at (19,100) and (18,101). Then west on Route 112. The cable car is blocked for now, so take Fiery Path. | KI 21, ROM, TR 429f:1519 |
 | FIERY_PATH | FieryPath | Go through Fiery Path to Route 112's north part, then east to Route 111 north, then leave west near y=7-10 onto Route 113. | PATH 3, ROM, TR ol4h:931 |
-| FALLARBOR_TOWN | FallarborTown | Sell the Nugget and spare TMs at the Mart. Buy Super Repels, X Attacks, X Speeds, a Guard Spec and an Escape Rope. Then go west onto Route 114. | KI shops |
+| ROUTE_113 | Route113 | Pick up the Nugget on Route 113 on your way west to Fallarbor Town. | KI 21, ROM, fact check |
+| FALLARBOR_TOWN | FallarborTown | At the Mart, sell the Nugget and spare TMs, then buy Super Repels, X Attacks, X Speeds, a Guard Spec and an Escape Rope as funds allow. Then go west onto Route 114. | KI shops, fact check |
 | ROUTE_114 | Route114 | Follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
 | METEOR_FALLS_CONFRONTATION_RESOLVED | MeteorFalls_1F_1R | Leave through Route 115 south to Rustboro, then go east to Rusturf Tunnel. Use Rock Smash inside to reach the man who gives HM04 Strength. | KI 22, 23, WT 04 |
-| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Go to Mauville, then north on Route 111 and west on Route 112 to the Cable Car station. Abra's Teleport saves time. | KI 23, 24 |
+| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, then go north on Route 111 and west on Route 112 to the Cable Car. Use Abra's Teleport only if Mauville is your last healing stop. | KI 23, 24, fact check |
 | MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. Against Maxie, use Guard Spec and X Attack first. | KI 24, battle plans |
 | MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Walk south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
 | LAVARIDGE_TOWN | LavaridgeTown | Heal at the Pokémon Center, then enter the Gym. | KI 25 |
 | LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Each vent swaps floors. Step on these in order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Then walk to Flannery at (13,9). Other listed warps may not work. | KI 26, PATH 3, ROM, TR ol4h:1670 |
-| FLANNERY_DEFEATED | - | You have three badges. Heal, then continue the guide for the next stretch. | KI route |
+| FLANNERY_DEFEATED | - | Finish Flannery's dialogue to collect the Heat Badge and TM50 Overheat. | KI route, fact check |
 
 ## Needs
 
 - Every After id must exist in `packages/agent/src/milestones.ts`.
-- `CHECK` count: 1.
+- `CHECK` count: 0.

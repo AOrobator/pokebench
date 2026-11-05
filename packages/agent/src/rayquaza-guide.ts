@@ -9,7 +9,7 @@ import type {RunRecorder} from "./recorder.js";
 export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can move first and finish the fight. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money.";
 
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
-export const ABRA_NOTE="ABRA: This wild Abra will Teleport away on its first turn. Do not attack. Throw a Poké Ball now.";
+export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";
 
 type MapId=readonly [number,number];
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly to?:{readonly map:string;readonly id:MapId}}
@@ -69,7 +69,7 @@ export class GuidePosition {
   if(to===undefined||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
   const home=mapKey(to.id),here=mapKey(this.map);
   if(mapKey(this.lastHeal)!==home||here===home||!OUTDOORS.has(here))return [];
-  return [{text:`TELEPORT: Your last Pokémon Center is in ${to.map.replace(/([a-z])([A-Z])/g,"$1 $2")}. Use Teleport from the party menu to go back there instead of walking.`,milestone:"RQ_TELEPORT"}];
+  return [{text:`TELEPORT: Use Teleport from the party menu to return to your respawn point in ${to.map.replace(/([a-z])([A-Z])/g,"$1 $2")} instead of walking.`,milestone:"RQ_TELEPORT"}];
  }
  current():GuideStep {
   const step=this.steps[this.furthest];

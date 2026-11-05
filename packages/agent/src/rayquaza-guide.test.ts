@@ -216,7 +216,7 @@ describe("Abra notes", () => {
   it("offers Teleport when the step's town holds the last Pokemon Center", () => {
     const guide = new GuidePosition(toFortree);
     guide.observe(field());
-    expect(notes(guide)).toEqual(["TELEPORT: Your last Pokémon Center is in Fortree City. Use Teleport from the party menu to go back there instead of walking."]);
+    expect(notes(guide)).toEqual(["TELEPORT: Use Teleport from the party menu to return to your respawn point in Fortree City instead of walking."]);
   });
 
   it("keeps the last known heal location when a state omits it", () => {

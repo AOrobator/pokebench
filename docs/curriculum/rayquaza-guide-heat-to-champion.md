@@ -29,11 +29,11 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `ROUTE_120` | `Route120` | Talk to Steven on the bridge, handle the revealed Kecleon and receive the Devon Scope. Continue toward Route 121. | KI 36, WT 07 |
-| `DEVON_SCOPE_RECEIVED` | `Route120` | At (1,86), face west and press A for a hidden Rare Candy. Use available Rare Candies to evolve Marshtomp as planned. Take Mystic Water from Castform and give it to Swampert. Teach Taillow Fly and Castform Shock Wave. | KI 36–37, KI TMs/HMs and move changes, ROM |
+| `DEVON_SCOPE_RECEIVED` | `Route120` | Before leaving Route 120, Surf across the pond, step ashore at (1,86), face west and press A for a hidden Rare Candy. Use available Rare Candies to evolve Marshtomp as planned. Take Mystic Water from Castform and give it to Swampert. Teach Taillow Fly and Castform Shock Wave. | KI 36–37, KI TMs/HMs and move changes, ROM |
 | `ROUTE_121` | `Route121` | Finish the Rare Candy, Mystic Water, Fly and Shock Wave setup if needed. Visit Lilycove before returning to the Route 122 water entrance so Fly can take you back later. Surf to Mt. Pyre. | KI 37–42, WT 08, PATH 4 |
 | `MT_PYRE` | `MtPyre_Exterior` | Take the side exit from Mt. Pyre’s first floor to the outside path. Climb toward the summit and defeat the Aqua grunts in the way. | KI 38, WT 08 |
-| `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep Swampert and Castform ready for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. At (37,6), face south and press A for a hidden Rare Candy. | KI 38, WT 08 |
-| `MAGMA_EMBLEM_RECEIVED` | `FortreeCity` | Return to Fortree. Use the Devon Scope at the invisible blocker on the Gym approach. | KI 39, WT 07, TO:FortreeCity |
+| `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep Swampert and Castform ready for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. | KI 38, WT 08 |
+| `MAGMA_EMBLEM_RECEIVED` | `FortreeCity` | At (37,6), face south and press A for a hidden Rare Candy. Then return to Fortree. Use the Devon Scope at the invisible blocker on the Gym approach. | KI 39, WT 07 |
 | `FORTREE_GYM_OBSTRUCTION_CLEARED` | `FortreeCity_Gym` | Enter the Fortree Gym after clearing the invisible Kecleon. | PATH 4, ROM |
 | `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | At (15,24), walk U2 L12 U3 L D2 R2 U3 R3 U4 R2 U2 L2 D3 U R2 U4 L2 U2 L6 U2 R D2 R3 U6 L3 D6 R4 L U4 R10 U. Use Strength on Swablu, Tropius, Pelipper and Altaria; Surf Skarmory. Heal before Solar Beam and watch Protect. | PATH 4, KI battle plans, ROM |
 | `FEATHER_BADGE` | `JaggedPass` | Finish the Gym dialogue for Aerial Ace and keep it for Rayquaza. Use the Route 112 Cable Car to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI 39–40, WT 09 |

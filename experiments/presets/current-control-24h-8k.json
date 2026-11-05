@@ -337,6 +337,7 @@
     "rotating-gate-press-feedback-v1": true,
     "rotating-gate-regions-v1": true,
     "rotating-gate-turn-reasons-v1": true,
-    "rotating-gate-push-log-v1": true
+    "rotating-gate-push-log-v1": true,
+    "coherent-battle-observation-v1": true
   }
 }

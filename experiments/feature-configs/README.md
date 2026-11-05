@@ -68,3 +68,5 @@ Gate feedback on press (the operator 2026-11-05, relayed by the coordinator): `r
 Gate areas (the operator 2026-11-05, relayed by the coordinator, after the probe in `runs/probes/gym-map-format-20261105`): `rotating-gate-regions-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`, so a plain run gets it too. It only adds text on the two rotating-gate maps.
 
 Gate turns and push log (the operator 2026-11-05, "all of these switches should be on for the next astra and deepseek runs"): `rotating-gate-turn-reasons-v1` and `rotating-gate-push-log-v1` are registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`.
+
+Coherent battle readouts (the operator 2026-11-05, "needs to be on in all lanes ... correctness fix vibe, so it should go on in both arms"): `coherent-battle-observation-v1` is onInBoth. Registered default remains OFF. At 1,822 of 5,284 recorded ready battle decisions the model got a mid-frame readout with no types, Bag, damage or party list; evidence in `runs/reviews/2026-11-05-rayquaza-battle-mistakes.md`.

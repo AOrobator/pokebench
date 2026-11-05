@@ -35,23 +35,28 @@ Save paths are untrusted. The reader re-roots the part after `/runs/` under the 
 
 **M1 — Frontier fails open**
 - [x] Write tests
-- [x] COMMIT RED: `test(viewer): frontier fails open and places saves by provenance` (d8c539968)
+- [x] COMMIT RED: `test(viewer): frontier fails open and places saves by provenance` (5356b033c after rebase)
 - [x] Implement
 - [x] Cheap checks: viewer lint and types clean; viewer tests 96 files, 960 passed
-- [x] COMMIT GREEN: `feat(viewer): frontier fails open`
+- [x] COMMIT GREEN: `feat(viewer): frontier fails open` (ec5227cf7 after rebase)
 - [x] Docs: grading protocol note
-- [ ] Full gates (needs a CPU START window from the coordinator)
+- [x] Full gates on ec5227cf7 in the coordinator's START window: `just test` passed (viewer 960, Python 2930 + 38, no-I/O proof OK, floors met: agent 60.36/56.77/59.67/65.92, viewer 38.18/41.84/44.24/38.58). `just lint` stopped at mypy on `mgba._pylib`, which this worktree has not built; mypy with main's env passed on 142 files, and the claude-gateway ruff and mypy steps passed by hand. `just trainer-card-check` could not load art in a fresh worktree; with `runs/sprites` linked from main, 3 passed.
 - [ ] Claude + GPT + fallback reviews
 - [ ] Before/after headless screenshots and Hidden list on real data
 - [ ] ASK USER: The operator's go to land
 
 ## Closing the Loop
 
-Proof goes to `runs/frontier-fail-open-proof/`.
+Proof is in `runs/frontier-fail-open-proof/`. A scan of all 68 GB of logs on a new build would be heavy and would write `runs/.viewer-cache`, and close-the-loop forbids starting the viewer CLI on the real root, so there are two proofs:
+- `after-store-end-to-end.png`: the built branch viewer on port 8795 over APFS clones of 7 real runs and 5f0f's sidecar, through the real store. ee2a origin FORTREE_GYM_ENTERED from 5f0f turn 2181, Feather Badge at 39:40.273.
+- `after-all-real-runs.png`, `after-all-real-runs-phone.png`: the same branch page with `/api/workbench` answered by the live 8790 snapshot of 807 runs, plus origins and probe splits computed read-only by branch code. 700 plotted, Hidden 107, no operator exclusions.
+- `before-live-8790.png`: the live viewer, 465 plotted, ee2a absent.
 
 ## Session Log
 
 - 2026-11-05: worktree created from `claude/rayquaza-lane` at 910e07117.
+- 2026-11-05: Rayquaza landed at 7010a995c; rebased with no conflicts.
+- 2026-11-05: real-data proof found "not from zero" labels colliding; a label that would overlap is now left off and every rule stays. After this fix only viewer lint and the frontier tests were rerun (159 passed).
 
 ## Surprises
 
@@ -59,6 +64,10 @@ Proof goes to `runs/frontier-fail-open-proof/`.
 - Three sidecar shapes exist: manual (`run`, `turn`), milestone capture (`run`, `milestone_event.turn`) and handoff (`source_run`, `source_turn`).
 
 ## Multi-Model Review Log
+
+## Principles Self-Review
+
+PB1 PASS (the graph draws recorded splits; grading unchanged). PB2 PASS (failed and odd runs now show). PB3 PASS (no claim from one run). PB4 PASS (resumes and assisted runs stay tagged; the frontier stays New Game only). PB5 PASS (one reporting change, hypothesis in the problem statement). PB6 N/A (no model context). PB7 PASS (the graph reads recorded events; sidecars are only provenance for a recorded save). PB8 N/A (no model tool calls). PB9 PASS (probe splits and start-unknown volume raised to the operator). PB10 PASS (no test skipped, floors unchanged, tests that encoded hiding rewritten to the new rule). PB11 N/A (no dependency change). PB12 PASS (no ROM or protected path). PB13 PASS so far: review and landing are pending and recorded.
 
 ## Boy Scout Log
 

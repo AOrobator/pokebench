@@ -86,7 +86,7 @@ export function endedByOperator(reason: string | null): string | null {
 export function frontierVersions(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): VersionIndex {
   return harnessVersions(runs.filter(run => drawnRun(run) && run.problem === null && run.config !== null && run.measurement?.controller === "agent" && !probeRun(run) && customLane(run) === null), previous);
 }
-const OTHER_COLOR = "#536d85", HIDDEN_OPEN_LIMIT = 20;
+const OTHER_COLOR = "#536d85", HIDDEN_OPEN_LIMIT = 20, RESUME_TAG_WIDTH = 78;
 export const ASSISTED_COLOR = "#5a2fc2";
 const runColor = (run: WorkbenchRun, versions: VersionIndex): string => customLane(run) !== null ? ASSISTED_COLOR : versions.byRun.get(run.id)?.color ?? OTHER_COLOR;
 const versionLabel = (run: WorkbenchRun, versions: VersionIndex): string => versions.byRun.get(run.id)?.name ?? modelName(run);
@@ -220,12 +220,14 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const labelSpacing=width<600?26:18;let previousLabel=0;
   for(let i=1;i<milestones.length-1;i++)if((i%labelEvery===0||mustLabel.has(i))&&x(i)-x(previousLabel)>=labelSpacing&&x(milestones.length-1)-x(i)>=labelSpacing){labels.add(i);previousLabel=i;}
   milestones.forEach((m, i) => { if (!labels.has(i)) return; const at = x(i); body += `<text class="wb-axis" transform="translate(${String(at)},${String(bottom + 23)}) rotate(-60)" text-anchor="end">${m.label}</text>`; });
-  for (const id of origins) {
-    const origin = milestones.findIndex(m => m.id === id);
-    if (origin >= 0) {
-      const at = x(origin);
-      body += `<line data-resume-origin="${esc(id)}" x1="${String(at)}" x2="${String(at)}" y1="${String(top)}" y2="${String(bottom)}" stroke="#b36b00" stroke-width="1.5" stroke-dasharray="3 4" pointer-events="none"/><text class="wb-resume-tag" data-resume-origin="${esc(id)}" x="${String(at)}" text-anchor="${origin > milestones.length / 2 ? "end" : "start"}" y="${String(top + 14)}">not from zero</text>`;
-    }
+  let tagEnd = -Infinity;
+  for (const origin of origins.map(id => milestones.findIndex(m => m.id === id)).filter(i => i >= 0).sort((a, b) => a - b)) {
+    const id = milestones[origin]?.id ?? "", at = x(origin), end = origin > milestones.length / 2, tagStart = end ? at - RESUME_TAG_WIDTH : at;
+    body += `<line data-resume-origin="${esc(id)}" x1="${String(at)}" x2="${String(at)}" y1="${String(top)}" y2="${String(bottom)}" stroke="#b36b00" stroke-width="1.5" stroke-dasharray="3 4" pointer-events="none"/>`;
+    // Every origin keeps its rule; a label that would land on the one before it is left off.
+    if (tagStart < tagEnd) continue;
+    tagEnd = tagStart + RESUME_TAG_WIDTH;
+    body += `<text class="wb-resume-tag" data-resume-origin="${esc(id)}" x="${String(at)}" text-anchor="${origin > milestones.length / 2 ? "end" : "start"}" y="${String(top + 14)}">not from zero</text>`;
   }
   for (const { run, color, kind, resumed, assisted } of series) {
     const active = kind === "live" || (kind === "best" && frontierStatus === "live"), isCurrent = active || kind === "paused" || (kind === "best" && frontierStatus !== null);

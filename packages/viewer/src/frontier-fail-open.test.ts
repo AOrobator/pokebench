@@ -102,6 +102,14 @@ describe("resumes from an arbitrary save", () => {
     expect(document.querySelector('[data-run="ee2a"][data-split="FEATHER_BADGE"]')?.getAttribute("aria-label")).toContain("from 5f0f turn 2181");
     expect(document.querySelector('[data-run="ee2a"][data-split="STONE_BADGE"]')).toBeNull();
   });
+  it("keeps every origin's rule but drops a label that would land on the one before it", () => {
+    plot([saved("a", known("CLOCK_SET")), saved("b", known("RIVAL_MET")), saved("c", known("FEATHER_BADGE"))]);
+    expect(document.querySelectorAll("line[data-resume-origin]")).toHaveLength(3);
+    const tags = [...document.querySelectorAll(".wb-resume-tag")].map(t => t.getAttribute("data-resume-origin"));
+    expect(tags).toContain("CLOCK_SET");
+    expect(tags).toContain("FEATHER_BADGE");
+    expect(tags).not.toContain("RIVAL_MET");
+  });
   it("draws an unknown start from its first recorded milestone, tagged and dashed", () => {
     plot([saved("mystery", known(null))]);
     expect(document.querySelector('[data-run="mystery"][data-split="CLOCK_SET"]')?.getAttribute("aria-label")).toContain("start unknown");

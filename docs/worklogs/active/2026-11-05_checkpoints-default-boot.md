@@ -53,3 +53,4 @@ Saves stay apart from the source run: run files are under `runs/<id>/checkpoints
 Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` and `fixed-runner.ts` keep setting `1` because they can launch older pins.
 
 - [x] RED: default on for any start; checkpoint-start saves stay under their own run
+- [x] GREEN: default on for every start. COMMIT (RED): `test(checkpoints): every start saves by default` (47c8712a9)

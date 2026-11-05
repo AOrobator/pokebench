@@ -3,6 +3,7 @@
 // default is 0. llama-server reads presence_penalty from an OpenAI chat request and lists it in
 // /props default_generation_settings.params.
 import type {FeatureSet} from "./features.js";
+import {sentEffort} from "./reasoning-effort.js";
 
 export const PRESENCE_PENALTY=1.5;
 
@@ -12,7 +13,7 @@ export function samplingExtras(features:FeatureSet):SamplingExtras {
  return features["presence-penalty-v1"]?{presence_penalty:PRESENCE_PENALTY}:{};
 }
 
-// What run_start records under sampling: the value sent, only when it is sent.
-export function playSampling(features:FeatureSet,thinking:string,maxTokens:number):{thinking_level:string;max_tokens:number}&SamplingExtras {
- return {thinking_level:thinking,max_tokens:maxTokens,...samplingExtras(features)};
+// What run_start records under sampling. thinking_level is the harness's setting; reasoning_effort_sent is what the requests carry, null when they carry none.
+export function playSampling(features:FeatureSet,thinking:string,maxTokens:number):{thinking_level:string;max_tokens:number;reasoning_effort_sent:string|null}&SamplingExtras {
+ return {thinking_level:thinking,max_tokens:maxTokens,...samplingExtras(features),reasoning_effort_sent:sentEffort(features,thinking)};
 }

@@ -3,6 +3,7 @@
 The experiment queue was retired on 2026-10-22. Queue positions, pending registrations and deleted queue-definition paths in older explainers describe historical status, not current instructions. Use the matching worklog for evaluation plans/readiness and the `fixed-run-launch` skill for operator-approved fixed runs.
 
 - [Save state task truth](save-state-task-truth-v1.html)
+- [Send the reasoning effort](reasoning-effort-request-v1.html)
 
 Tracked, local HTML documentation. Open an explainer directly; no server or external account is required.
 

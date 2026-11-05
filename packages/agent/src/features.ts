@@ -353,6 +353,7 @@ export const SWITCHABLE_FEATURES = [
   "rotating-gate-map-v1",
   "map-code-aliases-v1",
   "rotating-gate-navigation-v1",
+  "reasoning-effort-request-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -827,6 +828,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rotating-gate-map-v1", "observation", "ROTATING GATE MAP LINES", "rotating-gate-positions-v1", "Default off. The grid already draws arms as | and - on tile edges with * at the pivot. On: one line per gate replaces the per-direction Now lines and the element legend entries for tokens no cell shows, naming the pivot's four tiles and each arm by the two tiles it separates, and the key line names only glyphs this grid draws, saying arms are not walls. Off: the previous key, legend and Now lines, byte for byte."),
   on("map-code-aliases-v1", "observation", "ONE CODE PER ELEMENT", "compact-map-base-glyph-v1", "Default off. With the base glyph kept in the cell, the same element under two glyphs took two letters: \"M = Wp:arrow:v; T = Wp:arrow:v\". On: a Codes letter stands for the element token, whatever glyph sits beside it, and the Codes line lists it once. Off: one letter per glyph and token pair, byte for byte."),
   on("rotating-gate-navigation-v1", "guidance", "NAVIGATE_TO STOPS AT GATE ARMS", "rotating-gate-positions-v1", "Default off. navigate_to planned straight through gate arms and then reported a vague block. On: an arm's edge is blocked to the planner, so a clear route walks as usual. When only arms stop the route it walks up to the first arm on the route that ignores them, stops before it and names it, for example gate 2's arm between (4,18) and (4,19). It never pushes a gate or plans a push; press is how a gate moves. The tool description is unchanged, to keep gate text out of the system prompt on other maps. Off: gates do not affect the plan."),
+  on("reasoning-effort-request-v1", "guidance", "SEND THE REASONING EFFORT", null, "Correctness fix, on by default (the operator 2026-11-04: \"correctness fixes need to be on by default\"). Adds the run's thinking level to every model request as chat_template_kwargs.reasoning_effort, so the served chat template uses it. Until now only thinking on or off reached the server: Qwen3.8's template then defaults to xhigh and adds an instruction to validate assumptions and weigh alternatives, GLM-5.3's defaults to Max, and Qwen3.6's has no effort setting. On Qwen3.8, medium drops that instruction and low replaces it with one asking for brief thinking. GLM-5.3 accepts only low and high, so medium still gives Max there. run_start records what was sent under sampling.reasoning_effort_sent, on or off. Off: requests carry only enable_thinking and preserve_thinking, as they always have, and the server's default effort applies."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1285,6 +1287,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rotating-gate-map-v1"),
     ...when("map-code-aliases-v1"),
     ...when("rotating-gate-navigation-v1"),
+    ...when("reasoning-effort-request-v1"),
   ];
 }
 

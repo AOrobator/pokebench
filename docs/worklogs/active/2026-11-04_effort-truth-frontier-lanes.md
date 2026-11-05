@@ -33,6 +33,8 @@
 
 ## Commits
 
+COMMIT: `test: effort reaches the request and custom lanes stay off the frontier` (a18f90f4e)
+
 ## Gates
 
 Focused, 2026-11-04 11:04 PM NY, on main f3aa249fb: tsc agent and viewer clean. Agent reasoning-effort, presence-penalty, play-preset, features, gateway, provider, events: 133 pass. Viewer frontier, panels, next-run: pass. Changed-file eslint clean. schemas/events.v1.json regenerated.

@@ -8,6 +8,8 @@ import { esc, hms, num, signedDelta } from "./format.js";
 import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ROUTE103_RIVAL_SPLITS } from "./frontier.js";
 import { displayModelName } from "./frontier-versions.js";
+import { thinkingLabel } from "./run-config.js";
+import { servedEffort } from "./served-effort.js";
 import { RETIRED_VISIBILITY, ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';
@@ -329,7 +331,7 @@ export function runIdentity(view: RunView): string {
   const evaluation = start.evaluation;
   const cells: string[] = [];
   if (evaluation !== undefined) cells.push(cell("PRESET", evaluation.preset_id, " id-exp"));
-  cells.push(cell("MODEL · THINKING", `${displayModelName(start.model.id)} · ${start.sampling.thinking_level}`, "", start.model.id), cell("RUN", `…${start.run.slice(-4)}`));
+  cells.push(cell("MODEL · THINKING", `${displayModelName(start.model.id)} · ${thinkingLabel(start.sampling)}`, "", start.model.id), cell("RUN", `…${start.run.slice(-4)}`));
   return cells.join("");
 }
 
@@ -449,6 +451,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "rotating-gate-map-v1":"rotating-gate-readouts-v1.html",
  "map-code-aliases-v1":"rotating-gate-readouts-v1.html",
  "rotating-gate-navigation-v1":"rotating-gate-readouts-v1.html",
+ "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
  "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
  "compact-map-grid-v1":"compact-map-grid-v1.html",
@@ -742,7 +745,7 @@ export function harnessConfig(view:RunView,registry:readonly FeatureInfo[]=[]):s
  const sections=groups.map(([id,title,description])=>{const list=cards.filter(c=>c.group===id||id==="other"&&!groups.some(g=>g[0]===c.group));return list.length===0?"":`<section class="config-group"><h4>${title}<span>${description}</span></h4><div class="config-feature-grid">${list.map(c=>c.html).join("")}</div></section>`;}).join("");
  const box=(title:string,rows:readonly(readonly[string,string])[])=>`<section class="config-summary-card"><h4>${title}</h4>${kv(rows)}</section>`;
  return `<div class="config-overview"><span class="config-readonly">◈ READ ONLY</span><p>Recorded settings for <strong>${esc(start.run)}</strong></p><div class="config-counts"><span>${String(cards.filter(c=>c.state==="on").length)} ON</span><span>${String(cards.filter(c=>c.state==="off").length)} OFF</span><span>${String(cards.filter(c=>c.state==="unknown").length)} NOT RECORDED</span>${cards.some(c=>c.state==="conflict")?'<span>CONFLICT · inspect raw configuration</span>':""}</div></div><div class="config-summary-grid">`+
- box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(start.sampling.thinking_level)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
+ box("MODEL",[["MODEL",esc(start.model.id)],["CONTEXT WINDOW",num(start.model.context_window)],["VISION",start.model.vision?"supported":"not supported"],["THINKING",esc(thinkingLabel(start.sampling))],["EFFORT SENT",esc(start.sampling.reasoning_effort_sent??`none; ${servedEffort(start.model.id)}`)],["OUTPUT TOKEN CAP",num(start.sampling.max_tokens)]])+
  box("BUDGET & GOAL",[["TIME CAP",(view.control.maxWallMs??start.budgets.max_wall_ms)===undefined?missing:hms((view.control.maxWallMs??start.budgets.max_wall_ms??0)/1000)],...(view.control.maxWallMs===null?[]:[["ORIGINAL EVALUATION CAP",hms((start.budgets.max_wall_ms??0)/1000)]] as [string,string][]),["TURN CAP",(view.effectiveTurnLimit ?? start.budgets.max_turns)===undefined?missing:String((view.effectiveTurnLimit ?? start.budgets.max_turns))],["FAILURE LIMIT",evaluation===undefined?missing:String(evaluation.failure_limit)],["STOP AT MILESTONE",evaluation===undefined?missing:evaluation.target===null?"NONE · play to budget":esc(evaluation.target)]])+
  box("BUILD & PRESET",[["PRESET",esc(evaluation?.preset_id??missing)],["HARNESS SOURCE",esc(start.harness.commit)+(start.harness.dirty?" · dirty":" · clean")],["START STATE",esc(start.start_state.kind)],["VENDOR PIN",esc(start.vendor_pin)],["PI VERSION",esc(start.pi_version)]])+`</div><p class="config-provenance">Statuses come from this run’s recorded header. Missing IDs stay NOT RECORDED, not guessed OFF. Descriptions come from the viewer’s feature catalog and may be newer than a historical run. This page never edits next-run settings.</p>${sections}<section class="config-summary-card"><h4>AVAILABLE TOOLS</h4><p class="config-provenance">Tools listed by this run’s recorded header. Reference documentation reflects this viewer build; names are not recorded with historical tool schemas. Outputs and limits depend on the run’s enabled features.</p><div class="config-tool-grid">${start.tools.map(name=>toolReference(name,start.harness_features.includes("automatic-running-v1"))).join("")||"none recorded"}</div></section><p class="config-provenance">Model weight digest, endpoint, temperature and other serving defaults: not recorded in this run header.</p><details class="config-raw"><summary>RECORDED SYSTEM PROMPT</summary><pre>${esc(start.system_prompt)}</pre></details><details class="config-raw"><summary>RAW RUN CONFIGURATION</summary>${jsonHtml(start)}</details>`;
 }

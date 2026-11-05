@@ -57,6 +57,7 @@ The viewer's timeline (the TIMELINE swimlanes) is closed to additions. Never add
 - **Argv lists only** for subprocesses. Paths are untrusted; the real ROM path contains spaces and parentheses.
 - Servers bind `127.0.0.1`. The vendor server hardcodes `0.0.0.0`; `pokebench_env.serve` pins the host without modifying vendor code.
 - The viewer answers only loopback hosts plus the https origins in `POKEBENCH_VIEWER_ORIGINS` (gitignored `.env`). Tailscale Serve publishes it at `https://viewer.example.ts.net:8447/` for the local inference stack portal card; it never binds anything but `127.0.0.1`.
+- **Custom lanes stay off the benchmark frontier.** A weight-edited model (`-edit-` in the model id, enforced by the launcher), an experiment id starting `custom-`, or a knowledge switch (`packages/viewer/src/custom-lane.ts`) keeps a run out of the frontier ranking, race and plot. Its cards and replay still open.
 - **Every run is isolated (INV-7).** Each game server runs from its own `runs/<id>/server/` cwd with its own `RUN_DATA_ID` and `LOAD_CHECKPOINT_MODE=false`. Never point two runs at one server or one run dir.
 - **Long-lived processes are detached (operator 2026-11-01).** Runs, fixed-run runners, lasting viewers, and proxies must not be owned by an LLM/agent terminal session. See `.claude/skills/detached-long-lived-processes/SKILL.md`.
 - Never run formatters or linters over `env/vendor/`. ruff excludes it; `just verify-vendor` catches drift.

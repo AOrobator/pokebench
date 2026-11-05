@@ -390,3 +390,4 @@ Object.assign(DEFAULT_NEXT_RUN.features, {"move-learn-type-matchup-v1":false,"in
 
 Object.assign(DEFAULT_NEXT_RUN.features, {"player-map-visibility-v2":false});
 Object.assign(DEFAULT_NEXT_RUN.features, {"objective-graph-supervisor-v1":false,"story-route-plan-v1":false});
+Object.assign(DEFAULT_NEXT_RUN.features, {"reasoning-effort-request-v1":true});

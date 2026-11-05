@@ -1022,6 +1022,16 @@
             },
             "presence_penalty": {
               "type": "number"
+            },
+            "reasoning_effort_sent": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false

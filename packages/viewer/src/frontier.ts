@@ -1,4 +1,5 @@
 import {PROGRESS_CATALOG, EXTENDED_PROGRESS_NAMES, OPTIONAL_PROGRESS_NAMES, CAMPAIGN_ADDITION_NAMES, CAMPAIGN_PROGRESS_FEATURE, STORY_PROGRESS_FEATURE} from "./story-progress.js";
+import { customLane } from "./custom-lane.js";
 import { esc } from "./format.js";
 import { harnessVersions, type VersionIndex } from "./frontier-versions.js";
 import type { Baseline } from "./panels.js";
@@ -43,17 +44,17 @@ export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun 
 export type FrontierStatus = "live" | "paused" | null;
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
 // A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
-const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
+const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && customLane(run) === null && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
 // Only exact known story-checkpoint identities are admitted; arbitrary save files remain unclassified.
 export function resumeMilestone(run: WorkbenchRun): (typeof FRONTIER_MILESTONES)[number] | null {
   return FRONTIER_MILESTONES.find(m => m.id === run.config?.resume) ?? null;
 }
-export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && resumeMilestone(run) !== null;
+export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && customLane(run) === null && resumeMilestone(run) !== null;
 // Flagged recordings (a ledger's infrastructure or invalid-trial note) are drawn dotted for attention but
 // still count, frontier included: how a run ended never decides inclusion (the operator 2026-10-27).
 const INVALID_TRIAL = "Invalid fixed-run trial: ";
 export function invalidTrial(run: WorkbenchRun): string | null {
-  if (run.problem !== null || run.excluded !== null || run.flag === undefined || run.measurement?.controller !== "agent") return null;
+  if (run.problem !== null || run.excluded !== null || run.flag === undefined || run.measurement?.controller !== "agent" || customLane(run) !== null) return null;
   const reason = run.flag.startsWith(INVALID_TRIAL) ? run.flag.slice(INVALID_TRIAL.length) : run.flag;
   return run.config?.start === "boot" || run.config?.resume === "MAIN_MENU" || resumeMilestone(run) !== null ? reason : null;
 }
@@ -77,7 +78,7 @@ export function preciseTime(ms: number): string {
 }
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
 // The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
-const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused" || r.status === "unresponsive");
+const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && customLane(r) === null && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused" || r.status === "unresponsive");
 function rankedAgents(runs: readonly WorkbenchRun[]): WorkbenchRun[] {
   const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
   const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
@@ -202,7 +203,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   const selected = [...new Map([...overlays, ...currentRuns].map(run => [run.id, run])).values()];
   const visible = new Set(series.filter(s => times(s.run).length > 0).map(s => s.run.id));
   const missing = selected.filter(run => !visible.has(run.id));
-  const reason = (run: WorkbenchRun): string => run.problem ?? (run.excluded !== null && invalidTrial(run) === null ? run.excluded : !shownAgent(run) ? "Unrecognized start provenance or controller; no trace graded" : "No recorded story checkpoints at or after this run's start");
+  const reason = (run: WorkbenchRun): string => run.problem ?? (run.excluded !== null && invalidTrial(run) === null ? run.excluded : !shownAgent(run) ? customLane(run) ?? "Unrecognized start provenance or controller; no trace graded" : "No recorded story checkpoints at or after this run's start");
   const loading = missing.filter(run => run.problem?.startsWith("Recording is still loading;") === true).length;
   const count = `${String(selected.length)} selected recordings · ${String(selected.filter(run => visible.has(run.id)).length)} plotted${loading === 0 ? "" : ` · ${String(loading)} loading`}${missing.length === loading ? "" : ` · ${String(missing.length - loading)} unavailable`}`;
   const coverage = `<details data-frontier-coverage class="wb-muted"><summary>${count}</summary><ul>${selected.map(run => {

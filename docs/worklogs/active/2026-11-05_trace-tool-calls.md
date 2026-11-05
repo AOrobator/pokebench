@@ -10,4 +10,5 @@ Finding: recordings and the Full Trace page are complete (DeepSeek 3332: 63 of 6
 - [x] Review fix: the answer parser accepts 256-event older pages
 - [x] Review fix: an over-budget older scan halves down to the page width; 5f0f and 274b page to seq 0 with every call (2128, 2188)
 - [x] Review fix: sideShort uses the rendered groups, so the box turn is not counted
-- [ ] Gates, reviews, landing, live proof
+- [x] Gates: just test passes (viewer 891, agent 2472, env 2901); eslint and tsc clean; trainer-card-check 3 passed; mypy only misses the mgba binding in the worktree env. Claude, GPT and fallback reviewers LGTM on cf51055c1
+- [x] Landed cf51055c1, viewer-main at that build. Live Astra 4d66 with PokéNav on PARTY: 18 of 18 calls in the panel at desktop and phone, no failed history requests

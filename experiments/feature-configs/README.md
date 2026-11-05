@@ -1,6 +1,6 @@
 # Maintained feature configuration
 
-`current.json` is the sole maintained control/bundle feature owner. Add new feature defaults and arm activation here, not to protocol copies. `features` is the shared base; `switches` turns a flag OFF in control and ON in bundle; `onInBoth` and `offInBoth` record explicit common settings. Keep every both-arm promotion in the shared base too.
+`current.json` is the sole maintained control/bundle feature owner. `rayquaza-lane.json` is the Rayquaza lane's copy of it: every bundle switch on, guide and battle explainer on, `no-story-foreknowledge-v1` and `story-route-plan-v1` off. Its features match `experiments/presets/rayquaza-lane-8h.json`. Add new feature defaults and arm activation here, not to protocol copies. `features` is the shared base; `switches` turns a flag OFF in control and ON in bundle; `onInBoth` and `offInBoth` record explicit common settings. Keep every both-arm promotion in the shared base too.
 
 The shared baseline is the current two-hour Qwen control (including full-map navigation), retaining explicit both-arm promotions from both former donors, including original-speed-pacing-v1, named-warp-destinations-v1 and exit-labels-v2. The NPC switch is OFF by default/control and ON in bundle. Global harness defaults are separate.
 

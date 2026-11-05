@@ -26,3 +26,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - `MAP:<name>` steps supported: the generator resolves the map id from pokeemerald, and the guide advances on first entry.
 - Merged `claude/rayquaza-frontier`. `rq-milestone-guide-v1` is a knowledge switch, so guide runs show as heavily assisted, never best unhelped.
 - Battle mining (`runs/reviews/2026-11-05-rayquaza-battle-mistakes.md`): preparation, not move choice. Added notes on the Rustboro rival, Route 110, Grass foes and Flannery; Rock Tomb taught for Route 110. 56 steps. Lane needs `coherent-battle-observation-v1`.
+- Preset `experiments/presets/rayquaza-lane-8h.json`: control plus every bundle switch, guide and explainer on, `coherent-battle-observation-v1` on, `no-story-foreknowledge-v1` and `story-route-plan-v1` off, MAIN_MENU start, 8 hours. Parsed by the real validator in `rayquaza-preset-check.test.ts`. Explainer page added.

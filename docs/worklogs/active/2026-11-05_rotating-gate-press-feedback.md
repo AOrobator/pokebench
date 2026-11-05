@@ -33,3 +33,9 @@ Run 5f0f misread gate state at turns 1961, 1987 and 1997 by comparing eight gate
 - Gates after merging main (fe7c8dc43): `just lint` pass, `just test` pass (agent 2471, viewer 869, env 2901 at 80.16/73.89/73.09 over floor 69, gateway 38 at floor 22 with functions 22.62), `just verify-vendor` pass. First pass failed on `reasoning-effort.test.ts` pinning the last switch by `.at(-1)`; both tests now pin an absolute index. mypy needed the mGBA binding copied into this worktree's venv.
 
 ## Multi-Model Review Log
+
+Round 1, packet 9173ccbe4..519460703, diff SHA-256 f7cd366630a574cac78e499ee739fbe314716d6df62d72f8fef402fd15e0bd59.
+- Principles self-review: zero FAIL rows.
+- Fallback reviewer (fresh read-only subagent, Sonnet): LGTM.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING on two items. B2, no test through the dialogue wrapper: accepted, test added, it also asserts the Requested movement head is gone, which is why the trail rides on the press line. B1, silence when both snapshots lack map_observation: rebutted. Without an observation the agent cannot tell a gate map from any other map, this is the previous behaviour, and it states nothing false. `rotating-gate-positions-v1` needs `map-observability-v1`, so the observation exists wherever the switch is on; 0 of 92 replayed calls were unreadable.
+- Claude CLI default login expired; the lane moves to `CLAUDE_CONFIG_DIR=~/.claude-review`.

@@ -1,7 +1,8 @@
 import {expect,it,vi} from "vitest";
 import {IN_GAME} from "../test-support/events.js";
 import {SWITCHABLE_FEATURES,featureInfo,playHarnessFeatures,ALL_ON} from "./features.js";
-import {pressTool} from "./game-tools.js";
+import {withDialogueAutoAdvance} from "./dialogue-auto-advance.js";
+import {observeTool,pressTool} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import type {Button} from "./events.js";
 import {toolSwitches} from "./play-config.js";
@@ -125,7 +126,7 @@ function server(start:GameStateSnapshot,step:(state:GameStateSnapshot,direction:
   else if(url.includes("/pokebench/stride/")&&plan!==undefined)body={...plan,automatic_running:false,completed:plan.path.length,frames:20,reason:"completed",stopped:true};
   return Promise.resolve(new Response(JSON.stringify(body)));
  });
- return {fetchFn,hooks:{beforePress:vi.fn(),afterPress:()=>Promise.resolve()},clock:{now:()=>0,sleep:()=>Promise.resolve()}};
+ return {fetchFn,read:()=>Promise.resolve(state),hooks:{beforePress:vi.fn(),afterPress:()=>Promise.resolve()},clock:{now:()=>0,sleep:()=>Promise.resolve()}};
 }
 const features=(on:boolean,extra:Record<string,boolean>={})=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"rejected-movement-prefix-v1":true,"walkable-floor-v1":true,"map-observability-v1":true,"rotating-gate-positions-v1":true,[ID]:on,...extra});
 const walked=(state:GameStateSnapshot,direction:Button,orientations:readonly number[]):GameStateSnapshot=>{
@@ -166,4 +167,22 @@ it("production wiring: a checked stride is a net comparison, and navigate_to's c
  const n=server(field([0,0]),(state,direction)=>walked(state,direction,[0,0]));
  const checked=await pressTool("http://game",n.hooks,n.fetchFn,n.clock,toolSwitches(features(true))).executeChecked("nav",{buttons:["UP"]},()=>undefined);
  expect(pressLine(checked)).toBe("moved (2,5) -> (2,4)");
+});
+
+it("production wiring: the trail survives a conversation that opens on a later step",async()=>{
+ // The dialogue wrapper rebuilds the result when a message opens and drops the Requested movement head.
+ const text0="Hello there!";let steps=0;
+ const talking=(state:GameStateSnapshot):GameStateSnapshot=>({...state,field_controls_locked:true,world_context:{objects:[],triggers:[],dialogue:text0,message:{phase:"button_wait",cursor:text0.length,ready:true,identity:"0".repeat(64)}}});
+ const s=server(field([0,0],{x:0,y:5}),(state,button)=>{
+  if(button==="A"||button==="B")return {...state,field_controls_locked:false,world_context:null};
+  steps+=1;const moved=walked(state,button,[1,0]);return steps===2?talking(moved):moved;
+ });
+ const features_={...features(true),"dialogue-auto-advance-v1":true,"field-dialogue-phase-v1":true};
+ const base=[observeTool("http://game",s.fetchFn),pressTool("http://game",s.hooks,s.fetchFn,s.clock,toolSwitches(features_))];
+ const recorded={seq:1,turn:1};
+ const tools=withDialogueAutoAdvance(base,features_,{state:{read:s.read},recorder:{recordState:()=>recorded,recordDialogueAutoAdvance:()=>recorded,subscribe:()=>undefined},clock:s.clock});
+ const press=tools.find(tool=>tool.name==="press");if(press===undefined)throw new Error("Missing press");
+ const out=await press.execute("model",{buttons:["RIGHT","RIGHT","RIGHT"]});
+ expect(text(out)).not.toContain("Requested movement");
+ expect(pressLine(out)).toContain("gates by step: step 1 RIGHT: Gate 0 turned 90 degrees clockwise (arms north, south -> east, west); no gate turned on the other steps");
 });

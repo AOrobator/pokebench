@@ -42,3 +42,9 @@ Triage. FIX: the no-race sentence was false when an earlier run was excluded; re
 COMMIT: `fix(viewer): say truthfully why a save run has no race` (5c638507c).
 Round 2 on the delta c4e6c7b18..5c638507c: Claude CLI LGTM, GPT via Codex LGTM, fallback reviewer LGTM. Focused tests 47 passed; viewer lint passes. Delta is one page sentence, its test string and two comments, so the other gates stand.
 The operator's go (2026-11-05 4:23 PM New York): "fix the bugs and land ur changes".
+
+## Landed
+
+main fast-forwarded to c974803c8. `just test` on main passes: agent 2537, viewer 989, env 2930, gateway 38, no-I/O proof OK.
+`just viewer-main` restarted 8790 at c974803c8; 2 live gameplay processes kept running. Headless proof on 8790 for 0952, ee2a and 9f4c at 1280 and 390 wide: 0 page errors, 0 horizontal overflow, both graph lines drawn. `just current-main` not needed: no recorded event or snapshot change.
+Report: `runs/reports/run-analysis/2026-11-05_splits-race-honest/`.

@@ -1117,3 +1117,48 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .trace-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between; }
 .trace-latest { font:11px/1.4 Inter,sans-serif; min-height:44px; width:220px; max-width:100%; white-space:normal; }
 .trace-latest[hidden] { display:inline-block !important; visibility:hidden; pointer-events:none; }
+
+/* PokéNav TRAINER CARD page: the game's card on the game's stripes, so nothing looks pasted on. --u is one card pixel. */
+#page-trainer:has(.tp:not([hidden])) { padding: 0; overflow: hidden; container-type: inline-size; border-radius: 8px; }
+#page-trainer:has(.tp:not([hidden])) > h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#page-trainer:has(.tp:not([hidden])) .page-content { padding: 0; min-height: 0; }
+.tp { --u: min(3px, calc(100cqw / 240)); --card-u: var(--u); min-height: 100%; display: grid; grid-template-columns: calc(var(--u) * 240) minmax(0, 1fr); align-items: start; background-image: var(--tp-stripes, url(/sprites/page/stripes-male.png)); background-size: calc(var(--u) * 4) calc(var(--u) * 4); image-rendering: pixelated; overflow-wrap: normal; }
+.tp[hidden] { display: none; }
+.tp canvas.gt { display: block; image-rendering: pixelated; }
+.tp-window canvas.gt { max-width: 100%; height: auto !important; }
+.tp .gtx { display: inline-flex; font: 9px/1.6 'Press Start 2P', monospace; white-space: nowrap; min-width: 0; }
+.tp .gtx[data-painted] { font-size: 0; line-height: 0; }
+.tp-stage { position: relative; min-width: 0; }
+.tp-card { position: relative; width: calc(var(--u) * 240); height: calc(var(--u) * 160); }
+.tp-card-art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.tp-player { position: absolute; left: calc(var(--u) * 152); top: calc(var(--u) * 40); width: calc(var(--u) * 64); height: calc(var(--u) * 64); image-rendering: pixelated; }
+.tp-at { position: absolute; font-size: 0; line-height: 0; }
+.tp-at .gtx { display: block; }
+.tp-badge-art { position: absolute; top: calc(var(--u) * 120); width: calc(var(--u) * 16); height: calc(var(--u) * 16); background: url(/sprites/page/badges.png) 0 0 / calc(var(--u) * 128) calc(var(--u) * 16) no-repeat; image-rendering: pixelated; }
+.tp-slot { position: absolute; top: calc(var(--u) * 119); width: calc(var(--u) * 18); height: calc(var(--u) * 18); margin-left: calc(var(--u) * -1); padding: 0; background: none; border: 0; border-radius: 4px; cursor: pointer; }
+.tp-slot:hover, .tp-slot:focus-visible, .tp-slot[aria-expanded=true] { outline: 3px solid #ffd447; outline-offset: 1px; }
+.tp-window { --u: 2px; border-style: solid; border-width: 24px; border-image: url(/sprites/page/text-window.png) 8 fill / 24px / 0 stretch; image-rendering: pixelated; padding: 4px 6px; min-width: 0; }
+.tp-run { display: grid; gap: 12px; margin: 24px 24px 24px 0; }
+.tp-gym { position: absolute; left: calc(var(--card-u) * 2); bottom: calc(var(--card-u) * 46); width: min(460px, 100%); z-index: 3; }
+.tp-gym[hidden] { display: none; }
+.tp-rows { display: grid; gap: 4px; min-width: 0; }
+.tp-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-width: 0; }
+.tp-party { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.tp-mon { display: grid; justify-items: center; }
+.tp-icon { display: block; width: 100%; max-width: 48px; aspect-ratio: 1; overflow: hidden; }
+.tp-icon img { display: block; width: 100%; image-rendering: pixelated; }
+.tp-hp { height: 6px; width: 100%; max-width: 64px; border: 1px solid #283038; background: #fff; border-radius: 3px; overflow: hidden; }
+.tp-hp i { display: block; height: 100%; background: #35b96a; }
+.tp-gym-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.tp-leader { width: 88px; height: 88px; image-rendering: pixelated; }
+.tp-team { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 2px; }
+.tp-team span { display: grid; justify-items: center; }
+.tp-team .gtx { display: inline-flex; }
+@container (max-width: 1040px) {
+  .tp { grid-template-columns: minmax(0, 1fr); }
+  .tp-window { border-width: 18px; border-image-width: 18px; }
+  .tp-run { margin: 0 12px 12px; }
+}
+@container (max-width: 560px) {
+  .tp-gym { position: static; width: auto; margin: 0 12px 12px; }
+}

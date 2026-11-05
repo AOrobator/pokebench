@@ -436,8 +436,8 @@ it("renders verified confirmation selection and unsupported diagnostic", () => {
   expect(fieldContext(view(log))).toContain("&lt;callback&gt;");
   expect(fieldContext(view(log))).toContain("unavailable");
   log.add(2,state({active_ui:{phase:"clock_adjustment",selected:null,ready:false,controls:"LEFT/RIGHT",diagnostic:null,value:"10:00 AM"}}));
-  expect(trainerCard(view(log),BASE_MS+2)).toContain("10:00 AM");
-  expect(trainerCard(view(log),BASE_MS+2)).toContain("not ready");
+  expect(fieldContext(view(log))).toContain("10:00 AM");
+  expect(fieldContext(view(log))).toContain("not ready");
 });
 
 it("renders passive would-stop as a diagnostic rather than execution error",()=>{
@@ -750,7 +750,7 @@ it("keeps party confirmation readiness in the existing replay interface and link
  const log=bare();
  log.add(1000,state({active_ui:{phase:"party_item_message",selected:"A/B: CONTINUE",ready:true,controls:"A or B continues the message",diagnostic:null,value:null,details:{message:"TORCHIC's HP was restored by 20 point(s)."}}}));
  const current=view(log);
- const doc=new Window().document;doc.body.innerHTML=trainerCard(current,END)+harnessConfig(current,FEATURES);
+ const doc=new Window().document;doc.body.innerHTML=fieldContext(current)+harnessConfig(current,FEATURES);
  expect(doc.body.textContent).toContain("party_item_message");
  expect(doc.body.textContent).toContain("A/B: CONTINUE");
  expect(Array.from(doc.querySelectorAll("dt")).find(dt=>dt.textContent==="INPUT")?.nextElementSibling.textContent).toBe("ready");

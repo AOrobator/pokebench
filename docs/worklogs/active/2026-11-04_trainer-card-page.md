@@ -6,8 +6,8 @@ Viewer-only, so no feature switch. The protected run cards are not touched: this
 
 ## M1
 
-- [ ] RED: page, parser, route and art-parser tests
-- [ ] GREEN
+- [x] RED: 27070b9df
+- [x] GREEN: page, art script, route; interface rows moved to FIELD STATE
 - [ ] Headless proof, desktop and phone
 - [ ] Gates, review
 - [ ] Land, `just trainer-page-art`, `just viewer-main`, live proof

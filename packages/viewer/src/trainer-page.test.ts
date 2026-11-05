@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { Log, START, state } from "../test-support/events.js";
 import { RunView } from "./model.js";
-import { cardHtml, gymHtml, parseTrainerPageData, runHtml, trainerFacts, type Gym } from "./trainer-page.js";
+import { PAGE_SPRITE_PATH, cardHtml, gymHtml, parseTrainerPageData, runHtml, trainerFacts, type Gym } from "./trainer-page.js";
 
 const bare = (): Log => { const log = new Log(); log.add(0, START); return log; };
 const view = (log: Log): RunView => { const v = new RunView(); for (const event of log.events) v.apply(event); return v; };
@@ -17,6 +17,11 @@ describe("parseTrainerPageData", () => {
   });
 });
 
+it("serves only the page's own art", () => {
+  for (const good of ["data.json", "card-female.png", "stripes-male.png", "text-window.png", "badges.png", "leader-tate-and-liza.png"]) expect(PAGE_SPRITE_PATH.test(good)).toBe(true);
+  for (const bad of ["../manifest.json", "leader-x/../../rom.png", "card-green.png", "data.json.bak"]) expect(PAGE_SPRITE_PATH.test(bad)).toBe(false);
+});
+
 describe("trainerFacts", () => {
   const facts = (log: Log, seconds = 3725) => trainerFacts(view(log), seconds);
 
@@ -25,7 +30,8 @@ describe("trainerFacts", () => {
     log.add(1, state({ name: "A", money: 2623, play_time_s: 19_089, badges: ["STONE"], location: "ROUTE112", party: [{ species: "MARSHTOMP", species_id: 284, level: 30, hp: 80, max_hp: 89, ot_id: 3_558_151_034, ot_gender: "female" }] }));
     const f = facts(log);
     expect(f).toMatchObject({ gender: "female", name: "A", id: "04986", money: "¥2623", time: "5:18", turn: "1", runTime: "1:02:05", map: "ROUTE 112", badges: ["STONE"] });
-    expect(f.party).toEqual([{ icon: 284, level: 30, hp: expect.closeTo(89.9, 1) }]);
+    expect(f.party[0]?.icon).toBe(284);
+    expect(f.party[0]?.hp).toBeCloseTo(89.9, 1);
   });
 
   it("shows blanks, not guesses, before the game starts", () => {

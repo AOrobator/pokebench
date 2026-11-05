@@ -61,6 +61,12 @@ backfill-story-progress +runs:
 trainer-card-art out="runs/sprites/trainer-card-v1":
     uv run --project env python scripts/trainer-card/build_art.py "$1"
 
+# PokéNav TRAINER CARD page art and gym table from ~/dev/pokeemerald, verified against $POKEBENCH_ROM.
+# ROM-derived: output stays under runs/.
+[positional-arguments]
+trainer-page-art out="runs/sprites/trainer-page-v1":
+    uv run --project env python scripts/trainer-card/build_page_art.py "$1"
+
 # BAG page item icons for the viewer from ~/dev/pokeemerald, every asset
 # verified against $POKEBENCH_ROM. ROM-derived: output stays under runs/.
 [positional-arguments]

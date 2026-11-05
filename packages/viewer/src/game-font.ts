@@ -12,6 +12,10 @@ export const GAME_TEXT: Readonly<Record<string, { readonly fg: Rgb; readonly sha
   tab: { fg: [24, 48, 96], shadow: null },
   white: { fg: [248, 248, 248], shadow: [80, 80, 88] },
   badge: { fg: [80, 56, 0], shadow: null },
+  // TRAINER CARD page: the card's own text colours, and quieter labels and a warning in the text windows.
+  "tp-dark": { fg: [72, 72, 80], shadow: [208, 208, 216] },
+  "tp-muted": { fg: [112, 120, 132], shadow: [224, 228, 232] },
+  "tp-red": { fg: [208, 48, 48], shadow: [248, 200, 200] },
   // POKéMON PARTY page: party-slot text (party_menu.c sFontColorTable[0]) and the summary screen's
   // sTextColors on palette 6, its OT colors, and the PP states on gPPTextPalette.
   "pv-slot": { fg: [255, 255, 255], shadow: [115, 115, 115] },

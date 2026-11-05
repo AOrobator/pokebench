@@ -1,3 +1,4 @@
+import { PAGE_SPRITE_PATH } from "./trainer-page.js";
 import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
@@ -41,7 +42,7 @@ import { SharedFrameHub } from "./frame-hub.js";
 
 export const HOST = "127.0.0.1";
 // Browser code the page may load; everything else in dist/ stays private.
-export const BROWSER_MODULES = ["current-browser","current-public","current-state","budget-extensions","visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "card-row", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
+export const BROWSER_MODULES = ["trainer-page","current-browser","current-public","current-state","budget-extensions","visual-split-view", "campaign-catalog", "story-progress", "roxanne-interaction","main", "app", "metric-history", "model", "format", "inspectformat", "timeline", "panels", "party-view", "gba", "replay", "controls", "nextpanel", "human-input", "human-play", "human-main", "workbench-main", "workbench", "workbench-view", "workbench-data", "workbench-sync", "frontier", "frontier-versions", "frontier-legend", "trace", "run-head", "trainer-card", "card-row", "game-font", "card-dom", "phone", "reports-view", "reports-main", "reports-boot", "probe-stats", "probes-view", "probes-main", "probes-boot"] as const;
 
 const MODULE_NAME = new RegExp(`^(${BROWSER_MODULES.join("|")})\\.js$`);
 const FRAME_NAME = /^\d{6}_\d+\.png$/;
@@ -532,6 +533,11 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (head === "sprites" && second === "party" && PARTY_SPRITE_PATH.test(parts.slice(2).join("/"))) {
     const path = parts.slice(2).join("/");
     sendFile(res, join(options.runsRoot, "sprites", "party-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
+    return;
+  }
+  if (head === "sprites" && second === "page" && PAGE_SPRITE_PATH.test(parts.slice(2).join("/"))) {
+    const path = parts.slice(2).join("/");
+    sendFile(res, join(options.runsRoot, "sprites", "trainer-page-v1", path), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
     return;
   }
   if (head === "sprites" && second === "bag" && BAG_SPRITE_PATH.test(parts.slice(2).join("/"))) {

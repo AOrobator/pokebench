@@ -9,7 +9,8 @@ import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
-import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, runWallSeconds, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { cardHtml as trainerCardHtml, gymHtml, parseTrainerPageData, runHtml, trainerFacts, type TrainerFacts, type TrainerPageData } from "./trainer-page.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
@@ -249,6 +250,11 @@ export class App {
   private traceMore = 0;
   private olderQueued = false;
   private olderPages = OLDER_PAGES;
+  private trainerPage: TrainerPageData | null = null;
+  private trainerPageLoad: Promise<void> | null = null;
+  private trainerFacts: TrainerFacts | null = null;
+  private gymOpen: number | null = null;
+  private gymPinned = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -975,6 +981,7 @@ export class App {
         this.remember(details, details.open, true);
       }, true);
     }
+    this.wireTrainer();
     this.ui("trace-link").addEventListener("click", () => {
       this.showPage("trace");
       this.doc.querySelector(".inspection-nav")?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1023,11 +1030,74 @@ export class App {
     if (name === "splits" && this.runId !== null) { if(this.current!==null){void this.loadWorkbench();void this.loadFrontier(this.runId);}if(this.comparisonsRun!==this.runId)void this.loadComparisons(this.runId); }
     if (name === "bag") { this.bagNextPoll = 0; }
     if (name === "party") void this.loadPartyArt();
+    if (name === "trainer") void this.loadTrainerPage();
     for (const panel of this.doc.querySelectorAll<HTMLElement>("[data-nav-page]")) panel.hidden = panel.dataset.navPage !== name;
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
     if (name === "bag") this.renderBag();
     if (name === "trace") this.readOlder();
+  }
+
+  loadTrainerPage(): Promise<void> {
+    this.trainerPageLoad ??= this.deps.fetchJson("/sprites/page/data.json").then(parseTrainerPageData, () => null).then((data) => { this.trainerPage = data; this.render(); });
+    return this.trainerPageLoad;
+  }
+
+  private paintTrainer(element: HTMLElement): void {
+    const font = this.art?.font ?? null, glyphs = this.art?.glyphs ?? null;
+    if (font !== null && glyphs !== null) paintGameText(element, font, glyphs, (canvas, pixels) => { this.deps.drawGlyphs?.(canvas, pixels); });
+  }
+
+  // The plain rows stand in until the art and gym table exist (`just trainer-page-art`).
+  private renderTrainer(view: RunView, nowMs: number): void {
+    const data = this.trainerPage, page = this.ui("trainer-page"), ready = data !== null && view.start !== null;
+    page.hidden = !ready;
+    this.ui("trainer").hidden = ready;
+    if (!ready) { this.setHtml("trainer", trainerCard(view, nowMs)); return; }
+    const facts = trainerFacts(view, runWallSeconds(view, nowMs)), card = this.ui("trainer-card");
+    this.trainerFacts = facts;
+    page.style.setProperty("--tp-stripes", `url(/sprites/page/stripes-${facts.gender}.png)`);
+    const focused = this.doc.activeElement instanceof HTMLElement ? this.doc.activeElement.dataset.tpBadge : undefined;
+    this.setHtml("trainer-card", trainerCardHtml(facts, data.gyms));
+    if (focused !== undefined) card.querySelector<HTMLElement>(`[data-tp-badge="${focused}"]`)?.focus({ preventScroll: true });
+    this.setHtml("trainer-run", runHtml(facts));
+    this.paintTrainer(card);
+    this.paintTrainer(this.ui("trainer-run"));
+    this.showGym();
+  }
+
+  private showGym(): void {
+    const panel = this.ui("trainer-gym"), gym = this.gymOpen === null ? undefined : this.trainerPage?.gyms[this.gymOpen];
+    panel.hidden = gym === undefined || this.trainerFacts === null;
+    for (const button of this.ui("trainer-card").querySelectorAll<HTMLElement>("[data-tp-badge]")) button.setAttribute("aria-expanded", String(button.dataset.tpBadge === String(this.gymOpen)));
+    if (gym === undefined || this.trainerFacts === null) return;
+    this.setHtml("trainer-gym", gymHtml(gym, this.trainerFacts));
+    this.paintTrainer(panel);
+  }
+
+  private pickGym(index: number | null, pinned: boolean): void {
+    this.gymOpen = index;
+    this.gymPinned = pinned;
+    this.showGym();
+  }
+
+  private wireTrainer(): void {
+    const card = this.ui("trainer-card"), badge = (target: EventTarget | null): number | null => {
+      const value = target instanceof Element ? target.closest<HTMLElement>("[data-tp-badge]")?.dataset.tpBadge : undefined;
+      return value === undefined ? null : Number(value);
+    };
+    const peek = (event: Event): void => { const index = badge(event.target); if (index !== null && !this.gymPinned) this.pickGym(index, false); };
+    const leave = (): void => { if (!this.gymPinned) this.pickGym(null, false); };
+    card.addEventListener("mouseover", peek);
+    card.addEventListener("focusin", peek);
+    card.addEventListener("mouseout", leave);
+    card.addEventListener("focusout", leave);
+    this.doc.addEventListener("click", (event) => {
+      const index = badge(event.target);
+      if (index !== null) this.pickGym(this.gymPinned && this.gymOpen === index ? null : index, !(this.gymPinned && this.gymOpen === index));
+      else if (this.gymPinned && !(event.target instanceof Element && event.target.closest('[data-ui="trainer-gym"]') !== null)) this.pickGym(null, false);
+    });
+    this.doc.addEventListener("keydown", (event) => { if (event.key === "Escape" && this.gymOpen !== null) this.pickGym(null, false); });
   }
 
   // The current party screen remains visible while tables and fonts load.
@@ -1699,7 +1769,7 @@ export class App {
       const body = this.ui("think-body");
       body.scrollTop = body.scrollHeight;
     }
-    this.setHtml("trainer", trainerCard(view, nowMs));
+    this.renderTrainer(view, nowMs);
     this.setHtml("field-context", fieldContext(view));
     {
       const root = this.ui("harness-config"), html = harnessConfig(view, this.next.registry), pane = root.closest<HTMLElement>(".page-content");

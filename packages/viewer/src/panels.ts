@@ -22,7 +22,7 @@ export interface Baseline {
 }
 
 // Run time against the time cap: operator pauses are excluded.
-function wallSeconds(view: RunView, nowMs: number): number {
+export function runWallSeconds(view: RunView, nowMs: number): number {
   if (view.end !== null) return (view.end.wall_ms - view.control.pausedBefore(view.lastMs ?? nowMs)) / 1000;
   return (nowMs - (view.startMs ?? nowMs) - view.control.pausedBefore(nowMs)) / 1000;
 }
@@ -47,14 +47,11 @@ export function trainerCard(view: RunView, nowMs: number): string {
   return (
     (view.legacyState ? '<p class="nodata">Historical vendor readout; accurate state unavailable for this run.</p>' : "") +
     kv([
-      ["TIME", hms(wallSeconds(view, nowMs))],
+      ["TIME", hms(runWallSeconds(view, nowMs))],
       ["PLAY", state === null ? NO_DATA : state.play_time_s === null ? NOT_STARTED : hms(state.play_time_s)],
       ["MAP", state === null ? NO_DATA : place(state)],
       ["MONEY", state === null ? NO_DATA : state.money === null ? NOT_STARTED : `₽${num(state.money)}`],
       ["TURN", String(view.turn)],
-      ...(state?.active_ui == null ? [] : [["INTERFACE", esc(state.active_ui.phase)], ...(state.active_ui.value == null ? [] : [["VALUE", esc(state.active_ui.value)]]), ["SELECTION", esc(state.active_ui.selected ?? "unavailable")], ["INPUT", state.active_ui.ready === null ? "unavailable" : state.active_ui.ready ? "ready" : "not ready"], ...(state.active_ui.diagnostic === null ? [] : [["STATE COVERAGE ERROR", esc(state.active_ui.diagnostic)]])] as [string, string][]),
-      ...(state?.naming == null ? [] : [["NAME ENTRY", esc(state.naming.text || "(empty)")], ["CURSOR", esc(`${state.naming.page}: ${state.naming.key} (${String(state.naming.column)},${String(state.naming.row)})`)]] as [string, string][]),
-      ["CONTROLS", state?.field_controls_locked === true ? "locked" : state?.field_controls_locked === false ? "available" : NO_DATA],
     ]) + `<div class="badges">${badges}</div>`
   );
 }
@@ -114,7 +111,7 @@ export function budgets(view: RunView, nowMs: number): string {
     rows.push(budgetBar("TOKENS", used / max_tokens, `${num(used)} / ${num(max_tokens)}`));
   }
   if (max_wall_ms !== undefined) {
-    const wall = wallSeconds(view, nowMs);
+    const wall = runWallSeconds(view, nowMs);
     rows.push(budgetBar("WALL", (wall * 1000) / max_wall_ms, `${hms(wall)} / ${hms(max_wall_ms / 1000)}`));
   }
   return `<div class="llmmix">${rows.join("")}</div>`;
@@ -155,7 +152,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
   const bases = reference(baseline), bests = reference(frontier);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
-  const elapsed = wallSeconds(view, nowMs);
+  const elapsed = runWallSeconds(view, nowMs);
   const newStory = new Set(["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "MOM_CLOCK_INSTRUCTION", "MOM_RIVAL_INSTRUCTION", "RIVAL_MET", "BIRCH_RESCUE_COMPLETE", "BIRCH_STARTER_HANDOFF_COMPLETE", "RIVAL_BATTLE_WON", "RECEIVED_POKEDEX", "STARTER_TUTORIAL_COMPLETE", "RUNNING_SHOES_RECEIVED", "DAD_FIRST_MEETING", "WALLY_TUTORIAL_COMPLETE", "TEAM_AQUA_WOODS_EVENT_COMPLETE", "RUSTBORO_GYM_COMPLETE", "ROCK_TOMB_RECEIVED"]);
   const nativeProgress = (name:string) => name.startsWith("ROUTE_102_TRAINER_") || name.startsWith("ROUTE_104_TRAINER_") || ["ROXANNE_DEFEATED","FIRST_POKEMON_CAUGHT","FIRST_POKECENTER_HEAL","FIRST_EVOLUTION"].includes(name);
   const remainingNative = (name:string) => name.startsWith("PETALBURG_WOODS_TRAINER_") || name.startsWith("ROUTE_116_TRAINER_") || ["ROUTE_115", "ROUTE_116", "RUSTURF_TUNNEL"].includes(name);
@@ -336,7 +333,22 @@ export function runIdentity(view: RunView): string {
   return cells.join("");
 }
 
+// What the game's interface is doing right now. It moves too fast for the trainer card, so it lives here.
+function interfaceRows(view: RunView): string {
+  const state = view.state;
+  if (state === null) return "";
+  return kv([
+       ...(state.active_ui == null ? [] : [["INTERFACE", esc(state.active_ui.phase)], ...(state.active_ui.value == null ? [] : [["VALUE", esc(state.active_ui.value)]]), ["SELECTION", esc(state.active_ui.selected ?? "unavailable")], ["INPUT", state.active_ui.ready === null ? "unavailable" : state.active_ui.ready ? "ready" : "not ready"], ...(state.active_ui.diagnostic === null ? [] : [["STATE COVERAGE ERROR", esc(state.active_ui.diagnostic)]])] as [string, string][]),
+       ...(state.naming == null ? [] : [["NAME ENTRY", esc(state.naming.text || "(empty)")], ["CURSOR", esc(`${state.naming.page}: ${state.naming.key} (${String(state.naming.column)},${String(state.naming.row)})`)]] as [string, string][]),
+       ["CONTROLS", state.field_controls_locked === true ? "locked" : state.field_controls_locked === false ? "available" : NO_DATA],
+  ]);
+}
+
 export function fieldContext(view: RunView): string {
+  return interfaceRows(view) + fieldFacts(view);
+}
+
+function fieldFacts(view: RunView): string {
   const context = view.state?.world_context;
   const story = view.state?.story;
   const storyText = story == null ? "Story state: not recorded for this run." : "Story state (game memory):\n" + Object.entries(story).map(([field, value]) => `${field.replaceAll("_", " ")}: ${value === null ? "unknown" : value === true ? "yes" : value === false ? "no" : String(value)}`).join("\n");

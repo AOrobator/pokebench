@@ -1,0 +1,40 @@
+item,video_ts,run_ts,map,location,hidden,source,used_for
+Poké Balls (x5),0:06:56,0:06:02,Birch's Lab (Littleroot),gift right after the Pokédex (giver not read from frames),gift,OCR 'Obtained the POKE BALLS'; walkthrough part 01,Abra catch (Route 116) and the Rayquaza catch (1 of 4 left at v2:08:49)
+Great Ball,0:13:02,0:12:08,Petalburg Woods,gift from the Devon researcher after the Aqua grunt fight,gift,OCR 'Obtained the GREAT BALL',Taillow catch on Route 116 (v0:20:11 bag shows Great Ball selected)
+TM39 Rock Tomb,0:18:32,0:17:38,Rustboro Gym,Roxanne's badge reward,gift,OCR,sold at the Fallarbor Mart for ₽1500 (v0:45:16)
+Devon Goods,0:22:19,0:21:25,Rusturf Tunnel,taken back from the Aqua grunt,story,OCR,delivered to Capt. Stern at the Oceanic Museum (v0:31:12)
+Great Ball,0:22:57,0:22:03,Rustboro City,gift from the Devon employee for returning the Goods,gift,OCR; frame v0:22:56 (employee 'As my thanks I'll give you a…'),kept unused (Great Ball x1 still in the bag at the Rayquaza catch)
+Letter,0:23:29,0:22:35,Devon Corporation 3F,gift from Mr. Stone,story,OCR,delivered to Steven in Granite Cave (v0:27:02)
+PokéNav,0:23:36,0:22:42,Devon Corporation 3F,gift from Mr. Stone,story,OCR,Match Call registration only
+Escape Rope,0:26:26,0:25:32,Granite Cave 1F,visible item ball on the lit 1F near the entrance (ball next to the player on the v0:26:24 frame); not Route 106 as I said earlier,visible ball,OCR 'A found one ESCAPE ROPE'; 720p frames v0:26:22-0:26:25,used at once to leave Granite Cave after Steven (v0:27:26)
+TM47 Steel Wing,0:27:09,0:26:15,Granite Cave (Steven's room),gift from Steven for the Letter,gift,OCR 'Obtained the TM47',not taught; possibly the second ₽1500 TM sold in Fallarbor (unconfirmed)
+Soft Sand,0:28:00,0:27:06,Route 109 beach,gift from the girl in the beach group south of Slateport ('You can have this!'),gift,OCR; 720p frame v0:27:59,held by Mudkip/Marshtomp from v0:28:28 (Ground-move boost for Mud-Slap/Mud Shot); back on Swampert at v1:40:40
+Full Heal,0:34:08,0:33:14,Route 110,visible item ball in the fenced grass enclosure by the water (south section),visible ball,OCR; 720p frames v0:34:04-0:34:07,not seen used (Full Heal x1 still in the bag at v0:42:05)
+Itemfinder,0:36:17,0:35:23,Route 110,gift from Brendan after Rival 2,gift,OCR,no on-screen Itemfinder use identified
+Elixir,0:37:25,0:36:31,Route 110,visible item ball in the fenced garden just after Psychic Edward (walkthrough part 03: 'head left and you'll find an item … an Elixir'); not an Itemfinder find,visible ball,OCR; 720p frame v0:37:24; walkthrough part 03 l.320-321,PP restore later (Elixir use around Winona v1:24)
+HM06 Rock Smash,0:37:46,0:36:52,Mauville City (Rock Smash Guy's house),gift,gift,OCR,taught to Marshtomp over Tackle (v0:38:35); Route 111 rocks and Rusturf
+Mach Bike,0:38:16,0:37:22,Mauville City (Rydel's Cycles),gift,gift,OCR,registered to Select; ridden everywhere outdoors and in dungeons
+TM34 Shock Wave,0:43:25,0:42:31,Mauville Gym,Wattson's badge reward,gift,OCR,taught to Castform (v1:18:02)
+Nugget,0:45:03,0:44:09,Fallarbor Town,A pressed on the crater-ring spot west of the Mart (no ball on the v0:44:59-0:45:02 frames); 1.4 s after the FALLARBOR TOWN popup,hidden,OCR; 720p frames,sold at the Fallarbor Mart for ₽5000 (v0:45:13)
+HM04 Strength,0:48:06,0:47:12,Rusturf Tunnel,gift from Wanda's boyfriend after the rocks are smashed,gift,OCR,taught over Mud-Slap (v0:48:37); boulders in Magma Hideout / Seafloor / Victory Road; main attack until Surf
+TM50 Overheat,0:57:26,0:56:32,Lavaridge Gym,Flannery's badge reward,gift,OCR,unused
+Go-Goggles,0:57:49,0:56:55,Lavaridge Town,gift from May outside the gym,gift,OCR,lets him cross the Route 111 desert for the Rare Candy below
+Rare Candy,0:58:38,0:57:44,Route 111 desert,in the sandstorm near the rocks south of Mirage Tower; no ball visible on the v0:58:34-0:58:37 frames,hidden (no ball seen; unconfirmed),OCR; 720p frames,Marshtomp to Lv30 (v1:01:55)
+TM08 Bulk Up,1:00:57,1:00:03,Dewford Gym,Brawly's badge reward,gift,OCR,unused
+TM42 Facade,1:07:00,1:06:06,Petalburg Gym,Norman's badge reward,gift,OCR,unused
+HM03 Surf,1:07:38,1:06:44,Petalburg City (Wally's house),gift from Wally's father,gift,OCR,taught over Water Gun (v1:08:01); main attack from here on
+Rare Candy,1:08:10,1:07:16,Petalburg City,while surfing the pond by Wally's house (first use of Surf); no ball visible on the v1:08:06-1:08:09 frames,hidden (no ball seen; unconfirmed),OCR; 720p frames,Swampert evolution push (Rare Candies at v1:17:10-1:17:14 took it 34→36)
+Castform (+ Mystic Water),1:12:24,1:11:30,Weather Institute 2F,gift Pokémon from the scientist; holds Mystic Water (walkthrough part 07 l.459),gift,OCR 'A received CASTFORM'; walkthrough,Castform = Shock Wave double-battle partner; turn fodder
+Elixir,1:12:57,1:12:03,Route 119 (south of the Weather Institute),visible item ball (walkthrough part 07 l.524: 'pick up the Elixir to the south'),visible ball (walkthrough; frames inconclusive),OCR; walkthrough,PP restore (Winona fight v1:24 'Elixir for PP')
+HM02 Fly,1:14:32,1:13:38,Route 119 (after Rival 3),gift from Brendan,gift,OCR,taught to Taillow (v1:17:49); taxi from v1:35
+Devon Scope,1:15:50,1:14:56,Route 120,gift from Steven,gift,OCR,reveals Kecleon blocking the Fortree Gym (v1:21:47)
+Rare Candy,1:16:26,1:15:32,Route 120,pond and flower area south of Fortree; surfing nearby,hidden (the operator's commentary says hidden; no ball seen),OCR; 720p frames v1:16:22-1:16:25,Swampert evolution (v1:17:10-1:17:36)
+Mystic Water,1:16:54,1:16:00,Route 120/121 (party menu),taken from Castform's held item ('Received the MYSTIC WATER from G'),from own Pokémon,OCR v1:16:54 and 'was given the MYSTIC WATER to hold' v1:17:43,held by Swampert (Water-move boost for Surf) from v1:17:43
+Magma Emblem,1:21:09,1:20:15,Mt. Pyre summit,gift from Archie/the old couple after the summit battle,story,OCR,opens the Magma Hideout on Jagged Pass
+Rare Candy,1:21:27,1:20:33,Mt. Pyre summit,on the summit 1 s after he runs from a wild Shuppet (v1:21:24); no ball visible on the v1:21:23-1:21:26 frames,hidden (no ball seen; unconfirmed),OCR; 720p frames,Swampert level-up (to 38 before Winona)
+TM40 Aerial Ace,1:27:04,1:26:10,Fortree Gym,Winona's badge reward,gift,OCR,taught to Rayquaza (v2:13:14); main E4 move
+Max Elixir,1:40:10,1:39:16,Aqua Hideout,visible item ball alone in the room behind the right panel of the first two-panel room (walkthrough part 09),visible ball,OCR; 720p frame v1:40:09 (ball beside the player); walkthrough,used at v1:40:40 to restore Swampert's PP ('PP was restored')
+TM04 Calm Mind,1:48:00,1:47:06,Mossdeep Gym,Tate & Liza's badge reward,gift,OCR,unused
+HM08 Dive,1:55:07,1:54:13,Mossdeep City (Steven's house),gift from Steven,gift,OCR,taught over Mud Shot (v1:55:40); Seafloor Cavern and Sootopolis
+HM07 Waterfall,2:09:41,2:08:47,Sootopolis City,gift from Wallace,gift,OCR,taught to Rayquaza (v2:13:27); Ever Grande waterfall and Victory Road
+TM03 Water Pulse,2:12:06,2:11:12,Sootopolis Gym,Juan's badge reward,gift,OCR,unused

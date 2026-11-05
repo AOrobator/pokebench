@@ -14,8 +14,8 @@ import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixe
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
 const runnerPath = (runsRoot: string): string => join(runsRoot, "experiments", "runner.json");
 
-// The trial's own environment. Boot starts save a native state at each frontier milestone (the operator
-// 2026-11-04, about 5 ms a save); a trial from a save state already begins past its capture point.
+// The trial's own environment. Boot starts set the capture switch for older pins, where it is off by
+// default. Newer pins save at each frontier milestone on every start, so a save-state trial needs no setting.
 export function trialEnv(def: FixedDefinition, slot: Pick<QueueSlot, "slot" | "phase" | "arm">, lane: Pick<FixedLane, "gamePort">, paths: { readonly endpoint: string; readonly preset: string; readonly run: string }): Readonly<Record<string, string>> & { readonly POKEBENCH_PLAY_PRESET: string } {
   return {
     POKEBENCH_MODEL: def.serving.model,

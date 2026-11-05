@@ -7,6 +7,7 @@ import type {RunStartMeta} from "./recorder.js";
 export type CheckpointSelection={readonly kind:"single";readonly target:string}|{readonly kind:"frontier"};
 
 export interface CheckpointDeps {
+ readonly run:string;
  readonly serverUrl:string;
  readonly dir:string;
  readonly libraryDir?:string;
@@ -19,9 +20,9 @@ export interface CheckpointDeps {
 
 const nativeMilestone=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
 
-// A boot start saves every frontier milestone unless POKEBENCH_CHECKPOINT_FRONTIER=0 (the operator 2026-11-05,
-// after run 274b saved none). Save-state starts stay opt-in.
-export function checkpointSelection(env:NodeJS.ProcessEnv,start:{readonly kind:"boot"|"save_state"}):CheckpointSelection|null {
+// Every start saves each frontier milestone unless POKEBENCH_CHECKPOINT_FRONTIER=0 (the operator 2026-11-05,
+// after run 274b saved none). Saves live under the run's own id, so a checkpoint start never touches its source.
+export function checkpointSelection(env:NodeJS.ProcessEnv):CheckpointSelection|null {
  const target=env["POKEBENCH_CHECKPOINT_AT"],frontier=env["POKEBENCH_CHECKPOINT_FRONTIER"];
  if(frontier!==undefined&&frontier!==""&&frontier!=="0"&&frontier!=="1")throw new Error("POKEBENCH_CHECKPOINT_FRONTIER must be 0 or 1 when set");
  if(target!==undefined&&target!==""&&frontier==="1")throw new Error("choose one of POKEBENCH_CHECKPOINT_AT and POKEBENCH_CHECKPOINT_FRONTIER");
@@ -29,13 +30,12 @@ export function checkpointSelection(env:NodeJS.ProcessEnv,start:{readonly kind:"
   if(!nativeMilestone(target))throw new Error(`POKEBENCH_CHECKPOINT_AT must name a native milestone, got ${target}`);
   return {kind:"single",target};
  }
- if(frontier==="0")return null;
- return frontier==="1"||start.kind==="boot"?{kind:"frontier"}:null;
+ return frontier==="0"?null:{kind:"frontier"};
 }
 
 // Backwards-compatible accessor for callers that only support the original setting.
 export function checkpointTarget(env:NodeJS.ProcessEnv):string|null {
- const selection=checkpointSelection(env,{kind:"save_state"});
+ const selection=checkpointSelection(env);
  return selection?.kind==="single"?selection.target:null;
 }
 
@@ -66,6 +66,8 @@ export class CheckpointCapture {
  private closed=false;
  constructor(private readonly selection:CheckpointSelection,private readonly deps:CheckpointDeps,private readonly start:RunStartMeta){}
  observe(event:RunEvent):void {
+  // A continuation replays its source run's events through every observer; the game is not at those milestones.
+  if(event.run!==this.deps.run)return;
   if(this.closed||event.type!=="milestone"||event.origin==="present_at_start"||this.seen.has(event.name)||!this.selected(event.name))return;
   this.seen.add(event.name);
   this.pending=this.pending.then(()=>this.capture(event)).catch((value:unknown)=>{

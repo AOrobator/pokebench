@@ -43,3 +43,22 @@ Round 2 on 4c5590aa9: Claude LGTM, fallback (Sonnet) LGTM, GPT BLOCKING only on 
 Round 3 on c02e23e2c, base 560aaf991, packet SHA-256 027a66db6e2ea4f6: Claude LGTM, GPT LGTM, fallback LGTM. Full gates ran at 961e5c5d7; the later delta is one sidecar string changed in code and test, comments and this worklog, and post-merge `just test` passed at the landed head.
 
 Not a live run yet: the first real run from this build is still to come. Run 5f0f keeps its older pin.
+
+## Follow-up: every start saves by default
+
+The operator, 2026-11-05 1:05 AM: "we should also make it save milestones when starting from a checkpoint by default". `checkpointSelection` no longer needs the start; `0` stays the OFF switch.
+
+Saves stay apart from the source run: run files are under `runs/<id>/checkpoints/`, library copies under `runs/checkpoints/<milestone>/candidates/<id>/`, and every run has its own id. A continuation replays its source run's milestones through every observer, so capture ignores any event whose run is not its own; without that, replay wrote the start state over source candidates (all three reviewers, round 1 of this follow-up). Each sidecar names `source.start_state`. A checkpoint-started run can win `first-arrival.json` if it arrives first; only capture itself reads that index.
+
+Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` and `fixed-runner.ts` keep setting `1` because they can launch older pins.
+
+- [x] RED: default on for any start; checkpoint-start saves stay under their own run
+- [x] GREEN: default on for every start. COMMIT (RED): `test(checkpoints): every start saves by default` (47c8712a9)
+- [x] Full gates on the every-start default: just lint, build, test, verify-vendor all exit 0; floors held.
+- [x] Review round 1 on 0ec13791: Claude, GPT and fallback all BLOCKING on continuation replay. Fix: run filter in `observe`, test through real `RunRecorder.restoreHistory`. Note: fixed-run save-state launches cannot pass `0`, because the launcher strips the variable.
+- [x] Replay test proven: removing the run filter fails it (1 failed, 13 passed); restored, 14 passed.
+- [x] Full gates after the replay fix: just lint, build, test, verify-vendor all exit 0; floors held.
+- [x] Review round 2 on 91244c2f7, base 2ca2ff475, packet SHA-256 d68e6526b0a79323: Claude LGTM, GPT LGTM, Sonnet fallback LGTM. Grok unavailable (Cursor out of usage).
+- [x] Landed by fast-forward at 91244c2f7, then `just test` on main passed.
+
+Follow-ups: pin `restoreRunIdentity:true` in the replay test; hand readers of `first-arrival.json` should check `source.start_state`, since a checkpoint start can win it; no real run has used this build yet.

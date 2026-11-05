@@ -7,9 +7,9 @@ Operator approval: The operator said yes on 2026-11-05 to making frontier checkp
 - `checkpointSelection` takes the run's start. A boot start with the variable unset captures every required frontier milestone.
 - `POKEBENCH_CHECKPOINT_FRONTIER=0` is the OFF switch and restores the old no-capture behavior. `1` keeps its meaning. Save-state starts stay opt-in.
 - Pause cost from run 5f0f: at most 145 ms a save, about 5.3 s over nearly 8 hours.
-- Model-visible effect (found by Claude review, verified in the events): a capture that overlaps a tool wait ends that wait early with reason `paused`. In 5f0f, 4 of about 120 saves did this: seq 1588 gave the model "the game is paused, so the battle did not advance", and seq 1070, 1390 and 30908 skipped a settle wait. Run 274b, with no capture, has none. Cause is inferred; pauses are not logged.
+- Historical, fixed below. Model-visible effect (found by Claude review, verified in the events): a capture that overlaps a tool wait ends that wait early with reason `paused`. In 5f0f, 4 of about 120 saves did this: seq 1588 gave the model "the game is paused, so the battle did not advance", and seq 1070, 1390 and 30908 skipped a settle wait. Run 274b, with no capture, has none. Cause is inferred; pauses are not logged.
 - Newly exposed paths: hand `just run-agent` boot runs, viewer-queue runs (`next-run.ts`), boot serial-comparison arms. `launch.sh` and boot fixed trials already had this. `run_start` does not record capture mode.
-- No registered feature for now: the variable is the switch, `0` is OFF. Operator decision on this effect is required before landing and is recorded below.
+- No registered feature: the variable is the switch, `0` is OFF. With the pause removed, capture has no model-visible effect, so it is a measurement setting. Operator decision recorded below.
 
 ## Progress
 
@@ -32,3 +32,8 @@ Why that is safe: `/pokebench/checkpoint` saves under `memory_lock`, and `step_e
 - [x] RED: capture must never call `/pokebench/pause`; pause-only failure tests removed with the behavior
 - [x] GREEN: `pause()` removed from `CheckpointCapture`; sidecar `capture.stability` is now `between_frames_under_memory_lock`. Focused: 13 passed; agent tsc and changed-file eslint clean. COMMIT (RED): `test(checkpoints): capture must not pause the game` (ec3059746)
 - [x] Real-server A/B on a scratch port from a copy of 5f0f's STARTER_CHOSEN state, firing during real `/pokebench/battle/wait` and `/pokebench/state` calls for 25 s each: pause and unpause 746 times gave 238 `paused` of 1475 battle waits; 848 saves gave 0 `paused` of 1250. Save round trip median 5.8 ms, max 25 ms. 12 no-pause states loaded and ran 120 frames.
+- [x] Full gates at 961e5c5d7: just lint, build, test, verify-vendor all exit 0. Agent 2455, viewer 869, env 2901, gateway 38 passed; floors held. Agent count fell by 5 because pause-only tests went with the behavior. COMMIT: `fix(checkpoints): save without pausing the game` (961e5c5d7)
+
+## Review log
+
+Round 1 on 6a046bfb0: Claude BLOCKING and GPT (Codex, `gpt-5.6-sol`) BLOCKING, both only on the capture pause and the missing operator decision. Cursor Grok and Cursor GPT lanes failed on usage limit. Round 2 is on the fix: Claude, GPT through Codex, and a fresh read-only fallback reviewer in place of Grok (the operator's standing rule while Cursor is out of usage).

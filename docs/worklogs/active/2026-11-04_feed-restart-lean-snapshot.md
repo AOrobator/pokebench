@@ -10,6 +10,10 @@ Requested by the operator 2026-11-04, follow-ups to `2026-11-04_instant-live-sta
 - [ ] Review
 - [ ] Land, `just viewer-main`, `just current-main`, confirm one-try restart and snapshot size
 
+## Review log
+
+Round 1: Claude LGTM, fallback LGTM, GPT BLOCKING at eca8bbc08. Marker validation fixed. Tabs open across the rollout need a reload: rebutted as operational, the same for any snapshot change, and reported to the operator.
+
 ## Principles self-review
 
 PB1-PB8, PB11, PB12: N/A, display and tooling only. PB9 PASS: asked for by the operator. PB10 PASS: no gate weakened. PB13 PENDING until the post-merge check.

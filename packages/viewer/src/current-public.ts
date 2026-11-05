@@ -49,7 +49,7 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
 }
 export const parseCurrentSummary=(value:unknown):CurrentSummary=>summary(value,false);
 export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
- summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince","partyIsState"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
+ summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince","partyIsState"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k))||(display["partyIsState"]!==undefined&&(display["partyIsState"]!==true||display["partyState"]!==null||display["state"]===null)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 

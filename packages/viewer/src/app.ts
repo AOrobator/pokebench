@@ -957,7 +957,7 @@ export class App {
       });
       // A list at its end sends no scroll event, so reaching for more counts too.
       if (name === "trace") for (const gesture of ["wheel", "touchmove"]) list.addEventListener(gesture, (event) => {
-        if (list.scrollHeight - list.scrollTop - list.clientHeight > 1 || (event instanceof WheelEvent && event.deltaY <= 0)) return;
+        if ((this.traceMore === 0 && this.historyBefore === null) || list.scrollHeight - list.scrollTop - list.clientHeight > 1 || (event instanceof WheelEvent && event.deltaY <= 0)) return;
         this.holdTrace(list);
         this.readOlder();
       }, { passive: true });

@@ -32,3 +32,8 @@ Round 2 at b94fe8215, packet 24ca576c: GPT BLOCKING, fallback BLOCKING (Claude s
 
 - Fixed: RETRY's direction lives in the client state (`historyOlder`), set by each read and cleared with the selection, and falls back to the newest page when nothing older exists.
 - Fixed: wheel and touch at the end of a scrollable list grant more pages too.
+
+Round 3 at 654f86ecb, packet c6cd9c93: Claude LGTM, GPT LGTM, fallback BLOCKING on one finding. Gates at 654f86ecb: `pnpm -r lint`, `just test` (2453, 826, 2894, 38), trainer-card-check, headless proof passed.
+
+- Fixed: a wheel or swipe with nothing older to load no longer holds the trace.
+- Noted, not fixed here: `loadOlderHistory` drops `operatorTurnLimit` (predates this diff, display only); a follower's first overflowing page can slide until the next refresh repairs it.

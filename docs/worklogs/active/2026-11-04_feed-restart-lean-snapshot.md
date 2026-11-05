@@ -6,8 +6,8 @@ Requested by the operator 2026-11-04, follow-ups to `2026-11-04_instant-live-sta
 
 - [x] RED/GREEN: `_unload` waits for launchd to release the label after bootout, bounded at 10 s (`just current-main` failed with status 5 on both restarts)
 - [x] RED/GREEN: a snapshot sends a shared state once (`partyIsState`) and restores it on read; older rows still parse
-- [ ] Gates
-- [ ] Review
+- [x] Gates: `just lint`, `just build`, `just test`, `just verify-vendor` passed at b340486f1 under the coordinator's CPU window
+- [x] Review: Claude LGTM and fallback LGTM on the feature, GPT LGTM on the final delta; Grok unavailable (Cursor usage limit until 11/17)
 - [ ] Land, `just viewer-main`, `just current-main`, confirm one-try restart and snapshot size
 
 ## Review log

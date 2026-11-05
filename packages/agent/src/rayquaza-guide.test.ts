@@ -2,6 +2,8 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
+import { MILESTONES } from "./milestones.js";
+import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const OFF = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": false };
@@ -62,5 +64,16 @@ describe("rayquazaGuideContext", () => {
     r.emit(milestone("FIRST_TRUCK_EXIT"));
     expect((await context([user("observation")])).at(-1)).toMatchObject({ content: "GUIDE: Follow Mom into the house." });
     expect(r.recorded).toHaveLength(2);
+  });
+});
+
+describe("the shipped guide", () => {
+  it("names only real milestones, once each, in short notes", () => {
+    const names = new Set(MILESTONES.map((m) => m.name));
+    const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);
+    expect(after[0]).toBe("RUN_START");
+    expect(after.slice(1).filter((name) => !names.has(name))).toEqual([]);
+    expect(new Set(after).size).toBe(after.length);
+    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
   });
 });

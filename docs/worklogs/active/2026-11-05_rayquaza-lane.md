@@ -62,3 +62,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fixes applied: only `Overworld:` is dropped from battle and menu guidance; Birch and naming screens reach `OPTIONS_SET` for display only; `RQ_` hints are skipped in recorded notes.
 - Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
 - Boot build final gate, correction: the first run failed one stale test in `play-wiring.test.ts`, which still expected the old first guide line; fixed and rerun. Reviews: Claude LGTM on the last delta; GPT LGTM on the last delta, its item 4 (probe core) rebutted with the identical core hash in every scene. Landing.
+- Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.

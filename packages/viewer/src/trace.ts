@@ -295,9 +295,8 @@ export interface TraceOptions {
   // Run time at an event (operator pauses excluded); null before the run starts.
   readonly elapsed: ((ms: number) => number) | null;
   readonly live: { readonly turn: number } | null;
-  // Turns on screen, and how many more each SHOW OLDER click adds.
+  // Turns on screen.
   readonly limit: number;
-  readonly page: number;
 }
 
 // One turn's rows. The stamp changes exactly when its HTML would, so the viewer
@@ -342,15 +341,23 @@ export function traceGroups(turns: readonly TraceTurn[], on: ReadonlySet<TraceCa
   return { groups, more };
 }
 
-export function moreButton(more: number, page: number): string {
-  return more > 0 ? `<button type="button" class="pbtn trace-more" data-trace-more>SHOW ${String(Math.min(more, page))} OLDER TURNS</button>` : "";
+export const olderTail = (waiting: boolean): string => waiting ? '<p class="nodata trace-older" role="status">Loading older turns…</p>' : "";
+
+// Far enough ahead of the oldest row that a steady scroll rarely reaches it before the next turns arrive.
+const OLDER_MARGIN_PX = 1600;
+
+// What scrolling back does next. A list that is not on screen measures zero and asks for nothing.
+export function olderStep(box: { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number }, left: { readonly more: number; readonly history: boolean; readonly busy: boolean }): "reveal" | "fetch" | "none" {
+  if (box.clientHeight === 0 || box.scrollHeight - box.scrollTop - box.clientHeight > OLDER_MARGIN_PX) return "none";
+  if (left.more > 0) return "reveal";
+  return left.history && !left.busy ? "fetch" : "none";
 }
 
 export const groupHtml = (group: TraceGroup): string => `<div class="tgroup" data-group="${group.key}">${group.html()}</div>`;
 
 export function traceHtml(turns: readonly TraceTurn[], on: ReadonlySet<TraceCategory>, options: TraceOptions): string {
   const { groups, more } = traceGroups(turns, on, options);
-  return groups.length === 0 ? '<p class="nodata">no recorded events</p>' : groups.map(groupHtml).join("") + moreButton(more, options.page);
+  return groups.length === 0 ? '<p class="nodata">no recorded events</p>' : groups.map(groupHtml).join("") + olderTail(more > 0);
 }
 
 // The side panel's earlier steps: agent and harness only, newest turn first.

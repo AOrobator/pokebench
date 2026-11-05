@@ -39,6 +39,22 @@ export function shortModelName(model: string): string {
   for (;;) { const next = name.replace(/([a-z])[-.]?(\d+)\.(\d)/, "$1$2$3").replace(/([a-z])-(\d)/, "$1$2"); if (next === name) break; name = next; }
   return name === "" ? model : name;
 }
+// The name the header shows: the id's own spelling up to its size, quantisation or tier, so
+// "deepseek/deepseek-v4.1-flash" → "DeepSeek-v4.1". The full id stays in the hover title.
+const TIER = /^(?:flash|lite|mini|nano|next|pro|turbo)$/;
+const FAMILY = /^(deepseek|qwen|glm)/i;
+const FAMILY_SPELLING: Readonly<Record<string, string>> = { deepseek: "DeepSeek", qwen: "Qwen", glm: "GLM" };
+export function displayModelName(model: string): string {
+  const base = (model.split(/[/\\]/).pop() ?? model).replace(/\.(gguf|safetensors|bin)$/i, "");
+  const kept: string[] = [];
+  for (const token of base.split(/[-_:]+/).filter(t => t !== "")) {
+    const lower = token.toLowerCase();
+    if (kept.length > 0 && (CUT.test(lower) || (TIER.test(lower) && /\d/.test(kept.join(""))))) break;
+    kept.push(token);
+  }
+  const name = kept.join("-").replace(FAMILY, family => FAMILY_SPELLING[family.toLowerCase()] ?? family);
+  return name === "" ? model : name;
+}
 // FNV-1a over the sorted ids; four hex digits identify a switch set in tooltips and the expanded card.
 function hash8(text: string): string {
   let hash = 0x811c9dc5;

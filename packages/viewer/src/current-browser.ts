@@ -2,7 +2,7 @@ import {parseCurrentAnswer,parseCurrentQuery,publicCurrentView,type CurrentAnswe
 import type {RunEvent} from "@pokebench/agent/events";
 // Live values come from the snapshot; this page only feeds the trace and timeline.
 export const CURRENT_HISTORY_REFRESH_MS=3000;
-export const CURRENT_BROWSER_LIMITS={runs:256,events:512,bytes:4*1024*1024,listPages:256,updatePages:4};
+export const CURRENT_BROWSER_LIMITS={runs:256,events:8192,bytes:128*1024*1024,listPages:256,updatePages:4};
 export interface CurrentBrowserState {epoch:string|null;cursor:string|null;runs:readonly CurrentSummary[];selected:string|null;snapshot:CurrentSnapshot|null;stale:boolean;indexing:boolean;problem:string|null;history:readonly RunEvent[];head:readonly RunEvent[];before:string|null;historyLoading:boolean;historyProblem:string|null;historyLimited:boolean}
 export interface CurrentBrowserOptions {fetchJson:(url:string,signal?:AbortSignal)=>Promise<unknown>;now?:()=>number;changed?:(state:Readonly<CurrentBrowserState>)=>void;limits?:Partial<typeof CURRENT_BROWSER_LIMITS>}
 export interface CurrentBrowser {readonly state:Readonly<CurrentBrowserState>;start(run?:string|null):Promise<void>;select(run:string|null):Promise<void>;poll():Promise<void>;history(older?:boolean):Promise<void>;holdHistory(held:boolean):void;display():ReturnType<typeof publicCurrentView>|null;close():void}
@@ -22,11 +22,13 @@ export function createCurrentBrowser(options:CurrentBrowserOptions):CurrentBrows
   if(prior!==null&&prior.generation!==s.generation)resetHistory();state.snapshot=s;state.stale=false;state.problem=null;put(s);emit();return true;
  };
  const request=async(url:string,signal?:AbortSignal):Promise<CurrentAnswer>=>{const answer=parseCurrentAnswer(await options.fetchJson(url,signal));if(answer.kind==="unavailable")throw new Error(answer.problem);return answer;};
+ const sizes=new WeakMap<RunEvent,number>(),eventBytes=(event:RunEvent):number=>{let size=sizes.get(event);if(size===undefined){size=new TextEncoder().encode(JSON.stringify(event)).byteLength;sizes.set(event,size);}return size;};
  const mergeHistory=(h:History,older:boolean):void=>{
-  if(h.events.length>limits.events)throw new Error("This history page is too large to show");let pageBytes=0;const wasEmpty=state.history.length===0,last=state.history.at(-1)?.seq,first=h.events[0]?.seq;const disconnected=!older&&h.before!==null&&last!==undefined&&first!==undefined&&first>last+1;const combined=new Map((disconnected?[]:state.history).map(e=>[e.seq,e]));for(const event of h.events){const size=new TextEncoder().encode(JSON.stringify(event)).byteLength;pageBytes+=size;if(size>limits.bytes)throw new Error("This history entry is too large to show");if(event.run!==state.selected)throw new Error("History does not belong to the selected run");const existing=combined.get(event.seq);if(existing!==undefined&&JSON.stringify(existing)!==JSON.stringify(event))throw new Error("History event changed within its source generation");combined.set(event.seq,event);}
+  if(h.events.length>limits.events)throw new Error("This history page is too large to show");let pageBytes=0;const wasEmpty=state.history.length===0,last=state.history.at(-1)?.seq,first=h.events[0]?.seq;const disconnected=!older&&h.before!==null&&last!==undefined&&first!==undefined&&first>last+1;const combined=new Map((disconnected?[]:state.history).map(e=>[e.seq,e]));for(const event of h.events){const size=eventBytes(event);pageBytes+=size;if(size>limits.bytes)throw new Error("This history entry is too large to show");if(event.run!==state.selected)throw new Error("History does not belong to the selected run");const existing=combined.get(event.seq);if(existing!==undefined&&JSON.stringify(existing)!==JSON.stringify(event))throw new Error("History event changed within its source generation");combined.set(event.seq,event);}
   if(pageBytes>limits.bytes)throw new Error("This history page is too large to show");
-  let events=[...combined.values()].sort((a,b)=>a.seq-b.seq);const bytes=events.reduce((n,e)=>n+new TextEncoder().encode(JSON.stringify(e)).byteLength,0);
-  const overflow=events.length>limits.events||bytes>limits.bytes;if(disconnected||overflow){state.historyLimited=true;events=h.events.slice();}
+  let events=[...combined.values()].sort((a,b)=>a.seq-b.seq),bytes=events.reduce((n,e)=>n+eventBytes(e),0);
+  const overflow=events.length>limits.events||bytes>limits.bytes;if(disconnected||overflow)state.historyLimited=true;
+  if(overflow&&older&&!disconnected){while(events.length>limits.events||bytes>limits.bytes)bytes-=eventBytes(events.pop() as RunEvent);}else if(disconnected||overflow)events=h.events.slice();
   state.history=events;state.before=older||wasEmpty||disconnected||overflow?h.before:state.before;
  };
  const markRefresh=():void=>{refreshedAt=(options.now??Date.now)();refreshedTurn=state.snapshot?.run.turn??null;};

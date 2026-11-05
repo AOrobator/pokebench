@@ -320,21 +320,21 @@ describe("traceHtml", () => {
   const builder = build(supervisedRun().events);
 
   it("lists turns newest first and filters by chip", () => {
-    const root = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }));
+    const root = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50 }));
     expect([...root.querySelectorAll(".turn-h")].map((h) => h.firstChild?.textContent?.trim())).toEqual(["TURN 2", "TURN 1"]);
-    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }));
+    const noSup = dom(traceHtml(builder.turns, new Set<TraceCategory>(["think", "act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50 }));
     expect(noSup.textContent).not.toContain("Supervisor note");
     expect(noSup.querySelectorAll(".turn-h")).toHaveLength(1);
   });
 
   it("opens the live turn on its thinking, always expanded (INV-6)", () => {
-    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 3 }, limit: 50, page: 50 }));
+    const root = dom(traceHtml(builder.turns, new Set<TraceCategory>(["act"]), { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 3 }, limit: 50 }));
     const first = must(root.firstElementChild);
     expect(first.textContent).toContain("TURN 3");
     const live = must(root.querySelector(".live-row"));
     expect(live.tagName).toBe("DIV");
     expect(live.querySelector("[data-live-text]")).not.toBeNull();
-    const ongoing = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 2 }, limit: 50, page: 50 }));
+    const ongoing = dom(traceHtml(builder.turns, ALL, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: { turn: 2 }, limit: 50 }));
     expect(ongoing.firstElementChild?.getAttribute("data-group")).toBe("t2");
     expect([...must(ongoing.firstElementChild).children].map((el) => el.classList.contains("live-row") ? "live" : el.className)).toEqual(["turn-h", "tl", "live"]);
   });
@@ -347,7 +347,7 @@ describe("traceHtml", () => {
       log.add(turn * 10 + 2, { type: "tool_result", turn, id: `c${String(turn)}`, name: "press", is_error: false, duration_ms: 1, text: "y".repeat(5000), frames: [] });
     }
     const turns = build(log.events).turns;
-    const html = traceHtml(turns, ALL, { elapsed: null, live: null, limit: 50, page: 50 });
+    const html = traceHtml(turns, ALL, { elapsed: null, live: null, limit: 50 });
     expect(html.match(/class="turn-h"/g)).toHaveLength(50);
     expect(html.length).toBeLessThan(50 * 5000 + 100_000);
     expect(html).toContain("Loading older turns");
@@ -356,7 +356,7 @@ describe("traceHtml", () => {
 
   it("changes a turn's stamp only when that turn's rows or the filter change", () => {
     const builder = build(supervisedRun().events);
-    const stamps = (on: ReadonlySet<TraceCategory>): string[] => traceGroups(builder.turns, on, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50, page: 50 }).groups.map((g) => g.stamp);
+    const stamps = (on: ReadonlySet<TraceCategory>): string[] => traceGroups(builder.turns, on, { elapsed: (ms) => (ms - BASE_MS) / 1000, live: null, limit: 50 }).groups.map((g) => g.stamp);
     const before = stamps(ALL);
     builder.add(new Log().add(0, { type: "retry", turn: 1, reason: "x", attempt: 1, limit: 3 }));
     const after = stamps(ALL);
@@ -368,7 +368,7 @@ describe("traceHtml", () => {
   it("keeps a turn's stamp when only a hidden row arrives, on the trace and the side panel", () => {
     const builder = build(supervisedRun().events);
     const on = new Set(TRACE_CHIPS.filter((chip) => chip.on).map((chip) => chip.id));
-    const options = { elapsed: null, live: null, limit: 50, page: 50 };
+    const options = { elapsed: null, live: null, limit: 50 };
     const before = traceGroups(builder.turns, on, options).groups.map((g) => g.stamp);
     const side = sideGroups(builder.turns, 20).map((g) => g.stamp);
     const log = new Log();
@@ -383,7 +383,7 @@ describe("traceHtml", () => {
   });
 
   it("shows turn times from the run clock it is given", () => {
-    const html = traceHtml(build(supervisedRun().events).turns, ALL, { elapsed: () => 3725, live: null, limit: 50, page: 50 });
+    const html = traceHtml(build(supervisedRun().events).turns, ALL, { elapsed: () => 3725, live: null, limit: 50 });
     expect(html).toContain("1:02:05");
   });
 

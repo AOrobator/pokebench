@@ -13,8 +13,8 @@ Single milestone. Viewer-only, so no feature switch. No timeline changes and no 
 
 ## M1
 
-- [ ] RED
-- [ ] GREEN
+- [x] RED: 29c2c6aec, trace, panels, current-browser and frontier-versions tests fail
+- [x] GREEN: focused suites 237 passed; headless proof on a fixture copy reached RUN START on a live and an ended run, one failed page stopped and RETRY HISTORY resumed
 - [ ] Gates
 - [ ] Review
 - [ ] Land, `just viewer-main`, headless proof

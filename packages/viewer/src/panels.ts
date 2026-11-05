@@ -7,6 +7,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, hms, num, signedDelta } from "./format.js";
 import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ROUTE103_RIVAL_SPLITS } from "./frontier.js";
+import { displayModelName } from "./frontier-versions.js";
 import { RETIRED_VISIBILITY, ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';
@@ -327,11 +328,11 @@ export function brand(view: RunView): string {
 export function runIdentity(view: RunView): string {
   const start = view.start;
   if (start === null) return "";
-  const cell = (label: string, value: string, cls = "", extra = ""): string => `<div class="id-cell${cls}"><small>${label}</small><span>${esc(value)}</span>${extra}</div>`;
+  const cell = (label: string, value: string, cls = "", title = ""): string => `<div class="id-cell${cls}"${title === "" ? "" : ` title="${esc(title)}"`}><small>${label}</small><span>${esc(value)}</span></div>`;
   const evaluation = start.evaluation;
   const cells: string[] = [];
   if (evaluation !== undefined) cells.push(cell("PRESET", evaluation.preset_id, " id-exp"));
-  cells.push(cell("MODEL · THINKING", `${start.model.id} · ${start.sampling.thinking_level}`), cell("RUN", `…${start.run.slice(-4)}`));
+  cells.push(cell("MODEL · THINKING", `${displayModelName(start.model.id)} · ${start.sampling.thinking_level}`, "", start.model.id), cell("RUN", `…${start.run.slice(-4)}`));
   return cells.join("");
 }
 

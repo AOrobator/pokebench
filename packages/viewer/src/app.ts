@@ -12,7 +12,7 @@ import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
-import { TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
+import { TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -80,7 +80,7 @@ const SIDE_TURNS = 30;
 
 // What the operator opened, folded or selected, by row key. It is reapplied to
 // every redrawn or newly drawn turn, so a row stays open when its turn is
-// redrawn, hidden by a chip and shown again, or reloaded by SHOW OLDER.
+// redrawn, hidden by a chip and shown again, or reloaded when older turns arrive.
 interface RowState {
   readonly open: Set<string>;
   readonly folded: Set<string>;
@@ -245,6 +245,9 @@ export class App {
   private stream: StreamLike | null = null;
   private historyBefore: number | null = null;
   private historyLoading = false;
+  private olderProblem: string | null = null;
+  private traceMore = 0;
+  private olderQueued = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -683,7 +686,7 @@ export class App {
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
         const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
-        const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traced=0;this.traceKey=this.sideKey="";}
+        const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traceVersions.delete(this.ui("trace"));this.traced=0;this.traceKey=this.sideKey="";}
         if(state.history.length>0)this.setRecordedThinking(history,state.history);
       }
       if(state.head!==this.timelineHead){this.timelineHead=state.head;if(state.head.length===0)this.timelineFeed=new TimelineFeed(null);else{if(this.timelineFeed.view.start===null&&snapshot!==null)this.timelineFeed=new TimelineFeed(snapshot.header);this.timelineFeed.add(state.head);}}
@@ -938,14 +941,7 @@ export class App {
     });
     this.ui("trace").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
-      if(target.closest("[data-history-retry]")!==null){void this.current?.history();return;}
-      if (target.closest("[data-trace-more]") !== null) {
-        this.holdTrace(this.ui("trace"));
-        this.traceLimit += TRACE_TURNS;
-        if (target.closest("[data-history-more]") !== null) void this.loadOlderHistory();
-        this.render();
-        return;
-      }
+      if(target.closest("[data-history-retry]")!==null){if(this.olderProblem!==null){this.olderProblem=null;void this.loadOlderHistory();}else void this.current?.history();return;}
       this.inspectRow(target);
     });
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
@@ -956,6 +952,7 @@ export class App {
         this.autoScroll.set(list, list.scrollTop);
         if (list.scrollTop <= 1) this.resumeTrace(list);
         else this.holdTrace(list);
+        if (name === "trace") this.olderTurns();
       });
       list.addEventListener("click", () => { this.holdTrace(list); });
       this.ui(`${name}-latest`).addEventListener("click", () => { this.resumeTrace(list); });
@@ -1022,6 +1019,7 @@ export class App {
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
     if (name === "bag") this.renderBag();
+    if (name === "trace") this.olderTurns();
   }
 
   // The current party screen remains visible while tables and fonts load.
@@ -1179,6 +1177,8 @@ export class App {
     this.historyRequest += 1;
     this.historyLoading = false;
     this.historyBefore = null;
+    this.olderProblem = null;
+    this.traceMore = 0;
     this.headReady = false;
     this.closeFrameStream();
     this.runId = runId;
@@ -1320,8 +1320,18 @@ export class App {
     return before === 0 ? null : before;
   }
 
+  // A failed page stops here until RETRY HISTORY, so a broken read cannot repeat by itself.
+  private olderTurns(): void {
+    const stopped = this.olderProblem !== null || (this.current?.state.selected === this.runId && this.current.state.historyProblem !== null);
+    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading });
+    if (step === "reveal") {
+      this.traceLimit += TRACE_TURNS;
+      this.render();
+    } else if (step === "fetch") void this.loadOlderHistory();
+  }
+
   private async loadOlderHistory(): Promise<void> {
-    if(this.current?.state.selected===this.runId){this.holdTrace(this.ui("trace"));await this.current.history(true);return;}
+    if(this.current?.state.selected===this.runId){await this.current.history(true);if(!this.held.has(this.ui("trace")))this.current.holdHistory(false);return;}
     const run = this.runId, before = this.historyBefore;
     if (run === null || before === null || this.historyLoading) return;
     const request = ++this.historyRequest;
@@ -1348,6 +1358,7 @@ export class App {
       this.setRecordedThinking(view, view.events);
       this.shown = this.mode === "replay" ? new RunView() : view;
       this.trace = this.newTrace();
+      this.traceVersions.delete(this.ui("trace"));
       this.traced = 0;
       this.traceKey = this.sideKey = "";
       if (this.mode === "replay") {
@@ -1356,7 +1367,7 @@ export class App {
         if (playing === true) this.clock?.play();
       }
     } catch (error) {
-      if (request === this.historyRequest && this.runId === run) this.problem(`older history: ${String(error)}`);
+      if (request === this.historyRequest && this.runId === run) { this.olderProblem = `older history: ${String(error)}`; this.problem(this.olderProblem); }
     } finally {
       if (request === this.historyRequest && this.runId === run) {
         this.historyLoading = false;
@@ -1554,7 +1565,7 @@ export class App {
     const activity=this.traceOwner(),events=activity.events;
     for (; this.traced < events.length; this.traced += 1) this.trace.add(events[this.traced] as RunEvent);
     const live = this.current?.state.selected===this.runId?(this.current.state.snapshot?.phase.kind==="thinking"?{turn:this.view.turn}:null):activity.isThinking?{turn:activity.turn}:null;
-    const historyProblem=this.current?.state.selected===this.runId?this.current.state.historyProblem:null;
+    const historyProblem=this.olderProblem??(this.current?.state.selected===this.runId?this.current.state.historyProblem:null);
     const key = `${historyProblem??""}|${String(this.trace.version)}|${[...this.traceOn].sort().join(",")}|${String(this.traceLimit)}|${String(live?.turn ?? "")}|${String(this.historyBefore)}|${String(this.historyLoading)}`;
     const box = this.ui("trace");
     if (key !== this.traceKey) {
@@ -1563,10 +1574,13 @@ export class App {
       this.renderChips();
       const startMs=activity.startMs;
       const elapsed=startMs===null||(this.current?.state.selected===this.runId&&this.current.state.before!==null)?null:(ms:number):number=>(ms-startMs-activity.control.pausedBefore(ms))/1000;
-      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0), page: TRACE_TURNS });
-      const older = more > 0 ? moreButton(more, TRACE_TURNS) : this.historyBefore === null ? "" : `<button type="button" class="pbtn trace-more" data-trace-more data-history-more${this.historyLoading ? " disabled" : ""}>${this.historyLoading ? "LOADING OLDER TURNS…" : "LOAD OLDER TURNS"}</button>`;
+      const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0) });
+      this.traceMore = more;
+      const older = olderTail(more > 0 || (this.historyBefore !== null && historyProblem === null));
       const recovery=historyProblem===null?"":`<p class="nodata">${esc(historyProblem)}</p><button type="button" class="pbtn" data-history-retry${this.historyLoading?" disabled":""}>RETRY HISTORY</button>`;
       reconcile(box, groups, recovery+(groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
+      // After this draw, so a short list keeps filling and a fast scroll keeps going.
+      if (!this.olderQueued) { this.olderQueued = true; queueMicrotask(() => { this.olderQueued = false; this.olderTurns(); }); }
     }
     const sideView = this.recordedThinking;
     const sideTrace = this.recordedThinkingTrace;
@@ -1626,7 +1640,7 @@ export class App {
     const historyStatus = this.ui("history-status");
     const historyPending=this.historyLoading&&(this.current?.state.selected!==this.runId||this.currentHistoryEvents.length===0);
     const historyHidden=this.current?.state.selected===this.runId?this.current.state.before===null&&!this.current.state.stale&&!historyPending&&this.current.state.historyProblem===null:this.historyBefore===null;
-    const historyText=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:historyPending?"Loading recorded turns…":"":this.historyLoading?"Loading older history…":"Recent history shown · load older turns in Agent Trace. Stats and replay cover loaded history.";
+    const historyText=this.current?.state.selected===this.runId?this.current.state.stale?"Updates unavailable · showing last-known state":this.current.state.historyProblem!==null?this.current.state.historyProblem:historyPending?"Loading recorded turns…":"":this.historyLoading?"Loading older history…":"Recent history shown · older turns load as you scroll Agent Trace. Stats and replay cover loaded history.";
     if(historyStatus.hidden!==(historyHidden||historyText===""))historyStatus.hidden=historyHidden||historyText==="";
     if(historyStatus.textContent!==historyText)historyStatus.textContent=historyText;
     const kind = overlayKind(view, live || (this.wasLive && view.end !== null), this.holdStart !== null, this.overlayClosed);

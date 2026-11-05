@@ -448,7 +448,7 @@ details.tl > summary:focus-visible { outline: 3px solid #ffd447; }
 .turn-h { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; font: 7px/1.6 'Press Start 2P', monospace; color: #3a6ea5; flex-shrink: 0; }
 .turn-h::after { content: ""; flex: 1; border-top: 2px dashed #c9d6e6; }
 .turn-h .meta { font: 11px Inter, sans-serif; color: #8090a3; }
-.trace-more { align-self: center; margin: 12px 0; }
+.trace-older { text-align: center; margin: 12px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
 .chips button { font: 6px/1.6 'Press Start 2P', monospace; border: 3px solid #3a6ea5; background: #fff; color: #283038; border-radius: 7px; padding: 4px 7px; cursor: pointer; }
 .chips button[aria-pressed=true] { background: #ffd447; border-color: #b68120; }
@@ -475,7 +475,7 @@ details.tl > summary:focus-visible { outline: 3px solid #ffd447; }
 .ident .id-cell { display: flex; align-items: center; gap: 6px; background: #26385a; border: 2px solid #4d6a96; border-radius: 7px; padding: 3px 8px; min-width: 0; }
 .ident .id-cell small { font-size: 6px; color: #9fb4d0; }
 .ident .id-cell span { font-size: 8px; color: #fff; overflow-wrap: anywhere; }
-.ident .id-exp { flex: 1 1 320px; background: #ffd447; border-color: #fff0a0; } .ident .id-exp small { color: #6a5310; } .ident .id-exp span { color: #1e2c44; }
+.ident .id-exp { background: #ffd447; border-color: #fff0a0; } .ident .id-exp small { color: #6a5310; } .ident .id-exp span { color: #1e2c44; }
 
 /* BAG · ITEM LEDGER (runs/mockups/bag-inventory/variant-c.html, operator pick "C"); pocket labels as in the game's bag. */
 .bag-page > h3 { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 10px; }

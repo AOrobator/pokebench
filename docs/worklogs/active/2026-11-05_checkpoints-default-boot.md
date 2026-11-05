@@ -57,3 +57,4 @@ Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` a
 - [x] Full gates on the every-start default: just lint, build, test, verify-vendor all exit 0; floors held.
 - [x] Review round 1 on 0ec13791: Claude, GPT and fallback all BLOCKING on continuation replay. Fix: run filter in `observe`, test through real `RunRecorder.restoreHistory`. Note: fixed-run save-state launches cannot pass `0`, because the launcher strips the variable.
 - [x] Replay test proven: removing the run filter fails it (1 failed, 13 passed); restored, 14 passed.
+- [x] Full gates after the replay fix: just lint, build, test, verify-vendor all exit 0; floors held.

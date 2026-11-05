@@ -4,15 +4,14 @@ import type {FeatureSet} from "./features.js";
 import {RAYQUAZA_GUIDE_STEPS} from "./rayquaza-guide-data.js";
 import type {RunRecorder} from "./recorder.js";
 
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string}
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:readonly [number,number]}
 
 // The furthest step earned is the current one, so a late or repeated milestone never moves the guide back.
 export class GuidePosition {
  private furthest=0;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
-  if(event.type!=="milestone")return;
-  const reached=this.steps.findIndex(step=>step.after===event.name);
+  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"?this.steps.findIndex(step=>step.enter?.[0]===event.map_id?.[0]&&step.enter?.[1]===event.map_id?.[1]):-1;
   if(reached>this.furthest)this.furthest=reached;
  }
  current():GuideStep {

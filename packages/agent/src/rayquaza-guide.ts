@@ -14,11 +14,13 @@ export interface GuideStep {readonly after:string;readonly map:string|null;reado
 // early visit, such as walking into Dewford Gym before Steven, cannot skip the story in between.
 const REACH=8;
 
-// Earned steps are remembered, and the guide moves to the furthest one within reach, again and again, so an
-// early milestone takes effect once the guide catches up and a checkpoint start chains forward.
+// A milestone seen live moves the guide up to REACH steps. One that arrives too early is remembered and
+// counts only when the guide reaches the step right before it, so it can never skip unfinished story.
+// A checkpoint start has real gaps, so the milestones present at the start chain within reach.
 export class GuidePosition {
  private furthest=0;
  private readonly earned=new Set<number>();
+ private readonly atStart=new Set<number>();
  inBattle=false;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
@@ -26,10 +28,13 @@ export class GuidePosition {
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached<0)return;
   this.earned.add(reached);
+  if(event.type==="milestone"&&event.origin==="present_at_start")this.atStart.add(reached);
+  else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
   for(let next=this.next();next!==null;next=this.next())this.furthest=next;
  }
  private next():number|null {
-  for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.earned.has(i))return i;
+  if(this.earned.has(this.furthest+1))return this.furthest+1;
+  for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
  }
  private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}

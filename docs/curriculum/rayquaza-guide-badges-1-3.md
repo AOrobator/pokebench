@@ -40,9 +40,9 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | ROUTE_104 | Route104 | Walk north on the beach sand, past the cottage, to the Petalburg Woods entrance. No Surf is needed. | KI 7 |
 | PETALBURG_WOODS | PetalburgWoods | Go north up the east side. A Devon researcher is being robbed. Help him and beat the Team Aqua grunt. | KI 8 |
 | TEAM_AQUA_WOODS_EVENT_COMPLETE | PetalburgWoods | Leave Petalburg Woods by the north exit, then go north on Route 104 to Rustboro City. | KI 8, 9 |
-| RUSTBORO_CITY | RustboroCity | Train Mudkip to level 10 for Water Gun before the Gym. Rock types take big damage from it. | KI 10, GR |
-| RUSTBORO_CITY_GYM | RustboroCity_Gym | Beat Josh, Tommy and Marc with Water Gun on the way. Roxanne is at the back. | KI 10, GR |
-| ROXANNE_FIRST_INTERACTION | RustboroCity_Gym | Use Water Gun on both Geodude and Nosepass. Check the damage after each hit, and heal if the next attack could knock you out. | KI battle plans, fact check |
+| RUSTBORO_CITY | RustboroCity | Go straight into the Gym. Do not grind first. | KI 10, 0:13:37, audit U4 |
+| RUSTBORO_CITY_GYM | RustboroCity_Gym | Beat Josh, Tommy and Marc for experience. Use Mud-Slap until Mudkip learns Water Gun at level 10, then use Water Gun. Roxanne is at the back. | KI 10, OCR 0:14:53, ROM, audit U4 |
+| ROXANNE_FIRST_INTERACTION | RustboroCity_Gym | Use Water Gun on both Geodude and Nosepass, or Mud-Slap if you do not have it yet. Check the damage after each hit, and heal if the next attack could knock you out. | KI battle plans, fact check |
 
 ## Devon Goods, Dewford and Slateport
 

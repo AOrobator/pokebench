@@ -61,3 +61,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review of ac2f7d62e, CHANGES: the pre-fight heal rule must stay in overworld guidance; the Birch screens need the new game note when options were missed; `RQ_` hints must not replace the guide line in recorded replay. RED tests added.
 - Fixes applied: only `Overworld:` is dropped from battle and menu guidance; Birch and naming screens reach `OPTIONS_SET` for display only; `RQ_` hints are skipped in recorded notes.
 - Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
+- Fix units through Heat on `claude/rq-front-fixes`. U4: no grind before Rustboro Gym, Water Gun learned mid-gym.

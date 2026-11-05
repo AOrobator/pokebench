@@ -8,6 +8,7 @@ import plistlib
 import re
 import shutil
 import subprocess
+import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -15,6 +16,8 @@ from typing import TypeAlias
 
 Runner: TypeAlias = Callable[..., subprocess.CompletedProcess[str]]
 Config: TypeAlias = dict[str, str | bool | int | list[str]]
+UNLOAD_POLLS = 100
+UNLOAD_POLL_SECONDS = 0.1
 PREPARE_LOCK = Path("/private/tmp/pokebench-latest-main-prepare.lock")  # noqa: S108
 
 
@@ -123,13 +126,24 @@ def _owned(config: Config, target: Path) -> None:
             raise RuntimeError("refusing foreign launch agent configuration")
 
 
-def _unload(config: Config, uid: int, run: Runner) -> bool:
+def _unload(
+    config: Config, uid: int, run: Runner, pause: Callable[[float], None] = time.sleep
+) -> bool:
     service = f"gui/{uid}/{config['Label']}"
-    loaded = run(["launchctl", "print", service], check=False, capture_output=True, text=True)
-    if loaded.returncode == 0:
-        _call(run, ["launchctl", "bootout", service])
-        return True
-    return False
+
+    def loaded() -> bool:
+        probe = run(["launchctl", "print", service], check=False, capture_output=True, text=True)
+        return probe.returncode == 0
+
+    if not loaded():
+        return False
+    _call(run, ["launchctl", "bootout", service])
+    # bootout returns before launchd releases the label; bootstrap then fails with status 5.
+    for _ in range(UNLOAD_POLLS):
+        if not loaded():
+            return True
+        pause(UNLOAD_POLL_SECONDS)
+    raise RuntimeError(f"{service} still loaded after bootout")
 
 
 def install(config: Config, target: Path, uid: int, run: Runner = subprocess.run) -> None:

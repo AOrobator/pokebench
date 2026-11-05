@@ -72,3 +72,24 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fixes from the fact check: map and tile steps adjacent only, `GOT:` item steps, Route 111 Teleport after the candy, Rock Tomb row order, Foresight on the right row, Guard Specs first, softer Maxie plan, Flannery plan covers Numel, prep lines moved out of the in-battle note.
 - The operator 4:30 PM: log missed purchases with no catch-up prompt. RED test added. Shelf readout is its own unit on `claude/shop-shelf-hidden`.
 - `NEEDS:` rows log `RQ_MISSED` with the items and money when the step passes. Nothing reaches the model.
+
+## After-Heat deviation fixes (Codex)
+
+- [x] Unit 1: correct Fly legs, post-Seafloor Pacifidlog order and Mach Bike directions (`U5`, `U6`, `U7`, `U32`, `U33`, `U35`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean.
+  - COMMIT: `docs(curriculum): correct Rayquaza route legs` (3d88baf32)
+- [x] Unit 2: add settled Repel, item and party-order instructions (`U8`, `U21`, `U24`, `U25`, `U27`, `U28`, `U31`, `U34`, `U43`–`U45`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Previous unit: 3d88baf32.
+  - COMMIT: `docs(curriculum): add Rayquaza route resources` (ef432a2b9)
+- [x] Unit 3: correct settled Gym and boss plans (`U22`, `U23`, `U26`, `U29`, `U30`, `U34`, `U35`, `U37`, `U38`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed after replacing a prohibited Abra search reference with owned-spare wording; `git diff --check` clean. Previous unit: ef432a2b9.
+  - COMMIT: `docs(curriculum): correct Rayquaza battle plans` (105174cf4)
+- [x] Unit 4: add settled hideout, cavern and Victory Road waypoints (`U27`, `U28`, `U31`, `U36`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Victory Road B2F was checked from video frames v2:16:35–2:19:20 against ROM warps. Previous unit: 105174cf4.
+  - COMMIT: `docs(curriculum): add Rayquaza dungeon waypoints` (d0e03f572)
+- [x] Completion audit: 40 changed guide rows, all at most 300 characters, all triggered by registered milestones, and every Source names a KI frame/time, audit ID and ROM. Generated guide remains 119 steps.
+- [x] Resolved policy: item-only pre-fight healing for rivals and Gym Leaders (`C1`); Fortree Center entry sets respawn without healing (`U2`); decline Rayquaza’s nickname (`U41`); deposit to Rayquaza alone (`U40`); buy Mossdeep X items regardless of party (`C5`).
+- GREEN: generator produced 119 steps; focused `rayquaza-guide.test.ts` passed 25/25; `git diff --check` clean. Generic, Center and Elite Four heal directions removed; exact observed battle-item uses retained.
+- Front-only handoff: Mudkip nickname, Rustboro X-item purchase and named XP trainers live before Heat (`U10`, `U11`, `C5`) and have no row in this file. Claude owns `town-center-checkpoint-v1` OFF. `U12` targets `BATTLE_EXPLAINER`, outside this guide file.
+- Pending Claude’s AT implementation: split the three after-Heat candy/Teleport legs into `AT:Route111:35:65` → `TO:MauvilleCity`, `AT:PetalburgCity:11:28` → `TO:MauvilleCity`, and `AT:MtPyre_Summit:37:6` → `TO:FortreeCity`.
+- Merged Codex's after-Heat units through 73926f790. Candy rows on Route 111, Petalburg and the summit use tile and item steps so Teleport cannot skip them. Fortree has a Teleport row again.

@@ -18,3 +18,12 @@ Single milestone. Viewer-only, so no feature switch. No timeline changes and no 
 - [ ] Gates
 - [ ] Review
 - [ ] Land, `just viewer-main`, headless proof
+
+## Multi-Model Review Log
+
+Round 1 at c9fab9136, packet 4abf818e: Claude BLOCKING, GPT BLOCKING, fallback subagent BLOCKING; Grok lane out of Cursor usage until 11/17.
+
+- Fixed: a following reader with a narrow chip filter walked the whole recording and looped. Fetches now take a budget of 16 pages per reader gesture, a follower never slides a limited window, and a list too short to scroll asks for more by wheel or touch.
+- Fixed: RETRY HISTORY after a failed older page retries that page, Jump to latest repeats after an in-flight older page, replay keeps its speed across a page.
+
+Gates at c9fab9136: build, `just test` (agent 2453, viewer 825, env 2894, gateway 38, no-io-proof), trainer-card-check passed. `just lint`: pnpm lint, ruff passed; mypy reports only missing `mgba._pylib` in this worktree's venv (native binding is per clone), no Python changed.

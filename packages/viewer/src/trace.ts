@@ -341,16 +341,19 @@ export function traceGroups(turns: readonly TraceTurn[], on: ReadonlySet<TraceCa
   return { groups, more };
 }
 
-export const olderTail = (waiting: boolean): string => waiting ? '<p class="nodata trace-older" role="status">Loading older turns…</p>' : "";
+export const olderTail = (waiting: boolean, loading = false): string => waiting ? `<p class="nodata trace-older" role="status">${loading ? "Loading older turns…" : "Scroll for older turns"}</p>` : "";
 
 // Far enough ahead of the oldest row that a steady scroll rarely reaches it before the next turns arrive.
 const OLDER_MARGIN_PX = 1600;
 
+// Pages fetched per reader gesture. A narrow filter on a long run could otherwise walk the whole recording unasked.
+export const OLDER_PAGES = 16;
+
 // What scrolling back does next. A list that is not on screen measures zero and asks for nothing.
-export function olderStep(box: { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number }, left: { readonly more: number; readonly history: boolean; readonly busy: boolean }): "reveal" | "fetch" | "none" {
+export function olderStep(box: { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number }, left: { readonly more: number; readonly history: boolean; readonly busy: boolean; readonly pages: number }): "reveal" | "fetch" | "none" {
   if (box.clientHeight === 0 || box.scrollHeight - box.scrollTop - box.clientHeight > OLDER_MARGIN_PX) return "none";
   if (left.more > 0) return "reveal";
-  return left.history && !left.busy ? "fetch" : "none";
+  return left.history && !left.busy && left.pages > 0 ? "fetch" : "none";
 }
 
 export const groupHtml = (group: TraceGroup): string => `<div class="tgroup" data-group="${group.key}">${group.html()}</div>`;

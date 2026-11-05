@@ -12,7 +12,7 @@ import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
-import { TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
+import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
@@ -248,6 +248,8 @@ export class App {
   private olderProblem: string | null = null;
   private traceMore = 0;
   private olderQueued = false;
+  private olderPages = OLDER_PAGES;
+  private retryOlder = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -941,7 +943,7 @@ export class App {
     });
     this.ui("trace").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
-      if(target.closest("[data-history-retry]")!==null){if(this.olderProblem!==null){this.olderProblem=null;void this.loadOlderHistory();}else void this.current?.history();return;}
+      if(target.closest("[data-history-retry]")!==null){this.olderPages=OLDER_PAGES;if(this.olderProblem!==null){this.olderProblem=null;void this.loadOlderHistory();}else void this.current?.history(this.retryOlder);return;}
       this.inspectRow(target);
     });
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
@@ -952,8 +954,14 @@ export class App {
         this.autoScroll.set(list, list.scrollTop);
         if (list.scrollTop <= 1) this.resumeTrace(list);
         else this.holdTrace(list);
-        if (name === "trace") this.olderTurns();
+        if (name === "trace") this.readOlder();
       });
+      // A list too short to scroll sends no scroll event, so reaching for more counts too.
+      if (name === "trace") for (const gesture of ["wheel", "touchmove"]) list.addEventListener(gesture, (event) => {
+        if (list.scrollHeight > list.clientHeight || (event instanceof WheelEvent && event.deltaY <= 0)) return;
+        this.holdTrace(list);
+        this.readOlder();
+      }, { passive: true });
       list.addEventListener("click", () => { this.holdTrace(list); });
       this.ui(`${name}-latest`).addEventListener("click", () => { this.resumeTrace(list); });
       // Recorded on click, before the toggle event, so a redraw in between cannot lose it.
@@ -988,6 +996,7 @@ export class App {
       const chip = TRACE_CHIPS.find((c) => c.id === raw)?.id;
       if (chip === undefined) return;
       if (!this.traceOn.delete(chip)) this.traceOn.add(chip);
+      this.olderPages = OLDER_PAGES;
       this.render();
     });
     this.picker("baseline").addEventListener("change", (event) => {
@@ -1019,7 +1028,7 @@ export class App {
     for (const button of this.doc.querySelectorAll<HTMLButtonElement>("[data-page]")) button.setAttribute("aria-pressed", String(button.dataset.page === name));
     (this.ui("page-select") as HTMLSelectElement).value = name;
     if (name === "bag") this.renderBag();
-    if (name === "trace") this.olderTurns();
+    if (name === "trace") this.readOlder();
   }
 
   // The current party screen remains visible while tables and fonts load.
@@ -1320,18 +1329,27 @@ export class App {
     return before === 0 ? null : before;
   }
 
-  // A failed page stops here until RETRY HISTORY, so a broken read cannot repeat by itself.
+  private readOlder(): void {
+    this.olderPages = OLDER_PAGES;
+    this.olderTurns();
+  }
+
+  // A failed page shows RETRY HISTORY. A reader following the newest turns never slides the window off them.
   private olderTurns(): void {
-    const stopped = this.olderProblem !== null || (this.current?.state.selected === this.runId && this.current.state.historyProblem !== null);
-    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading });
+    const current = this.current?.state.selected === this.runId ? this.current.state : null;
+    const stopped = this.olderProblem !== null || current?.historyProblem != null || (current?.historyLimited === true && !this.held.has(this.ui("trace")));
+    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages });
     if (step === "reveal") {
       this.traceLimit += TRACE_TURNS;
       this.render();
-    } else if (step === "fetch") void this.loadOlderHistory();
+    } else if (step === "fetch") {
+      this.olderPages -= 1;
+      void this.loadOlderHistory();
+    }
   }
 
   private async loadOlderHistory(): Promise<void> {
-    if(this.current?.state.selected===this.runId){await this.current.history(true);if(!this.held.has(this.ui("trace")))this.current.holdHistory(false);return;}
+    if(this.current?.state.selected===this.runId){await this.current.history(true);this.retryOlder=this.current.state.historyProblem!==null;if(!this.held.has(this.ui("trace")))this.current.holdHistory(false);return;}
     const run = this.runId, before = this.historyBefore;
     if (run === null || before === null || this.historyLoading) return;
     const request = ++this.historyRequest;
@@ -1363,6 +1381,7 @@ export class App {
       this.traceKey = this.sideKey = "";
       if (this.mode === "replay") {
         this.makeReplayClock();
+        this.clock?.setSpeed(Number(this.picker("speed").value));
         if (position !== undefined) this.clock?.seek(position);
         if (playing === true) this.clock?.play();
       }
@@ -1461,6 +1480,7 @@ export class App {
     this.traceKey = "";
     this.sideKey = "";
     this.traceLimit = TRACE_TURNS;
+    this.olderPages = OLDER_PAGES;
     this.rows = { open: new Set(), folded: new Set(), selected: null };
     this.held.clear();
     this.tracePending.clear();
@@ -1481,7 +1501,7 @@ export class App {
 
   private resumeTrace(list: HTMLElement): void {
     this.held.delete(list);
-    if(list===this.ui("trace")&&this.current?.state.selected===this.runId){this.current.holdHistory(false);void this.current.history();}
+    if(list===this.ui("trace")&&this.current?.state.selected===this.runId){this.current.holdHistory(false);const current=this.current,busy=this.historyLoading;void current.history().then(()=>busy?current.history():undefined);}
     this.tracePending.delete(list);
     this.scrollTo(list, 0);
     this.traceFollowButton(list);
@@ -1576,7 +1596,7 @@ export class App {
       const elapsed=startMs===null||(this.current?.state.selected===this.runId&&this.current.state.before!==null)?null:(ms:number):number=>(ms-startMs-activity.control.pausedBefore(ms))/1000;
       const { groups, more } = traceGroups(this.trace.turns, this.traceOn, { elapsed, live, limit: this.readingLimit(box, this.trace.turns, this.traceLimit, live !== null && !this.trace.turns.some(turn => turn.turn === live.turn) ? 1 : 0) });
       this.traceMore = more;
-      const older = olderTail(more > 0 || (this.historyBefore !== null && historyProblem === null));
+      const older = olderTail(more > 0 || (this.historyBefore !== null && historyProblem === null), this.historyLoading);
       const recovery=historyProblem===null?"":`<p class="nodata">${esc(historyProblem)}</p><button type="button" class="pbtn" data-history-retry${this.historyLoading?" disabled":""}>RETRY HISTORY</button>`;
       reconcile(box, groups, recovery+(groups.length === 0 ? '<p class="nodata">no recorded events</p>' : "") + older, this.stamps, this.held.has(box), this.rows, (top) => { this.scrollTo(box, top); });
       // After this draw, so a short list keeps filling and a fast scroll keeps going.

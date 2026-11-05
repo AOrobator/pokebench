@@ -350,7 +350,7 @@ describe("traceHtml", () => {
     const html = traceHtml(turns, ALL, { elapsed: null, live: null, limit: 50 });
     expect(html.match(/class="turn-h"/g)).toHaveLength(50);
     expect(html.length).toBeLessThan(50 * 5000 + 100_000);
-    expect(html).toContain("Loading older turns");
+    expect(html).toContain("Scroll for older turns");
     expect(html).not.toContain("<button");
   });
 
@@ -389,18 +389,21 @@ describe("traceHtml", () => {
 
   it("says older turns are coming only while some remain, and never offers a button", () => {
     expect(olderTail(false)).toBe("");
-    expect(olderTail(true)).toContain("Loading older turns");
+    expect(olderTail(true)).toContain("Scroll for older turns");
+    expect(olderTail(true, true)).toContain("Loading older turns");
     expect(olderTail(true)).not.toContain("<button");
   });
 
   it("loads older turns only near the oldest row of a list on screen", () => {
     const at = (scrollTop: number, clientHeight = 600, scrollHeight = 10_000) => ({ scrollTop, clientHeight, scrollHeight });
-    const left = { more: 3, history: true, busy: false };
+    const left = { more: 3, history: true, busy: false, pages: 2 };
     expect(olderStep(at(0), left)).toBe("none");
     expect(olderStep(at(8_000), left)).toBe("reveal");
     expect(olderStep(at(9_400), { ...left, more: 0 })).toBe("fetch");
     expect(olderStep(at(9_400), { ...left, more: 0, busy: true })).toBe("none");
-    expect(olderStep(at(9_400), { more: 0, history: false, busy: false })).toBe("none");
+    expect(olderStep(at(9_400), { ...left, more: 0, history: false })).toBe("none");
+    expect(olderStep(at(9_400), { ...left, more: 0, pages: 0 })).toBe("none");
+    expect(olderStep(at(9_400), { ...left, pages: 0 })).toBe("reveal");
     expect(olderStep(at(0, 600, 300), { ...left, more: 0 })).toBe("fetch");
     expect(olderStep(at(0, 0, 0), left)).toBe("none");
   });

@@ -45,3 +45,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fix: the guide remembers reaching the step's town and stops the Teleport note for that step.
 - Final gate at 910e07117: `just test` 2,537 agent, 922 viewer, 2,930 + 38 Python, floors met; lint and vendor clean. GPT delta LGTM.
 - Claude delta LGTM on 910e07117. Landing.
+- Landed fast-forward at 9802997e4. `just viewer-main` serves that commit; ee2a stayed live and opens its frames on desktop and phone; `/comparisons` loads with no page errors. `just fixed-run check rayquaza-lane-8h` passes. hyperqwen reports the definition's model, build and 262,144 context.
+- Not proven: no run has used the guide yet. The Teleport note has only unit tests.

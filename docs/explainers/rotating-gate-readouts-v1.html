@@ -152,6 +152,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><td><code>rotating-gate-map-v1</code></td><td>One line per gate. The key names only glyphs the grid draws.</td><td>Old key, legend and Now lines</td></tr>
 <tr><td><code>map-code-aliases-v1</code></td><td>One Codes letter per element token</td><td>One letter per glyph and token pair</td></tr>
 <tr><td><code>rotating-gate-navigation-v1</code></td><td>Arm edges blocked in the plan; stops before an arm and names it</td><td>Gates do not affect the plan</td></tr>
+<tr><td><code>rotating-gate-press-feedback-v1</code></td><td>A press with a direction says which gate turned, or that the arm across that step did not turn, or that no gate turned</td><td>No gate text in press results</td></tr>
 </tbody>
 </table>
 
@@ -179,6 +180,34 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <figcaption>If no route exists even ignoring arms, the usual refusal stands. Pushing is always the model's own press.</figcaption>
 </figure>
 <pre>Navigation: walked from (1,4) to (1,2), then stopped: gate 2's arm between (1,1) and (1,2) is across the route to (1,1); navigate_to does not push gates</pre>
+
+<h2>What press says</h2>
+<p>Run 5f0f compared eight gate lines by hand and got turns 1961, 1987 and 1997 wrong. A refused push read only "blocked or unavailable". With <code>rotating-gate-press-feedback-v1</code> the press result compares the orientation byte in the reads before and after each step. The game prints nothing when a gate turns, so the line is the plain fact.</p>
+<figure>
+<svg viewBox="0 0 660 190" width="100%" role="img" aria-label="A walking batch of three steps, each compared with the read before it, carried to the last press line">
+<g font-size="12" fill="#283038" text-anchor="middle">
+<rect x="10" y="10" width="190" height="56" fill="#fff" stroke="#9aa6c4"/><text x="105" y="32">Step 1 RIGHT</text><text x="105" y="50">orientation 0 to 1: Gate 2 turned</text>
+<rect x="235" y="10" width="190" height="56" fill="#fff" stroke="#9aa6c4"/><text x="330" y="32">Step 2 RIGHT</text><text x="330" y="50">same byte: no gate turned</text>
+<rect x="460" y="10" width="190" height="56" fill="#fff" stroke="#9aa6c4"/><text x="555" y="32">Step 3 UP, no move</text><text x="555" y="50">arm across that step, same byte</text>
+<rect x="60" y="120" width="540" height="56" fill="#fff" stroke="#c83030"/><text x="330" y="142">The last press line carries every step that mattered,</text><text x="330" y="160">because a walking batch keeps only its last result</text>
+</g>
+<g stroke="#5a6b80" stroke-width="2" fill="none"><path d="M105 66 L200 120"/><path d="M330 66 L330 120"/><path d="M555 66 L460 120"/></g>
+</svg>
+<figcaption>Comparing per step means two pushes that cancel inside one batch both show. The batch's first and last reads alone would match.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Case</th><th>Text added to the press result</th></tr></thead>
+<tbody>
+<tr><td>A gate turned</td><td><code>Gate 1 turned 90 degrees clockwise (arms north, south, west -&gt; north, east, west)</code></td></tr>
+<tr><td>The player did not move and an arm is across that step</td><td><code>Gate 1's arm between (8,14) and (9,14) did not turn</code></td></tr>
+<tr><td>A step that met no arm</td><td><code>no gate turned</code></td></tr>
+<tr><td>A walking batch</td><td><code>gates by step: step 3 RIGHT: Gate 1 turned 90 degrees clockwise (arms north, south, west -&gt; north, east, west); no gate turned on the other steps</code></td></tr>
+<tr><td>A batch sent at once, with two reads only</td><td><code>across this batch, Gate 1 turned ...</code>, or <code>no gate differs between the states before and after this batch; gate state was not read between its inputs</code></td></tr>
+<tr><td>A read is missing</td><td><code>gate state unavailable, so whether a gate turned is not known</code></td></tr>
+</tbody>
+</table>
+<p>It only appears for a press with a direction from a free field on a map with gates. It gives no cause for a refusal and never names a push. navigate_to results do not change: under <code>rotating-gate-navigation-v1</code> it stops before arms and cannot turn a gate.</p>
+<p>Replayed over the recorded 5f0f reads for turns 1955 to 2058: 92 press calls, 26 with a turn, none unreadable. The example lines above are from turns 1983, 1984 and 2013.</p>
 
 <div class="card">
 <h2>Status</h2>

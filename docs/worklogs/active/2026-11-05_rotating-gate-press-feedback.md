@@ -21,9 +21,14 @@ Run 5f0f misread gate state at turns 1961, 1987 and 1997 by comparing eight gate
 ## Milestones
 
 - [x] M1: RED tests
-- [ ] M2: GREEN, switch wiring, configs, explainer
+- [x] M2: GREEN, switch wiring, configs, explainer
 - [ ] M3: gates, reviews, landing
 
 ## Log
+
+- RED c3a4b2945: the test file failed to import `rotating-gate-press.js`.
+- GREEN: 172 focused agent tests pass across rotating-gate-press, features, play-preset, rejected-movement-stride, rotating-gate-navigation, press-result, blocked-batch, dialogue-auto-advance, decision-probe. Removing the `gatePressFeedback` factory wiring in play-config failed all four production wiring tests; restored.
+- Replay over recorded 5f0f state events, turns 1955 to 2058, read only: 92 press calls, 26 with a turn, 0 unreadable. Turn 1960 RIGHT, RIGHT, UP gives "step 1 RIGHT: Gate 2 turned 90 degrees counterclockwise (arms north, south, west -> east, south, west); step 3 UP: Gate 2's arm between (4,18) and (4,19) did not turn". Turn 1961 gives Gate 2 turning clockwise on step 5. Every reported direction matches `sRotatingGate_RotationInfo*`: at turn 1983 walking north into a west arm is clockwise.
+- `blocked-batch.ts` text stays as it was: the press note follows it, so "whether it stopped this input is unverified" and "did not turn" are both true together.
 
 ## Multi-Model Review Log

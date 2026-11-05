@@ -6,6 +6,7 @@ import { ButtonSchema, StateBodySchema, type Button } from "./events.js";
 import { parseGameState, type GameStateSnapshot } from "./game-state.js";
 import {evolutionTool} from "./evolution-decision.js";
 import { ShownStates, pressResult } from "./press-result.js";
+import { GateStepTrail, gatePressNote } from "./rotating-gate-press.js";
 import {randomUUID} from "node:crypto";
 import {planStride,requestedStep,type PrefixRules} from "./navigation.js";
 import {RANDOM_STARTER_LIMITS,atStarterBag,starterPickNote,starterStep,type RandomStarter,type StarterStep} from "./random-starter.js";
@@ -14,7 +15,7 @@ import {BikeRegisterReceiptSchema,BikeToggleReceiptSchema,type BikeRegisterRecei
 import {InterceptReceiptSchema,stepButton,WatchReceiptSchema,type InterceptPlan,type InterceptReceipt,type WatchPlan,type WatchReceipt} from "./intercept.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean }
+export interface ToolSwitches { readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean; readonly gatePressFeedback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -193,7 +194,7 @@ export interface PressHooks {
 }
 
 export type BeforePressCheck=(before:GameStateSnapshot|undefined)=>void;
-export interface CheckedPressOptions { readonly automaticRunning?: boolean; readonly stride?:StrideCorridor }
+export interface CheckedPressOptions { readonly automaticRunning?: boolean; readonly stride?:StrideCorridor; readonly pressNote?:(after:GameStateSnapshot)=>string|null }
 export type CheckedPressTool=AgentTool<typeof PressArgs> & {
  readonly executeChecked:(id:string,params:Static<typeof PressArgs>,check:BeforePressCheck,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3],options?:CheckedPressOptions)=>Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>;
  // moving-npc-intercept-v1: frame-owned patrol watch (no input) and path step-in on the game server.
@@ -252,7 +253,7 @@ export function pressTool(
           }
           const result=await execute(toolCallId,{buttons:submitted},signal,_update,actual=>{
             if(actual===undefined||actual.screen!=="overworld"||actual.in_battle||actual.active_ui!==null||actual.field_controls_locked!==false||actual.running?.controllable!==true||actual.world_context?.field_activity!=null||actual.world_context?.dialogue!=null||actual.world_context?.message!=null||JSON.stringify(planStride(actual,directions,{}))!==JSON.stringify(corridor))throw new Error("Requested stride geometry or field input changed before submission; no command submitted");
-          },{automaticRunning:false,stride:corridor});
+          },{automaticRunning:false,stride:corridor,...(switches.gatePressFeedback===true?{pressNote:after=>gatePressNote(before,after,submitted,switches.position)}:{})});
           return {...result,content:[{type:"text",text:prefix},...result.content]};
         }
         if(switches.rejectedMovementStep===true){limitedMovement=true;}else{
@@ -302,7 +303,7 @@ export function pressTool(
       }
       await clock.sleep(STATE_CACHE_SETTLE_MS);
       await hooks.afterPress();
-      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${limitedMovement?`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:params.buttons,submitted:buttons,dropped:params.buttons.slice(1)})}\n`:""}${!limitedMovement&&buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, switches, shown)}\n` : ""}\n`);
+      const content = await observation(gameServerUrl, fetchFn, signal, (after) => `pressed ${buttons.join(", ")}\n${limitedMovement?`Movement batch limited to one direction press; remaining inputs were not sent. Inspect the new state before another input. ${JSON.stringify({requested:params.buttons,submitted:buttons,dropped:params.buttons.slice(1)})}\n`:""}${!limitedMovement&&buttons.length < params.buttons.length ? `Interface safety: submitted 1 of ${String(params.buttons.length)} requested inputs; remaining inputs were not sent. Inspect the new state before another input.\n` : ""}${switches.pressResult ? `Press result: ${pressResult(before, after, buttons, check===undefined?switches:{...switches,gatePressFeedback:false}, shown)}${(note=>note==null?"":`; ${note}`)(checkedOptions?.pressNote?.(after))}\n` : ""}\n`);
       shown.record(content.state, before);
       return { content: [...(receipt===undefined?[]:[{type:"text" as const,text:`Navigation stride receipt: ${JSON.stringify(receipt)}`}]),...(switches.screenshotOnly ? content.content.filter(item => item.type === "image") : content.content)], details: { state: content.state,...(receipt===undefined?{}:{stride:receipt}) } };
   };
@@ -339,7 +340,8 @@ export function pressTool(
   // each re-validated by navigate_to's rules on the state read just before it and verified on the state after it.
   const walkPrefix=async(toolCallId:string,buttons:readonly Button[],before:GameStateSnapshot,rules:PrefixRules,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
     const requested=buttons.flatMap(b=>b==="UP"||b==="DOWN"||b==="LEFT"||b==="RIGHT"?[b]:[]),submitted:Button[]=[];
-    let expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
+    const trail=switches.gatePressFeedback===true?new GateStepTrail(switches.position):null;
+    let previous=before,expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
     for(const [i,direction] of requested.entries()){
       const planned:{step:RequestedStepOk|null;refusal:string}={step:null,refusal:"walking was interrupted"};
       try {
@@ -348,7 +350,7 @@ export function pressTool(
           const step=requestedStep(actual,direction,rules);
           if(!step.ok){planned.refusal=step.reason;throw new PrefixStop();}
           planned.step=step;
-        },{automaticRunning:false});
+        },{automaticRunning:false,...(trail===null?{}:{pressNote:after=>trail.add(previous,after,direction)})});
       } catch(error){if(!(error instanceof PrefixStop))throw error;stop=`Stopped before step ${String(i+1)}: ${planned.refusal}`;break;}
       submitted.push(direction);
       const after=last.details.state,step=planned.step;
@@ -357,7 +359,7 @@ export function pressTool(
       if(!freeToWalk(after)){stop=`Stopped after step ${String(i+1)}: walking was interrupted`;break;}
       if(after.position?.x!==step.landing.x||after.position.y!==step.landing.y){stop=`Stopped after step ${String(i+1)}: the ${direction} press from ${point(expected)} ended at ${point(after.position)}, not ${point(step.landing)}`;break;}
       if(step.warp){stop=`Stopped after step ${String(i+1)}: stepped onto a warp at ${point(step.landing)}`;break;}
-      expected=step.landing;
+      expected=step.landing;previous=after;
     }
     const head=`Requested movement: walked ${String(submitted.length)} of ${String(requested.length)} directions by navigate_to's rules, one press each; remaining inputs were not sent. ${JSON.stringify({requested,submitted,dropped:requested.slice(submitted.length)})}\n${stop===null?"":`${stop}\n`}`;
     if(last===undefined){const result=await observation(gameServerUrl,fetchFn,signal,head);shown.record(result.state,before);return {content:result.content,details:{state:result.state}};}

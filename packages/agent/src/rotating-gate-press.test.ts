@@ -17,17 +17,18 @@ const COMPASS:readonly Compass[]=["north","east","south","west"];
 const edgeOf=(x:number,y:number,direction:number):readonly [number,number,number,number]=>direction===0?[x-1,y-1,x,y-1]:direction===1?[x,y-1,x,y]:direction===2?[x-1,y,x,y]:[x-1,y-1,x-1,y];
 const gate=(id:number,x:number,y:number,orientation:number)=>{
  const group=`gate:${String(id)}`,arms=[orientation%4,(orientation+2)%4];
- return [{kind:"rotating_gate" as const,x,y,state:"pivot",group,orientation},...arms.map(direction=>{const edge=edgeOf(x,y,direction);return {kind:"rotating_gate" as const,x:edge[0],y:edge[1],state:"arm",direction:COMPASS[direction],group,orientation,edge:[...edge] as [number,number,number,number]};})];
+ return [{kind:"rotating_gate" as const,x,y,state:"pivot",group,orientation},...arms.map(direction=>{const edge=edgeOf(x,y,direction);return {kind:"rotating_gate" as const,x:edge[0],y:edge[1],state:"arm",direction:COMPASS[direction]??"north",group,orientation,edge:[...edge] as [number,number,number,number]};})];
 };
 const tiles=Array.from({length:100},(_,i)=>({x:i%10,y:Math.floor(i/10),collision:0,behavior:0,elevation:3}));
-const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:1,callback2:2,diagnostic:null,on_bike:false};
+const running={permitted:true,controllable:true,reason:"permitted",shoes:true,allow_running:true,avatar_flags:1,metatile:0,elevation:3,map_type:3,callback1:1,callback2:2,diagnostic:null,raw_hex:null};
 const observed=(orientations:readonly number[],unavailable:readonly string[]=[])=>({version:1 as const,map_id:[12,1] as [number,number],origin:[0,0] as [number,number],width:10,height:10,elements:orientations.flatMap((o,i)=>gate(i,3+i*3,5,o)),unavailable:[...unavailable]});
-const field=(orientations:readonly number[],position={x:2,y:5},facing="up"):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[12,1],position,facing,navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:null,running,map_observation:observed(orientations)} as GameStateSnapshot);
+const field=(orientations:readonly number[],position={x:2,y:5},facing="up"):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,map_id:[12,1],position,facing,navigation_grid:{elevation:3,tiles,objects:[],warps:[]},world_context:null,running,map_observation:observed(orientations)});
 const ON={...ALL_PRESS_FACTS,gatePressFeedback:true};
+const unobserved=(state:GameStateSnapshot):GameStateSnapshot=>{const rest={...state};delete rest.map_observation;return rest;};
 
 it("registers default off, last, and needs the orientation read",()=>{
  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
- expect(playHarnessFeatures(ALL_ON).at(-1)).toBe(ID);
+ expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
  expect(featureInfo(ID).needs).toBe("rotating-gate-positions-v1");
  expect(featureInfo(ID).description).toContain(" Off: ");
  const {[ID]:enabled,...old}=ALL_ON;expect(enabled).toBe(true);expect(normalizeFeatures(old)[ID]).toBe(false);
@@ -65,7 +66,7 @@ it("repeated pushes that never left the tile are the same fact as one",()=>{
 });
 
 it("says nothing when no step could have pushed a gate here",()=>{
- const plain=field([0,0]);const elsewhere={...plain,map_id:[0,4],map_observation:null} as GameStateSnapshot;const empty={...plain,map_observation:{...observed([]),elements:[]}} as GameStateSnapshot;
+ const plain=field([0,0]);const elsewhere={...unobserved(plain),map_id:[0,4]} as GameStateSnapshot;const empty={...plain,map_observation:{...observed([]),elements:[]}} as GameStateSnapshot;
  expect(gatePressNote(plain,plain,["A"],true)).toBeNull();
  expect(gatePressNote(undefined,plain,["UP"],true)).toBeNull();
  expect(gatePressNote(plain,elsewhere,["UP"],true)).toBeNull();
@@ -78,7 +79,7 @@ it("says nothing when no step could have pushed a gate here",()=>{
 it("never claims a gate stayed put when a side of the comparison is unread",()=>{
  const plain=field([0,0]),unread="gate state unavailable, so whether a gate turned is not known";
  const failed={...plain,map_observation:{...observed([]),unavailable:["rotating gate memory unavailable"]}} as GameStateSnapshot;
- const missing={...plain,map_observation:null} as GameStateSnapshot;
+ const missing=unobserved(plain);
  const other={...plain,map_observation:{...observed([0,0]),map_id:[0,4]}} as GameStateSnapshot;
  const noOrientation={...plain,map_observation:{...observed([]),elements:[{kind:"rotating_gate",x:3,y:5,state:"transitioning",group:"gate:0"}]}} as GameStateSnapshot;
  const ungrouped={...plain,map_observation:{...observed([]),elements:[{kind:"rotating_gate",x:3,y:5,state:"pivot",orientation:0}]}} as GameStateSnapshot;
@@ -106,7 +107,7 @@ it("a step trail names each step that mattered and keeps opposite turns apart",(
  const quiet=new GateStepTrail(true);
  expect(quiet.add(field([0,0]),field([0,0],{x:1,y:5}),"LEFT")).toBe("no gate turned on any step");
  const away=new GateStepTrail(true);
- expect(away.add(field([0,0]),{...field([0,0]),map_id:[0,4],map_observation:null} as GameStateSnapshot,"LEFT")).toBeNull();
+ expect(away.add(field([0,0]),{...unobserved(field([0,0])),map_id:[0,4]},"LEFT")).toBeNull();
 });
 
 const urlOf=(input:Parameters<typeof fetch>[0])=>typeof input==="string"?input:input instanceof URL?input.href:input.url;
@@ -136,9 +137,9 @@ const pressLine=(result:{content:readonly {type:string;text?:string}[]})=>/^Pres
 
 it("production wiring: a walking batch reports the turn on an earlier step on its last press line",async()=>{
  // 5f0f turn 1960: the gate turned on an early step of RIGHT, RIGHT, UP and the last step was a refused UP.
- const script=(on:boolean)=>{const s=server(field([0,0],{x:0,y:5}),(state,direction)=>{const x=state.position?.x??0;return direction==="UP"?{...state,facing:"up"}:walked(state,direction,x===0?[1,0]:[1,0]);});return pressTool("http://game",s.hooks,s.fetchFn,s.clock,toolSwitches(features(on))).execute("model",{buttons:["RIGHT","RIGHT","UP"]});};
+ const script=(on:boolean)=>{const s=server(field([0,0],{x:0,y:5}),(state,direction)=>direction==="UP"?{...state,facing:"up"}:walked(state,direction,[1,0]));return pressTool("http://game",s.hooks,s.fetchFn,s.clock,toolSwitches(features(on))).execute("model",{buttons:["RIGHT","RIGHT","UP"]});};
  const on=await script(true);
- expect(pressLine(on)).toBe("turned right -> up; no net movement; gates by step: step 1 RIGHT: Gate 0 turned 90 degrees clockwise (arms north, south -> east, west); no gate turned on the other steps");
+ expect(pressLine(on)).toBe("turned right -> up; no net movement; gates by step: step 1 RIGHT: Gate 0 turned 90 degrees clockwise (arms north, south -> east, west); step 3 UP: Gate 0's arm between (2,4) and (2,5) did not turn; no gate turned on the other steps");
  expect(pressLine(await script(false))).toBe("turned right -> up; no net movement");
 });
 

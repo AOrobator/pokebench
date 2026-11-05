@@ -111,3 +111,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Guide fixes landed on main; viewer and projector refreshed; `just fixed-run check rayquaza-lane-8h-v2` passes.
 - Buy lines: priority order with "as funds allow". Checked against recorded money: Petalburg median ₽3,492 (run 7442 ₽1,802), after Match Call ₽5,834, Fallarbor ₽11,828 before the Nugget and TM47 sale. No recorded money for Mossdeep; his run had ₽34,352.
 - Task D buy check: all stock and first items confirmed; X Specials moved ahead of Super Repels so the Space Center plan holds at about ₽12,000.
+- Claude review: the second Repel is needed for Route 116, and Max Repels go before Hyper Potions because later rows rely on them. Both fixed.

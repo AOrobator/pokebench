@@ -34,7 +34,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | After | Map | Note | Source |
 |---|---|---|---|
 | ROUTE_102 | Route102 | Beat Youngster Calvin at (33,14) and skip the other trainers. Keep going west to Petalburg City. | KI 5, ROM, OCR 0:07:59, audit U11 |
-| PETALBURG_CITY | PetalburgCity | Buy in this order as funds allow: 4 Potions, 1 Repel, then more Potions. Step into the Pokémon Center and straight back out, which sets your respawn there. Then enter the Gym to meet your dad, Norman. | KI 6, frame 0:09:12, ROM, audit U2, NEEDS:POTION+REPEL |
+| PETALBURG_CITY | PetalburgCity | Buy in this order as funds allow: 4 Potions, 1 Repel, a second Repel, then a fifth Potion. Step into the Pokémon Center and straight back out, which sets your respawn there. Then enter the Gym to meet your dad, Norman. | KI 6, frame 0:09:12, ROM, audit U2, NEEDS:POTION+REPEL |
 | DAD_FIRST_MEETING | - | Agree to help Wally catch a Pokémon. Follow the scene to the end, then return with him to the Gym. | KI 6, GR |
 | WALLY_TUTORIAL_COMPLETE | PetalburgCity | Your dad tells you to collect badges. Leave Petalburg by the west exit. Rustboro is north of Route 104, through Petalburg Woods. | KI 7 |
 | ROUTE_104 | Route104 | Walk north on the beach sand, past the cottage, to the Petalburg Woods entrance. No Surf is needed. Use a Repel before the Woods. | KI 7 |

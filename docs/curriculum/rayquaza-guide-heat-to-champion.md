@@ -62,7 +62,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy in this order as funds allow, regardless of party: two Revives, 11 X Attacks, 11 Hyper Potions, 11 Max Repels. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
+| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy in this order as funds allow, regardless of party: two Revives, 11 X Attacks, 11 Max Repels, 11 Hyper Potions. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
 | `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | From (6,35): U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder; Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
 | `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center. | KI v1:48:35, U30, C1, ROM |
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Clear encountered downstairs grunts and the upstairs three-grunt chain, then join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:48:35–1:54:20, U30, C1, ROM |

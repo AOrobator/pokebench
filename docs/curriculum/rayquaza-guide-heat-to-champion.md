@@ -42,15 +42,15 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `MAGMA_HIDEOUT` | `MagmaHideout_1F` | Use Super Repel and keep one Escape Rope. Bring Strength and Rock Smash, then follow the main path through the grunts to Tabitha and Maxie; optional item rooms are detours. | KI v1:28:30–1:33:07, U8, U27, ROM |
-| `MAGMA_HIDEOUT_MAXIE_CHAMBER` | `MagmaHideout_4F` | Defeat Tabitha if still blocking the route. Heal before Maxie and use Surf on Mightyena, Crobat and Camerupt. Budget a heal if Crobat survives. | KI 40, KI battle plans, WT 09 |
-| `MAGMA_HIDEOUT_STORY_COMPLETE` | `SlateportCity_Harbor` | Use an Escape Rope if available, then Fly to Slateport and talk to Captain Stern at the harbor. Finish the submarine theft scene to open Aqua Hideout. | KI 40–41, WT 09 |
+| `MAGMA_HIDEOUT` | `MagmaHideout_1F` | Use Super Repel and keep one Escape Rope. Take 1F’s (25,34) exit to 2F_1R, its (17,33) exit to 3F_1R, then (7,21) to 4F. Bring Strength and Rock Smash; optional item rooms are detours. | KI v1:28:30–1:33:07, U8, U27, ROM |
+| `MAGMA_HIDEOUT_MAXIE_CHAMBER` | `MagmaHideout_4F` | Defeat Tabitha if still blocking the route. Heal before Maxie and Surf Mightyena. If Crobat survives, use Energy Powder after Wing Attack, then Surf twice; Surf Camerupt. | KI v1:33:07–1:34:57, U27, ROM |
+| `MAGMA_HIDEOUT_STORY_COMPLETE` | `SlateportCity_Harbor` | Use the saved Escape Rope after Maxie, Fly to Slateport and talk to Captain Stern at the harbor. Finish the submarine theft scene to open Aqua Hideout. | KI v1:34:57–1:35:55, U27, ROM |
 | `SLATEPORT_SUBMARINE_THEFT_WITNESSED` | `LilycoveCity` | Fly to Lilycove and Surf from the east shore to Aqua Hideout. Take the Master Ball detour before pursuing the submarine. | KI 42, KI master-ball, WT 09 |
 | `AQUA_HIDEOUT` | `AquaHideout_1F` | Surf through the entrance and go downstairs to B1F. | KI master-ball, WT 09, ROM |
 | `MAP:AquaHideout_B1F` | `AquaHideout_B1F` | Take the left panel. In the grunt room use (3,20), then (42,5), (45,9), (42,13), (42,17). Approach from below and take the Nugget at (15,10), then the Master Ball at (15,9). Avoid the two balls on the right. | KI master-ball, ROM |
-| `MASTER_BALL_OBTAINED` | `AquaHideout_B1F` | Step back through the entry panel, then take right, middle, left and the top panel above the middle. This returns you near the double-battle pair. Use their panel after clearing the way. | KI master-ball, WT 09 |
+| `MASTER_BALL_OBTAINED` | `AquaHideout_B1F` | Step back through the entry panel, then take right, middle, left and the top panel above the middle. Clear the double battle near the return, then use that pair’s panel to continue. | KI v1:37:05–1:38:35, U28, ROM |
 | `AQUA_HIDEOUT_SUBMARINE_CHAMBER` | `AquaHideout_B2F` | Work through the warp rooms to Matt. Use Surf against Mightyena and Golbat, then finish the submarine scene. | KI 42, KI battle plans, KI master-ball |
-| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_B2F` | Take the lower exit panel. In the first two-panel room, use the right panel for the Max Elixir at (29,12), then leave. Use Super Repel and Surf east on Route 124 to Mossdeep, avoiding swimmers’ sight lines where possible. | KI v1:40:00–1:41:45, U8, U28, ROM |
+| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_B2F` | Take the lower exit panel. Use the right panel for the Max Elixir at (29,12) and use it on Swampert now, then leave. Super Repel and Surf east on Route 124; avoid swimmers, but if Declan catches you, beat Gyarados with Strength×3. | KI v1:40:10–1:41:25, U8, U28, ROM |
 
 ## Mossdeep and Seafloor Cavern
 
@@ -62,8 +62,8 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf against Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia and heal before repeated attacks put Swampert at risk. | KI v1:52:00–1:54:20, U30, ROM |
 | `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house for HM08 Dive. Teach Dive to Swampert over Mud Shot; retain Surf, Strength and Rock Smash for the cavern. | KI 46, KI TMs/HMs and move changes, WT 10 |
 | `HM_DIVE_RECEIVED` | `Route128` | Use Max Repel and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the underwater cave with the submarine and surface inside. | KI v1:55:40–1:56:15, U8, ROM |
-| `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Keep Max Repel active. Use Strength and Rock Smash through rooms 1 → 2 → 6 → 3 → 8 → 9; re-enter to reset a blocked puzzle and take the current that advances toward Archie. | KI v1:56:15–1:58:02, U8, U31, ROM |
-| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | Heal before Archie. Use Surf against Mightyena, Crobat and Sharpedo; use X Speed or heal if needed. Finish the Red Orb scene after the battle. | KI 47, KI battle plans, WT 11 |
+| `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via north current), 3 (4,15→8,1), 8 (5,12→5,2), 9 (5,4→17,42). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
+| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | Heal before Archie. Surf Mightyena. Against Crobat, use X Speed and Energy Powder after Air Cutter, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:58:02–1:59:15, U31, ROM |
 
 ## Sootopolis and Rayquaza
 
@@ -85,9 +85,9 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Deliberately drop to B1F to exit, then Fly to Mossdeep. Teach Rayquaza Aerial Ace over ExtremeSpeed and Waterfall over Rest, keeping Fly and Outrage. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
 | `EVER_GRANDE_LANDING` | `EverGrandeCity` | Heal at the Pokémon Center above the waterfall and enter Victory Road. Keep Swampert and Rayquaza with you for the field moves. | KI 54–55, WT 13 |
 | `VICTORY_ROAD` | `VictoryRoad_1F` | Beat Wally near the entrance. Use Rayquaza’s Aerial Ace on Altaria, Waterfall on Delcatty and Magneton, and Outrage on Roselia and Gardevoir if safe. | KI 55, KI battle plans |
-| `VICTORY_ROAD_WALLY_DEFEATED` | `VictoryRoad_1F` | Keep Max Repel active, continue across the raised path and descend to B1F. Keep the field moves available and save battle PP. | KI v2:14:50–2:15:55, U8, ROM |
-| `VICTORY_ROAD_B1F` | `VictoryRoad_B1F` | Follow the dark route using Strength and Rock Smash to clear the way. Flash is optional. Use the ladders to reach the water floor. | KI 55, WT 13, PATH 7 |
-| `VICTORY_ROAD_B2F` | `VictoryRoad_B2F` | Surf and use Waterfall on the lower floor, then take the ladders back up toward the north exit. Heal before the remaining trainers if needed. | KI 55, WT 13, PATH 7 |
+| `VICTORY_ROAD_WALLY_DEFEATED` | `VictoryRoad_1F` | Max Repel. From Wally’s spot go U7 R2 U2 R4, fight Hope on the way, then descend to B1F. Keep the field moves available and save battle PP. | KI v2:14:50–2:15:55, U8, U36, ROM |
+| `VICTORY_ROAD_B1F` | `VictoryRoad_B1F` | Do not use Flash. Use Strength and Rock Smash through the dark floor toward Shannon, then take the ladder to the water floor. | KI v2:15:55–2:16:35, U36, ROM |
+| `VICTORY_ROAD_B2F` | `VictoryRoad_B2F` | Beat Julie, Surf and descend the left waterfall, then Surf right and land. Break the northwest rock, push the southwest boulder down, break the southeast rock and climb the ladder. Back on 1F, beat Edgar and follow the north path to the exit. | KI frames v2:16:35–2:19:20, U36, ROM |
 | `EVER_GRANDE_NORTH_REACHED` | `EverGrandeCity_PokemonLeague_1F` | Enter the League, heal and restore PP. Bring healing, status cures and any remaining X Attacks. Show all eight badges when ready. | KI 56, WT 13 |
 | `ELITE_FOUR_CHALLENGE_ENTERED` | `EverGrandeCity_SidneysRoom` | Against Sidney, use Rayquaza’s Waterfall on Mightyena and Absol, Aerial Ace on Shiftry, and Outrage on Cacturne and Crawdaunt as health and PP allow. | KI battle plans, WT 13 |
 | `ELITE_FOUR_SIDNEY_DEFEATED` | `EverGrandeCity_PhoebesRoom` | Heal before Phoebe. Use Aerial Ace on Dusclops; Fly is optional, and Protect turns can hold an item. Use Outrage against Banette and Sableye only when healthy enough for forced turns. Preserve Aerial Ace PP for three more rooms. | KI v2:21:55–2:23:15, U37, ROM |

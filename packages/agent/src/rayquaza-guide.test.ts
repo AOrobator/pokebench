@@ -40,6 +40,37 @@ describe("GuidePosition", () => {
   });
 });
 
+describe("GuidePosition early milestones", () => {
+  const long: readonly GuideStep[] = Array.from({ length: 30 }, (_, i) => ({ after: i === 0 ? "RUN_START" : `STEP_${String(i)}`, map: null, note: String(i) }));
+
+  it("does not jump far ahead on a milestone reached out of order", () => {
+    const guide = new GuidePosition(long);
+    guide.observe(milestone("STEP_25"));
+    expect(guide.current().after).toBe("RUN_START");
+  });
+
+  it("remembers that milestone and uses it once the guide reaches it", () => {
+    const guide = new GuidePosition(long);
+    guide.observe(milestone("STEP_25"));
+    guide.observe(milestone("STEP_20"));
+    expect(guide.current().after).toBe("RUN_START");
+    for (const n of [5, 10, 15]) guide.observe(milestone(`STEP_${String(n)}`));
+    expect(guide.current().after).toBe("STEP_25");
+  });
+
+  it("chains forward through milestones present at a checkpoint start", () => {
+    const guide = new GuidePosition(long);
+    for (let n = 29; n >= 1; n--) guide.observe(milestone(`STEP_${String(n)}`, "present_at_start"));
+    expect(guide.current().after).toBe("STEP_29");
+  });
+
+  it("still advances past a few steps that never fired", () => {
+    const guide = new GuidePosition(long);
+    guide.observe(milestone("STEP_6"));
+    expect(guide.current().after).toBe("STEP_6");
+  });
+});
+
 describe("GuidePosition map steps", () => {
   it("advances on first entry to a step's map", () => {
     const guide = new GuidePosition([...steps, { after: "MAP:AquaHideout_B1F", map: "AquaHideout_B1F", note: "Go on.", enter: [26, 1] }]);

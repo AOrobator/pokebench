@@ -16,7 +16,7 @@ feature-worklog, close-the-loop, viewer-e2e (headless only).
 - `frontier-origin.ts` (new, server only, pure): sidecar parsing, re-rooting a save path under the store root, and `resolveOrigins`, which places an arbitrary save at the furthest frontier milestone its source run had reached at or before the save's turn.
 - `workbench-store.ts`: the only IO, a thin sidecar reader; the loaded runs supply the source splits.
 - `workbench-data.ts`: `WorkbenchRun.origin`, validated on the wire.
-- `frontier-recording.ts`: in the viewer's display reading, probe runs keep their native splits so they can be drawn dimmed. Strict reading is unchanged.
+- `frontier-recording.ts`: in the viewer's display reading, probe runs keep their native splits in `probeSplits`, which only `frontierPlot` reads, so they draw dimmed and every other surface still sees none. Strict reading is unchanged.
 - `resumeMilestone` stays config-only because trainer cards use it and their display is protected.
 
 ## Invariants
@@ -64,6 +64,11 @@ Proof is in `runs/frontier-fail-open-proof/`. A scan of all 68 GB of logs on a n
 - Three sidecar shapes exist: manual (`run`, `turn`), milestone capture (`run`, `milestone_event.turn`) and handoff (`source_run`, `source_turn`).
 
 ## Multi-Model Review Log
+
+Round 1, frozen 7010a995c..55e701a30, diff SHA-256 75293d91c76fef3c90f379212f9b20597a2f1c75f3912d8866dd24cd7c00759b.
+- Fallback subagent: LGTM.
+- GPT (Codex gpt-5.6-sol): BLOCKING. (1) Accepted: probe splits reached run details, trainer-card progress and races; they now live in `probeSplits`, read only by `frontierPlot`. (2) Accepted: a sidecar with no hash was accepted; a matching hash is now required. (3) Rebutted: `settleSkew`'s strict return drops `save`, but that run has no splits, so it is Hidden and an origin is never used.
+- Claude CLI: default login expired; retried with `~/.claude-review`.
 
 ## Principles Self-Review
 

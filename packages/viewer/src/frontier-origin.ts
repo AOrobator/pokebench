@@ -9,11 +9,10 @@ const record = (v: unknown): v is Record<string, unknown> => typeof v === "objec
 const name = (v: unknown): string | null => typeof v === "string" && v !== "" ? v : null;
 const turnOf = (v: unknown): number | null => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 ? v : null;
 // Sidecars come in three recorded shapes: a manual save (run, turn), a milestone capture (run, milestone_event.turn)
-// and a frontier handoff (source_run, source_turn). One that names a different save says nothing about this one.
+// and a frontier handoff (source_run, source_turn). One that does not name this exact save says nothing about it.
 export function parseSaveSidecar(value: unknown, sha1: string): SaveProvenance | null {
   if (!record(value)) return null;
-  const hash = value.sha1 ?? (record(value.state) ? value.state.sha1 : undefined);
-  if (hash !== undefined && hash !== sha1) return null;
+  if ((value.sha1 ?? (record(value.state) ? value.state.sha1 : undefined)) !== sha1) return null;
   const run = name(value.source_run) ?? name(value.run);
   if (run === null) return null;
   return { run, turn: turnOf(value.source_turn) ?? turnOf(value.turn) ?? (record(value.milestone_event) ? turnOf(value.milestone_event.turn) : null) };

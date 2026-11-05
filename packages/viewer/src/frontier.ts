@@ -178,7 +178,9 @@ export function racePlot(frontier: Baseline, run: WorkbenchRun, width: number): 
   const html = frontierPlot({ human: null, best: agent(plain) }, live ? [] : [agent(run)], width, null, live ? [agent(run)] : [], true);
   return html.slice(html.indexOf("<svg"), html.indexOf("</svg>") + 6).replaceAll(" · native milestone #0", "");
 }
-export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null): string {
+export function frontierPlot(refs: ReferencePair, recordedOverlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, recordedCurrent: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null): string {
+  const withProbeSplits = (run: WorkbenchRun): WorkbenchRun => run.probeSplits === undefined ? run : { ...run, splits: run.probeSplits };
+  const overlays = recordedOverlays.map(withProbeSplits), currentRuns = recordedCurrent.map(withProbeSplits);
   const versions = given ?? frontierVersions([...overlays, ...currentRuns, ...(refs.best === null ? [] : [refs.best])]);
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
   const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean; assisted: string | null }[] = [];

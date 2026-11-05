@@ -63,12 +63,13 @@ describe("save sidecars", () => {
     expect(parseSaveSidecar({ source_run: "a", source_turn: 9, sha1: SHA }, SHA)).toEqual({ run: "a", turn: 9 });
   });
   it("keeps a source with no usable turn", () => {
-    expect(parseSaveSidecar({ run: "a", turn: "late" }, SHA)).toEqual({ run: "a", turn: null });
+    expect(parseSaveSidecar({ run: "a", turn: "late", sha1: SHA }, SHA)).toEqual({ run: "a", turn: null });
   });
-  it("rejects a sidecar for a different save, or with no source", () => {
+  it("rejects a sidecar for a different save, with no hash, or with no source", () => {
     expect(parseSaveSidecar({ run: "a", turn: 7, sha1: "d".repeat(40) }, SHA)).toBeNull();
     expect(parseSaveSidecar({ run: "a", state: { sha1: "d".repeat(40) } }, SHA)).toBeNull();
-    expect(parseSaveSidecar({ turn: 7 }, SHA)).toBeNull();
+    expect(parseSaveSidecar({ turn: 7, sha1: SHA }, SHA)).toBeNull();
+    expect(parseSaveSidecar({ run: "a", turn: 7 }, SHA)).toBeNull();
     expect(parseSaveSidecar("nope", SHA)).toBeNull();
   });
   it("re-roots a save path under the store root, whichever checkout recorded it", () => {
@@ -85,13 +86,16 @@ describe("save sidecars", () => {
     expect(readSaveProvenance("/data/runs", start, () => "{not json")).toBeNull();
     expect(readSaveProvenance("/data/runs", { ...start, path: "/saves/x.state" }, () => { throw new Error("must not read"); })).toBeNull();
     const asked: string[] = [];
-    expect(readSaveProvenance("/data/runs", start, path => { asked.push(path); return JSON.stringify({ run: "a", turn: 2 }); })).toEqual({ run: "a", turn: 2 });
+    expect(readSaveProvenance("/data/runs", start, path => { asked.push(path); return JSON.stringify({ run: "a", turn: 2, sha1: SHA }); })).toEqual({ run: "a", turn: 2 });
     expect(asked).toEqual(["/data/runs/source/checkpoints/x.json"]);
   });
 });
 
 describe("the origin on the wire", () => {
   const data = (origin: unknown): unknown => ({ version: 1, at: 0, milestones: [], problems: [], runs: [{ ...run(), origin }] });
+  it("rejects malformed probe splits", () => {
+    expect(() => parseWorkbench({ version: 1, at: 0, milestones: [], problems: [], runs: [{ ...run(), probeSplits: [{ name: 3 }] }] })).toThrow();
+  });
   it("accepts a recorded origin and rejects a malformed one", () => {
     expect(parseWorkbench(data({ milestone: null, save: "x.state", sourceRun: null, sourceTurn: null })).runs[0]?.origin?.save).toBe("x.state");
     expect(() => parseWorkbench(data({ milestone: 3, save: "x.state", sourceRun: null, sourceTurn: null }))).toThrow();

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
 import { checkpointResume, drawnRun, frontierPlot, frontierReferences, frontierTags, frontierVersions, racePlot, startMilestone } from "./frontier.js";
-import { keepsSplits } from "./frontier-recording.js";
+import { keepsSplits, probeSplitsApart } from "./frontier-recording.js";
 import type { RunOrigin, WorkbenchRun } from "./workbench-data.js";
 
 const NAMES = ["CLOCK_SET", "RIVAL_MET", "STARTER_CHOSEN", "STONE_BADGE", "FORTREE_CITY", "FEATHER_BADGE"];
@@ -163,6 +163,17 @@ describe("what stays closed", () => {
 });
 
 describe("probe splits", () => {
+  it("reach only the frontier: a probe's recorded splits stay empty for every other surface", () => {
+    const source = raced("source"), measurement = { ...measured(source), rawSplits: [{ name: "CLOCK_SET", elapsedMs: 1, evidence: [1] }] };
+    const parted = probeSplitsApart(["probe"], source.splits, measurement);
+    expect(parted.splits).toEqual([]);
+    expect(parted.measurement.rawSplits).toEqual([]);
+    expect(parted.probeSplits).toEqual(source.splits);
+    expect(probeSplitsApart(["ram-state-v1"], source.splits, measurement)).toEqual({ splits: source.splits, measurement });
+    plot([{ ...source, id: "dim", excluded: "Excluded probe session", ...parted }]);
+    expect(series("dim")?.classList.contains("wb-probe-run")).toBe(true);
+    expect(hidden()).toBe("Hidden: 0");
+  });
   it("are kept for the display reading only", () => {
     expect(keepsSplits(["probe"], "display")).toBe(true);
     expect(keepsSplits(["probe"], "strict")).toBe(false);

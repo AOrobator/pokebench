@@ -19,6 +19,10 @@ export interface RecordingMeasurement {
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
 // A probe's native milestones are never graded, but the viewer's display reading keeps them so its frontier can draw the run dimmed.
 export const keepsSplits = (features: readonly string[], clockPolicy: "strict" | "display"): boolean => clockPolicy === "display" || !features.includes("probe");
+// Those splits go only to the frontier: every other surface keeps treating a probe as having none.
+export function probeSplitsApart(features: readonly string[], splits: RecordingSplit[], measurement: RecordingMeasurement): { splits: RecordingSplit[]; probeSplits?: RecordingSplit[]; measurement: RecordingMeasurement } {
+  return features.includes("probe") ? { splits: [], probeSplits: splits, measurement: { ...measurement, rawSplits: [] } } : { splits, measurement };
+}
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
 // last: retained trainer-card display state; raw view.state is dropped from the result.

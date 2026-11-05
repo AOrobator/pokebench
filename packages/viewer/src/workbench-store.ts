@@ -7,7 +7,7 @@ import {configuration,resumeCheckpoint} from "./run-config.js";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
-import { createNativeRecordingTailer, readNativeRecording, readStartlessLog, type NativeRecording } from "./frontier-recording.js";
+import { createNativeRecordingTailer, probeSplitsApart, readNativeRecording, readStartlessLog, type NativeRecording } from "./frontier-recording.js";
 import { defaultViewerBuild, skewOf, type BuildIdentity, type ViewerBuild } from "./build-stamp.js";
 import { applyHistoricalProvenance } from "./frontier-provenance.js";
 import { parseNavigationReceipt } from "./frontier-queue.js";
@@ -94,7 +94,7 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
     const tolerate = viewer !== null && !(viewer.commit === start.harness.commit && !viewer.dirty && !start.harness.dirty);
     const recording = readRecording(path, id, tolerate), view = recording.view;
-    run.splits = recording.splits; run.measurement = recording.measurement;
+    Object.assign(run, probeSplitsApart(start.harness_features, recording.splits, recording.measurement));
     const last = recording.last; run.card = last === null ? null : { name: last.name, location: last.location, party: last.party.flatMap(m => m.level === null || m.level < 1 ? [] : [{ speciesId: m.species_id ?? null, level: m.level, egg: m.is_egg === true }]) };
     if (recording.skipped !== null) skew = { commit: start.harness.commit, dirty: start.harness.dirty, ...recording.skipped };
     if (run.config !== null && view.control.maxWallMs !== null) run.config.extendedWallMs = view.control.maxWallMs;

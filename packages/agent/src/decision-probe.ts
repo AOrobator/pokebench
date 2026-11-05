@@ -18,7 +18,7 @@ import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies }
 import { cutOffReplyNotice } from "./cut-off-reply.js";
 import type { LoopNotice } from "./loop-detection.js";
 import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
-import { contextTools, loopSupervisor, playGameTools, stallBriefing, trustOptions } from "./play-wiring.js";
+import { contextTools, finalGuide, loopSupervisor, playGameTools, stallBriefing, trustOptions } from "./play-wiring.js";
 import { HarnessTrust, TRUST_HEADER, awayText } from "./harness-trust.js";
 import type { Place } from "./story-destinations.js";
 import { starterDecisionText } from "./starter-decision.js";
@@ -192,7 +192,7 @@ export function probeTools(features: FeatureSet, recorder: Replay, cutOff?:strin
   const base = gameTools("http://probe.invalid", { beforePress: () => undefined, afterPress: inert }, inert, toolSwitches(features));
   const context = contextTools(features, recorder, innermost, cutOff,places);
   const tools = playGameTools(base, features, { read: inert, battleWait: inert, battleMessages: inert, sceneEvents: inert }, recorder,undefined,features["instruction-goal-ledger-v1"]?context.tools:[],context.training,context.instructionGoals);
-  return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: context.transformContext, window: context.window };
+  return { tools: [...tools, ...(features["instruction-goal-ledger-v1"]?[]:context.tools)], transform: finalGuide(features, recorder, context.transformContext), window: context.window };
 }
 const asTool = (t: AgentTool): Tool => ({ name: t.name, description: t.description, parameters: t.parameters });
 

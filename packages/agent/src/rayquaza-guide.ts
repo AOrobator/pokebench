@@ -47,7 +47,7 @@ type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
 // is present on map entry and during a stall without separate triggers.
 export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=RAYQUAZA_GUIDE_STEPS):Transform {
  if(!features["rq-milestone-guide-v1"])return transform;
- const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true);
+ const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true,true);
  let recorded:string|null=null;
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;

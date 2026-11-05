@@ -14,7 +14,7 @@ Single milestone. Viewer presentation plus trainer-page art, so no feature switc
 ## M1
 
 - [x] RED: 7c9be2f9a
-- [x] GREEN: focused viewer suites pass
+- [x] GREEN: focused viewer suites pass; candidate client on live data: 5f0f 3:49:47 ahead, 8 stops, filters and folding clicked on desktop and phone sizes; art builder verified the map against the ROM
 - [ ] Gates
 - [ ] Review
 - [ ] Land, `just trainer-page-art`, `just viewer-main`, live proof

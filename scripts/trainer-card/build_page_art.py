@@ -128,14 +128,20 @@ def build_region_map(rom: object, gfx: Path, root: Path, out: Path) -> dict[str,
     width = sheet.width // 8
     pixels = sheet.load()
     tiles = [
-        bytes(pixels[(n % width) * 8 + x, (n // width) * 8 + y] for y in range(8) for x in range(8))
+        bytes(
+            pixels[(n % width) * 8 + x, (n // width) * 8 + y]
+            for y in range(8)
+            for x in range(8)
+        )
         for n in range(MAP_TILES)
     ]
     tilemap = (region / "map.bin").read_bytes()
     proof = {
         "tiles": art.hexoff(rom.lz(b"".join(tiles), "region map tiles")),  # type: ignore[attr-defined]
         "tilemap": art.hexoff(rom.lz(tilemap, "region map tilemap")),  # type: ignore[attr-defined]
-        "palette": art.hexoff(rom.raw(art.gbapal(art.jasc(region / "map.pal")), "region map palette")),  # type: ignore[attr-defined]
+        "palette": art.hexoff(
+            rom.raw(art.gbapal(art.jasc(region / "map.pal")), "region map palette")
+        ),  # type: ignore[attr-defined]
     }
     raw = sheet.getpalette() or []
     colors = [tuple(raw[i : i + 3]) for i in range(0, len(raw), 3)]
@@ -148,13 +154,23 @@ def build_region_map(rom: object, gfx: Path, root: Path, out: Path) -> dict[str,
         for i, index in enumerate(tile):
             image.putpixel((tx * 8 + i % 8, ty * 8 + i // 8), colors[index])
     image.save(out / "region-map.png")
-    proof["run"] = indexed(rom, region / "brendan_icon.png", out / "map-run.png", "map run icon", True)
-    proof["frontier"] = indexed(rom, region / "may_icon.png", out / "map-frontier.png", "map frontier icon", True)
+    proof["run"] = indexed(
+        rom, region / "brendan_icon.png", out / "map-run.png", "map run icon", False
+    )
+    proof["frontier"] = indexed(
+        rom,
+        region / "may_icon.png",
+        out / "map-frontier.png",
+        "map frontier icon",
+        False,
+    )
     return proof
 
 
 def map_sections(root: Path) -> list[dict[str, object]]:
-    data = json.loads((root / "src/data/region_map/region_map_sections.json").read_text())
+    data = json.loads(
+        (root / "src/data/region_map/region_map_sections.json").read_text()
+    )
     return [
         {key: section[key] for key in ("name", "x", "y", "width", "height")}
         for section in data["map_sections"]
@@ -236,7 +252,9 @@ def main(argv: list[str] | None = None) -> int:
         shutil.rmtree(tmp, ignore_errors=True)
         print(f"build_page_art: FAILED: {error}", file=sys.stderr)
         return 1
-    print(f"trainer page art -> {out}: card, badges, window, {len(GYMS)} gyms; verified against ROM")
+    print(
+        f"trainer page art -> {out}: card, badges, window, {len(GYMS)} gyms; verified against ROM"
+    )
     return 0
 
 

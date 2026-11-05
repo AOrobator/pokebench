@@ -36,7 +36,7 @@ describe("production host pieces", () => {
     expect(spec.env).toEqual({ PATH: "/bin", POKEBENCH_ROM: "/rom.gba", POKEBENCH_RUNS_ROOT: "/repo/runs", POKEBENCH_RUN_ID: "r1" });
   });
 
-  it("saves frontier checkpoints on boot starts only, and only from the lane's own setting", () => {
+  it("sets the capture switch on boot starts only, and only from the lane's own setting", () => {
     const env = (start: FixedStart) => trialEnv(
       definition({ phases: [{ id: "p", perArm: 1, maxWallMs: 900_000, primary: true, start }] }),
       { slot: 1, phase: "p", arm: "control" }, { gamePort: 8071 }, { endpoint: "/e", preset: "/p", run: "r" },

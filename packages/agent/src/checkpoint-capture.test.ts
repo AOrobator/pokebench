@@ -6,7 +6,7 @@ import {REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
 import {parsePlayPreset,presetStart} from "./play-preset.js";
 import {} from "./features.js";
 import {checkEvent,type RunEvent} from "./events.js";
-import type {RunStartMeta} from "./recorder.js";
+import {RunRecorder,type RecorderDeps,type RunStartMeta} from "./recorder.js";
 
 const ev=(body:Record<string,unknown>,seq:number):RunEvent=>checkEvent({v:1,run:"cp-run",t:"2026-10-14T12:00:00.000-04:00",turn:4,seq,...body});
 const milestone=(name:string,seq:number,origin="observed",kind="story")=>ev({type:"milestone",name,server_timestamp:1,kind,origin,evidence:[seq-1]},seq);
@@ -30,7 +30,7 @@ function fixture(
  const fetchFn=async(url:string,init?:{body?:string})=>{active++;maxActive=Math.max(maxActive,active);calls.push({url,body:init?.body===undefined?undefined:JSON.parse(init.body),active});await Promise.resolve();active--;
   return new Response(JSON.stringify(reply),{status});};
  const write=(path:string,data:Buffer|string)=>{if(path.endsWith(".json.partial")&&failMeta)throw new Error("disk full");files.set(path,data);};
- const deps:CheckpointDeps={serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",libraryDir:"/runs/checkpoints",fetch:fetchFn,write,rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);},linkExclusive:(from,to)=>{if(files.has(to)){const error=Object.assign(new Error("exists"),{code:"EEXIST"});throw error;}const data=files.get(from);if(data===undefined)throw new Error("missing staged index");files.set(to,data);},remove:path=>{files.delete(path);}};
+ const deps:CheckpointDeps={run:"cp-run",serverUrl:"http://127.0.0.1:9",dir:"/runs/cp-run/checkpoints",libraryDir:"/runs/checkpoints",fetch:fetchFn,write,rename:(from,to)=>{const v=files.get(from);if(v===undefined)throw new Error("missing");files.delete(from);files.set(to,v);},linkExclusive:(from,to)=>{if(files.has(to)){const error=Object.assign(new Error("exists"),{code:"EEXIST"});throw error;}const data=files.get(from);if(data===undefined)throw new Error("missing staged index");files.set(to,data);},remove:path=>{files.delete(path);}};
  const capture=new CheckpointCapture(selection,deps,START);
  return {capture,calls,files,deps,maxActive:()=>maxActive};
 }
@@ -63,8 +63,8 @@ it("promotes the first complete candidate per milestone without overwriting a wi
 it("lets a later complete candidate win after an index write fails after exclusive creation",async()=>{
  const shared=fixture({kind:"frontier"});let poison=true;
  const deps:CheckpointDeps={...shared.deps,write:(path,data)=>{if(path.includes(".first-arrival.")&&poison){poison=false;shared.files.set(path,"");throw Object.assign(new Error("disk full after create"),{code:"ENOSPC"});}shared.deps.write(path,data);}};
- const first=new CheckpointCapture({kind:"frontier"},deps,START);first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await expect(first.settled()).rejects.toThrow(/disk full after create/);
- const second=new CheckpointCapture({kind:"frontier"},deps,START);second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.settled();
+ const first=new CheckpointCapture({kind:"frontier"},{...deps,run:"run-a"},START);first.observe(milestoneFor("run-a","PETALBURG_WOODS",20));await expect(first.settled()).rejects.toThrow(/disk full after create/);
+ const second=new CheckpointCapture({kind:"frontier"},{...deps,run:"run-b"},START);second.observe(milestoneFor("run-b","PETALBURG_WOODS",21));await second.settled();
  expect(JSON.parse(String(shared.files.get("/runs/checkpoints/PETALBURG_WOODS/first-arrival.json")))).toMatchObject({run:"run-b",candidate:"candidates/run-b"});
 });
 
@@ -90,6 +90,16 @@ it("keeps a checkpoint start's saves under its own run and names the state it st
  const {capture,files}=fixture({kind:"frontier"});capture.observe(milestone("PETALBURG_WOODS",10,"present_at_start","navigation"));capture.observe(milestone("TEAM_AQUA_WOODS_EVENT_COMPLETE",20));await capture.settled();
  expect([...files.keys()].filter(path=>path.endsWith(".state")).sort()).toEqual(["/runs/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE/candidates/cp-run/TEAM_AQUA_WOODS_EVENT_COMPLETE.state","/runs/cp-run/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE.state"]);
  expect(JSON.parse(String(files.get("/runs/cp-run/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE.json")))).toMatchObject({source:{start_state:START.start_state}});
+});
+
+it("never saves a continuation's replayed source milestones, and saves its live ones under its own run",async()=>{
+ const {capture,calls,files}=fixture({kind:"frontier"});
+ const source="/runs/checkpoints/PETALBURG_WOODS/candidates/source-run/PETALBURG_WOODS.state",sentinel=Buffer.from("source-state");files.set(source,sentinel);
+ const deps={log:{runId:"cp-run",continuationStartSeq:1000},history:[milestoneFor("source-run","PETALBURG_WOODS",20)],milestones:{observe:()=>[]}} as unknown as RecorderDeps;
+ const recorder=new RunRecorder(deps);recorder.subscribe(event=>{capture.observe(event);});await recorder.restoreHistory(()=>Promise.resolve());await capture.settled();
+ expect(calls).toHaveLength(0);expect(files.get(source)).toBe(sentinel);expect(files.has("/runs/cp-run/checkpoints/PETALBURG_WOODS.state")).toBe(false);
+ capture.observe(milestone("PETALBURG_WOODS",1001,"observed","navigation"));await capture.settled();
+ expect(calls).toHaveLength(1);expect(files.get(source)).toBe(sentinel);expect(files.get("/runs/checkpoints/PETALBURG_WOODS/candidates/cp-run/PETALBURG_WOODS.state")).toEqual(STATE);
 });
 
 const v2={version:2,id:"cp",target:"RIVAL_MET",limits:{maxTurns:1500,maxWallMs:900000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"state-only-decisions-v1":false}};

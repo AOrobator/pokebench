@@ -7,6 +7,7 @@ import type {RunStartMeta} from "./recorder.js";
 export type CheckpointSelection={readonly kind:"single";readonly target:string}|{readonly kind:"frontier"};
 
 export interface CheckpointDeps {
+ readonly run:string;
  readonly serverUrl:string;
  readonly dir:string;
  readonly libraryDir?:string;
@@ -65,6 +66,8 @@ export class CheckpointCapture {
  private closed=false;
  constructor(private readonly selection:CheckpointSelection,private readonly deps:CheckpointDeps,private readonly start:RunStartMeta){}
  observe(event:RunEvent):void {
+  // A continuation replays its source run's events through every observer; the game is not at those milestones.
+  if(event.run!==this.deps.run)return;
   if(this.closed||event.type!=="milestone"||event.origin==="present_at_start"||this.seen.has(event.name)||!this.selected(event.name))return;
   this.seen.add(event.name);
   this.pending=this.pending.then(()=>this.capture(event)).catch((value:unknown)=>{

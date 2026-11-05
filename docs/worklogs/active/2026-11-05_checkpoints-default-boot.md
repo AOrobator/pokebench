@@ -48,10 +48,12 @@ Not a live run yet: the first real run from this build is still to come. Run 5f0
 
 The operator, 2026-11-05 1:05 AM: "we should also make it save milestones when starting from a checkpoint by default". `checkpointSelection` no longer needs the start; `0` stays the OFF switch.
 
-Saves stay apart from the source run: run files are under `runs/<id>/checkpoints/`, library copies under `runs/checkpoints/<milestone>/candidates/<id>/`, and every run has its own id, so no original state is overwritten. Each sidecar names `source.start_state`. A checkpoint-started run can win `first-arrival.json` if it arrives first; only capture itself reads that index.
+Saves stay apart from the source run: run files are under `runs/<id>/checkpoints/`, library copies under `runs/checkpoints/<milestone>/candidates/<id>/`, and every run has its own id. A continuation replays its source run's milestones through every observer, so capture ignores any event whose run is not its own; without that, replay wrote the start state over source candidates (all three reviewers, round 1 of this follow-up). Each sidecar names `source.start_state`. A checkpoint-started run can win `first-arrival.json` if it arrives first; only capture itself reads that index.
 
 Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` and `fixed-runner.ts` keep setting `1` because they can launch older pins.
 
 - [x] RED: default on for any start; checkpoint-start saves stay under their own run
 - [x] GREEN: default on for every start. COMMIT (RED): `test(checkpoints): every start saves by default` (47c8712a9)
 - [x] Full gates on the every-start default: just lint, build, test, verify-vendor all exit 0; floors held.
+- [x] Review round 1 on 0ec13791: Claude, GPT and fallback all BLOCKING on continuation replay. Fix: run filter in `observe`, test through real `RunRecorder.restoreHistory`. Note: fixed-run save-state launches cannot pass `0`, because the launcher strips the variable.
+- [x] Replay test proven: removing the run filter fails it (1 failed, 13 passed); restored, 14 passed.

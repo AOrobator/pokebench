@@ -41,7 +41,9 @@ function inOrder(times: readonly number[]): ReadonlySet<number> {
   return keep;
 }
 
-export function raceOf(reached: readonly { readonly name: string; readonly at: number }[], frontier: Baseline | null, now: number, start: number | null): Race {
+// An unknown save has no known position, so its clock cannot be raced against one from New Game.
+export function raceOf(reached: readonly { readonly name: string; readonly at: number }[], given: Baseline | null, now: number, start: number | null): Race {
+  const frontier = start === null ? null : given;
   const seconds = new Map(frontier?.milestones.map(m => [m.name, m.offsetMs / 1000]) ?? []);
   const sorted = reached.map((m, i) => ({ m, i })).sort((a, b) => a.m.at - b.m.at || a.i - b.i).map(({ m }) => m);
   const shared = sorted.filter(m => seconds.has(m.name));
@@ -66,7 +68,7 @@ export function raceOf(reached: readonly { readonly name: string; readonly at: n
   }
   const legs = BADGES.map(([, badge, title], index): RaceLeg => {
     const own = buckets[index] ?? [], compared = own.filter(r => r.gain !== null);
-    return { index, badge, title, current: index === Math.min(leg, BADGES.length - 1), rows: own, gain: compared.reduce((sum, r) => sum + (r.gain ?? 0), 0), faster: own.filter(r => r.kind === "up").length, slower: own.filter(r => r.kind === "dn").length, gap: compared.at(-1)?.gap ?? null };
+    return { index, badge, title, current: index === leg, rows: own, gain: compared.reduce((sum, r) => sum + (r.gain ?? 0), 0), faster: own.filter(r => r.kind === "up").length, slower: own.filter(r => r.kind === "dn").length, gap: compared.at(-1)?.gap ?? null };
   });
   const compared = rows.filter(r => r.gain !== null), last = compared.at(-1), recent = compared.slice(-PACE_WINDOW);
   const mile = (m: { readonly name: string; readonly offsetMs: number }): { name: string; label: string; at: number } => ({ name: m.name, label: label(m.name), at: m.offsetMs / 1000 });
@@ -97,8 +99,8 @@ function bar(gain: number | null, scale: number): string {
   return `<span class="race-bar"><i></i><u class="${gain > 0 ? "up" : "dn"}" style="width:${(Math.sqrt(Math.abs(gain)) / scale * 50).toFixed(1)}%;${gain > 0 ? "right" : "left"}:50%"></u></span>`;
 }
 
-export function raceHeadline(race: Race, run: string, now: number): string {
-  const lead = !race.compared ? `${esc(run)}: no frontier run to race yet.` : race.gap === null ? "No shared milestones with the FRONTIER yet." : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the FRONTIER!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the FRONTIER!`;
+export function raceHeadline(race: Race, run: string, now: number, loading = false): string {
+  const lead = !race.compared ? loading ? "Loading the frontier run…" : `${esc(run)}: no frontier run to race yet.` : race.gap === null ? "No shared milestones with the FRONTIER yet." : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the FRONTIER!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the FRONTIER!`;
   const where = race.frontierEnd !== null && now > race.frontierEnd.at ? `${hms(now)} is past the FRONTIER's last milestone, ${esc(race.frontierEnd.label)} at ${hms(race.frontierEnd.at)}.` : race.frontierAt === null ? "" : `At ${hms(now)} the FRONTIER had reached ${esc(race.frontierAt.label)}.`;
   const pace = race.pace === null ? "" : ` ${race.pace.gain >= 0 ? "Gained" : "Lost"} ${short(race.pace.gain)} over the last ${String(race.pace.count)} milestone${race.pace.count === 1 ? "" : "s"}.`;
   const toPass = race.toPass.length === 0 ? "" : ` Still to pass: ${esc(race.toPass.slice(0, 3).join(", "))}.`;
@@ -143,7 +145,7 @@ export function raceFilters(filter: RaceFilter, race: Race): string {
 
 export interface RaceMapSection { readonly name: string; readonly key: string; readonly x: number; readonly y: number }
 const MAP_WIDTH = 256, MAP_HEIGHT = 160, CELL = 8, MAP_LEFT = 1, MAP_TOP = 2;
-const plain = (text: string): string => text.toUpperCase().replaceAll("_", " ").replaceAll(".", "").replaceAll("'", "");
+const plain = (text: string): string => text.toUpperCase().replaceAll("_", " ").replaceAll(".", "").replaceAll("'", "").replace(/ROUTE(\d)/, "ROUTE $1");
 // data.json's map sections, in the game's region map cells.
 export function parseRaceMap(value: unknown): readonly RaceMapSection[] | null {
   const map = typeof value === "object" && value !== null && "map" in value ? value.map : null;

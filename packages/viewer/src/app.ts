@@ -15,6 +15,7 @@ import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
+import { customLane } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
@@ -253,7 +254,7 @@ export class App {
   private olderPages = OLDER_PAGES;
   private trainerPage: TrainerPageData | null = null;
   private trainerPageLoad: Promise<void> | null = null;
-  private raceMapData: readonly RaceMapSection[] | null = null;
+  private raceMapData: readonly RaceMapSection[] | null | undefined = undefined;
   private raceFilter: RaceFilter = "all";
   private readonly raceOpen = new Map<number, boolean>();
   private raceMemo: { key: string; race: Race; now: number } | null = null;
@@ -1149,29 +1150,37 @@ export class App {
     }
   }
 
-  private raceOf(view: RunView, nowMs: number, recorded: BestSplits | undefined): { race: Race; now: number } {
-    const now = Math.floor(runWallSeconds(view, nowMs)), marks = reachedSplits(view, recorded), key = [this.runId, marks.length, marks.at(-1)?.at, this.frontier?.run, this.frontier?.milestones.length, now].join("|");
-    if (this.raceMemo?.key !== key) this.raceMemo = { key, race: raceOf(marks, this.frontier, now, startIndex(view)), now };
+  private raceOf(view: RunView, nowMs: number, recorded: BestSplits | undefined, frontier: Baseline | null): { race: Race; now: number } {
+    const now = Math.floor(runWallSeconds(view, nowMs)), marks = reachedSplits(view, recorded), key = [this.runId, marks.map(m => `${m.name}:${String(m.at)}`).join(), frontier?.run, frontier?.milestones.length, now].join("|");
+    if (this.raceMemo?.key !== key) this.raceMemo = { key, race: raceOf(marks, frontier, now, startIndex(view)), now };
     return this.raceMemo;
   }
 
   private renderRace(view: RunView, nowMs: number, recorded: BestSplits | null | undefined): void {
     if (this.ui("race").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
-    const source = tableSplits(this.mode, recorded);
-    if (source === null || view.startMs === null) { this.setHtml("race-head", '<p class="race-sub">Loading recorded splits…</p>'); return; }
-    const { race, now } = this.raceOf(view, nowMs, source), run = this.runId ?? "", label = runLabel(run);
+    const source = tableSplits(this.mode, recorded), panes = ["race-rail", "race-gains", "race-losses", "race-filters", "race-list", "race-map", "race-plot"];
+    if (source === null || view.startMs === null) {
+      this.setHtml("race-head", `<p class="race-sub">${this.runId === null ? "No run selected." : "Loading recorded splits…"}</p>`);
+      for (const pane of panes) this.setHtml(pane, "");
+      return;
+    }
+    const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
+    const custom = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) !== null, frontier = custom ? null : this.frontier, loading = !custom && !this.frontierSettled && frontier === null;
+    const { race, now } = this.raceOf(view, nowMs, source, frontier);
     const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
-    this.setHtml("race-head", raceHeadline(race, label, now));
+    this.setHtml("race-head", raceHeadline(race, label, now, loading));
     this.setHtml("race-rail", raceRail(race));
     this.setHtml("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
     this.setHtml("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));
     this.setHtml("race-filters", raceFilters(this.raceFilter, race));
     this.setHtml("race-list", raceList(race, this.raceFilter, open));
-    this.setHtml("race-map", raceMap(this.raceMapData, view.cardState?.location, race, label));
-    const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640, recording = this.workbench?.runs.find(item => item.id === run);
-    if (this.frontier === null || recording === undefined) { this.setHtml("race-plot", `<p class="race-sub">${this.frontier === null ? "No frontier run to plot yet." : "Loading the story graph…"}</p>`); return; }
-    const key = [run, recording.splits.length, recording.status, this.frontier.run, this.frontier.milestones.length, width].join("|");
-    if (this.racePlotMemo?.key !== key) this.racePlotMemo = { key, html: racePlot(this.frontier, recording, width) };
+    this.setHtml("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label));
+    const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640;
+    if (frontier === null || recording === undefined) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : "No frontier run to plot."}</p>`); return; }
+    // Rewinding hides later splits from the graph as it does from the list.
+    const shown = new Set(race.rows.map(row => row.name)), splits = this.mode === "replay" ? recording.splits.filter(split => shown.has(split.name)) : recording.splits;
+    const key = [run, splits.map(split => `${split.name}:${String(split.elapsedMs)}`).join(), recording.status, frontier.run, frontier.milestones.length, width].join("|");
+    if (this.racePlotMemo?.key !== key) this.racePlotMemo = { key, html: racePlot(frontier, { ...recording, splits }, width) };
     this.setHtml("race-plot", this.racePlotMemo.html);
   }
 

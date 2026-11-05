@@ -20,3 +20,5 @@ Single milestone. Viewer presentation plus trainer-page art, so no feature switc
 - [ ] Land, `just trainer-page-art`, `just viewer-main`, live proof
 
 ## Multi-Model Review Log
+
+Round 1, packet f0b707872..ed6229b44 sha 13e1d25b. Claude, GPT and fallback subagent: BLOCKING, all real. Fixed in one batch: frontier loading no longer reads as no frontier; a loading or empty page clears every pane; ROUTE119-style locations place on the map; the replay graph follows the list; an unknown save and custom lanes do not race; memo keys cover split contents; no badge is current after the last; the map waits for its data.

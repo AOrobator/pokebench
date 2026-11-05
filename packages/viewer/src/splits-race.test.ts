@@ -43,6 +43,15 @@ describe("the race against the frontier", () => {
     expect(raceOf([], null, 1, stone).legs.find(l => l.current)?.badge).toBe("KNUCKLE");
   });
 
+  it("does not race a save with no known position", () => {
+    const race = raceOf([mark("CLOCK_SET", 10)], frontier(["CLOCK_SET", 100]), 20, null);
+    expect([race.compared, race.gap, race.rows[0]?.kind]).toEqual([false, null, "none"]);
+  });
+
+  it("has no current badge once the last one is won", () => {
+    expect(raceOf([mark("RAIN_BADGE", 1)], null, 2, -1).legs.some(l => l.current)).toBe(false);
+  });
+
   it("names what is left to pass the frontier", () => {
     const race = raceOf([mark("NEW_GAME_CREATED", 1)], frontier(["NEW_GAME_CREATED", 2], [must(FRONTIER_MILESTONES[1]).id, 3], ["FIRST_POKEMON_CAUGHT", 4]), 5, -1);
     expect(race.toPass).toEqual([must(FRONTIER_MILESTONES[1]).label]);
@@ -72,6 +81,7 @@ describe("the page pieces", () => {
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["A", 10]), 40, -1), "r", 40)).toContain("r is level with the FRONTIER!");
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["B", 10]), 5, -1), "r", 5)).toContain("No shared milestones");
     expect(raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40)).toContain("no frontier run");
+    expect(raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40, true)).toContain("Loading the frontier run");
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["A", 12]), 40, -1), "r", 40)).toContain("past the FRONTIER's last milestone");
   });
   it("folds past badges unless told otherwise, and filters to faster or slower", () => {
@@ -109,6 +119,9 @@ describe("the map", () => {
     expect(html).toContain("…5f0f");
     expect(html).toContain("FRONTIER");
     expect(html).toContain("/sprites/page/map-run.png");
+  });
+  it("reads a route location written without its space", () => {
+    expect(raceMap(map, "ROUTE119", raceOf([], null, 1, -1), "r")).toContain("map-run.png");
   });
   it("leaves off a run it cannot place", () => {
     expect(raceMap(map, null, raceOf([], null, 1, -1), "r")).not.toContain("map-run.png");

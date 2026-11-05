@@ -54,3 +54,4 @@ Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` a
 
 - [x] RED: default on for any start; checkpoint-start saves stay under their own run
 - [x] GREEN: default on for every start. COMMIT (RED): `test(checkpoints): every start saves by default` (47c8712a9)
+- [x] Full gates on the every-start default: just lint, build, test, verify-vendor all exit 0; floors held.

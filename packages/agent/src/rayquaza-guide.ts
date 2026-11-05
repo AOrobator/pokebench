@@ -10,15 +10,27 @@ export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before ret
 
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:readonly [number,number]}
 
-// The furthest step earned is the current one, so a late or repeated milestone never moves the guide back.
+// How far one milestone may move the guide. Wide enough for steps that never fired, narrow enough that an
+// early visit, such as walking into Dewford Gym before Steven, cannot skip the story in between.
+const REACH=8;
+
+// Earned steps are remembered, and the guide moves to the furthest one within reach, again and again, so an
+// early milestone takes effect once the guide catches up and a checkpoint start chains forward.
 export class GuidePosition {
  private furthest=0;
+ private readonly earned=new Set<number>();
  inBattle=false;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"screen" in event)this.inBattle=battleOnScreen(event,true);
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
-  if(reached>this.furthest)this.furthest=reached;
+  if(reached<0)return;
+  this.earned.add(reached);
+  for(let next=this.next();next!==null;next=this.next())this.furthest=next;
+ }
+ private next():number|null {
+  for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.earned.has(i))return i;
+  return null;
  }
  private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}
  current():GuideStep {

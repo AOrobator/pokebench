@@ -45,6 +45,13 @@ Save paths are untrusted. The reader re-roots the part after `/runs/` under the 
 - [x] Before/after headless screenshots and Hidden list on real data (taken at 86dd4726f; the two later commits change only a probe with a problem, the race graph and a probe source)
 - [x] Full gates on 4b70f3059 in the coordinator's START window, with art linked and main's env for mypy: `just test` passed (agent 2537, viewer 966, Python 2930 + 38, no-I/O proof OK; floors met: agent 60.36/56.77/59.67/65.92, viewer 38.25/41.89/44.36/38.61); TypeScript, Python and gateway lint passed; `just trainer-card-check` 3 passed.
 - [x] Landing go relayed by the coordinator 2026-11-05, conditional on green gates
+- [ ] Activation: `just viewer-main` and live proof on 8790 (blocked by permission)
+
+## Landing
+
+Landed fast-forward on local main at f023e1c97, 2026-11-05 about 3:52 PM New York; no rebase needed, main was still 7010a995c. Not pushed. The gated tree 4b70f3059 differs from it only in this worklog, so the gate receipts are retained and no post-main suite was rerun.
+
+Not live: `just viewer-main` was refused by the session's permission classifier, so 8790 still runs the earlier build. Restart safety was checked in the code: the play processes are children of their fixed-cli runners, not the viewer; `viewer-restart.sh` signals only the 8790 listener and fails if a play process dies; viewer shutdown only closes the server. Live proof that ee2a shows on 8790 is still pending.
 
 ## Closing the Loop
 

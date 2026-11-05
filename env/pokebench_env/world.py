@@ -103,10 +103,12 @@ def read_targets(
     *,
     sign_label: Callable[[int], str | None] | None = None,
     native_slots: bool = False,
+    hide_decoration: bool = False,
 ) -> tuple[InteractionTarget, ...] | None:
     """All event records in this map; object positions come only from live RAM.
 
     sign_label (displayed-place-names-v1) names a background event by the text its script prints.
+    hide_decoration (shop-shelf-hidden-v1) leaves out shop shelves and signs with no script.
     """
     events = int.from_bytes(read(MAP_HEADER + 4, 4), "little")
     if not _pointer(events):
@@ -172,6 +174,9 @@ def read_targets(
     backgrounds = read(pointers[3], counts[3] * 12) if counts[3] else b""
     for i in range(counts[3]):
         x, y, elevation, kind, script = struct.unpack_from("<HHBB2xI", backgrounds, i * 12)
+        # Hidden items and secret bases keep other data in this field, so only signs qualify.
+        if hide_decoration and kind <= 4 and script == 0:
+            continue
         label = (
             "background"
             if kind <= 4
@@ -194,7 +199,11 @@ def read_targets(
             )
         )
     terrain = read_metatile_targets(read)
-    return None if terrain is None else tuple(targets) + terrain
+    if terrain is None:
+        return None
+    if hide_decoration:
+        terrain = tuple(t for t in terrain if t.kind != SHOP_SHELF_KIND)
+    return tuple(targets) + terrain
 
 
 @dataclass(frozen=True)
@@ -237,6 +246,9 @@ def read_interaction_object_slots(read: ReadMemory) -> tuple[InteractionObjectSl
         )
     return tuple(result)
 
+
+SHOP_SHELF_SWITCH = "shop-shelf-hidden-v1"
+SHOP_SHELF_KIND = "metatile_shop_shelf"
 
 # Exact enum values at the pinned source revision. Only behavior predicates
 # returning scripts in GetInteractedMetatileScript are included.

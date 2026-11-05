@@ -204,7 +204,8 @@
     "rotating-gate-regions-v1",
     "rotating-gate-turn-reasons-v1",
     "rotating-gate-push-log-v1",
-    "coherent-battle-observation-v1"
+    "coherent-battle-observation-v1",
+    "shop-shelf-hidden-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -541,6 +542,7 @@
     "rotating-gate-push-log-v1": true,
     "rq-milestone-guide-v1": false,
     "rq-battle-explainer-v1": false,
-    "coherent-battle-observation-v1": true
+    "coherent-battle-observation-v1": true,
+    "shop-shelf-hidden-v1": true
   }
 }

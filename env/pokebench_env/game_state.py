@@ -416,6 +416,7 @@ def read_game_state(
     map_observability_enabled: bool = False,
     map_observability_full: bool = False,
     rotating_gate_positions_enabled: bool = False,
+    decoration_hidden_enabled: bool = False,
     caught_nickname_enabled: bool = False,
     caught_nickname_v2_enabled: bool = False,
     caught_dex_enabled: bool = False,
@@ -623,6 +624,7 @@ def read_game_state(
             map_id,
             sign_label=sign_labeler(read, gender, player) if displayed_names_enabled else None,
             native_slots=semantic_navigation_enabled,
+            hide_decoration=decoration_hidden_enabled,
         )
         if nearby is not None
         else None

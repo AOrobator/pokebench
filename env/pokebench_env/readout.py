@@ -76,7 +76,7 @@ from pokebench_env.topology import Connection, Topology
 from pokebench_env.training_readout import exp_clause
 from pokebench_env.warp_areas import SWITCH as WARP_AREAS
 from pokebench_env.warp_areas import warp_area_lines
-from pokebench_env.world import InteractionTarget
+from pokebench_env.world import SHOP_SHELF_SWITCH, InteractionTarget
 from pokebench_env.yes_no_answer import SWITCH as YES_NO_ANSWER
 from pokebench_env.yes_no_answer import answer_line
 
@@ -223,6 +223,7 @@ SERVER_FEATURES = (
     "rotating-gate-map-v1",
     "map-code-aliases-v1",
     GATE_REGIONS,
+    SHOP_SHELF_SWITCH,
 )
 
 
@@ -256,7 +257,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
-        "rotating-gate-regions-v1",
+        "rotating-gate-regions-v1,shop-shelf-hidden-v1",
     )
     if raw == "":
         return frozenset()

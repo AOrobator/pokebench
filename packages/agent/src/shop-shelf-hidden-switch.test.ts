@@ -22,7 +22,7 @@ describe(ID,()=>{
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},"play")).not.toContain(ID);
  });
  it("defaults off when a preset or flag set omits it",()=>{
-  const {[ID]:_,...omitted}=preset.features as Record<string,boolean>;
+  const omitted=Object.fromEntries(Object.entries(preset.features).filter(([id])=>id!==ID));
   const parsed=parsePlayPreset({...preset,features:omitted});
   if(parsed.version!==2)throw new Error("version");
   expect(parsed.features[ID]).toBe(false);

@@ -4,8 +4,8 @@ The operator 2026-11-05: decorative shelves should not be listed as things to in
 
 ## Plan
 
-- [ ] RED tests for the reader, state wiring and registry.
-- [ ] GREEN: `shop-shelf-hidden-v1`, default off, on in both arms of the current and Rayquaza recipes.
+- [x] RED tests for the reader, state wiring and registry.
+- [x] GREEN: `shop-shelf-hidden-v1`, default off, on in both arms of the current and Rayquaza recipes.
 - [ ] Explainer linked from the feature card.
 - [ ] Replay recorded Mart turns from raw RAM.
 - [ ] Read-only GPT review of the diff.
@@ -24,3 +24,12 @@ Source pokeemerald 731ad5b. ROM SHA-1 f3ae088181bf583e55daf962a92bb46f4f1d07b7, 
 
 ## Commits
 
+- RED: `test(readout): RED for shop-shelf-hidden-v1` (8b6456041). Python collection error on the missing switch; 4 agent tests failed.
+- GREEN: `feat(readout): hide shop shelves and scriptless signs behind shop-shelf-hidden-v1`.
+
+## Checks
+
+- Python focused, under the no-I/O guard: 115 passed (shelf, world, named interactions, semantic targets, visibility V2). ruff check and format clean on changed files.
+- Agent focused: 73 passed. Viewer `panels.test.ts`: 158 passed, run with a scratch config aliasing the agent package to source, because this worktree has no agent build. `tsc --noEmit` clean in both packages; eslint clean on changed files.
+- Wiring mutation: removing `hide_decoration=decoration_hidden_enabled` from `read_game_state` turned `test_production_path_honors_the_switch_in_text_and_json` red; restored, 6 passed.
+- Full suites not run; they need a coordinator CPU window.

@@ -42,6 +42,7 @@ def kinds(targets):
 
 def test_off_keeps_every_target_in_order():
     assert kinds(read_targets(shop().read, (1, 0))) == [
+        ("object", 2, 0),
         ("warp", 0, 1),
         ("coordinate_trigger", 4, 4),
         ("background", 3, 1),
@@ -55,6 +56,7 @@ def test_off_keeps_every_target_in_order():
 
 def test_on_drops_only_the_shelf_and_the_scriptless_sign():
     assert kinds(read_targets(shop().read, (1, 0), hide_decoration=True)) == [
+        ("object", 2, 0),
         ("warp", 0, 1),
         ("coordinate_trigger", 4, 4),
         ("background", 3, 1),
@@ -86,12 +88,12 @@ def test_production_path_honors_the_switch_in_text_and_json():
     off = features_off_from_env({})
     hidden_text, hidden_json = views(off - {SHOP_SHELF_SWITCH})
     shown_text, shown_json = views(off)
-    assert "shop shelf at (4,4)" in shown_text
+    assert "metatile_shop_shelf at (4,4)" in shown_text
     assert "(9,58)" in shown_text
     assert "metatile_shop_shelf" in [t["kind"] for t in shown_json["interaction_targets"]]
-    assert "shop shelf" not in hidden_text
+    assert "shop_shelf" not in hidden_text
     assert "(9,58)" not in hidden_text
-    assert "trash can at (4,3)" in hidden_text
+    assert "metatile_trash_can at (4,3)" in hidden_text
     assert "metatile_shop_shelf" not in [t["kind"] for t in hidden_json["interaction_targets"]]
 
 

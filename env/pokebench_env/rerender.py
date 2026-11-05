@@ -64,6 +64,7 @@ from pokebench_env.type_gap import SWITCH as TYPE_GAP
 from pokebench_env.ui_state import active_ui_enabled_from_env
 from pokebench_env.warp_areas import SWITCH as WARP_AREAS
 from pokebench_env.warp_areas import AreaVisits
+from pokebench_env.world import SHOP_SHELF_SWITCH
 
 PORYMAP_MAPS = (
     Path(__file__).resolve().parents[1] / "vendor/continual-harness/pokemon_env/porymap/data/maps"
@@ -124,6 +125,7 @@ def read_state(
         map_observability_enabled="map-observability-v1" not in off and "live-map-v1" not in off,
         map_observability_full="full-map-navigation-v1" not in off,
         rotating_gate_positions_enabled=GATE_POSITIONS not in off,
+        decoration_hidden_enabled=SHOP_SHELF_SWITCH not in off,
         active_warp_exits_enabled="active-warp-exits-v1" not in off,
         gym_door_label_enabled="gym-door-label-v1" not in off,
         exit_sections_enabled="exit-labels-v3" not in off

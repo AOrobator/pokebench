@@ -14,4 +14,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 
 - PREVIOUS: `docs(curriculum): add Rayquaza back-half guide` (b66305ced)
 - GATE: 61 four-column rows; all notes at most 300 characters; relative links resolve; 0 CHECK rows; `git diff --check` clean. Independent fact check found 43 confirmed and 18 corrected rows.
+- RECHECK: corrected the five residual delivery and route-continuity findings against 74de8cfa9; `GO_GOGGLES_RECEIVED` replaces the proposed bag alias and only the Aqua B1F map event remains under Needs.
 - COMMIT: `docs(curriculum): freeze the guide format and draft the Rayquaza briefs` (10a5bf4ee)

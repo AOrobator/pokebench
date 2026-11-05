@@ -7,8 +7,8 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `HEAT_BADGE` | `LavaridgeTown_Gym_1F` | Finish Flannery’s dialogue to receive TM50 Overheat. | KI 26–27, ROM |
-| `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. At the Herb Shop, aim for four Heal Powders, four Energy Roots and six Energy Powders as funds allow. | KI 27–28, KI shops, ROM |
-| `BAG:GO-GOGGLES` | `Route111` | Head east via Route 112 and collect the hidden Rare Candy in the Route 111 desert. Return or Teleport to Mauville if it is your last healing stop. Bike to Slateport and take Briney’s boat to Dewford Gym. | KI 28–30, WT 02, ROM |
+| `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. | KI 27–28, ROM |
+| `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | Shop for four Heal Powders, four Energy Roots and six Energy Powders as funds allow. Head east via Route 112 for the hidden Route 111 Rare Candy. Return or Teleport to Mauville if it was your last heal, then bike to Slateport and take Briney’s boat to Dewford Gym. | KI 28–30, KI shops, WT 02, ROM |
 | `DEWFORD_GYM_ENTERED` | `DewfordTown_Gym` | Reach Brawly in the dark Gym. Use Marshtomp’s Strength against Machop, Meditite and Makuhita. Heal if a foe survives and leaves you in danger. | KI 30, KI battle plans, WT 02 |
 | `KNUCKLE_BADGE` | `DewfordTown` | Finish Brawly’s dialogue for Bulk Up. Take Briney’s boat back to Route 104, then go east to Petalburg Gym. Use an available Rare Candy before Norman if it helps the planned Marshtomp. | KI 30–32 |
 
@@ -50,14 +50,14 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `MAP:AquaHideout_B1F` | `AquaHideout_B1F` | Take the left panel. In the grunt room use (3,20), then (42,5), (45,9), (42,13), (42,17). Approach from below and take the Nugget at (15,10), then the Master Ball at (15,9). Avoid the two balls on the right. | KI master-ball, ROM |
 | `MASTER_BALL_OBTAINED` | `AquaHideout_B1F` | Step back through the entry panel, then take right, middle, left and the top panel above the middle. This returns you near the double-battle pair. Use their panel after clearing the way. | KI master-ball, WT 09 |
 | `AQUA_HIDEOUT_SUBMARINE_CHAMBER` | `AquaHideout_B2F` | Work through the warp rooms to Matt. Use Surf against Mightyena and Golbat, then finish the submarine scene. | KI 42, KI battle plans, KI master-ball |
-| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_1F` | Take the lower exit panel. In the first two-panel room, use the right panel for the optional Max Elixir, then leave. Surf east from Lilycove on Route 124 to Mossdeep. Use Repel and avoid swimmers’ sight lines where possible. | KI 42–43, KI master-ball, PATH 5 |
+| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_B2F` | Take the lower exit panel. In the first two-panel room, use the right panel for the optional Max Elixir, then leave. Surf east from Lilycove on Route 124 to Mossdeep. Use Repel and avoid swimmers’ sight lines where possible. | KI 42–43, KI master-ball, PATH 5 |
 
 ## Mossdeep and Seafloor Cavern
 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Stock up at Mossdeep Mart. Aim for 11 Hyper Potions, two Revives, 11 Max Repels and 11 X Attacks as funds allow. Heal and prepare a second battler before entering the Gym. | KI 43–44, KI shops |
-| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | Use the switches to redirect arrow tiles and move obstacles, then take the warp panels. Bring two usable Pokémon for Tate and Liza. Use Swampert’s Surf to hit both foes, X Special if safe, and a Revive if you need your partner back. | KI 44, KI battle plans, WT 10, ROM |
+| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | Use the switches to move and turn obstacles, then take the warp panels. Bring two usable Pokémon for Tate and Liza. Use Swampert’s Surf to hit both foes, X Special if safe, and a Revive if you need your partner back. | KI 44, KI battle plans, WT 10, ROM |
 | `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Heal, then go to the Space Center. Defeat the grunts and go upstairs to Steven. | KI 45, WT 10 |
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Join Steven against Maxie and Tabitha. Lead with Swampert and use Surf; consider Guard Spec or X Special if safe. Watch Camerupt’s Amnesia and heal before repeated attacks put Swampert at risk. | KI 45, KI battle plans, WT 10 |
 | `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house for HM08 Dive. Teach Dive to Swampert over Mud Shot; retain Surf, Strength and Rock Smash for the cavern. | KI 46, KI TMs/HMs and move changes, WT 10 |
@@ -74,7 +74,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Leave the cave, using an Escape Rope if useful. Fly to Pacifidlog if registered, then Surf east on Route 131 and take the north opening to Sky Pillar. | KI 49, WT 12 |
 | `SKY_PILLAR_OPENED` | `SkyPillar_1F` | From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza to wake it. | KI 49, WT 12, PATH 6, ROM |
 | `RAYQUAZA_AWAKENED` | `SootopolisCity` | Return to Sootopolis and finish the scene where Rayquaza ends Groudon and Kyogre’s fight. | KI 50, WT 12 |
-| `SOOTOPOLIS_CRISIS_RESOLVED` | `SkyPillar_1F` | Reach (10,1). Mach Bike: 2F D2 R D10 L10 U4 R2 U8; 3F D4 L2 D6 R D R10 U5 L U6; 4F D11 L8 U8 R4 U3 to drop, return, D L4 U; 5F D L2 D2 R D4 L D4 R5 D R7 U5 L U6 L2 U; top D L4 U4 R2 U4. Master Ball Rayquaza, Fly to Sootopolis and get HM07 from Wallace. | KI 51–53, KI master-ball, WT 12, PATH 6, ROM |
+| `SOOTOPOLIS_CRISIS_RESOLVED` | `SkyPillar_1F` | Return via Pacifidlog and Route 131; reach (10,1). Mach Bike: 2F D2 R D10 L10 U4 R2 U8; 3F D4 L2 D6 R D R10 U5 L U6; 4F D11 L8 U8 R4 U3 to drop, take the stairs back, D L4 U; 5F D L2 D2 R D4 L D4 R5 D R7 U5 L U6 L2 U; top D L4 U4 R2 U4. Master Ball Rayquaza; Fly to Sootopolis for HM07. | KI 51–53, KI master-ball, WT 12, PATH 6, ROM |
 | `HM_WATERFALL_RECEIVED` | `SootopolisCity_Gym_1F` | Enter Juan’s Gym after receiving HM07. | KI 53, WT 12, ROM |
 | `SOOTOPOLIS_GYM_ENTERED` | `SootopolisCity_Gym_1F` | Step on every ice tile once; a repeat drops you below. Heal Rayquaza before Juan. Use Outrage only if healthy enough to finish its forced turns, then heal or cure confusion when you regain control. | KI 53, KI battle plans, WT 12, ROM |
 
@@ -100,6 +100,5 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 ## Needs
 
-- `BAG:GO-GOGGLES`: emit when either rival gives the item after the Heat Badge.
 - `MAP:AquaHideout_B1F`: deliver on first entry; the note starts at the B1F arrival and covers the panel chain.
 - CHECK lines: 0.

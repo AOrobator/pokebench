@@ -5,7 +5,7 @@ import {RAYQUAZA_GUIDE_STEPS} from "./rayquaza-guide-data.js";
 import type {RunRecorder} from "./recorder.js";
 
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
-export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM from the Bag, catch a second type, buy Potions, or gain levels. TMs do nothing until taught. Use X items you own. Below 1/3 HP, heal unless this turn's attack wins. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money and is not a free heal.";
+export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can move first and finish the fight. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money.";
 
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:readonly [number,number]}
 

@@ -21,6 +21,8 @@ Docs only: commit the game-knowledge curriculum, the just-in-time lesson and kee
 
 The lesson's grammar side finding was wrong and is rewritten: `tool-schema-dialect.ts` rewrites tuples for vLLM lanes; the rehearsal stub was not discovered as vLLM.
 
+The operator 2026-11-05: lane runs stay on the frontier with a help marker, so the README no longer says they are off it. `custom-lane.ts` and the CLAUDE.md rule still exclude them; that change belongs to the lane plan.
+
 ## Gates
 
 Prose-only: `git diff --check`, link check, independent review. No application gates.

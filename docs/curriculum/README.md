@@ -1,6 +1,6 @@
 # Curriculum for the Rayquaza lane
 
-The Rayquaza lane (alias: the Ray Ray lane) is the custom knowledge lane for Qwen. Its runs stay labelled and off the benchmark frontier.
+The Rayquaza lane (alias: the Ray Ray lane) is the custom knowledge lane for Qwen. Its runs show on the benchmark frontier, marked as heavily assisted (the operator 2026-11-05).
 
 - [Game-knowledge curriculum](game-knowledge-curriculum.md)
 - [Lesson: just-in-time knowledge](lesson-just-in-time-knowledge.md)

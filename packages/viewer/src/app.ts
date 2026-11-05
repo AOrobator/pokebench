@@ -17,10 +17,11 @@ import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runS
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
-import { cardHtml, cardInputFor, type CardInput } from "./trainer-card.js";
+import { cardHtml, cardInputFor, type CardArt, type CardInput } from "./trainer-card.js";
 import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type GlyphSheet } from "./game-font.js";
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
+import { cardRow } from "./card-row.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { isProbeRun, plateFacts } from "./workbench-view.js";
 
@@ -791,10 +792,13 @@ export class App {
     const replay = this.runs.find((run) => run.id === this.runId && run.ended === true);
     const recordedReplay = replay === undefined ? undefined : workbench.runs.find((run) => run.id === replay.id);
     if(recordedReplay!==undefined){
-      if(this.current!==null&&this.mode==="replay"){const shown=this.shown,seq=shown.events.at(-1)?.seq??-1,card=shown.cardState;const at=this.clock?.positionMs??now;return [cardInputFor({...recordedReplay,turn:shown.turn,elapsedMs:Math.max(0,runSeconds(shown,at)*1000),splits:recordedReplay.splits.filter(split=>split.seq<=seq),card:card===null?null:{name:card.name,location:card.location,party:shown.partyMembers.flatMap(m=>m.level===null?[]:[{speciesId:m.species_id??null,level:m.level,egg:m.is_egg===true}])}},at,at,"replay",workbench.runs,art.art)];}
-      return [cardInputFor(recordedReplay,workbench.at,now,"replay",workbench.runs,art.art)];
+      if(this.current!==null&&this.mode==="replay"){const shown=this.shown,seq=shown.events.at(-1)?.seq??-1,card=shown.cardState;const at=this.clock?.positionMs??now;return cardRow(cardInputFor({...recordedReplay,turn:shown.turn,elapsedMs:Math.max(0,runSeconds(shown,at)*1000),splits:recordedReplay.splits.filter(split=>split.seq<=seq),card:card===null?null:{name:card.name,location:card.location,party:shown.partyMembers.flatMap(m=>m.level===null?[]:[{speciesId:m.species_id??null,level:m.level,egg:m.is_egg===true}])}},at,at,"replay",workbench.runs,art.art),this.liveCardInputs(workbench,art.art,now));}
+      return cardRow(cardInputFor(recordedReplay,workbench.at,now,"replay",workbench.runs,art.art),this.liveCardInputs(workbench,art.art,now));
     }
-    // An explicitly opened replay is separate from the default live-run row.
+    return this.liveCardInputs(workbench,art.art,now);
+  }
+
+  private liveCardInputs(workbench: WorkbenchData, art: CardArt, now: number): CardInput[] {
     const live = this.runs.filter(run => isLive(run) && run.problem === null
       && (this.current === null || run.id === this.runId || this.current.state.runs.some(row => row.id === run.id)));
     const liveCards = live.flatMap((run): CardInput[] => {
@@ -804,7 +808,7 @@ export class App {
         ?? isProbeRun(recorded);
       if (probe && run.id !== this.runId) return [];
       const status: CardInput["status"] = run.id === this.runId ? "watching" : recorded.status === "paused" ? "paused" : "live";
-      const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art.art);
+      const input = cardInputFor(recorded, workbench.at, now, status, workbench.runs, art);
       // Applied controls arrive on the selected stream before the next card snapshot.
       // A snapshot may also be ahead of that stream, so never reduce its cap.
       const streamedCap = run.id === this.runId ? this.view.control.maxWallMs : null;

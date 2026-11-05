@@ -49,7 +49,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | After | Map | Note | Source |
 |---|---|---|---|
 | ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116. Catch Taillow in the first grass with the Great Ball, use a Repel, beat Hiker Devan at (42,13) and decline Bide. Then beat the Team Aqua grunt in Rusturf Tunnel. | KI 11, 12, ROM, TR 7da5:560 |
-| RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check, TO:RustboroCity |
+| RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | RustboroCity_DevonCorp_3F | Finish Mr. Stone's talk and the Match Call tutorial. | KI 15, tested 2026-11-05, fact check |
 | MATCH_CALL_TUTORIAL_COMPLETE | RustboroCity | Go into the Rustboro Mart before leaving town. | The operator, audit U1 |

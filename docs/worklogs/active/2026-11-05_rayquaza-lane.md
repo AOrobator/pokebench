@@ -93,3 +93,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Front-only handoff: Mudkip nickname, Rustboro X-item purchase and named XP trainers live before Heat (`U10`, `U11`, `C5`) and have no row in this file. Claude owns `town-center-checkpoint-v1` OFF. `U12` targets `BATTLE_EXPLAINER`, outside this guide file.
 - Pending Claude’s AT implementation: split the three after-Heat candy/Teleport legs into `AT:Route111:35:65` → `TO:MauvilleCity`, `AT:PetalburgCity:11:28` → `TO:MauvilleCity`, and `AT:MtPyre_Summit:37:6` → `TO:FortreeCity`.
 - Merged Codex's after-Heat units through 73926f790. Candy rows on Route 111, Petalburg and the summit use tile and item steps so Teleport cannot skip them. Fortree has a Teleport row again.
+- Removed the Rustboro Teleport row: he walks that leg (audit C2).

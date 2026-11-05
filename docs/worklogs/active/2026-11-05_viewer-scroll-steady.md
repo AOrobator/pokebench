@@ -27,3 +27,29 @@ COMMIT: `test(viewer): a redraw keeps the reader's row and focus` (e3c0c3045). R
 GREEN: focused steady-scroll, splits-race, splits-race-honest and run-splits tests, 58 passed; viewer tsc and eslint pass on changed files.
 Candidate browser proof: the three changed client modules routed from this branch's dist onto live 8790, same injected splits, rows grew by 6. Tracked row moved 0px Chromium desktop, 1px Chromium phone, 0px WebKit desktop, 0px WebKit phone (was 235, 308, 235, 307).
 Ten-minute untouched probes on live 8790 saw real splits land (pane height +97 phone) and the document never moved, so the jump lives in the pane.
+COMMIT: `fix(viewer): auto-updates keep the reader's place on the splits page` (981c1c1ce). GREEN.
+
+## Gates
+
+On 981c1c1ce, under the START window: build passes; `just test` passes with agent 2565, viewer 1000, env 2936, gateway 38, no-I/O proof OK. `pnpm -r lint` and ruff pass. Env mypy and `just verify-vendor` fail in this worktree only, on the absent native mGBA binding and uninitialized submodule; both pass on main, and this diff touches nothing under env/ or scripts/.
+
+## Principles Adherence
+
+| ID | Score | Evidence |
+|---|---|---|
+| PB1 | N/A | No grading change; the race reads the same milestones. |
+| PB2 | PASS | No run is filtered or hidden; only where the page sits changes. |
+| PB3 | N/A | UI correctness, no model benefit claim. |
+| PB4 | N/A | Viewer only; nothing reaches the model. |
+| PB5 | PASS | One defect class: redraws moving the reader on the splits page. |
+| PB6 | N/A | No context or long-run behavior change. |
+| PB7 | PASS | Recordings read-only; proof injects inside the test browser only. |
+| PB8 | N/A | No model tools or retries. |
+| PB9 | PASS | Reproduced in Chromium and WebKit before the fix; numbers above. |
+| PB10 | PASS | No floor, exclude, guard or baseline change. |
+| PB11 | PASS | Scroll behavior measured in the real engines, not assumed. |
+| PB12 | N/A | No ROM or protected-folder access. |
+| PB13 | PASS | RED, GREEN, browser proof, review, landing and live proof tracked here. |
+
+## Multi-Model Review Log
+

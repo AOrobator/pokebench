@@ -58,3 +58,5 @@ Round 4, delta af227d171..1477dc2d9, packet 165f79568..1477dc2d9, diff SHA-256 b
 - Gates at 37c65ac6f (1477dc2d9 plus main's docs-only commits): `just lint`, `just test` (agent 2508, viewer 893, env 2930, gateway 38, floors met, no-I/O proof OK), `just verify-vendor` pass.
 
 ## Landing
+
+Fast-forward to main at 605179d7a. Post-merge `just test` at that commit: agent 2508, viewer 893, env 2930, gateway 38, floors met, no-I/O proof OK. `just viewer-main`: viewer at 605179d7a, 2 live gameplay processes kept running (08b5 and Astra 9f4c, both pinned before these switches). No live emulator proof yet: the evidence is replay over 08b5 and 4d66.

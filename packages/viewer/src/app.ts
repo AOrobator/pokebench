@@ -1336,7 +1336,7 @@ export class App {
   // A failed page shows RETRY HISTORY. A reader following the newest turns never slides the window off them.
   private olderTurns(): void {
     const current = this.current?.state.selected === this.runId ? this.current.state : null;
-    const stopped = this.olderProblem !== null || current?.historyProblem != null || (current?.historyLimited === true && !this.held.has(this.ui("trace")));
+    const stopped = this.olderProblem !== null || current?.historyProblem != null || (current?.historyFull === true && !this.held.has(this.ui("trace")));
     const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages });
     if (step === "reveal") {
       this.traceLimit += TRACE_TURNS;
@@ -1500,6 +1500,7 @@ export class App {
 
   private resumeTrace(list: HTMLElement): void {
     this.held.delete(list);
+    this.olderPages = OLDER_PAGES;
     if(list===this.ui("trace")&&this.current?.state.selected===this.runId){this.current.holdHistory(false);const current=this.current,busy=this.historyLoading;void current.history().then(()=>busy?current.history():undefined);}
     this.tracePending.delete(list);
     this.scrollTo(list, 0);

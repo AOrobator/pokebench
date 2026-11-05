@@ -46,3 +46,7 @@ PB1-PB8, PB11, PB12: N/A, display only. PB9, PB10: PASS. PB13: pending post-merg
 
 - [x] Gates
 - [x] Review
+
+Landed 409ef76f3, `just test` on main passed, `just viewer-main` live at that SHA, 5f0f kept running. Headless on 8790: pill and preset correct, 60 wheels read from turn 1104 back to 827, no buttons.
+
+Post-merge finding: after a slide, Jump to latest left about 3 turns because the follower stop used the sticky `historyLimited`. Follow-up: `historyFull` marks only a window slid by reading back, and Jump to latest grants a fresh page budget.

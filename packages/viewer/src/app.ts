@@ -28,7 +28,7 @@ import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi 
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { cardRow } from "./card-row.js";
 import { currentSplits } from "./current-public.js";
-import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
+import { PROBE_SESSION, WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { isProbeRun, plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
@@ -752,7 +752,7 @@ export class App {
         const next = parseWorkbench(value), present = new Set(next.runs.map(run => run.id));
         if(this.current!==null){if(this.current.state.epoch!==epoch||(this.current.state.snapshot?.generation??null)!==generation)return;
           this.currentSavedCardOwners=new Map([...owners].map(([run,source])=>[run,{epoch,generation:source}]));
-          this.currentRecordedWorkbench={...next,milestones:[],runs:next.runs.map(run=>{const display={...run,excluded:isProbeRun(run)?"Excluded probe session":null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
+          this.currentRecordedWorkbench={...next,milestones:[],runs:next.runs.map(run=>{const display={...run,excluded:isProbeRun(run)?PROBE_SESSION:null};delete display.measurement;return display;})};this.currentChanged(this.current.state);return;}
         const previousAt = this.workbench?.at ?? next.at;
         const retained = this.workbench?.runs.filter(run => run.card != null && !present.has(run.id)
           && (run.id === selected || this.knownLiveCards.has(run.id)))

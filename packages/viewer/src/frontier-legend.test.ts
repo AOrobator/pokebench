@@ -97,7 +97,7 @@ describe("story frontier version legend", () => {
     expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("LIVE · qwen36 · configuration v3 · b2");
     expect(document.querySelector('[data-reference="best"] svg g')?.getAttribute("fill")).toBe("#af8915");
     expect(document.querySelector('[data-reference="human"] svg g')?.getAttribute("fill")).toBe("#304f7a");
-    expect(Array.from(document.querySelectorAll(".wb-marks li b")).map(b => b.textContent)).toEqual(["Violet line, hollow diamonds", "Human baseline", "Agent frontier", "Any other run", "Dashed line, hollow dots", "Dotted line", "Orange dotted rule", "Gap in a line", "Glow and pulse", "Faded", "Full color"]);
+    expect(Array.from(document.querySelectorAll(".wb-marks li b")).map(b => b.textContent)).toEqual(["Violet line, hollow diamonds", "Human baseline", "Agent frontier", "Any other run", "Dashed line, hollow dots", "Dotted line", "Orange dotted rule", "Gap in a line", "Glow and pulse", "Faded", "Faint line", "Full color"]);
     expect(document.querySelector('.wb-marks li[data-reference="human"]')?.getAttribute("title")).toContain("Human baseline: one recorded human playthrough");
     expect(document.querySelector(".wb-legend-note")?.textContent).toContain("Clock set resumes");
     document.body.innerHTML = frontierLegend({ human: null, best: null }, runs, versions, { ...closed, howOpen: true });

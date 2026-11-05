@@ -614,6 +614,7 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 .wb-how-grid ul { padding-left:18px; }
 .wb-current-keys { margin-top:0; }
 .wb-series { transition:opacity .15s; }
+.wb-series.wb-probe-run { opacity:.3; }
 .wb-frontier-chart.wb-dim .wb-series:not(.wb-on) { opacity:.12; animation:none; filter:none; }
 .wb-frontier-chart.wb-dim .wb-series.wb-on polyline { opacity:1; }
 @media(max-width:759.98px) {

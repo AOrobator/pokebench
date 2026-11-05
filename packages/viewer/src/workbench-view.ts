@@ -2,7 +2,7 @@ import { customLane } from "./custom-lane.js";
 import { FRONTIER_MILESTONES, endedByOperator, preciseTime, resumeMilestone } from "./frontier.js";
 import { esc, hms, num } from "./format.js";
 import { thinkingLabel } from "./served-effort.js";
-import type { WorkbenchRun, WorkbenchSplit } from "./workbench-data.js";
+import { PROBE_SESSION, type WorkbenchRun, type WorkbenchSplit } from "./workbench-data.js";
 export function viewerUrl(run: string | null): string { return run === null ? "/" : `/#replay=${encodeURIComponent(run)}`; }
 
 // Hardware location of a currently running fixed-run trial.
@@ -47,7 +47,7 @@ export function partyHead(live: readonly WorkbenchRun[]): string {
   const models = Array.from(new Set(live.map(r => r.model ?? "Model not recorded"))).map(esc).join(" · ");
   return `<div class="wb-party-head"><span class="wb-kicker" data-current-field="summary">● ${String(live.length)} CURRENT RUN${live.length === 1 ? "" : "S"} · ${models}</span><span class="wb-kicker">CHOOSE A RUN</span></div>`;
 }
-export const isProbeRun = (run: WorkbenchRun): boolean => run.measurement?.features.includes("probe") === true || run.excluded === "Excluded probe session";
+export const isProbeRun = (run: WorkbenchRun): boolean => run.measurement?.features.includes("probe") === true || run.excluded === PROBE_SESSION;
 export const liveOrPaused = (runs: readonly WorkbenchRun[]): WorkbenchRun[] => runs.filter(r => (r.status === "live" || r.status === "paused") && !isProbeRun(r));
 export function currentRunLinks(runs: readonly WorkbenchRun[], lanes: RunLanes | LaneUnknown): readonly string[] {
   return liveOrPaused(runs).map(run => `<div class="wb-card"><a class="wb-button" data-watch="${esc(run.id)}" href="${viewerUrl(run.id)}" aria-label="Watch run ${esc(run.id)}">WATCH RUN · ${esc(run.id)}</a><small class="wb-card-where">${plateWhere(run, lanes)}</small>${plateNotes(run)}</div>`);

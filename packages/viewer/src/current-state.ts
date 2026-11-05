@@ -103,5 +103,6 @@ export const behindLive=(size:number,offset:number,limit:number):boolean=>size-o
 // In-flight fields are cleared: whatever was open in the saved state ended somewhere in the skipped span.
 export function jumpToTail(saved:CurrentState,tail:readonly RunEvent[]):CurrentState{
   const first=tail[0];if(first===undefined)return saved;
-  return tail.reduce((s,event)=>foldCurrent(s,event),{...saved,nextSeq:first.seq,openTools:{},requestAt:null,streaming:{thinking:"",text:""}});
+  const seed:CurrentState={...saved,nextSeq:first.seq,openTools:{},requestAt:null,streaming:{thinking:"",text:""}};
+  return tail.reduce((s,event)=>foldCurrent(s,event),seed);
 }

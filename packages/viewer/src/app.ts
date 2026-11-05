@@ -255,6 +255,7 @@ export class App {
   private trainerPageLoad: Promise<void> | null = null;
   private trainerFacts: TrainerFacts | null = null;
   private gymPicked: number | null = null;
+  private restoringFocus = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -1059,7 +1060,10 @@ export class App {
     page.style.setProperty("--tp-stripes", `url(/sprites/page/stripes-${facts.gender}.png)`);
     const focused = this.doc.activeElement instanceof HTMLElement ? this.doc.activeElement.dataset.tpBadge : undefined;
     this.setHtml("trainer-card", trainerCardHtml(facts, data.gyms));
+    // Putting focus back after a redraw is not the reader choosing a gym.
+    this.restoringFocus = true;
     if (focused !== undefined) card.querySelector<HTMLElement>(`[data-tp-badge="${focused}"]`)?.focus({ preventScroll: true });
+    this.restoringFocus = false;
     this.setHtml("trainer-run", runHtml(facts));
     this.paintTrainer(card);
     this.paintTrainer(this.ui("trainer-run"));
@@ -1080,7 +1084,7 @@ export class App {
   private wireTrainer(): void {
     const pick = (event: Event): void => {
       const value = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-tp-badge]")?.dataset.tpBadge : undefined;
-      if (value === undefined) return;
+      if (value === undefined || this.restoringFocus) return;
       this.gymPicked = Number(value);
       this.showGym();
     };

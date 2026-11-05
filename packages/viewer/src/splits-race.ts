@@ -3,6 +3,7 @@ import { esc, hms } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import type { RunView } from "./model.js";
 import type { Baseline } from "./panels.js";
+import type { RunOrigin } from "./workbench-data.js";
 
 const BADGES = [["STONE_BADGE", "STONE", "Stone Badge"], ["KNUCKLE_BADGE", "KNUCKLE", "Knuckle Badge"], ["DYNAMO_BADGE", "DYNAMO", "Dynamo Badge"], ["HEAT_BADGE", "HEAT", "Heat Badge"], ["BALANCE_BADGE", "BALANCE", "Balance Badge"], ["FEATHER_BADGE", "FEATHER", "Feather Badge"], ["MIND_BADGE", "MIND", "Mind Badge"], ["RAIN_BADGE", "RAIN", "Rain Badge"]] as const;
 const LABELS = new Map<string, string>(FRONTIER_MILESTONES.map(m => [m.id, m.label]));
@@ -32,6 +33,12 @@ export function startIndex(view: RunView): number | null {
   return at < 0 ? null : at;
 }
 
+// As startIndex, with the recorded origin placing a save its file name does not.
+export function raceStart(view: RunView, origin: RunOrigin | null | undefined): number | null {
+  const at = FRONTIER_MILESTONES.findIndex(m => m.id === origin?.milestone);
+  return startIndex(view) ?? (at < 0 ? null : at);
+}
+
 // The longest run of shared milestones both runs did in the same order. The rest cannot be compared stretch by stretch.
 function inOrder(times: readonly number[]): ReadonlySet<number> {
   const best = times.map(() => 1), from = times.map(() => -1);
@@ -41,9 +48,8 @@ function inOrder(times: readonly number[]): ReadonlySet<number> {
   return keep;
 }
 
-// An unknown save has no known position, so its clock cannot be raced against one from New Game.
-export function raceOf(reached: readonly { readonly name: string; readonly at: number }[], given: Baseline | null, now: number, start: number | null): Race {
-  const frontier = start === null ? null : given;
+// start only places the badge legs: the frontier handed in already shares this run's start.
+export function raceOf(reached: readonly { readonly name: string; readonly at: number }[], frontier: Baseline | null, now: number, start: number | null): Race {
   const seconds = new Map(frontier?.milestones.map(m => [m.name, m.offsetMs / 1000]) ?? []);
   const sorted = reached.map((m, i) => ({ m, i })).sort((a, b) => a.m.at - b.m.at || a.i - b.i).map(({ m }) => m);
   const shared = sorted.filter(m => seconds.has(m.name));
@@ -99,12 +105,23 @@ function bar(gain: number | null, scale: number): string {
   return `<span class="race-bar"><i></i><u class="${gain > 0 ? "up" : "dn"}" style="width:${(Math.sqrt(Math.abs(gain)) / scale * 50).toFixed(1)}%;${gain > 0 ? "right" : "left"}:50%"></u></span>`;
 }
 
-export function raceHeadline(race: Race, run: string, now: number, loading = false): string {
-  const lead = !race.compared ? loading ? "Loading the frontier run…" : `${esc(run)}: no frontier comparison for this run.` : race.gap === null ? "No shared milestones with the FRONTIER yet." : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the FRONTIER!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the FRONTIER!`;
-  const where = race.frontierEnd !== null && now > race.frontierEnd.at ? `${hms(now)} is past the FRONTIER's last milestone, ${esc(race.frontierEnd.label)} at ${hms(race.frontierEnd.at)}.` : race.frontierAt === null ? "" : `At ${hms(now)} the FRONTIER had reached ${esc(race.frontierAt.label)}.`;
+// Who the run races and how it should be read. name is the opponent as the page calls it.
+export interface RaceSide { readonly name: string; readonly save: boolean; readonly opponent: string | null; readonly assisted: string | null }
+export function raceSide(frontier: Baseline | null, save: boolean, assisted: string | null): RaceSide {
+  return { name: save && frontier !== null ? `SAVE FRONTIER ${runLabel(frontier.run)}` : "FRONTIER", save, opponent: frontier?.run ?? null, assisted };
+}
+const NEW_GAME_SIDE = raceSide(null, false, null);
+
+export function raceHeadline(race: Race, label: string, now: number, loading = false, side: RaceSide = NEW_GAME_SIDE): string {
+  const run = side.assisted === null ? label : `ASSISTED ${label}`, name = esc(side.name);
+  const none = side.save ? `${esc(run)}: no race. No earlier unassisted run from this save has recorded a milestone.` : `${esc(run)}: no frontier comparison for this run.`;
+  const lead = !race.compared ? loading ? "Loading the frontier run…" : none : race.gap === null ? `No shared milestones with the ${name} yet.` : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the ${name}!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the ${name}!`;
+  const where = race.frontierEnd !== null && now > race.frontierEnd.at ? `${hms(now)} is past the ${name}'s last milestone, ${esc(race.frontierEnd.label)} at ${hms(race.frontierEnd.at)}.` : race.frontierAt === null ? "" : `At ${hms(now)} the ${name} had reached ${esc(race.frontierAt.label)}.`;
   const pace = race.pace === null ? "" : ` ${race.pace.gain >= 0 ? "Gained" : "Lost"} ${short(race.pace.gain)} over the last ${String(race.pace.count)} milestone${race.pace.count === 1 ? "" : "s"}.`;
   const toPass = race.toPass.length === 0 ? "" : ` Still to pass: ${esc(race.toPass.slice(0, 3).join(", "))}.`;
-  return `<div><p class="race-lead">${lead}</p><p class="race-sub">${where}${pace}${toPass}</p></div>${race.compared ? `<div class="race-tally"><span class="up">${String(race.faster)} FASTER</span><span class="dn">${String(race.slower)} SLOWER</span><span>${String(race.even)} EVEN</span></div>` : ""}`;
+  const flag = side.assisted === null ? "" : `<p class="race-assisted">HEAVILY ASSISTED · ${esc(side.assisted)}. Not a benchmark result.</p>`;
+  const same = side.save && side.opponent !== null ? ` Same save as ${esc(side.opponent)}, each clock from its own start.` : "";
+  return `<div>${flag}<p class="race-lead">${lead}</p><p class="race-sub">${where}${pace}${toPass}${same}</p></div>${race.compared ? `<div class="race-tally"><span class="up">${String(race.faster)} FASTER</span><span class="dn">${String(race.slower)} SLOWER</span><span>${String(race.even)} EVEN</span></div>` : ""}`;
 }
 
 export function raceRail(race: Race): string {
@@ -161,9 +178,9 @@ export function parseRaceMap(value: unknown): readonly RaceMapSection[] | null {
 }
 const place = (map: readonly RaceMapSection[], text: string): RaceMapSection | undefined => { const name = plain(text); return map.find(section => name.includes(section.key)); };
 
-export function raceMap(map: readonly RaceMapSection[] | null, location: string | null | undefined, race: Race, run: string): string {
+export function raceMap(map: readonly RaceMapSection[] | null, location: string | null | undefined, race: Race, run: string, opponent = "FRONTIER"): string {
   if (map === null) return '<p class="race-sub">Region map art is not built. Run just trainer-page-art.</p>';
   const marker = (section: RaceMapSection | undefined, icon: string, text: string): string => section === undefined ? "" : `<span class="race-who" style="left:${(section.x / MAP_WIDTH * 100).toFixed(1)}%;top:${(section.y / MAP_HEIGHT * 100).toFixed(1)}%"><img src="/sprites/page/${icon}" alt="">${esc(text)}</span>`;
   const frontier = race.frontierPath.reduceRight<RaceMapSection | undefined>((found, name) => found ?? place(map, name), undefined);
-  return `<div class="race-map">${marker(frontier, "map-frontier.png", "FRONTIER")}${marker(location == null ? undefined : place(map, location), "map-run.png", run)}</div>`;
+  return `<div class="race-map">${marker(frontier, "map-frontier.png", opponent)}${marker(location == null ? undefined : place(map, location), "map-run.png", run)}</div>`;
 }

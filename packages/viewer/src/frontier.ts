@@ -126,6 +126,18 @@ export function pairFrontier(pair: FrontierPair, current: string, resumed: boole
   if (resumed) return null;
   return pair.best?.run === current ? pair.runnerUp : pair.best;
 }
+// What a save run races: the fastest earlier benchmark run that loaded the same save, each on its own clock from its
+// own load. One entry per save run; null when nothing earlier qualifies. Assisted runs race it but never become it.
+export function saveFrontiers(runs: readonly WorkbenchRun[]): Map<string, Baseline | null> {
+  const bySave = new Map<string, WorkbenchRun[]>(), races = new Map<string, Baseline | null>();
+  for (const run of runs) { const save = run.config?.saveSha1; if (typeof save === "string") bySave.set(save, [...(bySave.get(save) ?? []), run]); }
+  const at = (r: WorkbenchRun): number => Date.parse(r.started ?? "");
+  for (const group of bySave.values()) {
+    const rivals = group.filter(r => recordedRun(r) && r.measurement?.controller === "agent" && customLane(r) === null && r.splits.some(s => s.screenshotEvidence === undefined)).sort(furthestFirst);
+    for (const run of group) races.set(run.id, nativeSplits(rivals.find(r => at(r) < at(run))));
+  }
+  return races;
+}
 export const resumedCheckpoint = (resume: string | null | undefined): boolean => FRONTIER_MILESTONES.some(m => m.id === resume);
 export function frontierSplits(runs: readonly WorkbenchRun[], current: string): Baseline | null {
   return pairFrontier(frontierPair(runs), current, resumedCheckpoint(runs.find(r => r.id === current)?.config?.resume));
@@ -173,7 +185,7 @@ function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): n
 export function racePlot(frontier: Baseline, run: WorkbenchRun, width: number): string {
   if (run.config === null) return "";
   const agent = (source: WorkbenchRun): WorkbenchRun => ({ ...source, probeSplits: null, excluded: null, problem: null, measurement: source.measurement ?? { controller: "agent", features: [], logSha256: "", pausedMs: 0, rawSplits: [] } });
-  const plain: WorkbenchRun = { ...run, origin: null, id: frontier.run, status: "ended", reason: null, elapsedMs: null, turn: 0, card: null, config: { ...run.config, start: "boot", resume: null }, splits: frontier.milestones.map(m => ({ name: m.name, elapsedMs: m.offsetMs, segmentMs: 0, seq: 0, turn: 0, inputTokens: 0, outputTokens: 0, ...(m.derived === true ? { derived: true as const } : {}) })) };
+  const plain: WorkbenchRun = { ...run, origin: null, model: null, experiment: null, id: frontier.run, status: "ended", reason: null, elapsedMs: null, turn: 0, card: null, config: { ...run.config, start: "boot", resume: null, features: [] }, splits: frontier.milestones.map(m => ({ name: m.name, elapsedMs: m.offsetMs, segmentMs: 0, seq: 0, turn: 0, inputTokens: 0, outputTokens: 0, ...(m.derived === true ? { derived: true as const } : {}) })) };
   const live = run.status === "live" || run.status === "paused";
   const html = frontierPlot({ human: null, best: agent(plain) }, live ? [] : [agent(run)], width, null, live ? [agent(run)] : [], true);
   return html.slice(html.indexOf("<svg"), html.indexOf("</svg>") + 6).replaceAll(" · native milestone #0", "");

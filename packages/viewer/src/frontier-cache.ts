@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { frontierPair, pairFrontier, type FrontierPair } from "./frontier.js";
+import { frontierPair, pairFrontier, saveFrontiers, type FrontierPair } from "./frontier.js";
 import type { Baseline } from "./panels.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 
@@ -13,7 +13,7 @@ const VERSION = 1;
 
 // "loading" is never "no frontier": nothing has been ranked yet, so the page must ask again.
 export type FrontierAnswer =
-  | { readonly state: "ready" | "stale"; readonly frontier: Baseline | null }
+  | { readonly state: "ready" | "stale"; readonly frontier: Baseline | null; readonly save?: true }
   | { readonly state: "loading"; readonly frontier: null };
 
 export interface FrontierCacheOptions {
@@ -27,7 +27,8 @@ export interface FrontierCacheOptions {
 }
 
 export interface FrontierCache {
-  answer(current: string, resumed: boolean): Promise<FrontierAnswer>;
+  // fromSave: the run started anywhere but New Game, so its race is the save frontier and never the New Game one.
+  answer(current: string, fromSave: boolean): Promise<FrontierAnswer>;
   // Starts a ranking without waiting for it; the first one replaces whatever the disk had.
   warm(): void;
 }
@@ -74,6 +75,7 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
   const file = options.file ?? null, waitMs = options.waitMs ?? FRONTIER_WAIT_MS;
   // A ranking from disk answers at once but stays stale until this viewer ranks the runs itself.
   let pair: FrontierPair | null = file === null ? null : readFrontierFile(file);
+  let saves: ReadonlyMap<string, Baseline | null> = new Map();
   let rankedAt: number | null = null;
   let refreshing: Promise<void> | null = null;
   // One ranking at a time; a failed one keeps the previous ranking and is reported once, not per waiting request.
@@ -81,16 +83,14 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
     refreshing ??= options.read().then(runs => {
       const next = frontierPair(runs);
       if (file !== null && !samePair(pair, next)) writeFrontierFile(file, next);
-      pair = next; rankedAt = options.now();
+      pair = next; saves = saveFrontiers(runs); rankedAt = options.now();
     }).catch((error: unknown) => { options.onError?.(error); }).finally(() => { refreshing = null; });
     return refreshing;
   };
   const fresh = (): boolean => rankedAt !== null && options.now() - rankedAt < FRONTIER_FRESH_MS;
   return {
     warm: () => { void refresh(); },
-    answer: async (current, resumed) => {
-      // A checkpoint resume races nothing, whatever the ranking says.
-      if (resumed) return { state: "ready", frontier: null };
+    answer: async (current, fromSave) => {
       if (!fresh()) {
         const pending = refresh();
         // Wait only briefly: a cold catalog can take minutes to rank.
@@ -98,8 +98,11 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
         await Promise.race([pending, new Promise(resolve => { timer = setTimeout(resolve, waitMs); })]);
         clearTimeout(timer);
       }
+      const state = fresh() ? "ready" : "stale", race = saves.get(current);
+      // A save run this ranking has not seen is still unanswered, not unraced.
+      if (fromSave) return race === undefined ? { state: "loading", frontier: null } : { state, frontier: race, save: true };
       if (pair === null) return { state: "loading", frontier: null };
-      return { state: fresh() ? "ready" : "stale", frontier: pairFrontier(pair, current, resumed) };
+      return { state, frontier: pairFrontier(pair, current, false) };
     },
   };
 }

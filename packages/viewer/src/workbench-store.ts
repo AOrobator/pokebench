@@ -3,7 +3,7 @@ import { visualEvidenceSignature } from "./frontier-visual.js";
 import { recoveredSignature } from "./recovered-fields.js";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import {configuration,resumeCheckpoint} from "./run-config.js";
+import {configuration,fromSave,resumeCheckpoint} from "./run-config.js";
 import { MILESTONES, qualifiedNativeMilestone } from "@pokebench/agent/milestones";
 import { filesystemComparisonHost, prepareComparison, sha256 } from "@pokebench/agent/serial-comparison";
 import { RUN_END_REASONS, type RunEvent, type StartIdentity } from "@pokebench/agent/events";
@@ -38,8 +38,8 @@ function metadata(path: string): { value: unknown; digest: string } {
   return { value: JSON.parse(bytes) as unknown, digest: sha256(bytes) };
 }
 // The checkpoint a run resumed from, read from its run_start alone (null: power-on or an unreadable start).
-export function runResume(root: string, id: string): string | null {
-  try { return resumeCheckpoint(startOf(root, id)); } catch { return null; }
+export function runFromSave(root: string, id: string): boolean {
+  try { return fromSave(startOf(root, id)); } catch { return false; }
 }
 // The run_start the workbench trusts: the log is not symlinked and names this run.
 function startOf(root: string, id: string): Extract<RunEvent, { type: "run_start" }> {

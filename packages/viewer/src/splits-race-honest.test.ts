@@ -125,7 +125,7 @@ describe("what the race page says", () => {
   it("names the save frontier and that both clocks start at their own load", () => {
     const html = raceHeadline(race, "…ee2a", 50, false, raceSide(rival, true, null));
     expect(html).toContain("…ee2a is 0:00:20 ahead of the SAVE FRONTIER …9f4c!");
-    expect(html).toContain("the SAVE FRONTIER …9f4c had reached");
+    expect(raceHeadline(raceOf([{ name: "FORTREE_CITY", at: 40 }], rival, 70, 1), "r", 70, false, raceSide(rival, true, null))).toContain("the SAVE FRONTIER …9f4c had reached");
     expect(html).toContain(rival.run);
     expect(html).toContain("own start");
     expect(html).not.toContain("the FRONTIER");
@@ -167,9 +167,9 @@ describe("the race graph", () => {
     expect(line?.getAttribute("aria-label")).not.toContain("heavily assisted");
     expect(document.querySelector('[data-run="helped"]')?.getAttribute("aria-label")).toContain("heavily assisted");
   });
-  it("calls a save frontier what it is", () => {
-    const html = racePlot(rival, saved("now", T2, BADGE), 900, true);
-    expect(html).toContain("Save frontier");
-    expect(html).not.toContain("Agent frontier");
+  it("draws both lines for a save run", () => {
+    document.body.innerHTML = racePlot(rival, saved("now", T2, BADGE), 900);
+    expect(document.querySelector('[data-run="rival_9f4c"][data-split="FORTREE_CITY"]')).not.toBeNull();
+    expect(document.querySelector('[data-run="now"][data-split="FEATHER_BADGE"]')).not.toBeNull();
   });
 });

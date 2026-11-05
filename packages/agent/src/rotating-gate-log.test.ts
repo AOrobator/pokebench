@@ -35,7 +35,7 @@ const stateEvent=(s:GameStateSnapshot,seq:number,turn:number):RunEvent=>({...s,v
 const press=(button:Button,seq:number,turn:number,before:number):RunEvent=>({v:1,run:"r",seq,t:"2026-11-05T12:00:00.000-05:00",type:"button_press",turn,tool_call_id:"c",before_state_seq:before,buttons:[button],hold_frames:10,release_frames:8} as unknown as RunEvent);
 
 describe("registry",()=>{
- it.each([[REASONS,"rotating-gate-positions-v1"],[LOG,REASONS]])("%s registers default off and needs %s",(id,needs)=>{
+ it.each([[REASONS,"rotating-gate-press-feedback-v1"],[LOG,REASONS]])("%s registers default off and needs %s",(id,needs)=>{
   expect(SWITCHABLE_FEATURES).toContain(id);
   expect(featureInfo(id as typeof REASONS).needs).toBe(needs);
   expect(featureInfo(id as typeof REASONS).description).toContain(" Off: ");
@@ -124,6 +124,23 @@ describe("the push log",()=>{
  it("a swept tile off the map is not read as free",()=>{
   const s=room(1,2);
   expect(gateTurns({...s,map_grid:{...s.map_grid,rows:s.map_grid?.rows.slice(0,3)}} as GameStateSnapshot)).toBeNull();
+ });
+ it("a direction in a menu or battle read with no gates logs no refusal",()=>{
+  const blank={...room(1,2),in_battle:true};delete blank.map_observation;
+  const log=fed(stateEvent(room(1,2),1,1),stateEvent(blank,2,2),press("DOWN",3,3,2),stateEvent(room(1,2),4,3));
+  expect(log.lines()).toHaveLength(1);
+ });
+ it("a repeated direction that stayed is one refused push; a mixed batch proves nothing",()=>{
+  const log=fed(stateEvent(room(1,2),1,1),press("DOWN",2,2,1),press("DOWN",3,2,1),stateEvent(room(1,2),4,2),press("DOWN",5,3,4),press("LEFT",6,3,4),stateEvent(room(1,2),7,3));
+  expect(log.lines()).toHaveLength(2);
+  expect(log.lines()[1]).toContain("Turn 2: DOWN at (2,5): Gate 3's arm");
+ });
+ it("presses off a gate map are not kept",()=>{
+  const log=fed(stateEvent(city(),1,1),press("UP",2,2,1),stateEvent(room(1,2),3,3),stateEvent(room(1,2),4,4));
+  expect(log.lines()).toHaveLength(1);
+ });
+ it("a transition read with no map shows no stale gates",()=>{
+  expect(fed(stateEvent(room(1,2),1,1),stateEvent({...room(1,2),map_id:null},2,2)).onGateMap()).toBe(false);
  });
  it("is shown only while on a gate map",()=>{
   expect(fed(stateEvent(room(1,2),1,1),stateEvent(city(),2,2)).onGateMap()).toBe(false);

@@ -50,14 +50,15 @@ export class GateLog {
  #presses:Press[]=[];
 
  observe(event:RunEvent):void {
-  if(event.type==="button_press"){this.#presses.push(event);return;}
+  // A direction in a menu or a battle pushes nothing, and a press outside a gate visit has no gate to push.
+  if(event.type==="button_press"){if(this.#previous!==null&&this.#latest!==null&&walkable(this.#latest))this.#presses.push(event);return;}
   if(event.type==="state"&&"started" in event)this.#state(event);
  }
 
  #state(state:State):void {
   const map=mapKey(state);
-  if(map===null)return;
   this.#latest=state;
+  if(map===null)return;
   const gates=gatesOf(state);
   // A read with no gates on the same map is a transition, not a new visit, so its press stays pending.
   if(gates===null||gates==="unread"){if(map!==this.#map){this.#map=map;this.#previous=null;this.#presses=[];}return;}
@@ -75,11 +76,13 @@ export class GateLog {
   if(was===null||was==="unread")return [];
   const turn=`Turn ${String(after.turn)}: `;
   const moves=presses.flatMap(press=>press.buttons.filter(button=>DIRECTIONS.has(button)));
-  const direction=moves.length===1?moves[0]:undefined;
   const from=before.position,to=after.position;
+  // As in gatePressNote: a repeat that stayed on its tile never pushed, so it is one step.
+  const stayed=from!==null&&to!==null&&from.x===to.x&&from.y===to.y;
+  const direction=moves.length===1||(stayed&&moves.every(move=>move===moves[0]))?moves[0]:undefined;
   const turned=[...gates].sort(([a],[b])=>gateOrder(a)-gateOrder(b)).flatMap(([group,gate])=>{const old=was.get(group);return old===undefined||old.orientation===gate.orientation?[]:[turnOf(group,old,gate)];});
   if(turned.length>0)return turned.map(line=>direction!==undefined&&from!==null&&to!==null?`${turn}${direction} from ${point(from)} to ${point(to)}: ${line}`:`${turn}${line} with no single press read`);
-  if(direction===undefined||from===null||to===null||from.x!==to.x||from.y!==to.y||!walkable(before))return [];
+  if(direction===undefined||from===null||!stayed||!walkable(before))return [];
   const refused=armAhead(before,direction,true,true);
   return refused===null?[]:[`${turn}${direction} at ${point(from)}: ${refused}`];
  }

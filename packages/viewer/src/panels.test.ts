@@ -357,14 +357,15 @@ it("shows the control lock and names manual probes honestly", () => {
   const log = new Log(); log.add(0, { ...START, harness_features: ["probe"] });
   log.add(1, state({ field_controls_locked: true }));
   const v = new RunView(); for (const e of log.events) v.apply(e);
-  expect(trainerCard(v, BASE_MS)).toContain('<dt>CONTROLS</dt><dd>locked</dd>');
+  expect(fieldContext(v)).toContain('<dt>CONTROLS</dt><dd>locked</dd>');
+  expect(trainerCard(v, BASE_MS)).not.toContain("CONTROLS");
   expect(thinkingDialog(v, BASE_MS).head).toContain("MANUAL PROBE");
 });
 
 it("shows the current naming cursor and escapes entered text", () => {
   const log = bare();
   log.add(0, state({ naming: { text: "<AB>", page: "uppercase", column: 1, row: 0, key: "B", ready: true } }));
-  const html = trainerCard(view(log), BASE_MS);
+  const html = fieldContext(view(log));
   expect(html).toContain("&lt;AB&gt;");
   expect(html).toContain("uppercase: B (1,0)");
 });
@@ -428,12 +429,12 @@ it("shows trigger-script loop evidence in the raw action log",()=>{
 it("renders verified confirmation selection and unsupported diagnostic", () => {
   const log = bare();
   log.add(0, state({ active_ui: {phase:"name_confirmation",selected:"NO",ready:true,controls:"B declines",diagnostic:null} }));
-  expect(trainerCard(view(log), BASE_MS)).toContain("name_confirmation");
-  expect(trainerCard(view(log), BASE_MS)).toContain("NO");
+  expect(fieldContext(view(log))).toContain("name_confirmation");
+  expect(fieldContext(view(log))).toContain("NO");
   log.add(1,state({active_ui:{phase:"unsupported",selected:null,ready:null,controls:"Observe",diagnostic:"<callback>"}}));
-  expect(trainerCard(view(log),BASE_MS+1)).toContain("STATE COVERAGE ERROR");
-  expect(trainerCard(view(log),BASE_MS+1)).toContain("&lt;callback&gt;");
-  expect(trainerCard(view(log),BASE_MS+1)).toContain("unavailable");
+  expect(fieldContext(view(log))).toContain("STATE COVERAGE ERROR");
+  expect(fieldContext(view(log))).toContain("&lt;callback&gt;");
+  expect(fieldContext(view(log))).toContain("unavailable");
   log.add(2,state({active_ui:{phase:"clock_adjustment",selected:null,ready:false,controls:"LEFT/RIGHT",diagnostic:null,value:"10:00 AM"}}));
   expect(trainerCard(view(log),BASE_MS+2)).toContain("10:00 AM");
   expect(trainerCard(view(log),BASE_MS+2)).toContain("not ready");

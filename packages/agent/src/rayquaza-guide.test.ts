@@ -95,7 +95,7 @@ describe("rq-battle-explainer-v1", () => {
   };
   const inner = (messages: AgentMessage[]): Promise<AgentMessage[]> => Promise.resolve(messages);
   const both = { ...ON, "rq-battle-explainer-v1": true };
-  const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, map_id: [0, 0] }) as unknown as RunEvent;
+  const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, screen: value ? "battle" : "overworld", active_ui: null, map_id: [0, 0] }) as unknown as RunEvent;
 
   it("is the final message only while a battle is active", async () => {
     const r = recorder();

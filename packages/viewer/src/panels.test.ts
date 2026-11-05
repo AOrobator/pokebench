@@ -654,6 +654,14 @@ it("links the navigation refusal reasons card to its explainer",()=>{
  expect(FEATURE_EXPLAINERS["navigation-refusal-reasons-v1"]).toBe("navigation-refusal-reasons-v1.html");
 });
 
+it("shows the shortest model name in the header with the thinking level, and the full id on hover",()=>{
+ const log=new Log();log.add(0,{...START,model:{...START.model,id:"deepseek/deepseek-v4.1-flash"}});
+ const root=new Window().document.createElement("div");root.innerHTML=runIdentity(view(log));
+ const pill=[...root.querySelectorAll(".id-cell")].find(c=>c.querySelector("small")?.textContent==="MODEL · THINKING");
+ expect(pill?.querySelector("span")?.textContent).toBe("DeepSeek-v4.1 · medium");
+ expect(pill?.getAttribute("title")).toBe("deepseek/deepseek-v4.1-flash");
+});
+
 it("shows the experiment, arm and trial strip, the preset, or just the model and run",()=>{
  const flags={loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false};
  const cells=(html:string)=>{const w=new Window();const root=w.document.createElement("div");root.innerHTML=html;const out=[...root.querySelectorAll(".id-cell")].map(c=>`${c.querySelector("small")?.textContent??""}=${c.querySelector("span")?.textContent??""}`);void w.happyDOM.abort();return{out,root};};

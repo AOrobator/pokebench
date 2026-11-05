@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { NAME_CONFIRMED } from "../../agent/test-support/events.js";
 import { BASE_MS, Log, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { eventText } from "./panels.js";
-import { STAR_SVG, TRACE_CHIPS, TraceBuilder, moreButton, sideGroups, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
+import { STAR_SVG, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
 
 function build(events: readonly RunEvent[]): TraceBuilder {
   const builder = new TraceBuilder();
@@ -350,7 +350,8 @@ describe("traceHtml", () => {
     const html = traceHtml(turns, ALL, { elapsed: null, live: null, limit: 50, page: 50 });
     expect(html.match(/class="turn-h"/g)).toHaveLength(50);
     expect(html.length).toBeLessThan(50 * 5000 + 100_000);
-    expect(html).toContain("SHOW 50 OLDER TURNS");
+    expect(html).toContain("Loading older turns");
+    expect(html).not.toContain("<button");
   });
 
   it("changes a turn's stamp only when that turn's rows or the filter change", () => {
@@ -386,10 +387,22 @@ describe("traceHtml", () => {
     expect(html).toContain("1:02:05");
   });
 
-  it("offers one page of older turns at a time", () => {
-    expect(moreButton(0, 50)).toBe("");
-    expect(moreButton(120, 50)).toContain("SHOW 50 OLDER TURNS");
-    expect(moreButton(7, 50)).toContain("SHOW 7 OLDER TURNS");
+  it("says older turns are coming only while some remain, and never offers a button", () => {
+    expect(olderTail(false)).toBe("");
+    expect(olderTail(true)).toContain("Loading older turns");
+    expect(olderTail(true)).not.toContain("<button");
+  });
+
+  it("loads older turns only near the oldest row of a list on screen", () => {
+    const at = (scrollTop: number, clientHeight = 600, scrollHeight = 10_000) => ({ scrollTop, clientHeight, scrollHeight });
+    const left = { more: 3, history: true, busy: false };
+    expect(olderStep(at(0), left)).toBe("none");
+    expect(olderStep(at(8_000), left)).toBe("reveal");
+    expect(olderStep(at(9_400), { ...left, more: 0 })).toBe("fetch");
+    expect(olderStep(at(9_400), { ...left, more: 0, busy: true })).toBe("none");
+    expect(olderStep(at(9_400), { more: 0, history: false, busy: false })).toBe("none");
+    expect(olderStep(at(0, 600, 300), { ...left, more: 0 })).toBe("fetch");
+    expect(olderStep(at(0, 0, 0), left)).toBe("none");
   });
 });
 

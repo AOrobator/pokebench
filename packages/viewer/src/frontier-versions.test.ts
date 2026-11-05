@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { run } from "../test-support/frontier-run.js";
-import { fingerprint, harnessVersions, orderedVersions, shortModelName, switchLabel, versionColor } from "./frontier-versions.js";
+import { displayModelName, fingerprint, harnessVersions, orderedVersions, shortModelName, switchLabel, versionColor } from "./frontier-versions.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 const SWITCHES = ["live-map-v1", "loop-guard-v1", "ram-state-v1", "dialogue-auto-advance-v1", "walkable-floor-v1"] as const;
 const TITLES: Readonly<Record<string, string>> = { "live-map-v1": "LIVE MAP", "loop-guard-v1": "LOOP GUARD", "ram-state-v1": "RAM GAME-STATE READOUT", "dialogue-auto-advance-v1": "DIALOGUE AUTO-ADVANCE", "walkable-floor-v1": "WALKABLE FLOOR" };
@@ -9,6 +9,25 @@ function trial(id: string, started: string, on: readonly string[], options: { ar
   const config = base.config; if (config === null) throw new Error("fixture config");
   return { ...base, config: { ...config, preset: options.preset === undefined ? "bundle-v-control" : options.preset, source: options.source ?? "a".repeat(40), features: SWITCHES.map(f => ({ id: f, label: TITLES[f] ?? f, on: on.includes(f) ? true : options.unknown === true ? null : false })) } };
 }
+describe("displayModelName", () => {
+  it("keeps the family and version in their usual spelling and drops the path, size, quant and tier", () => {
+    expect(displayModelName("deepseek/deepseek-v4.1-flash")).toBe("DeepSeek-v4.1");
+    expect(displayModelName("deepseek-v4.1-flash-mlx")).toBe("DeepSeek-v4.1");
+    expect(displayModelName("/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf")).toBe("Qwen3.6");
+    expect(displayModelName("qwen3.8-27b")).toBe("Qwen3.8");
+    expect(displayModelName("Qwen3.8-Flash-Next-UD-IQ4_XS")).toBe("Qwen3.8");
+    expect(displayModelName("/cache/snapshots/a3/UD-IQ4_XS/GLM-5.3-Flash-UD-IQ4_XS-00001-of-00005.gguf")).toBe("GLM-5.3");
+    expect(displayModelName("cursor-agent/grok-4.7")).toBe("grok-4.7");
+  });
+  it("leaves names with nothing to drop alone", () => {
+    expect(displayModelName("think-swarm")).toBe("think-swarm");
+    expect(displayModelName("claude-opus-5-5")).toBe("claude-opus-5-5");
+    expect(displayModelName("gpt-6-astra")).toBe("gpt-6-astra");
+    expect(displayModelName("gemini-flash")).toBe("gemini-flash");
+    expect(displayModelName("Human · Operator")).toBe("Human · Operator");
+    expect(displayModelName("")).toBe("");
+  });
+});
 const at = (hour: number): string => `2026-10-16T${String(hour).padStart(2, "0")}:00:00.000-04:00`;
 describe("harness versions", () => {
   it("reads switch titles in sentence case, keeping acronyms", () => {

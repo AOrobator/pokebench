@@ -7,6 +7,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { esc, hms, num, signedDelta } from "./format.js";
 import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ROUTE103_RIVAL_SPLITS } from "./frontier.js";
+import { nextSplit, reachedSplits, type BestSplits } from "./run-splits.js";
 import { displayModelName } from "./frontier-versions.js";
 import { servedEffort, thinkingLabel } from "./served-effort.js";
 import { RETIRED_VISIBILITY, ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
@@ -146,10 +147,10 @@ function deltaSpan(seconds: number): string {
   return Math.abs(seconds) < 1 ? `<span>${signedDelta(seconds)}</span>` : `<span class="${seconds < 0 ? "d-ahead" : "d-behind"}">${signedDelta(seconds)}</span>`;
 }
 
-export function splits(view: RunView, baseline: Baseline | null, nowMs: number, frontier: Baseline | null = null, compact = false): { summary: string; table: string } {
-  const startMs = view.startMs;
-  if (startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
-  const reached = new Map(view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => [m.name, (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000]));
+export function splits(view: RunView, baseline: Baseline | null, nowMs: number, frontier: Baseline | null = null, compact = false, recorded?: BestSplits | null): { summary: string; table: string } {
+  if (view.startMs === null) return { summary: "no data", table: `<p>${NO_DATA}</p>` };
+  if (recorded === null) return { summary: "loading recorded splits…", table: '<p class="small muted">loading recorded splits…</p>' };
+  const marks = reachedSplits(view, recorded), reached = new Map(marks.map((m) => [m.name, m.at]));
   const reference = (run: Baseline | null) => new Map(run?.milestones.map((m) => [m.name, m]) ?? []);
   const bases = reference(baseline), bests = reference(frontier);
   const names = new Set<string>([...MILESTONE_ORDER, ...reached.keys(), ...bases.keys(), ...bests.keys()]);
@@ -159,7 +160,7 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   const remainingNative = (name:string) => name.startsWith("PETALBURG_WOODS_TRAINER_") || name.startsWith("ROUTE_116_TRAINER_") || ["ROUTE_115", "ROUTE_116", "RUSTURF_TUNNEL"].includes(name);
   const supported = (name: string) => EXTENDED_PROGRESS_NAMES.has(name)?view.start?.harness_features.includes(CAMPAIGN_ADDITION_NAMES.has(name)?CAMPAIGN_PROGRESS_FEATURE:STORY_PROGRESS_FEATURE)===true||reached.has(name):name === "ROXANNE_FIRST_INTERACTION" ? view.start?.harness_features.includes("roxanne-first-interaction-v1") === true || reached.has(name) : name === "BIRCH_RESCUE_REQUESTED" ? view.start?.harness_features.includes("birch-rescue-requested-v1") === true || reached.has(name) : name === "RIVAL_HOUSE_EXITED" ? view.start?.harness_features.includes("rival-house-exit-v1") === true || reached.has(name) : name === "ROUTE_101_AFTER_HANDOFF" ? view.start?.harness_features.includes("route-101-after-handoff-v1") === true || reached.has(name) : name === "PLAYER_BEDROOM_EXITED_AFTER_CLOCK" ? view.start?.harness_features.includes("bedroom-exit-v1") === true || reached.has(name) : ROUTE103_RIVAL_SPLITS.has(name) ? view.start?.harness_features.includes("route103-rival-splits-v1") === true || reached.has(name) : remainingNative(name) ? view.start?.harness_features.includes("remaining-native-milestones-v1") === true || reached.has(name) : nativeProgress(name) ? view.start?.harness_features.includes("native-progress-activity-v1") === true || reached.has(name) : name.startsWith("RUSTBORO_GYM_TRAINER_") ? view.start?.harness_features.includes("rustboro-gym-trainer-milestones-v1") === true || reached.has(name) : ["PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED"].includes(name) ? view.start?.harness_features.includes("post-clock-navigation-milestones-v1") === true || reached.has(name) : name === "NEW_GAME_CREATED" ? view.start?.harness_features.includes("new-game-created-v1") === true || reached.has(name) : !newStory.has(name) || view.start?.harness_features.includes("story-milestones-v2") === true || reached.has(name);
   const present = new Set(view.milestones.filter((m) => m.origin === "present_at_start").map((m) => m.name));
-  const next = [...names].filter(name=>!OPTIONAL_PROGRESS_NAMES.has(name)).find((name) => supported(name) && !reached.has(name) && !present.has(name));
+  const next = recorded !== undefined ? nextSplit(new Set(reached.keys())) : [...names].filter(name=>!OPTIONAL_PROGRESS_NAMES.has(name)).find((name) => supported(name) && !reached.has(name) && !present.has(name));
   const cell = (name: string, at: number | undefined, refs: ReturnType<typeof reference>) => {
     const target = refs.get(name);
     if (target === undefined) return '<td class="d nodata">—</td>';
@@ -174,10 +175,11 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
     const current = view.milestones.find((m) => m.name === name);
     const cls = at !== undefined ? "done" : name === next ? "next" : "todo";
     const time = present.has(name) ? "already<br>present" : !supported(name) ? "not<br>recorded" : at !== undefined ? hms(at) : view.end === null && cls === "next" ? `${hms(elapsed)}…` : "—";
-    const note = current?.derived === true ? ` title="Recovered from ${current.screenshotEvidence === undefined ? "recorded game state" : "reviewed screenshots"} · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : "";
-    return `${name===firstOptional?`<tr><th colspan="${String(compact?2:4)}">Optional achievements · separate from campaign progress</th></tr>`:""}<tr class="${cls}"><td class="n">${splitName(name)}${current?.derived === true ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
+    const derived = current?.derived === true || marks.some((m) => m.name === name && m.derived);
+    const note = current?.derived === true ? ` title="Recovered from ${current.screenshotEvidence === undefined ? "recorded game state" : "reviewed screenshots"} · evidence ${current.evidence?.map(seq => `#${String(seq)}`).join(", ") ?? `#${String(current.seq)}`} · first observation (upper bound)"` : derived ? ' title="Recovered from recorded game state · first observation (upper bound)"' : "";
+    return `${name===firstOptional?`<tr><th colspan="${String(compact?2:4)}">Optional achievements · separate from campaign progress</th></tr>`:""}<tr class="${cls}"><td class="n">${splitName(name)}${derived ? "*" : ""}</td><td class="t"${note}>${time}</td>${compact ? "" : `${cell(name, at, bases)}${cell(name, at, bests)}`}</tr>`;
   });
-  const summary = `${String(view.milestones.filter((m) => m.origin !== "present_at_start"&&!OPTIONAL_PROGRESS_NAMES.has(m.name)).length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
+  const summary = `${String([...reached.keys()].filter((name) => !OPTIONAL_PROGRESS_NAMES.has(name)).length)} reached${next === undefined ? "" : ` · next ${splitName(next)}`} · ${baseline === null ? "no baseline" : "vs baseline"}${frontier === null ? "" : " + frontier"}`;
   const labels = `<p class="comparison-note">Baseline: ${baseline === null ? "none eligible" : esc(baseline.run)}<br>Frontier run: ${frontier === null ? "none eligible" : esc(frontier.run)}<br>The baseline shares this run's start. The frontier is the frontier graph's agent frontier: furthest New Game start, then fastest. Harness versions may differ. — = not recorded/reached; no delta until reached. * = recovered from recorded game evidence; first observation time is an upper bound.</p>`;
   return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }

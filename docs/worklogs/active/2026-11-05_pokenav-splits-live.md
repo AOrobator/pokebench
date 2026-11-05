@@ -16,8 +16,8 @@ Single milestone. Viewer-only, so no feature switch. No layout, timeline or trai
 
 ## M1
 
-- [x] RED: run-splits, panels and model tests fail
-- [ ] GREEN
+- [x] RED: ecedb6d0c, run-splits, panels and model tests fail
+- [x] GREEN: focused viewer suites pass; candidate client on live data shows 5f0f at 138 reached
 - [ ] Gates
 - [ ] Review
 - [ ] Land, `just viewer-main`, headless proof

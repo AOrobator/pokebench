@@ -536,7 +536,7 @@ export function baselineOf(runsRoot: string, runId: string, chunkBytes = BASELIN
   // A comparison must rest on the baseline run's own, fully valid log (PB1).
   const recovered = recoveredAttacher(runDir(runsRoot, runId));
   const reader = new LogReader(eventsPath(runsRoot, runId), chunkBytes);
-  for (let batch = reader.next(BASELINE_LINES); batch.lines > 0; batch = reader.next(BASELINE_LINES)) for (const read of batch.results) {
+  for (let batch = reader.next(BASELINE_LINES); batch.lines > 0; batch = reader.next(BASELINE_LINES)) { for (const read of batch.results) {
     const result = read.ok ? { ...read, event: recovered(read.event) } : read;
     if (!result.ok) throw new BaselineError(`baseline ${runId} line ${String(result.line)}: ${result.problem}`);
     if (result.event.run !== runId) throw new BaselineError(`baseline ${runId} holds an event for run ${result.event.run}`);
@@ -547,7 +547,7 @@ export function baselineOf(runsRoot: string, runId: string, chunkBytes = BASELIN
       expectedSeq += 1;
     }
     view.apply(result.event);
-  }
+  } view.releaseEvents(); }
   if (start.controller?.kind === "human") {
     const terminal = summarize(runsRoot, runId);
     if (!humanEnded || !terminal.ended) throw new BaselineError("baseline requires a finished human run");

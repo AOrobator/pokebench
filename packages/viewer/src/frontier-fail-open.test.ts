@@ -77,6 +77,13 @@ describe("the frontier fails open", () => {
     expect(series("dim")?.classList.contains("wb-probe-run")).toBe(true);
     expect(document.querySelector('[data-run="dim"]')?.getAttribute("aria-label")).toContain("probe session");
   });
+  it("still draws a probe with a problem dotted, with the problem on its marks", () => {
+    const base = raced("dim");
+    plot([{ ...base, splits: [], probeSplits: base.splits, excluded: "Excluded probe session", problem: "viewer build is older" }]);
+    expect(document.querySelector('polyline[data-series="dim"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(series("dim")?.classList.contains("wb-invalid-run")).toBe(true);
+    expect(document.querySelector('[data-run="dim"]')?.getAttribute("aria-label")).toContain("viewer build is older");
+  });
   it("dims a run marked as a probe session even without its features", () => {
     plot([{ ...raced("dim"), excluded: "Excluded probe session" }]);
     expect(series("dim")?.classList.contains("wb-probe-run")).toBe(true);

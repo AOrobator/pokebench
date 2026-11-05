@@ -71,9 +71,9 @@ export function frontierTags(run: WorkbenchRun): string[] {
 // still count, frontier included: how a run ended never decides inclusion (the operator 2026-10-27).
 const INVALID_TRIAL = "Invalid fixed-run trial: ";
 export function invalidTrial(run: WorkbenchRun): string | null {
-  if (run.excluded !== null) return null;
+  if (operatorExcluded(run)) return null;
   if (run.problem !== null) return run.problem;
-  if (run.flag === undefined) return null;
+  if (run.excluded !== null || run.flag === undefined) return null;
   return run.flag.startsWith(INVALID_TRIAL) ? run.flag.slice(INVALID_TRIAL.length) : run.flag;
 }
 // The explicit marker for a run the operator ended: it stays in results.

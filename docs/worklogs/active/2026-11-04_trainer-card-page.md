@@ -29,3 +29,5 @@ Landed b1a1e2be3, post-merge `just test` passed, art built, live on 8790.
 The popup is gone. The gym box is always on the page, opens on the next gym, and pointing at, tabbing to or tapping a badge changes it in place at a fixed height. The page grows rather than scrolling inside the 620px pane. Headless at 1440, 1280, 375: no overlap between card, run and gym boxes, height stable across all eight gyms.
 
 Review at e01d2c9fd: fallback BLOCKING. Fixed: restoring focus after a redraw no longer counts as picking a gym.
+
+Gates after rebase on 289606c39: `pnpm -r lint`, `just test` (2453, 848, 2901, 38), trainer-card-check passed. Claude, GPT, fallback LGTM on the gym box and its fix. Noted, not fixed: a window refocus or a parked pointer can re-pick a badge; both need mixed input.

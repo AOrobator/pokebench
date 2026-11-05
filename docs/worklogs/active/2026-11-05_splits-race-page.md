@@ -15,9 +15,9 @@ Single milestone. Viewer presentation plus trainer-page art, so no feature switc
 
 - [x] RED: 7c9be2f9a
 - [x] GREEN: focused viewer suites pass; candidate client on live data: 5f0f 3:49:47 ahead, 8 stops, filters and folding clicked on desktop and phone sizes; art builder verified the map against the ROM
-- [ ] Gates
-- [ ] Review
-- [ ] Land, `just trainer-page-art`, `just viewer-main`, live proof
+- [x] Gates on main at 4d99a713d: just lint, just test (agent 2472, viewer 888, env 2901, gateway 38), just verify-vendor, just trainer-card-check
+- [x] Review: Claude and GPT LGTM on the final delta; fallback subagent reviewed round 1; Grok out of Cursor usage until 11/17
+- [x] Landed 4d99a713d fast-forward; art rebuilt and ROM-verified; viewer restarted, parent launchd, 5f0f kept running; headless desktop, phone and replay proof on 8790, no page errors
 
 ## Multi-Model Review Log
 
@@ -26,3 +26,5 @@ Round 1, packet f0b707872..ed6229b44 sha 13e1d25b. Claude, GPT and fallback suba
 Round 2, delta ..2fc91a8f9. Claude: LGTM with small notes. GPT: BLOCKING on custom metadata not yet loaded and frontier contents missing from memo keys. Fixed with Claude's notes: the race waits for the run's card row, memo keys hold frontier contents, an unknown save has no graph, the empty list says no milestones. Round 3 runs past the cap because each blocker was a real bug and the operator asked to land.
 
 Round 3, delta ..ac8708a2e. GPT: BLOCKING on derived flags missing from the frontier memo key. Claude: BLOCKING on a peer stub row hiding knowledge switches. Fixed: knowledge switches read from the run header, the graph waits for a real config, the memo key holds the whole frontier.
+
+Round 4, final delta. Claude: LGTM. GPT: LGTM.

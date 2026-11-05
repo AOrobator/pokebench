@@ -8,7 +8,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 |---|---|---|---|
 | `HEAT_BADGE` | `LavaridgeTown_Gym_1F` | Finish Flannery’s dialogue to receive TM50 Overheat. | KI 26–27, ROM |
 | `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. | KI 27–28, ROM |
-| `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | Shop for four Heal Powders, four Energy Roots and six Energy Powders as funds allow. Head east via Route 112 for the hidden Route 111 Rare Candy. Return or Teleport to Mauville if it was your last heal, then bike to Slateport and take Briney’s boat to Dewford Gym. | KI 28–30, KI shops, WT 02, ROM |
+| `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | Shop for four Heal Powders, four Energy Roots and six Energy Powders as funds allow. Go east via Route 112. On Route 111 at (35,65), face south and press A for a hidden Rare Candy. Return to Mauville, then bike to Slateport and take Briney’s boat to Dewford Gym. | KI 28–30, KI shops, WT 02, ROM |
 | `DEWFORD_GYM_ENTERED` | `DewfordTown_Gym` | Reach Brawly in the dark Gym. Use Marshtomp’s Strength against Machop, Meditite and Makuhita. Heal if a foe survives and leaves you in danger. | KI 30, KI battle plans, WT 02 |
 | `KNUCKLE_BADGE` | `DewfordTown` | Finish Brawly’s dialogue for Bulk Up. Take Briney’s boat back to Route 104, then go east to Petalburg Gym. Use an available Rare Candy before Norman if it helps the planned Marshtomp. | KI 30–32 |
 
@@ -18,22 +18,22 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 |---|---|---|---|
 | `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take the Speed, Confusion and Strength rooms to Norman. Against Norman, set up on Spinda with X Attack and X Speed if safe. Cure confusion, heal through Vigoroth’s Slash, and use Slaking’s loafing turns to heal or boost. | KI 32, KI battle plans, WT 06 |
 | `BALANCE_BADGE` | `PetalburgCity_WallysHouse` | Finish Norman’s dialogue for Facade, then get HM03 Surf from Wally’s father in the house beside the Gym. | KI 32, WT 06 |
-| `HM_SURF_RECEIVED` | `Route118` | Teach Surf to Marshtomp over Water Gun. Pick up the Rare Candy across the water near Petalburg if convenient. Return to Mauville, then Surf east across Route 118 and head north on Route 119. | KI 33–34, KI TMs/HMs and move changes |
+| `HM_SURF_RECEIVED` | `Route118` | Teach Surf to Marshtomp over Water Gun. In Petalburg, Surf to (11,28), face south and press A for a hidden Rare Candy. Return to Mauville, then Surf east across Route 118 and head north on Route 119. | KI 33–34, KI TMs/HMs and move changes |
 | `ROUTE_119` | `Route119` | Go north to the Weather Institute. Fight the Aqua grunts inside and go upstairs to Shelly. | KI 34, WT 07 |
 | `WEATHER_INSTITUTE_ENTERED` | `Route119_WeatherInstitute_2F` | Use Mud Shot against Shelly’s Carvanha and Surf against Mightyena. Keep a party slot available for Castform or collect it after making room. | KI 34, KI battle plans, WT 07 |
-| `WEATHER_INSTITUTE_AQUA_WITHDRAWN` | `Route119` | Accept Castform and heal at the institute bed. Pick up the Route 119 Elixir, then cross the bridge and face your rival. Set up X Speed and X Attack if safe. Use Surf on Slugma and Strength on Grovyle and Pelipper. | KI 34–35, KI battle plans |
-| `ROUTE_119_RIVAL_SCENE_COMPLETE` | `FortreeCity` | Keep HM02 Fly. Visit Fortree and heal there if you plan to Teleport back. Pass the blocked Gym for now and continue east onto Route 120. | KI 35–36, KI TMs/HMs and move changes |
+| `WEATHER_INSTITUTE_AQUA_WITHDRAWN` | `Route119` | Accept Castform and heal at the institute bed. Take the Elixir ball at (24,42) from (25,42), facing west, then cross the bridge and face your rival. Set up X Speed and X Attack if safe. Use Surf on Slugma and Strength on Grovyle and Pelipper. | KI 34–35, KI battle plans |
+| `ROUTE_119_RIVAL_SCENE_COMPLETE` | `FortreeCity` | Keep HM02 Fly. Visit Fortree and heal there. Pass the blocked Gym for now and continue east onto Route 120. | KI 35–36, KI TMs/HMs and move changes |
 
 ## Devon Scope, Mt. Pyre and Winona
 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `ROUTE_120` | `Route120` | Talk to Steven on the bridge, handle the revealed Kecleon and receive the Devon Scope. Continue toward Route 121. | KI 36, WT 07 |
-| `DEVON_SCOPE_RECEIVED` | `Route120` | Pick up the hidden Route 120 Rare Candy. Use available Rare Candies to evolve Marshtomp as planned. Take Mystic Water from Castform and give it to Swampert. Teach Taillow Fly and Castform Shock Wave. | KI 36–37, KI TMs/HMs and move changes, ROM |
+| `DEVON_SCOPE_RECEIVED` | `Route120` | At (1,86), face west and press A for a hidden Rare Candy. Use available Rare Candies to evolve Marshtomp as planned. Take Mystic Water from Castform and give it to Swampert. Teach Taillow Fly and Castform Shock Wave. | KI 36–37, KI TMs/HMs and move changes, ROM |
 | `ROUTE_121` | `Route121` | Finish the Rare Candy, Mystic Water, Fly and Shock Wave setup if needed. Visit Lilycove before returning to the Route 122 water entrance so Fly can take you back later. Surf to Mt. Pyre. | KI 37–42, WT 08, PATH 4 |
 | `MT_PYRE` | `MtPyre_Exterior` | Take the side exit from Mt. Pyre’s first floor to the outside path. Climb toward the summit and defeat the Aqua grunts in the way. | KI 38, WT 08 |
-| `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep Swampert and Castform ready for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. Pick up the summit Rare Candy if useful. | KI 38, WT 08 |
-| `MAGMA_EMBLEM_RECEIVED` | `FortreeCity` | Return to Fortree. Use Abra’s Teleport only if Fortree is your last healing stop. Use the Devon Scope at the invisible blocker on the Gym approach. | KI 39, WT 07 |
+| `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep Swampert and Castform ready for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. At (37,6), face south and press A for a hidden Rare Candy. | KI 38, WT 08 |
+| `MAGMA_EMBLEM_RECEIVED` | `FortreeCity` | Return to Fortree. Use the Devon Scope at the invisible blocker on the Gym approach. | KI 39, WT 07, TO:FortreeCity |
 | `FORTREE_GYM_OBSTRUCTION_CLEARED` | `FortreeCity_Gym` | Enter the Fortree Gym after clearing the invisible Kecleon. | PATH 4, ROM |
 | `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | At (15,24), walk U2 L12 U3 L D2 R2 U3 R3 U4 R2 U2 L2 D3 U R2 U4 L2 U2 L6 U2 R D2 R3 U6 L3 D6 R4 L U4 R10 U. Use Strength on Swablu, Tropius, Pelipper and Altaria; Surf Skarmory. Heal before Solar Beam and watch Protect. | PATH 4, KI battle plans, ROM |
 | `FEATHER_BADGE` | `JaggedPass` | Finish the Gym dialogue for Aerial Ace and keep it for Rayquaza. Use the Route 112 Cable Car to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI 39–40, WT 09 |
@@ -50,7 +50,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `MAP:AquaHideout_B1F` | `AquaHideout_B1F` | Take the left panel. In the grunt room use (3,20), then (42,5), (45,9), (42,13), (42,17). Approach from below and take the Nugget at (15,10), then the Master Ball at (15,9). Avoid the two balls on the right. | KI master-ball, ROM |
 | `MASTER_BALL_OBTAINED` | `AquaHideout_B1F` | Step back through the entry panel, then take right, middle, left and the top panel above the middle. This returns you near the double-battle pair. Use their panel after clearing the way. | KI master-ball, WT 09 |
 | `AQUA_HIDEOUT_SUBMARINE_CHAMBER` | `AquaHideout_B2F` | Work through the warp rooms to Matt. Use Surf against Mightyena and Golbat, then finish the submarine scene. | KI 42, KI battle plans, KI master-ball |
-| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_B2F` | Take the lower exit panel. In the first two-panel room, use the right panel for the optional Max Elixir, then leave. Surf east from Lilycove on Route 124 to Mossdeep. Use Repel and avoid swimmers’ sight lines where possible. | KI 42–43, KI master-ball, PATH 5 |
+| `AQUA_HIDEOUT_ESCAPE_COMPLETE` | `AquaHideout_B2F` | Take the lower exit panel. In the first two-panel room, use the right panel for the Max Elixir ball at (29,12), then leave. Surf east from Lilycove on Route 124 to Mossdeep. Use Repel and avoid swimmers’ sight lines where possible. | KI 42–43, KI master-ball, PATH 5 |
 
 ## Mossdeep and Seafloor Cavern
 

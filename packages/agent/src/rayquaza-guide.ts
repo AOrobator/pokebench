@@ -2,13 +2,24 @@ import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {battleOnScreen} from "./battle-context.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
-import {RAYQUAZA_GUIDE_STEPS} from "./rayquaza-guide-data.js";
+import {RAYQUAZA_GUIDE_STEPS,RAYQUAZA_OUTDOOR_MAPS} from "./rayquaza-guide-data.js";
 import type {RunRecorder} from "./recorder.js";
 
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
 export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can move first and finish the fight. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money.";
 
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:readonly [number,number]}
+// Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
+export const ABRA_NOTE="ABRA: This wild Abra will Teleport away on its first turn. Do not attack. Throw a Poké Ball now.";
+
+type MapId=readonly [number,number];
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly to?:{readonly map:string;readonly id:MapId}}
+export interface SituationNote {readonly text:string;readonly milestone:string}
+
+const TELEPORT_MOVE=100;
+const BATTLE_TYPE_TRAINER=8;
+const ABRA_LINE=new Set(["ABRA","KADABRA","ALAKAZAM"]);
+const OUTDOORS=new Set(RAYQUAZA_OUTDOOR_MAPS);
+const mapKey=(id:MapId):string=>`${String(id[0])}/${String(id[1])}`;
 
 // How far one milestone may move the guide. Wide enough for steps that never fired, narrow enough that an
 // early visit, such as walking into Dewford Gym before Steven, cannot skip the story in between.
@@ -16,28 +27,50 @@ const REACH=8;
 
 // A milestone seen live moves the guide up to REACH steps. One that arrives too early is remembered and
 // counts only when the guide reaches the step right before it, so it can never skip unfinished story.
-// A checkpoint start has real gaps, so the milestones present at the start chain within reach.
+// A checkpoint start has real gaps, so while it loads, its milestones chain within reach. Afterwards one
+// left beyond reach is just remembered.
 export class GuidePosition {
  private furthest=0;
  private readonly earned=new Set<number>();
  private readonly atStart=new Set<number>();
  inBattle=false;
+ private wildAbra=false;
+ private teleportReady=false;
+ private map:MapId|null=null;
+ private lastHeal:MapId|null=null;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
-  if(event.type==="state"&&"screen" in event)this.inBattle=battleOnScreen(event,true);
+  if(event.type==="state"&&"screen" in event){
+   this.inBattle=battleOnScreen(event,true);
+   const {party,battle}=event;
+   this.wildAbra=this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&b.species==="ABRA")&&!party.some(p=>p.species!==null&&ABRA_LINE.has(p.species));
+   this.teleportReady=party.some(p=>(p.hp??0)>0&&(p.moves??[]).some(m=>m.move_id===TELEPORT_MOVE));
+   this.map=event.map_id;
+   if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
+  }
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached<0)return;
   this.earned.add(reached);
-  if(event.type==="milestone"&&event.origin==="present_at_start")this.atStart.add(reached);
+  const atStart=event.type==="milestone"&&event.origin==="present_at_start";
+  if(atStart)this.atStart.add(reached);
   else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
-  for(let next=this.next();next!==null;next=this.next())this.furthest=next;
+  for(let next=this.next(atStart);next!==null;next=this.next(atStart))this.furthest=next;
  }
- private next():number|null {
+ private next(atStart:boolean):number|null {
   if(this.earned.has(this.furthest+1))return this.furthest+1;
-  for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
+  if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
  }
  private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}
+ // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
+ situationNotes():readonly SituationNote[] {
+  if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
+  const to=this.current().to;
+  if(to===undefined||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
+  const home=mapKey(to.id),here=mapKey(this.map);
+  if(mapKey(this.lastHeal)!==home||here===home||!OUTDOORS.has(here))return [];
+  return [{text:`TELEPORT: Your last Pokémon Center is in ${to.map.replace(/([a-z])([A-Z])/g,"$1 $2")}. Use Teleport from the party menu to go back there instead of walking.`,milestone:"RQ_TELEPORT"}];
+ }
  current():GuideStep {
   const step=this.steps[this.furthest];
   if(step===undefined)throw new Error("guide has no steps");
@@ -53,11 +86,14 @@ type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
 export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=RAYQUAZA_GUIDE_STEPS):Transform {
  if(!features["rq-milestone-guide-v1"])return transform;
  const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true,true);
- let recorded:string|null=null;
+ let recorded:string|null=null,told:readonly string[]=[];
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;
   if(step.after!==recorded){recorder.recordMilestoneHint({text,milestone:step.after});recorded=step.after;}
-  const notes=[text,...(features["rq-battle-explainer-v1"]&&guide.inBattle?[BATTLE_EXPLAINER]:[])];
+  const situation=guide.situationNotes();
+  for(const note of situation)if(!told.includes(note.text))recorder.recordMilestoneHint(note);
+  told=situation.map(note=>note.text);
+  const notes=[text,...(features["rq-battle-explainer-v1"]&&guide.inBattle?[BATTLE_EXPLAINER]:[]),...told];
   return [...await transform(messages),...notes.map(content=>({role:"user" as const,content,timestamp:Date.now()}))];
  };
 }

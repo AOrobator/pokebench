@@ -272,7 +272,7 @@
     "instruction-goal-advisory-v1": false,
     "goal-review-repair-feedback-v1": false,
     "map-observability-v1": true,
-    "context-exact-count-v1": true,
+    "context-exact-count-v1": false,
     "type-gap-team-v1": true,
     "supplies-v1": true,
     "untalked-in-gym-v1": true,

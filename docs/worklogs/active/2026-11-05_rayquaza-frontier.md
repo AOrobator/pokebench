@@ -37,3 +37,5 @@ Custom lanes (a weight-edited model, a `custom-` experiment, a knowledge switch)
 - Headless Chromium on a private viewer, port 18811, empty scratch runs root, snapshot routed in. 1280, 1440 and 375, two scenarios: real data (SAME RUN) and a labelled fixture assisted run leading by 5. No console errors, no horizontal overflow. Clicked marks summary, FULL BASELINE, FRONTIER, overlay filter, mark to drawer; polls left the tiles unchanged.
 - Protected trainer cards: guard test OK, playwright 3 of 3 against baselines, no baseline touched.
 - Not run: `just test`, `just coverage`, `just lint` (need the heavy-CPU window); cloud review lanes; live 8790 proof.
+- Coordinator decisions, 2026-11-05: (1) only a New Game start (boot or the MAIN_MENU save) carries the assisted flag; resumes like think-fast_3393 and 1f08 stay marked in their row and drawer. (2) An assisted run leading on time at the same checkpoint shows the time gap, not "+0 checkpoints".
+- RED for both decisions: see the failures in frontier and frontier-headline focused suites.

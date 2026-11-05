@@ -600,6 +600,22 @@ describe("custom lanes are shown as heavily assisted", () => {
     expect(line("resumed")?.getAttribute("stroke-dasharray")).toBe("8 5");
     expect(line("resumed")?.getAttribute("stroke")).toBe(ASSISTED_COLOR);
   });
+  it("flags only a New Game start: a checkpoint resume stays marked in its row and drawer, without the flag", () => {
+    const base = config(); if (base === null) throw new Error("config");
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "CLOCK_SET" } });
+    plotted([benchmark(), resumed]);
+    expect(document.querySelector("[data-assisted-flag]")).toBeNull();
+    expect(document.querySelector('.wb-series[data-assisted]:has(.wb-mark[data-run="resumed"])')).not.toBeNull();
+    expect(document.querySelector("[data-frontier-coverage]")?.textContent).toContain("heavily assisted: weight-edited model");
+    expect(runDetails(resumed, null)).toContain("HEAVILY ASSISTED");
+  });
+  it("a checkpoint resume further along never takes the flag from a New Game start, and the main-menu save counts as one", () => {
+    const base = config(); if (base === null) throw new Error("config");
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "CLOCK_SET" } });
+    const menu: WorkbenchRun = { ...measured("menu", [1, 2]), model: "x-edit-2", config: { ...base, start: "save", resume: "MAIN_MENU" } };
+    plotted([benchmark(), resumed, menu]);
+    expect([...document.querySelectorAll("[data-assisted-flag]")].map(f => f.getAttribute("data-assisted-flag"))).toEqual(["menu"]);
+  });
   it("a live assisted run keeps its pulse, turns violet and says so in the live key", () => {
     const live = fastest("helped", { model: "x-edit-1", status: "live" });
     plotted([benchmark(), live], [], [live]);

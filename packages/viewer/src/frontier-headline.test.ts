@@ -45,12 +45,25 @@ describe("frontier headline tiles", () => {
     expect(document.querySelector(".wb-fh-gap")).toBeNull();
     expect(document.querySelector(".wb-fh-heads")?.className).toContain("wb-fh-same");
   });
-  it("says one checkpoint in the singular and keeps a gap of nothing honest", () => {
+  it("says one checkpoint in the singular", () => {
     expect(headlineModel(frontierReferences([reached("a", 5, 90), reached("b", 6, 90, edited)])).gap).toBe(1);
     render([reached("a", 5, 90), reached("b", 6, 90, edited)]);
     expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("+1checkpoint");
+  });
+  it("shows the time gap when an assisted run leads on time at the same checkpoint", () => {
+    const refs = frontierReferences([reached("a", 5, 400000), reached("b", 5, 100000, edited)]);
+    expect(headlineModel(refs)).toMatchObject({ gap: 0, fasterMs: 300000 });
+    render([reached("a", 5, 400000), reached("b", 5, 100000, edited)]);
+    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("5:00faster");
+    render([reached("a", 5, 4000000), reached("b", 5, 100000, edited)]);
+    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("1:05:00faster");
+  });
+  it("keeps a gap under a second readable", () => {
     render([reached("a", 5, 90), reached("b", 5, 80, edited)]);
-    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("+0checkpoints");
+    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("0:00.010faster");
+  });
+  it("has no time gap when the assisted run is ahead by checkpoints", () => {
+    expect(headlineModel(frontierReferences([reached("a", 5, 90), reached("b", 6, 900, edited)])).fasterMs).toBeNull();
   });
   it("says so when only assisted runs have reached a checkpoint", () => {
     render([reached("a", 5, 90, edited)]);
@@ -61,7 +74,7 @@ describe("frontier headline tiles", () => {
   it("shows no tiles with no run to show", () => {
     expect(frontierHeadline({ human: null, best: null, overall: null })).toBe("");
     expect(frontierHeadline({ human: null, best: null })).toBe("");
-    expect(headlineModel({ human: null, best: null })).toEqual({ overall: null, unhelped: null, gap: null, same: false });
+    expect(headlineModel({ human: null, best: null })).toEqual({ overall: null, unhelped: null, gap: null, fasterMs: null, same: false });
   });
   it("marks a live or paused leader and escapes recorded text", () => {
     render([reached("a", 5, 90, { status: "live", model: "<b>x</b>" })]);

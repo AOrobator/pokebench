@@ -28,3 +28,7 @@ Round 2, delta ..2fc91a8f9. Claude: LGTM with small notes. GPT: BLOCKING on cust
 Round 3, delta ..ac8708a2e. GPT: BLOCKING on derived flags missing from the frontier memo key. Claude: BLOCKING on a peer stub row hiding knowledge switches. Fixed: knowledge switches read from the run header, the graph waits for a real config, the memo key holds the whole frontier.
 
 Round 4, final delta. Claude: LGTM. GPT: LGTM.
+
+## Nav order
+
+Requested by the operator 2026-11-05: SPLITS sits right after POKéMON PARTY in the PokéNav. One button moved in static/index.html; the phone picker follows the button order.

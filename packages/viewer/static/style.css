@@ -1204,3 +1204,39 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 [data-ui="race-plot"] svg { display:block; width:100%; height:auto; background:#fff; }
 @container (max-width:1000px) { .race-grid { grid-template-columns:minmax(0,1fr); } .race-rail { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @container (max-width:640px) { .race-lead { font-size:11px; } .race-rail { grid-template-columns:repeat(2,minmax(0,1fr)); } .race-swings { grid-template-columns:minmax(0,1fr); } .race-head { grid-template-columns:24px minmax(0,1fr) 108px; } .race-head .race-bar { grid-column:2/-1; grid-row:2; } .race-count { grid-column:1/-1; } .race-row { grid-template-columns:minmax(0,1fr) 108px; } .race-row .race-bar { grid-column:1/-1; grid-row:2; } }
+
+/* Frontier headline: best overall beside best unhelped, and the heavily assisted marks. */
+.wb-fh-heads { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:12px; align-items:center; margin-top:14px; }
+.wb-fh-heads.wb-fh-same { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.wb-fh-tile { align-self:stretch; display:grid; grid-template-columns:minmax(0,1fr); gap:7px; align-content:start; min-width:0; padding:18px 20px; background:#fff; border:2px solid #293131; border-radius:6px; box-shadow:inset 0 0 0 2px #4a4a6a, inset 0 4px 0 0 #8b8bcd, inset 0 0 0 8px #736a83, inset 0 0 0 10px #ded5de; }
+.wb-fh-help { background:#f6f1ff; }
+.wb-fh-tile p { margin:0; }
+.wb-fh-key { font:8px/1.8 'Press Start 2P',monospace; color:#3a6ea5; }
+.wb-fh-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.wb-fh-badge, .wb-fh-plain { display:inline-flex; align-items:center; gap:5px; box-sizing:border-box; font:8px/1 'Press Start 2P',monospace; border:2px solid #283038; border-radius:4px; padding:5px 6px; white-space:nowrap; }
+.wb-fh-badge { background:#5a2fc2; color:#fff; box-shadow:0 2px 0 #2d1766; padding:2px 7px 2px 3px; }
+.wb-fh-plain { background:#e8eef6; color:#345779; }
+.wb-fh-icon { display:block; flex:none; width:20px; height:20px; background:#fff url(/sprites/icons/384.png) top/100% auto no-repeat; image-rendering:pixelated; border-radius:3px; }
+.wb-fh-mile { font:14px/1.6 'Press Start 2P',monospace; color:#283038; }
+.wb-fh-time { font:600 14px/1.4 Inter,sans-serif; font-variant-numeric:tabular-nums; }
+.wb-fh-story { display:flex; align-items:center; gap:6px; font:7px/1 'Press Start 2P',monospace; color:#283038; }
+.wb-fh-bar { flex:1; min-width:30px; height:7px; border:2px solid #283038; border-radius:4px; background:#fff; overflow:hidden; }
+.wb-fh-bar i { display:block; height:100%; background:#3f9e4d; }
+.wb-fh-help .wb-fh-bar i { background:#5a2fc2; }
+.wb-fh-who { font:12px/1.45 Inter,sans-serif; color:#536d85; overflow-wrap:anywhere; }
+.wb-fh-gap { display:grid; justify-items:center; gap:6px; margin:0; font:7px/1.4 'Press Start 2P',monospace; color:#536d85; }
+.wb-fh-gap b { font:12px/1 'Press Start 2P',monospace; color:#c83030; }
+.wb-fh-rule { margin:10px 0 0; font:13px/1.5 Inter,sans-serif; color:#345471; }
+.wb-assist-flag { font:7px 'Press Start 2P',monospace; fill:#fff; stroke:none; }
+@media (max-width:640px) {
+  .wb-fh-heads, .wb-fh-heads.wb-fh-same { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; }
+  .wb-fh-gap { grid-column:1/-1; grid-row:2; display:flex; justify-content:center; align-items:baseline; }
+  .wb-fh-tile { padding:15px 13px; }
+  .wb-fh-tile .wb-fh-icon, .wb-fh-word { display:none; }
+  .wb-fh-badge, .wb-fh-plain { font-size:6.5px; gap:3px; padding:4px 5px; }
+  .wb-fh-mile { font-size:9px; }
+  .wb-fh-key { font-size:7px; }
+  .wb-fh-time { font-size:12px; }
+  .wb-fh-who { font-size:11px; }
+  .wb-fh-story { font-size:6.5px; }
+}

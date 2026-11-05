@@ -1,6 +1,7 @@
 // The pre-registered tests of a fixed-run experiment: two-sided Fisher exact on reaching the
 // primary milestone, log-rank on time to it (censored at the wall cap), and Mann-Whitney on
 // furthest milestone depth then time; pooled and per lane, over every launched trial except explicit operator exclusions.
+import { CUSTOM_EXPERIMENT_PREFIX, customLaneOfStart, type LaneStart } from "./custom-lane.js";
 import { phaseOf, type FixedArm, type FixedDefinition } from "./fixed-design.js";
 import { DEPTH_ORDER } from "@pokebench/agent/milestones";
 import { classifyTrial, queueState, WALL_CAP, type FixedLedgerEntry } from "./fixed-ledger.js";
@@ -142,6 +143,8 @@ export interface AnalysisReport {
   readonly flagged: readonly (Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason" | "furthestMs"> & { readonly furthest: string | null })[];
   // Trials the operator excluded with runs/exclusions/<run>.json: out of every comparison, listed with the reason.
   readonly excluded: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
+  // Heavily assisted runs in the ledger: out of every comparison, listed with how they were helped.
+  readonly customLanes: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
   readonly endedEarly: readonly Pick<AnalysisTrial, "slot" | "lane" | "arm" | "run" | "reason">[];
 }
 
@@ -166,11 +169,12 @@ function group(name: string, trials: readonly AnalysisTrial[]): GroupResult {
   };
 }
 
-export function analyze(all: readonly AnalysisTrial[], lanes: readonly string[], exclusions: ReadonlyMap<string, string> = new Map()): AnalysisReport {
-  const trials = all.filter((t) => !exclusions.has(t.run));
+export function analyze(all: readonly AnalysisTrial[], lanes: readonly string[], exclusions: ReadonlyMap<string, string> = new Map(), custom: ReadonlyMap<string, string> = new Map()): AnalysisReport {
+  const trials = all.filter((t) => !exclusions.has(t.run) && !custom.has(t.run));
   return {
     trials,
     excluded: all.filter((t) => exclusions.has(t.run)).map(({ slot, lane, arm, run }) => ({ slot, lane, arm, run, reason: exclusions.get(run) ?? "" })),
+    customLanes: all.filter((t) => !exclusions.has(t.run) && custom.has(t.run)).map(({ slot, lane, arm, run }) => ({ slot, lane, arm, run, reason: custom.get(run) ?? "" })),
     groups: [group("pooled", trials.filter(observed)), ...lanes.map((l) => group(l, trials.filter((t) => observed(t) && t.lane === l)))],
     flagged: trials.filter((t) => !t.valid).map(({ slot, lane, arm, run, reason, furthest, furthestMs }) => ({ slot, lane, arm, run, reason, furthest: furthest ?? null, furthestMs })),
     endedEarly: trials.filter((t) => t.valid).filter((t) => t.reason !== WALL_CAP).map(({ slot, lane, arm, run, reason }) => ({ slot, lane, arm, run, reason })),
@@ -188,6 +192,13 @@ const flaggedSection = (report: AnalysisReport): string[] => [
   "## Flagged trials (kept in every comparison; only the operator excludes)", "",
   "How a trial ended never decides whether it counts. These trials never began, ran another configuration, or carry a legacy invalid verdict. Every one that ran is counted above as it is. A trial that never began has no observation, so it adds nothing to the tests and its replacement fills the slot. An operator-ended trial that had not reached the compared milestone is censored at its end: it stays out of the reach and depth comparisons and the log-rank test censors it at its recorded end. Exclude a run only with `just exclude-run <run> <operator> <reason…>`.", "",
   ...(report.flagged.length === 0 ? ["No flagged trials."] : ["| Slot | Lane | Arm | Run | Furthest milestone | Arrival ms | Reason |", "|---|---|---|---|---|---|---|", ...report.flagged.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.furthest ?? "not reached"} | ${t.furthestMs === null ? "unavailable" : String(t.furthestMs)} | ${t.reason} |`)]), "",
+];
+
+const customSection = (report: AnalysisReport): string[] => report.customLanes.length === 0 ? [] : [
+  "", "## Custom lanes (never pooled with these arms)", "",
+  "Heavily assisted runs show on the frontier, but they stay out of every comparison above.", "",
+  "| Slot | Lane | Arm | Run | Help |", "|---|---|---|---|---|",
+  ...report.customLanes.map((t) => `| ${String(t.slot)} | ${t.lane} | ${t.arm} | ${t.run} | ${t.reason} |`),
 ];
 
 type RenderOptions=Pick<FixedDefinition,"primaryOutcome"|"primaryMilestone"|"replacementReserveMs">;
@@ -212,6 +223,7 @@ function renderFrontier(report:AnalysisReport,title:string,options:RenderOptions
     options.replacementReserveMs===0?"Zero replacement reserve: a trial that never began is recorded and not automatically replaced.":"A trial that never began is recorded; any replacement is limited by the definition’s reserve.", "",
     ...flaggedSection(report),
     ...excludedSection(report),
+    ...customSection(report),
   ].join("\n");
 }
 
@@ -237,8 +249,31 @@ export function renderAnalysis(report: AnalysisReport, title: string, options?:R
     ...report.groups.map((g) => `| ${g.name} | ${String(g.mannWhitney.u)} | ${g.mannWhitney.superiority.toFixed(3)} | ${g.mannWhitney.z.toFixed(3)} | ${p4(g.mannWhitney.p)} | ${below(g.mannWhitney.p, 0.05)} | ${below(g.mannWhitney.p, 0.1)} |`), "",
     ...flaggedSection(report),
     ...excludedSection(report),
+    ...customSection(report),
   ];
   return lines.join("\n");
+}
+
+const laneStart = (value: unknown): value is LaneStart => {
+  if (typeof value !== "object" || value === null || !("type" in value) || value.type !== "run_start" || !("model" in value) || !("harness_features" in value)) return false;
+  const { model, harness_features: features } = value;
+  return typeof model === "object" && model !== null && "id" in model && typeof model.id === "string" && Array.isArray(features);
+};
+function startOf(log: LogLines): LaneStart | null {
+  for (const line of linesOf(log)) {
+    if (line.trim() === "") continue;
+    try { const value: unknown = JSON.parse(line); return laneStart(value) ? value : null; } catch { return null; }
+  }
+  return null;
+}
+// Each custom-lane trial and how it was helped, from its run_start. A custom experiment's own arms are that lane's
+// comparison, not a benchmark cohort, so it keeps them. A trial with no readable log stays as the ledger has it.
+export function customLaneTrials(experiment: string, trials: readonly AnalysisTrial[], events: (run: string) => LogLines | null): ReadonlyMap<string, string> {
+  if (experiment.startsWith(CUSTOM_EXPERIMENT_PREFIX)) return new Map();
+  return new Map(trials.flatMap((t) => {
+    const log = events(t.run), start = log === null ? null : startOf(log), help = start === null ? null : customLaneOfStart(start);
+    return help === null ? [] : [[t.run, help] as const];
+  }));
 }
 
 // Ledger entries keep the depth index they were graded with, on the order of their day. Re-grade

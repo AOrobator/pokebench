@@ -23,7 +23,7 @@ describe("frontier headline tiles", () => {
     expect(overall?.className).toContain("wb-fh-help");
     expect(overall?.querySelector(".wb-fh-badge")?.textContent).toBe("HEAVILY ASSISTED");
     expect(overall?.querySelector(".wb-fh-key")?.textContent).toBe("BEST OVERALL");
-    expect(overall?.querySelector(".wb-fh-mile")?.textContent).toBe(FRONTIER_MILESTONES[16]?.label);
+    expect(overall?.querySelector(".wb-fh-mile")?.textContent).toBe(FRONTIER_MILESTONES[16].label);
     expect(overall?.querySelector(".wb-fh-time")?.textContent).toBe("7:16:02 active");
     expect(overall?.querySelector(".wb-fh-story")?.textContent).toContain(`17/${String(total)}`);
     expect(overall?.querySelector(".wb-fh-bar")?.getAttribute("aria-label")).toBe(`17 of ${String(total)} checkpoints`);

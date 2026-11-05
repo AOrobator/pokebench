@@ -6,6 +6,7 @@ import {configOf,type RunConfig} from "./run-config.js";
 export {configOf,type RunConfig} from "./run-config.js";
 import { BaselineError, RunsError, baselineOf, listRuns, readStart, type BaselineReader } from "./runs.js";
 import { readExclusions } from "./run-exclusions.js";
+import { customLaneOfStart } from "./custom-lane.js";
 
 
 
@@ -22,6 +23,9 @@ export interface FeatureHistory {
   readonly off: ArmOutcome;
 }
 
+
+// A custom lane's helped runs never count toward a switch's on/off arms.
+export const poolableConfig = (start: Parameters<typeof configOf>[0]): RunConfig | null => customLaneOfStart(start) === null ? configOf(start) : null;
 
 function sameExcept(a: RunConfig, b: RunConfig, feature: SwitchableFeature): boolean {
   return a.model === b.model && a.thinking === b.thinking && a.maxTokens === b.maxTokens && a.maxTurns === b.maxTurns && a.maxWallMs === b.maxWallMs && a.failureLimit === b.failureLimit && a.target === b.target &&
@@ -55,7 +59,7 @@ async function scoredRuns(runsRoot: string, readBaseline: BaselineReader): Promi
   const scored = await Promise.all(listRuns(runsRoot).map(async (summary): Promise<Scored | null> => {
     if (!summary.ended || summary.problem !== null || exclusions.has(summary.id)) return null;
     try {
-      const config = configOf(readStart(runsRoot, summary.id));
+      const config = poolableConfig(readStart(runsRoot, summary.id));
       if (config === null) return null;
       // Baseline offsets already exclude operator pauses. Match and score at the
       // recorded original horizon; replay/baseline retain continuation progress.

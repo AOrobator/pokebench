@@ -11,7 +11,7 @@ import { RUN_ID_PATTERN } from "@pokebench/agent/events";
 import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
-import { analyze, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
+import { analyze, customLaneTrials, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 import { readExclusions } from "./run-exclusions.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
@@ -231,7 +231,7 @@ function analyzeLedger(argv: readonly string[], deps: FixedCliDeps, id: string):
   if (unscored.length > 0) deps.err(`depth not re-graded (no usable log, stored furthest is an optional activity): ${unscored.join(", ")}`);
   const { exclusions, problems } = readExclusions(deps.runsRoot);
   for (const problem of problems) deps.err(problem);
-  deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id), exclusions), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`,def));
+  deps.out(renderAnalysis(analyze(trials, def.lanes.map((l) => l.id), exclusions, customLaneTrials(def.id, trials, logOf)), `${def.id} ${phase.id}${phase.primary ? "" : " (exploratory)"}`,def));
 }
 
 interface ReceiptRow { readonly type?: unknown; readonly trial?: unknown; readonly arm?: unknown; readonly run?: unknown; readonly exit?: unknown }
@@ -253,7 +253,8 @@ function analyzeReceipt(argv: readonly string[], deps: FixedCliDeps): number {
   });
   const { exclusions, problems } = readExclusions(deps.runsRoot);
   for (const problem of problems) deps.err(problem);
-  deps.out(renderAnalysis(analyze(trials, [], exclusions), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
+  const logOf = (run: string): LogLines | null => { const path = join(deps.runsRoot, run, "events.jsonl"); return existsSync(path) ? fileLines(path) : null; };
+  deps.out(renderAnalysis(analyze(trials, [], exclusions, customLaneTrials("", trials, logOf)), `${dir}: ${treatment} (as bundle) vs ${control} (as control)`));
   return 0;
 }
 

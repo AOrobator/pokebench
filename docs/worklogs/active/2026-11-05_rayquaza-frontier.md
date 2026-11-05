@@ -22,10 +22,13 @@ Custom lanes (a weight-edited model, a `custom-` experiment, a knowledge switch)
 ## Milestones
 
 - [x] M1: RED tests
-- [ ] M2: GREEN: classifier, ranking, chart, tiles, legend, stats guards, CLAUDE.md
+- [x] M2: GREEN: classifier, ranking, chart, tiles, legend, stats guards, CLAUDE.md
 - [ ] M3: focused checks and headless proof
 - [ ] M4: cloud review and landing (coordinator)
 
 ## Log
 
 - RED: focused suites (frontier, frontier-headline, custom-lane, fixed-analysis, history, frontier-legend): 17 failed, 78 passed, and `frontier-headline.js` missing. The race and harness-version guards pass on purpose: they pin behavior that must not change.
+- RED commit: `test(frontier): pin assisted runs on the frontier, kept out of cohorts` (61f8fae8a)
+- GREEN: focused viewer suites 18 files, 240 tests passing; `tsc --noEmit` clean; eslint clean on changed files. Full gates not run: they need a heavy-CPU window.
+- `rq-milestone-guide-v1` is not on this base (it lives on `claude/rayquaza-lane`), so it is NOT in `KNOWLEDGE_SWITCHES`. Add it there when that branch lands, or Rayquaza runs that only set this switch classify as benchmark runs.

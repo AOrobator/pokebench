@@ -145,6 +145,15 @@ it("production wiring: a walking batch reports the turn on an earlier step on it
  expect(pressLine(await script(false))).toBe("turned right -> up; no net movement");
 });
 
+it("production wiring: rotating-gate-turn-reasons-v1 names the wall in a refused press, single and walking",async()=>{
+ const rows=Array.from({length:10},()=>"1000".repeat(10));
+ const walled=(state:GameStateSnapshot):GameStateSnapshot=>({...state,map_grid:{width:10,height:10,elevation:3,rows,objects:[],warps:[]}});
+ const push=(on:boolean,buttons:readonly Button[])=>{const s=server(walled(field([1,0],{x:2,y:5})),state=>({...state,facing:"up"}));return pressTool("http://game",s.hooks,s.fetchFn,s.clock,toolSwitches(features(true,{"rotating-gate-turn-reasons-v1":on,"rotating-gate-push-log-v1":on}))).execute("model",{buttons:[...buttons]});};
+ expect(pressLine(await push(true,["UP"]))).toMatch(/Gate 0's arm between \(2,4\) and \(2,5\) did not turn: turning (counter)?clockwise would swing an arm into the wall at \(\d+,\d+\)/);
+ expect(pressLine(await push(false,["UP"]))).not.toContain("would swing");
+ expect(pressLine(await push(true,["UP","UP"]))).toContain("would swing");
+});
+
 it("production wiring: two pushes that cancel inside one batch are both reported",async()=>{
  const orientations=[[1,0],[0,0]];let press=0;
  const s=server(field([0,0],{x:1,y:5}),(state,direction)=>walked(state,direction,orientations[press++]??[0,0]));

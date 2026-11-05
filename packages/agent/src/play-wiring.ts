@@ -1,6 +1,7 @@
 import {rusturfEntryFollowupContext} from "./rusturf-entry-followup.js";
 import {discoveredGymChecklist} from "./gym-campaign.js";
 import {townCenterContext} from "./town-center-checkpoint.js";
+import {gateLogContext} from "./rotating-gate-log.js";
 import type {PlaceSource} from "./story-destinations.js";
 import {moveMatchupContext} from "./move-matchup.js";
 import {withDestinationFirst} from "./destination-first.js";
@@ -102,7 +103,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const campaign=discoveredGymChecklist(features,memoryRecorder,instructionGoals?.transform??history.transform);
  // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.
  const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,campaign))));
- const transformContext=rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places));
+ const transformContext=gateLogContext(features,memoryRecorder,rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places)));
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

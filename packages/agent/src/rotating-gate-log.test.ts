@@ -6,6 +6,7 @@ import type {FeatureSet} from "./features.js";
 import type {Button,RunEvent} from "./events.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {toolSwitches} from "./play-config.js";
+import {contextTools} from "./play-wiring.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
 import {GateLog,gateLogContext,gateTurnLines} from "./rotating-gate-log.js";
 import {GateStepTrail,gatePressNote,gateTurns} from "./rotating-gate-press.js";
@@ -26,10 +27,10 @@ const gate=(id:number,x:number,y:number,shape:readonly number[],orientation:numb
  return [{kind:"rotating_gate" as const,x,y,state:"pivot",group,orientation},...arms];
 };
 const WALLS=new Set(["1,5"]);
-const tiles=Array.from({length:20*25},(_,i)=>{const x=i%20,y=Math.floor(i/20);return {x,y,collision:WALLS.has(`${String(x)},${String(y)}`)?1:0,behavior:0,elevation:3};});
+const rows=Array.from({length:25},(_,y)=>Array.from({length:20},(_,x)=>WALLS.has(`${String(x)},${String(y)}`)?"1000":"0300").join(""));
 const FORTREE:readonly [number,number]=[12,1];
-const room=(gate3:number,gate7:number,position={x:2,y:5}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,location:"FORTREE CITY GYM",map_id:FORTREE,position,facing:"down",navigation_grid:{elevation:3,tiles},map_observation:{version:1,map_id:[12,1],origin:[0,0],width:20,height:25,elements:[...gate(3,2,6,T1,gate3),...gate(7,6,3,L4,gate7)],unavailable:[]}} as GameStateSnapshot);
-const city=():GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,location:"FORTREE CITY",map_id:[0,4],position:{x:22,y:12},facing:"up"} as GameStateSnapshot);
+const room=(gate3:number,gate7:number,position={x:2,y:5}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,location:"FORTREE CITY GYM",map_id:FORTREE,position,facing:"down",map_grid:{width:20,height:25,elevation:3,rows,objects:[],warps:[]},map_observation:{version:1,map_id:[12,1],origin:[0,0],width:20,height:25,elements:[...gate(3,2,6,T1,gate3),...gate(7,6,3,L4,gate7)],unavailable:[]}} as unknown as GameStateSnapshot);
+const city=():GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,location:"FORTREE CITY",map_id:[0,4],position:{x:22,y:12},facing:"up"});
 const stateEvent=(s:GameStateSnapshot,seq:number,turn:number):RunEvent=>({...s,v:1,run:"r",seq,t:"2026-11-05T12:00:00.000-05:00",type:"state",turn} as unknown as RunEvent);
 const press=(button:Button,seq:number,turn:number,before:number):RunEvent=>({v:1,run:"r",seq,t:"2026-11-05T12:00:00.000-05:00",type:"button_press",turn,tool_call_id:"c",before_state_seq:before,buttons:[button],hold_frames:10,release_frames:8} as unknown as RunEvent);
 
@@ -55,7 +56,7 @@ describe("which way a gate can turn",()=>{
  });
  it("says nothing when a swept tile was not read",()=>{
   const s=room(1,2);
-  expect(gateTurns({...s,navigation_grid:null} as GameStateSnapshot)).toBeNull();
+  expect(gateTurns({...s,map_grid:null})).toBeNull();
   expect(gateTurns({...s,map_observation:{...s.map_observation,unavailable:["gate:3 rotating gate state unavailable"]}} as GameStateSnapshot)).toBeNull();
  });
  it("lists each gate's free and blocked turns, and names no push",()=>{
@@ -88,8 +89,8 @@ describe("the push log",()=>{
   const log=fed(stateEvent(room(1,2,{x:15,y:24}),1,1),stateEvent(room(1,2,{x:1,y:6}),2,2),press("RIGHT",3,3,2),stateEvent(room(0,2,{x:2,y:6}),4,3),stateEvent(room(1,2),5,4),press("DOWN",6,5,5),stateEvent(room(1,2),7,5));
   expect(log.lines()).toEqual([
    "Turn 1: entered FORTREE CITY GYM: all gates at their starting positions.",
-   "Turn 3: RIGHT from (1,6) to (2,6): Gate 3 turned 90 degrees counterclockwise (arms north, east, south -> north, south, west)",
-   "Turn 4: Gate 3 turned 90 degrees clockwise (arms north, south, west -> north, east, south) with no single press read",
+   "Turn 3: RIGHT from (1,6) to (2,6): Gate 3 turned 90 degrees counterclockwise (arms east, south, west -> north, east, south)",
+   "Turn 4: Gate 3 turned 90 degrees clockwise (arms north, east, south -> east, south, west) with no single press read",
    "Turn 5: DOWN at (2,5): Gate 3's arm between (2,5) and (2,6) did not turn: turning clockwise would swing an arm into the wall at (1,5)",
   ]);
  });
@@ -109,9 +110,20 @@ describe("the push log",()=>{
   const log=fed(stateEvent({...room(1,2),in_battle:true},1,1),press("DOWN",2,2,1),stateEvent({...room(1,2),in_battle:true},3,2));
   expect(log.lines()).toHaveLength(1);
  });
- it("a read without gates keeps the visit open",()=>{
-  const log=fed(stateEvent(room(1,2),1,1),stateEvent({...room(1,2),map_id:null} as GameStateSnapshot,2,2),stateEvent(room(1,2),3,3));
-  expect(log.lines()).toHaveLength(1);
+ it("a read without gates on the same map keeps the visit and its press open",()=>{
+  const blank={...room(1,2)};delete blank.map_observation;
+  const log=fed(stateEvent(room(1,2),1,1),stateEvent({...room(1,2),map_id:null},2,2),press("UP",3,3,1),stateEvent(blank,4,3),stateEvent(room(0,2,{x:2,y:4}),5,3));
+  expect(log.lines()).toHaveLength(2);
+  expect(log.lines()[1]).toContain("Turn 3: UP from (2,5) to (2,4): Gate 3 turned");
+ });
+ it("an unread tile is not read as free",()=>{
+  const s=room(1,2);
+  const rows=s.map_grid?.rows.map((row,y)=>y===5?`${row.slice(0,4)}ffff${row.slice(8)}`:row);
+  expect(gateTurns({...s,map_grid:{...s.map_grid,rows}} as GameStateSnapshot)).toBeNull();
+ });
+ it("a swept tile off the map is not read as free",()=>{
+  const s=room(1,2);
+  expect(gateTurns({...s,map_grid:{...s.map_grid,rows:s.map_grid?.rows.slice(0,3)}} as GameStateSnapshot)).toBeNull();
  });
  it("is shown only while on a gate map",()=>{
   expect(fed(stateEvent(room(1,2),1,1),stateEvent(city(),2,2)).onGateMap()).toBe(false);
@@ -126,6 +138,13 @@ describe("the pinned note",()=>{
   const base=(m:AgentMessage[])=>Promise.resolve(m);
   return {transform:gateLogContext(features,recorder,base,()=>7),base,feed:(e:RunEvent)=>{feed(e);},recorded};
  };
+ it("production wiring carries the note",async()=>{
+  const observers:((e:RunEvent)=>void)[]=[];
+  const recorder=new Proxy({subscribe:(o:(e:RunEvent)=>void)=>{observers.push(o);}},{get:(target,key)=>key==="subscribe"?target.subscribe:()=>undefined}) as unknown as Parameters<typeof contextTools>[1];
+  const wiring=contextTools(ALL_ON,recorder,m=>Promise.resolve(m));
+  for(const observer of observers)observer(stateEvent(room(1,2),1,1));
+  expect(JSON.stringify(await wiring.transformContext([]))).toContain("Gate 3: counterclockwise free");
+ });
  it("both off returns the base transform unchanged",()=>{
   const h=harness({...ALL_ON,[REASONS]:false,[LOG]:false});
   expect(h.transform).toBe(h.base);

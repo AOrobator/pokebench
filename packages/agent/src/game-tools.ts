@@ -15,7 +15,7 @@ import {BikeRegisterReceiptSchema,BikeToggleReceiptSchema,type BikeRegisterRecei
 import {InterceptReceiptSchema,stepButton,WatchReceiptSchema,type InterceptPlan,type InterceptReceipt,type WatchPlan,type WatchReceipt} from "./intercept.js";
 
 // Which model-visible parts of the observe/press results this run shows.
-export interface ToolSwitches { readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean; readonly gatePressFeedback?: boolean }
+export interface ToolSwitches { readonly gateTurnReasons?: boolean; readonly screenshotOnly?: boolean; readonly bagPressFeedback?: boolean; readonly rejectedMovementPrefix?: PrefixRules; readonly rejectedMovementStride?: boolean; readonly rejectedMovementStep?: boolean; readonly navigationToolUseGuard?: boolean; readonly evolutionDecision?: boolean; readonly randomStarter?: () => RandomStarter; readonly readout: boolean; readonly pressResult: boolean; readonly position: boolean; readonly fieldLock: boolean; readonly safeInterfaces?: boolean; readonly automaticRunning?: boolean; readonly transitions?: boolean; readonly warpArrival?: boolean; readonly blockedBatch?: boolean; readonly liveMap?: boolean; readonly ledges?: boolean; readonly edgeWalls?: boolean; readonly counters?: boolean; readonly topology?: boolean; readonly pushback?: boolean; readonly elevation?: boolean; readonly mapObservability?: boolean; readonly gatePressFeedback?: boolean }
 export const ALL_TOOL_SWITCHES: ToolSwitches = { readout: true, pressResult: true, position: true, fieldLock: true, automaticRunning: false, transitions: false };
 import type { PressTiming } from "./recorder.js";
 
@@ -253,7 +253,7 @@ export function pressTool(
           }
           const result=await execute(toolCallId,{buttons:submitted},signal,_update,actual=>{
             if(actual===undefined||actual.screen!=="overworld"||actual.in_battle||actual.active_ui!==null||actual.field_controls_locked!==false||actual.running?.controllable!==true||actual.world_context?.field_activity!=null||actual.world_context?.dialogue!=null||actual.world_context?.message!=null||JSON.stringify(planStride(actual,directions,{}))!==JSON.stringify(corridor))throw new Error("Requested stride geometry or field input changed before submission; no command submitted");
-          },{automaticRunning:false,stride:corridor,...(switches.gatePressFeedback===true?{pressNote:after=>gatePressNote(before,after,submitted,switches.position)}:{})});
+          },{automaticRunning:false,stride:corridor,...(switches.gatePressFeedback===true?{pressNote:after=>gatePressNote(before,after,submitted,switches.position,switches.gateTurnReasons===true)}:{})});
           return {...result,content:[{type:"text",text:prefix},...result.content]};
         }
         if(switches.rejectedMovementStep===true){limitedMovement=true;}else{
@@ -340,7 +340,7 @@ export function pressTool(
   // each re-validated by navigate_to's rules on the state read just before it and verified on the state after it.
   const walkPrefix=async(toolCallId:string,buttons:readonly Button[],before:GameStateSnapshot,rules:PrefixRules,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
     const requested=buttons.flatMap(b=>b==="UP"||b==="DOWN"||b==="LEFT"||b==="RIGHT"?[b]:[]),submitted:Button[]=[];
-    const trail=switches.gatePressFeedback===true?new GateStepTrail(switches.position):null;
+    const trail=switches.gatePressFeedback===true?new GateStepTrail(switches.position,switches.gateTurnReasons===true):null;
     let previous=before,expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
     for(const [i,direction] of requested.entries()){
       const planned:{step:RequestedStepOk|null;refusal:string}={step:null,refusal:"walking was interrupted"};

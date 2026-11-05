@@ -356,6 +356,8 @@ export const SWITCHABLE_FEATURES = [
   "reasoning-effort-request-v1",
   "rotating-gate-press-feedback-v1",
   "rotating-gate-regions-v1",
+  "rotating-gate-turn-reasons-v1",
+  "rotating-gate-push-log-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -833,6 +835,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("reasoning-effort-request-v1", "guidance", "SEND THE REASONING EFFORT", null, "Correctness fix, on by default (the operator 2026-11-04: \"correctness fixes need to be on by default\"). Adds the run's thinking level to every model request as chat_template_kwargs.reasoning_effort, so the served chat template uses it. Until now only thinking on or off reached the server: Qwen3.8's template then defaults to xhigh and adds an instruction to validate assumptions and weigh alternatives, GLM-5.3's defaults to Max, and Qwen3.6's has no effort setting. On Qwen3.8, medium drops that instruction and low replaces it with one asking for brief thinking. GLM-5.3 accepts only low and high, so medium still gives Max there. run_start records what was sent under sampling.reasoning_effort_sent, on or off. Off: requests carry only enable_thinking and preserve_thinking, as they always have, and the server's default effort applies."),
   on("rotating-gate-press-feedback-v1", "guidance", "GATE FEEDBACK ON PRESS", "rotating-gate-positions-v1", "Correctness fix; default off. Run 5f0f misread gates at turns 1961, 1987 and 1997 by comparing eight gate lines itself, and a refused push only read \"blocked or unavailable\". On: on a map with rotating gates, a press with a direction from a free field also says which gate turned, which way and where its arms now point, or that the arm across that step did not turn, or that no gate turned. A walking batch compares every step and reports the steps on its last press line, so two pushes that cancel both show. A raw batch has two reads, so it says it is a net comparison. When a read is missing it says whether a gate turned is not known. Facts only: it gives no cause and names no push. navigate_to results are unchanged. Off: no gate text in press results, byte for byte."),
   on("rotating-gate-regions-v1", "observation", "ROTATING GATE AREAS", "rotating-gate-positions-v1", "Default off. In a probe on recorded gym turns, models told which tiles they could reach from the arm marks 8 of 63 times and from a lettered area grid 57 of 64 times. On: on a map with rotating gates, a block right after the map key letters each walkable tile by the area it connects to without turning a gate, with the player's area A and everything else #, then one line per gate arm between two areas, and one line per ledge that hops one way between two areas. Walkability is the harness's own section rules on the live map: collision, water, elevation, edge walls, warps, ledge hops and live objects. No block appears unless every gate's arms were read. It never says which push to make. Off: the map shows gates only by their arm marks and gate lines, as before."),
+  on("rotating-gate-turn-reasons-v1", "guidance", "GATE TURNS AND REFUSALS", "rotating-gate-positions-v1", "Default off. Run 08b5 read \"did not turn\" as a gate that cannot move at all, when only one turning direction was refused. On: on a map with rotating gates a note pinned before each decision says, for each gate, whether clockwise and counterclockwise are free or which wall tile an arm would swing into, and a refused press adds the turn it asked for and that wall. It runs the game's own RotatingGate_CanRotate check over the arms and collision already in the state, and says nothing unless all of it was read. It names no push, no target position and no route. The note is not kept in history. Off: no note, and press says only that the arm did not turn."),
+  on("rotating-gate-push-log-v1", "guidance", "GATE PUSH LOG", "rotating-gate-turn-reasons-v1", "Default off. Run 08b5 lost the results of its own pushes when they left the context. On: the same pinned note lists, oldest first, every turn and refused push on the current gate map with its tile, direction and result, and every entry to the map with whether the gates are at their starting positions. It is built from recorded state and press events, so trimming the context cannot lose it, and it is not kept in history. Off: no log."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1295,6 +1299,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("reasoning-effort-request-v1"),
     ...when("rotating-gate-press-feedback-v1"),
     ...when("rotating-gate-regions-v1"),
+    ...when("rotating-gate-turn-reasons-v1"),
+    ...when("rotating-gate-push-log-v1"),
   ];
 }
 

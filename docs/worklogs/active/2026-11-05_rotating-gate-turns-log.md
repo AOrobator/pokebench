@@ -22,12 +22,16 @@ Both switches are agent side, read from the state already recorded: `map_observa
 ## Milestones
 
 - [x] M1: RED tests
-- [ ] M2: GREEN, wiring, configs, explainer
+- [x] M2: GREEN, wiring, configs, explainer
 - [ ] M3: gates, reviews, landing
 
 ## Log
 
 - RED: `rotating-gate-log.test.ts` fails to import `rotating-gate-log.js`.
+
+- GREEN: 41 tests across `rotating-gate-log` and `rotating-gate-press`; focused agent 138 and viewer 158 pass. Removing the `press-result` argument and the `play-wiring` context each failed its production test; restored.
+- Design change while building: the sweep reads `map_grid`, not `navigation_grid`, which is a 15x15 window. The first replay returned no turns at all for that reason.
+- Replay of the new code over recorded runs, read only: 08b5, 66 turns, 25 refused pushes, 25 named a wall, 4 entries at 95 log lines and 11,783 characters. 4d66, 10 turns, 5 refused, 5 named a wall, 1 entry. The first replay also logged a false entry at a read without gates on the same map; fixed and pinned by a test.
 
 ## Multi-Model Review Log
 

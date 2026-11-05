@@ -66,3 +66,5 @@ Rotating-gate readouts (the operator 2026-11-04): `rotating-gate-positions-v1`, 
 Gate feedback on press (the operator 2026-11-05, relayed by the coordinator): `rotating-gate-press-feedback-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`, as a correctness fix wherever `rotating-gate-positions-v1` is on. Operator-directed, without a measured benefit yet.
 
 Gate areas (the operator 2026-11-05, relayed by the coordinator, after the probe in `runs/probes/gym-map-format-20261105`): `rotating-gate-regions-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`, so a plain run gets it too. It only adds text on the two rotating-gate maps.
+
+Gate turns and push log (the operator 2026-11-05, "all of these switches should be on for the next astra and deepseek runs"): `rotating-gate-turn-reasons-v1` and `rotating-gate-push-log-v1` are registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`.

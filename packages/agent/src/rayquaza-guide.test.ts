@@ -4,7 +4,7 @@ import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { BATTLE_EXPLAINER, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { ABRA_NOTE, BATTLE_EXPLAINER, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const OFF = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": false };
 const ON = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": true };
@@ -81,6 +81,16 @@ describe("GuidePosition early milestones", () => {
     expect(guide.current().after).toBe("STEP_29");
   });
 
+  it("treats a checkpoint milestone left beyond reach like any remembered one", () => {
+    const guide = new GuidePosition(long);
+    for (const n of [5, 20]) guide.observe(milestone(`STEP_${String(n)}`, "present_at_start"));
+    expect(guide.current().after).toBe("STEP_5");
+    guide.observe(milestone("STEP_12"));
+    expect(guide.current().after).toBe("STEP_12");
+    guide.observe(milestone("STEP_19"));
+    expect(guide.current().after).toBe("STEP_20");
+  });
+
   it("still advances past a few steps that never fired", () => {
     const guide = new GuidePosition(long);
     guide.observe(milestone("STEP_6"));
@@ -143,7 +153,7 @@ describe("rq-battle-explainer-v1", () => {
   };
   const inner = (messages: AgentMessage[]): Promise<AgentMessage[]> => Promise.resolve(messages);
   const both = { ...ON, "rq-battle-explainer-v1": true };
-  const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, screen: value ? "battle" : "overworld", active_ui: null, map_id: [0, 0] }) as unknown as RunEvent;
+  const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, screen: value ? "battle" : "overworld", active_ui: null, map_id: [0, 0], party: [] }) as unknown as RunEvent;
 
   it("is the final message only while a battle is active", async () => {
     const r = recorder();
@@ -160,7 +170,7 @@ describe("rq-battle-explainer-v1", () => {
   it("stays out of post-battle evolution, where the game's battle flag is still set", async () => {
     const r = recorder();
     const context = rayquazaGuideContext(both, r, inner, steps);
-    r.emit({ type: "state", started: true, in_battle: true, screen: "evolution", active_ui: null, map_id: [0, 0] } as unknown as RunEvent);
+    r.emit({ type: "state", started: true, in_battle: true, screen: "evolution", active_ui: null, map_id: [0, 0], party: [] } as unknown as RunEvent);
     expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
   });
 
@@ -170,5 +180,88 @@ describe("rq-battle-explainer-v1", () => {
     r.emit(inBattle(true));
     expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
     expect(BATTLE_EXPLAINER.length).toBeLessThanOrEqual(400);
+  });
+});
+
+describe("Abra notes", () => {
+  const FORTREE = [0, 4];
+  const ROUTE = [0, 16];
+  const abraFoe = { battle_type: 4, battlers: [{ position: 0, species: "MUDKIP" }, { position: 1, species: "ABRA" }] };
+  const state = (over: Record<string, unknown>): RunEvent => ({ type: "state", started: true, screen: "overworld", active_ui: null, in_battle: false, map_id: ROUTE, party: [{ species: "MUDKIP", hp: 20, moves: [] }], ...over }) as unknown as RunEvent;
+  const fight = (over: Record<string, unknown> = {}): RunEvent => state({ in_battle: true, screen: "battle", battle: abraFoe, ...over });
+  const teleporter = { species: "ABRA", hp: 20, moves: [{ move_id: 100 }] };
+  const toFortree: readonly GuideStep[] = [{ after: "RUN_START", map: "FortreeCity", note: "Go.", to: { map: "FortreeCity", id: [0, 4] } }];
+  const field = (over: Record<string, unknown> = {}): RunEvent => state({ party: [teleporter], heal_before_trainers: { last_heal: FORTREE }, ...over });
+  const notes = (guide: GuidePosition): readonly string[] => guide.situationNotes().map((n) => n.text);
+
+  it("tells the model to throw a ball at a wild Abra it has not caught", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(fight());
+    expect(notes(guide)).toEqual([ABRA_NOTE]);
+  });
+
+  it("says nothing when an Abra is owned, the foe is a trainer's or the foe is not an Abra", () => {
+    for (const event of [
+      fight({ party: [{ species: "KADABRA", hp: 20, moves: [] }] }),
+      fight({ battle: { ...abraFoe, battle_type: 8 } }),
+      fight({ battle: { battle_type: 4, battlers: [{ position: 0, species: "ABRA" }, { position: 1, species: "ZIGZAGOON" }] } }),
+      fight({ in_battle: false, screen: "overworld", battle: null }),
+    ]) {
+      const guide = new GuidePosition(steps);
+      guide.observe(event);
+      expect(notes(guide)).toEqual([]);
+    }
+  });
+
+  it("offers Teleport when the step's town holds the last Pokemon Center", () => {
+    const guide = new GuidePosition(toFortree);
+    guide.observe(field());
+    expect(notes(guide)).toEqual(["TELEPORT: Your last Pokémon Center is in Fortree City. Use Teleport from the party menu to go back there instead of walking."]);
+  });
+
+  it("keeps the last known heal location when a state omits it", () => {
+    const guide = new GuidePosition(toFortree);
+    guide.observe(field());
+    guide.observe(field({ heal_before_trainers: undefined }));
+    expect(notes(guide)).toHaveLength(1);
+  });
+
+  it("stays silent whenever Teleport would not save the trip", () => {
+    for (const event of [
+      field({ heal_before_trainers: { last_heal: [0, 5] } }),
+      field({ map_id: FORTREE }),
+      field({ map_id: [8, 1] }),
+      field({ in_battle: true, screen: "battle" }),
+      field({ party: [{ ...teleporter, hp: 0 }] }),
+      field({ party: [{ species: "ABRA", hp: 20, moves: [{ move_id: 1 }] }] }),
+      field({ heal_before_trainers: { last_heal: null } }),
+    ]) {
+      const guide = new GuidePosition(toFortree);
+      guide.observe(event);
+      expect(notes(guide)).toEqual([]);
+    }
+    const guide = new GuidePosition(steps);
+    guide.observe(field());
+    expect(notes(guide)).toEqual([]);
+  });
+
+  it("delivers a note last and records it once while it applies", async () => {
+    const recorded: { text: string; milestone: string }[] = [];
+    let listener: (event: RunEvent) => void = () => undefined;
+    const context = rayquazaGuideContext(ON, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: (body: { text: string; milestone: string }) => { recorded.push(body); } }, (m) => Promise.resolve(m), steps);
+    listener(fight());
+    const first = await context([user("observation")]);
+    await context([user("observation")]);
+    expect(first.at(-1)).toMatchObject({ role: "user", content: ABRA_NOTE });
+    expect(recorded.filter((r) => r.text === ABRA_NOTE)).toHaveLength(1);
+    listener(state({}));
+    await context([user("observation")]);
+    listener(fight());
+    await context([user("observation")]);
+    expect(recorded.filter((r) => r.text === ABRA_NOTE)).toHaveLength(2);
+  });
+
+  it("names no search for Abra anywhere in the guide", () => {
+    expect(RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note))).toEqual([]);
   });
 });

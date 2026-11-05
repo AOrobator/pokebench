@@ -434,3 +434,13 @@ it("retains card fields independently without reading ahead or crossing a pregam
   log.add(4, state({ started: false, screen: "title", name: null, location: null, party: [], play_time_s: null }));
   expect(fold(log).cardState).toEqual({ name: null, location: null, party: [] });
 });
+
+it("releases raw events without losing folded results or order checks",()=>{
+  const log=fullRun(),view=fold(log),last=view.events.at(-1),milestones=[...view.milestones];
+  view.releaseEvents();
+  expect(view.events).toEqual([last]);
+  expect(view.milestones).toEqual(milestones);
+  for(const event of log.events)view.apply(event);
+  expect(view.events).toEqual([last]);
+  new RunView().releaseEvents();
+});

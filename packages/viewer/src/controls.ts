@@ -7,6 +7,7 @@ import type { FeatureInfo, SwitchableFeature } from "@pokebench/agent/features";
 import { esc, hms, num } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import { MILESTONE_ORDER, deeperMilestone, type RunView } from "./model.js";
+import { nextSplit, reachedSplits, type BestSplits } from "./run-splits.js";
 
 export type ControlAction = AgentControlAction;
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
@@ -159,8 +160,6 @@ export function sideStats(view:RunView,nowMs:number,current?:{complete:boolean;c
   ].join("");
 }
 
-export interface BestSplits { readonly run: string; readonly milestones: readonly { readonly name: string; readonly offsetMs: number }[] }
-
 const STORY_ORDER: readonly string[] = MILESTONE_ORDER;
 const FRONTIER_LABELS = new Map<string, string>(FRONTIER_MILESTONES.map((m) => [m.id, m.label]));
 const splitLabel = (name: string): string => (FRONTIER_LABELS.get(name) ?? name.replaceAll("_", " ")).toUpperCase();
@@ -171,16 +170,11 @@ const storyIndex = (name: string): number => { const at = STORY_ORDER.indexOf(na
 // loading state instead of painting the partially replayed milestones one at a time.
 function runSplits(view: RunView, recorded?: BestSplits | null): { name: string; label: string; at: number | null }[] {
   if (recorded === null) return [];
-  const startMs = view.startMs;
-  const source = recorded === undefined
-    ? (startMs === null ? [] : view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, at: (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000 })))
-    : recorded.milestones.map((m) => ({ name: m.name, at: m.offsetMs / 1000 }));
+  const source = reachedSplits(view, recorded);
   const reached = source.map((m, i) => ({ m, i }))
     .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
     .map(({ m }) => ({ name: m.name, label: splitLabel(m.name), at: m.at }));
-  const names = new Set(recorded === undefined ? view.milestones.map((m) => m.name) : source.map((m) => m.name));
-  const deepest = Math.max(-1, ...FRONTIER_MILESTONES.map((m, i) => (names.has(m.id) ? i : -1)));
-  const next = FRONTIER_MILESTONES[deepest + 1]?.id;
+  const next = nextSplit(view, new Set(recorded === undefined ? view.milestones.map((m) => m.name) : source.map((m) => m.name)));
   return next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }];
 }
 

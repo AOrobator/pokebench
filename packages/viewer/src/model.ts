@@ -332,6 +332,11 @@ export class RunView {
     return `${kinds[event.kind]} ${phase} · #${String(event.seq)} · turn ${String(event.turn)} · ${elapsed} · ${String(event.calls)} completed calls · preceding tool ${tool?.type === "tool_call" ? tool.name : "not recorded"}: ${event.message} · evidence ${event.evidence.map((seq) => `#${String(seq)}`).join(", ")} · ${mode}`;
   }
 
+  // For a one-pass reader that needs only the folded results: a long log's raw events exceed a worker's heap.
+  releaseEvents(): void {
+    this.events.splice(0, this.events.length - 1);
+  }
+
   // Drops finished history before `ms`; milestones stay, because they guard against repeats.
   forgetBefore(ms: number): void {
     const keep = <T>(items: T[], recent: (item: T) => boolean): void => { items.splice(0, items.length, ...items.filter(recent)); };

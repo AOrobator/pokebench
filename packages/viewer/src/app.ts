@@ -14,7 +14,8 @@ import { cardHtml as trainerCardHtml, gymHtml, nextGym, parseTrainerPageData, ru
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type BestSplits, type ControlAction } from "./controls.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
+import { tableSplits, type BestSplits } from "./run-splits.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -165,6 +166,8 @@ function runChoices(value: unknown): RunChoice[] {
     return Number(liveB) - Number(liveA) || (Date.parse(b.started ?? "") || 0) - (Date.parse(a.started ?? "") || 0);
   });
 }
+
+const recordedMilestone = (split: WorkbenchRun["splits"][number]): BestSplits["milestones"][number] => ({ name: split.name, offsetMs: split.elapsedMs, ...(split.derived === true ? { derived: true } : {}) });
 
 function preferredRun(runs: readonly RunChoice[], hash: string): RunChoice | undefined {
   const wanted = /^#(?:run|replay)=(.+)$/.exec(hash)?.[1];
@@ -790,10 +793,10 @@ export class App {
       if (generation === null) return undefined;
       const matched = this.recordedWorkbenchRun(this.runId, generation);
       if (matched === null) return this.workbenchLoad !== null || this.needsWorkbenchEnrichment() ? null : undefined;
-      return { run: this.runId, milestones: matched.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
+      return { run: this.runId, milestones: matched.splits.map(recordedMilestone) };
     }
     const run = this.workbench?.runs.find((candidate) => candidate.id === this.runId);
-    return run === undefined ? null : { run: this.runId, milestones: run.splits.map((split) => ({ name: split.name, offsetMs: split.elapsedMs })) };
+    return run === undefined ? null : { run: this.runId, milestones: run.splits.map(recordedMilestone) };
   }
 
   private cardInputs(): CardInput[] {
@@ -1787,7 +1790,7 @@ export class App {
     this.setHtml("budgets",totalsKnown?budgets(view,nowMs):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');
     this.setHtml("counters",totalsKnown?counters(view):'<p class="nodata">Lifetime totals are still loading.</p>');
     this.setHtml("metric-history", metricHistory(this.traceOwner()));
-    const split = splits(view, this.baseline, nowMs, this.frontier);
+    const split = splits(view, this.baseline, nowMs, this.frontier, false, tableSplits(this.mode, recordedSplits));
     this.setHtml("splits-summary", split.summary);
     this.setHtml("splits", split.table);
     this.laneMotion??=new LaneMotion(this.ui("lanes"),this.deps.animateLanes);

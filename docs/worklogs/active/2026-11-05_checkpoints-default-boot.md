@@ -43,3 +43,13 @@ Round 2 on 4c5590aa9: Claude LGTM, fallback (Sonnet) LGTM, GPT BLOCKING only on 
 Round 3 on c02e23e2c, base 560aaf991, packet SHA-256 027a66db6e2ea4f6: Claude LGTM, GPT LGTM, fallback LGTM. Full gates ran at 961e5c5d7; the later delta is one sidecar string changed in code and test, comments and this worklog, and post-merge `just test` passed at the landed head.
 
 Not a live run yet: the first real run from this build is still to come. Run 5f0f keeps its older pin.
+
+## Follow-up: every start saves by default
+
+The operator, 2026-11-05 1:05 AM: "we should also make it save milestones when starting from a checkpoint by default". `checkpointSelection` no longer needs the start; `0` stays the OFF switch.
+
+Saves stay apart from the source run: run files are under `runs/<id>/checkpoints/`, library copies under `runs/checkpoints/<milestone>/candidates/<id>/`, and every run has its own id, so no original state is overwritten. Each sidecar names `source.start_state`. A checkpoint-started run can win `first-arrival.json` if it arrives first; only capture itself reads that index.
+
+Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` and `fixed-runner.ts` keep setting `1` because they can launch older pins.
+
+- [x] RED: default on for any start; checkpoint-start saves stay under their own run

@@ -76,20 +76,20 @@ it("refuses a bad state, records the capture failure, continues later milestones
  const down=fixture(undefined,{detail:"native checkpoint unavailable"},503);down.capture.observe(milestone("CLOCK_SET",20));await expect(down.capture.settled()).rejects.toThrow(/^checkpoint request failed with HTTP 503$/);expect(JSON.parse(String(down.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"checkpoint request failed with HTTP 503"});expect(down.calls.some(c=>c.url.endsWith("/pokebench/pause"))).toBe(false);
 });
 
-const boot={kind:"boot"} as const,saved={kind:"save_state"} as const;
-it("saves every frontier milestone on a boot start unless the switch is off",()=>{
- expect(checkpointSelection({},boot)).toEqual({kind:"frontier"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:""},boot)).toEqual({kind:"frontier"});
- expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"},boot)).toEqual({kind:"frontier"});
- expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"0"},boot)).toBeNull();
-});
-it("keeps save-state starts opt-in",()=>{
- expect(checkpointSelection({},saved)).toBeNull();expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"0"},saved)).toBeNull();
- expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"},saved)).toEqual({kind:"frontier"});
+it("saves every frontier milestone by default on any start unless the switch is off",()=>{
+ expect(checkpointSelection({})).toEqual({kind:"frontier"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:""})).toEqual({kind:"frontier"});
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"})).toEqual({kind:"frontier"});
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"0"})).toBeNull();
 });
 it("reads explicit capture modes from the environment and preserves the single-target contract",()=>{
  expect(checkpointTarget({})).toBeNull();expect(checkpointTarget({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toBe("CLOCK_SET");expect(checkpointTarget({POKEBENCH_CHECKPOINT_FRONTIER:"1"})).toBeNull();
- for(const start of [boot,saved]){expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"},start)).toEqual({kind:"single",target:"CLOCK_SET"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET",POKEBENCH_CHECKPOINT_FRONTIER:"0"},start)).toEqual({kind:"single",target:"CLOCK_SET"});}
- expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"yes"},boot)).toThrow(/must be 0 or 1/);expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1",POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"},boot)).toThrow(/choose one/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toEqual({kind:"single",target:"CLOCK_SET"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET",POKEBENCH_CHECKPOINT_FRONTIER:"0"})).toEqual({kind:"single",target:"CLOCK_SET"});
+ expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"yes"})).toThrow(/must be 0 or 1/);expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1",POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toThrow(/choose one/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
+});
+it("keeps a checkpoint start's saves under its own run and names the state it started from",async()=>{
+ const {capture,files}=fixture({kind:"frontier"});capture.observe(milestone("PETALBURG_WOODS",10,"present_at_start","navigation"));capture.observe(milestone("TEAM_AQUA_WOODS_EVENT_COMPLETE",20));await capture.settled();
+ expect([...files.keys()].filter(path=>path.endsWith(".state")).sort()).toEqual(["/runs/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE/candidates/cp-run/TEAM_AQUA_WOODS_EVENT_COMPLETE.state","/runs/cp-run/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE.state"]);
+ expect(JSON.parse(String(files.get("/runs/cp-run/checkpoints/TEAM_AQUA_WOODS_EVENT_COMPLETE.json")))).toMatchObject({source:{start_state:START.start_state}});
 });
 
 const v2={version:2,id:"cp",target:"RIVAL_MET",limits:{maxTurns:1500,maxWallMs:900000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"state-only-decisions-v1":false}};

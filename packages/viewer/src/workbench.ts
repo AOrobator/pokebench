@@ -196,7 +196,7 @@ export class Workbench {
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
       id: run.id, model: run.model, experiment: run.experiment, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded, flag: run.flag,
-      config: run.config, splits: run.splits,
+      config: run.config, origin: run.origin, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };
     const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.overall ?? null), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated]);

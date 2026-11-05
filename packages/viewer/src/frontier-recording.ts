@@ -17,6 +17,8 @@ export interface RecordingMeasurement {
   artifact?: { id: string; receipt: string; sha256: string };
 }
 type Milestone = Extract<RunEvent, { type: "milestone" }>;
+// A probe's native milestones are never graded, but the viewer's display reading keeps them so its frontier can draw the run dimmed.
+export const keepsSplits = (features: readonly string[], clockPolicy: "strict" | "display"): boolean => clockPolicy === "display" || !features.includes("probe");
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;
 // skipped: events the schema rejected and a tolerant read stepped over (version skew), with the first problem.
 // last: retained trainer-card display state; raw view.state is dropped from the result.
@@ -119,7 +121,7 @@ export function createNativeRecordingTailer(path: string, id: string, qualified:
         rawSplits.push({ name: recovered.name, elapsedMs: raw, evidence: [...recovered.evidence] });
       }
     }
-    if (event.type === "milestone" && event.origin === "observed" && event.evidence !== undefined && !view.start?.harness_features.includes("probe") && qualified(event, event.evidence.map(seq => states.get(seq))) && !splits.some(s => s.name === event.name && s.derived !== true)) {
+    if (event.type === "milestone" && event.origin === "observed" && event.evidence !== undefined && keepsSplits(view.start?.harness_features ?? [], clockPolicy) && qualified(event, event.evidence.map(seq => states.get(seq))) && !splits.some(s => s.name === event.name && s.derived !== true)) {
       const raw = ms - (view.startMs ?? ms), elapsedMs = Math.max(0, raw - view.control.pausedBefore(ms));
       const recovered = splits.findIndex(s => s.name === event.name);
       if (recovered >= 0) { splits.splice(recovered, 1); rawSplits.splice(rawSplits.findIndex(s => s.name === event.name), 1); }

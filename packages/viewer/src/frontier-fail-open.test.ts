@@ -14,7 +14,8 @@ const raced = (id: string, count = NAMES.length, overrides: Partial<WorkbenchRun
 const start = (source: WorkbenchRun, start: string, resume: string | null): WorkbenchRun["config"] => { if (source.config === null) throw new Error("fixture"); return { ...source.config, start, resume }; };
 const saved = (id: string, origin: RunOrigin | null, count = NAMES.length): WorkbenchRun => { const base = raced(id, count); return { ...base, config: start(base, "save_state", null), ...(origin === null ? {} : { origin }) }; };
 const known = (milestone: string | null): RunOrigin => ({ milestone, save: "PAUSED_BEFORE_RESTART.state", sourceRun: "5f0f", sourceTurn: 2181 });
-const features = (source: WorkbenchRun, id: string): WorkbenchRun["measurement"] => { const m = source.measurement; if (m === undefined) throw new Error("fixture"); return { ...m, features: [...m.features, id] }; };
+const measured = (source: WorkbenchRun): NonNullable<WorkbenchRun["measurement"]> => { if (source.measurement === undefined) throw new Error("fixture"); return source.measurement; };
+const features = (source: WorkbenchRun, id: string): NonNullable<WorkbenchRun["measurement"]> => ({ ...measured(source), features: [...measured(source).features, id] });
 const plot = (runs: readonly WorkbenchRun[], zoom = false): void => { document.body.innerHTML = frontierPlot({ human: null, best: null }, runs, 900, null, [], zoom); };
 const series = (id: string): Element | null => document.querySelector(`polyline[data-series="${id}"]`)?.closest(".wb-series") ?? null;
 const hidden = (): string => document.querySelector("[data-frontier-hidden]")?.textContent ?? "";
@@ -24,7 +25,7 @@ describe("the frontier fails open", () => {
     const base = raced("base");
     const made = { ...raced("made-up-start"), config: start(base, "teleport", null) };
     const unnamed = saved("unknown-save", null);
-    const controller = { ...raced("robot"), measurement: { ...(base.measurement ?? (() => { throw new Error("fixture"); })()), controller: "robot" as "agent" } };
+    const controller = { ...raced("robot"), measurement: { ...measured(base), controller: "robot" as "agent" } };
     const noConfig = { ...raced("no-config"), config: null };
     const noMeasurement = Object.fromEntries(Object.entries({ ...raced("no-measurement") }).filter(([key]) => key !== "measurement")) as unknown as WorkbenchRun;
     plot([made, unnamed, controller, noConfig, noMeasurement]);
@@ -82,7 +83,7 @@ describe("the frontier fails open", () => {
   });
   it("tags a human or unknown controller and does not treat it as an agent", () => {
     const base = raced("base");
-    expect(frontierTags({ ...base, measurement: { ...(base.measurement ?? (() => { throw new Error("fixture"); })()), controller: "human" } })).toContain("human controller");
+    expect(frontierTags({ ...base, measurement: { ...measured(base), controller: "human" } })).toContain("human controller");
     const bare = Object.fromEntries(Object.entries(base).filter(([key]) => key !== "measurement")) as unknown as WorkbenchRun;
     expect(frontierTags(bare)).toContain("controller not recorded");
     expect(frontierTags(base)).toEqual([]);
@@ -136,13 +137,13 @@ describe("resumes from an arbitrary save", () => {
 describe("what stays closed", () => {
   it("never lets a save start, probe, problem or human run become the agent frontier", () => {
     const plain = raced("plain", 2), base = raced("base");
-    const refs = frontierReferences([plain, saved("ee2a", known("FORTREE_CITY")), saved("mystery", null), { ...base, id: "probe", excluded: "Excluded probe session" }, { ...base, id: "dim", measurement: features(base, "probe") }, { ...base, id: "broken", problem: "bad" }, { ...base, id: "person", measurement: { ...(base.measurement ?? (() => { throw new Error("fixture"); })()), controller: "human" } }]);
+    const refs = frontierReferences([plain, saved("ee2a", known("FORTREE_CITY")), saved("mystery", null), { ...base, id: "probe", excluded: "Excluded probe session" }, { ...base, id: "dim", measurement: features(base, "probe") }, { ...base, id: "broken", problem: "bad" }, { ...base, id: "person", measurement: { ...measured(base), controller: "human" } }]);
     expect(refs.best?.id).toBe("plain");
     expect(refs.overall?.id).toBe("plain");
   });
   it("gives no harness version to a probe, problem, human or assisted run, but does to an arbitrary-save agent", () => {
     const base = raced("base");
-    const versions = frontierVersions([base, saved("ee2a", known("FORTREE_CITY")), { ...base, id: "probe", excluded: "Excluded probe session" }, { ...base, id: "dim", measurement: features(base, "probe") }, { ...base, id: "broken", problem: "bad" }, { ...base, id: "person", measurement: { ...(base.measurement ?? (() => { throw new Error("fixture"); })()), controller: "human" } }, { ...base, id: "edited", model: "x-edit-1" }]);
+    const versions = frontierVersions([base, saved("ee2a", known("FORTREE_CITY")), { ...base, id: "probe", excluded: "Excluded probe session" }, { ...base, id: "dim", measurement: features(base, "probe") }, { ...base, id: "broken", problem: "bad" }, { ...base, id: "person", measurement: { ...measured(base), controller: "human" } }, { ...base, id: "edited", model: "x-edit-1" }]);
     expect([...versions.byRun.keys()].sort()).toEqual(["base", "ee2a"]);
   });
   it("explains the new marks in the legend", () => {

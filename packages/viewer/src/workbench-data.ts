@@ -10,6 +10,9 @@ export interface WorkbenchConfig {
   effortSent?: string | null;
   context: number; vision: boolean; start: string; resume?: string | null; tools: string[]; features: { id: string; label: string; on: boolean | null }[];
 }
+// Where a run that loaded an arbitrary save sits in the story; milestone is null when that cannot be determined.
+export interface RunOrigin { milestone: string | null; save: string; sourceRun: string | null; sourceTurn: number | null }
+export const PROBE_SESSION = "Excluded probe session";
 export interface WorkbenchRun {
   id: string; cohort: string | null; arm: string | null; model: string | null; started: string | null; status: "live" | "paused" | "ended" | "unresponsive" | "invalid";
   reason: string | null; problem: string | null; excluded: string | null; elapsedMs: number | null; turn: number;
@@ -23,6 +26,7 @@ export interface WorkbenchRun {
   card?: WorkbenchCard | null;
   // The experiment, arm and trial the run's header records; null when it records none.
   experiment?: WorkbenchExperiment | null;
+  origin?: RunOrigin | null;
 }
 export interface WorkbenchExperiment { id: string; arm: string; trial: number; of: number }
 export interface WorkbenchMon { speciesId: number | null; level: number; egg: boolean }
@@ -55,11 +59,14 @@ function card(v: unknown): boolean {
 function experiment(v: unknown): boolean {
   return v === undefined || v === null || (object(v) && string(v.id) && string(v.arm) && integer(v.trial) && v.trial >= 1 && integer(v.of) && v.of >= 1);
 }
+function origin(v: unknown): boolean {
+  return v === undefined || v === null || (object(v) && nullableString(v.milestone) && string(v.save) && nullableString(v.sourceRun) && nullableInteger(v.sourceTurn));
+}
 function cohorts(v: unknown): boolean {
   return v === undefined || (Array.isArray(v) && v.every(c => object(c) && string(c.id) && string(c.label) && nullableString(c.experiment) && nullableString(c.build) && typeof c.dryRun === "boolean"));
 }
 export function parseWorkbench(value: unknown): WorkbenchData {
-  if (!object(value) || value.version !== 1 || !cohorts(value.cohorts) || !number(value.at) || !Array.isArray(value.milestones) || !value.milestones.every(m => object(m) && string(m.id) && string(m.label)) || !strings(value.problems) || !Array.isArray(value.runs) || !value.runs.every(r => object(r) && string(r.id) && nullableString(r.cohort) && nullableString(r.arm) && nullableString(r.model) && nullableString(r.started) && typeof r.status === "string" && ["live", "paused", "ended", "unresponsive", "invalid"].includes(r.status) && nullableString(r.reason) && nullableString(r.problem) && (r.clockWarning === undefined || string(r.clockWarning)) && (r.flag === undefined || string(r.flag)) && nullableString(r.excluded) && nullableNumber(r.elapsedMs) && integer(r.turn) && config(r.config) && card(r.card) && experiment(r.experiment) && (r.measurement === undefined || measurement(r.measurement, r.clockWarning !== undefined)) && Array.isArray(r.splits) && r.splits.every(s => object(s) && string(s.name) && number(s.elapsedMs) && number(s.segmentMs) && integer(s.seq) && integer(s.turn) && integer(s.inputTokens) && integer(s.outputTokens) && (s.derived === undefined || s.derived === true) && (s.observedMs === undefined || (s.derived === true && number(s.observedMs))) && (s.screenshotEvidence === undefined || (s.derived === true && Array.isArray(s.screenshotEvidence) && s.screenshotEvidence.length > 0 && s.screenshotEvidence.length <= 6 && s.screenshotEvidence.every(f => object(f) && integer(f.seq) && typeof f.path === "string" && /^frames\/[0-9]{6,}_[0-9]+[.]png$/.test(f.path) && typeof f.sha1 === "string" && /^[a-f0-9]{40}$/.test(f.sha1))))))) throw new Error("Invalid workbench response; recorded run data could not be validated.");
+  if (!object(value) || value.version !== 1 || !cohorts(value.cohorts) || !number(value.at) || !Array.isArray(value.milestones) || !value.milestones.every(m => object(m) && string(m.id) && string(m.label)) || !strings(value.problems) || !Array.isArray(value.runs) || !value.runs.every(r => object(r) && string(r.id) && nullableString(r.cohort) && nullableString(r.arm) && nullableString(r.model) && nullableString(r.started) && typeof r.status === "string" && ["live", "paused", "ended", "unresponsive", "invalid"].includes(r.status) && nullableString(r.reason) && nullableString(r.problem) && (r.clockWarning === undefined || string(r.clockWarning)) && (r.flag === undefined || string(r.flag)) && nullableString(r.excluded) && nullableNumber(r.elapsedMs) && integer(r.turn) && config(r.config) && card(r.card) && experiment(r.experiment) && origin(r.origin) && (r.measurement === undefined || measurement(r.measurement, r.clockWarning !== undefined)) && Array.isArray(r.splits) && r.splits.every(s => object(s) && string(s.name) && number(s.elapsedMs) && number(s.segmentMs) && integer(s.seq) && integer(s.turn) && integer(s.inputTokens) && integer(s.outputTokens) && (s.derived === undefined || s.derived === true) && (s.observedMs === undefined || (s.derived === true && number(s.observedMs))) && (s.screenshotEvidence === undefined || (s.derived === true && Array.isArray(s.screenshotEvidence) && s.screenshotEvidence.length > 0 && s.screenshotEvidence.length <= 6 && s.screenshotEvidence.every(f => object(f) && integer(f.seq) && typeof f.path === "string" && /^frames\/[0-9]{6,}_[0-9]+[.]png$/.test(f.path) && typeof f.sha1 === "string" && /^[a-f0-9]{40}$/.test(f.sha1))))))) throw new Error("Invalid workbench response; recorded run data could not be validated.");
   return value as unknown as WorkbenchData;
 }
 // /api/features (the agent's FEATURES catalog) as id → what the switch does; the legend's switch tooltips. Empty descriptions are dropped.

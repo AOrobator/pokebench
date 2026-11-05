@@ -35,11 +35,11 @@ Save paths are untrusted. The reader re-roots the part after `/runs/` under the 
 
 **M1 — Frontier fails open**
 - [x] Write tests
-- [ ] COMMIT RED
-- [ ] Implement
-- [ ] Cheap checks: viewer lint, types, tests
-- [ ] COMMIT GREEN
-- [ ] Docs: grading protocol note
+- [x] COMMIT RED: `test(viewer): frontier fails open and places saves by provenance` (d8c539968)
+- [x] Implement
+- [x] Cheap checks: viewer lint and types clean; viewer tests 96 files, 960 passed
+- [x] COMMIT GREEN: `feat(viewer): frontier fails open`
+- [x] Docs: grading protocol note
 - [ ] Full gates (needs a CPU START window from the coordinator)
 - [ ] Claude + GPT + fallback reviews
 - [ ] Before/after headless screenshots and Hidden list on real data

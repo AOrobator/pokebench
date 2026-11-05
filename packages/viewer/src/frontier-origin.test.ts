@@ -37,7 +37,8 @@ describe("placing a save by provenance", () => {
     expect(origin([source("source", [split("STONE_BADGE", 1)])], save("x.state"), { run: "source", turn: null }).get("resumed")?.milestone).toBeNull();
   });
   it("uses the source's own start when it reached nothing yet, through a chain of saves", () => {
-    const named = source("named", [], { config: { ...(saved("named").config ?? (() => { throw new Error("fixture"); })()), resume: "CLOCK_SET" } });
+    const config = saved("named").config; if (config === null) throw new Error("fixture");
+    const named = source("named", [], { config: { ...config, resume: "CLOCK_SET" } });
     expect(origin([named], save("x.state"), { run: "named", turn: 1 }).get("resumed")?.milestone).toBe("CLOCK_SET");
     const root = source("root", [split("STONE_BADGE", 1)]), middle = saved("middle");
     const origins = resolveOrigins([root, middle], new Map([["middle", save("a.state")], ["resumed", save("b.state")]]), start => start.path.endsWith("a.state") ? { run: "root", turn: 1 } : { run: "middle", turn: 1 });

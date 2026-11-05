@@ -18,14 +18,15 @@ import { parseFinalsLedger } from "@pokebench/agent/legacy-experiment-ledger";
 import { isFixedLedgerText, parseFixedLedger } from "./fixed-ledger.js";
 import { exclusionLabel, readExclusions } from "./run-exclusions.js";
 import type { HealthProbe } from "./next-run.js";
-import { parseWorkbench, type WorkbenchCohort, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import { PROBE_SESSION, parseWorkbench, type WorkbenchCohort, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
+import { readSaveProvenance, resolveOrigins, type SaveStart } from "./frontier-origin.js";
 import type { RunStore, SnapshotReader } from "./baseline-store.js";
 import { distinctLabels, experimentDefinitions, legacyCohort, taggedCohorts, type TaggedRun } from "./experiment-cohorts.js";
 const MAX_PLAN_BYTES = 1024 * 1024;
 // What the snapshot needs from a run's RunView, as plain data: it crosses worker threads and disk.
 export interface RunTiming { startMs: number | null; ended: boolean; lastMs: number | null; paused: boolean; pauses: { startMs: number; endMs: number | null }[] }
 // skew: the run's build and the events a tolerant read skipped (null when none were skipped); startless when run_start was one.
-export interface LoadedRun { run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string; startless?: true } | null }
+export interface LoadedRun { save?: SaveStart | null; run: WorkbenchRun; port: number | null; tag: { experiment: string; commit: string } | null; timing: RunTiming | null; skew: { commit: string; dirty: boolean; count: number; first: string; startless?: true } | null }
 interface Loaded extends LoadedRun { signature: string }
 export type WorkbenchCompute = (root: string, id: string, viewer: BuildIdentity | null) => Promise<LoadedRun>;
 type RecordingRead = (path: string, id: string, tolerate: boolean) => NativeRecording;
@@ -62,6 +63,19 @@ function appendedSince(then: string, now: string): boolean {
   const a = parse(then), b = parse(now);
   return a !== null && b !== null && a.ino === b.ino && a.rest === b.rest && b.size > a.size;
 }
+// What the frontier needs to place a run that loaded a save no checkpoint name identifies.
+function saveStart(start: Extract<RunEvent, { type: "run_start" }>): SaveStart | null {
+  if (start.start_state.kind !== "save_state" || resumeCheckpoint(start) !== null) return null;
+  const bound = start.restoration;
+  return { path: start.start_state.path, sha1: start.start_state.sha1, restoration: bound === undefined ? null : { source_run: bound.source_run, source_turn: bound.source_turn } };
+}
+const SIDECAR_MAX_BYTES = 1024 * 1024;
+function sidecarText(path: string): string | null {
+  try {
+    const stat = lstatSync(path);
+    return stat.isFile() && stat.size <= SIDECAR_MAX_BYTES ? readFileSync(path, "utf8") : null;
+  } catch { return null; }
+}
 function invalidRun(id: string, problem: string | null): WorkbenchRun {
   return { id, cohort: null, arm: null, model: null, started: null, status: "invalid", reason: null, problem, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [] };
 }
@@ -74,7 +88,7 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
   let start: Extract<RunEvent, { type: "run_start" }>;
   try { start = startOf(root, id); } catch (error) { return startlessRun(root, id, viewer, errorText(error)); }
   try {
-    run ={ ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? "Excluded probe session" : null };
+    run ={ ...run, arm: start.evaluation?.experiment?.arm ?? null, model: start.controller?.kind === "human" ? `Human · ${start.controller.name}` : start.model.id, started: start.t, config: configuration(start), excluded: start.harness_features.includes("probe") ? PROBE_SESSION : null };
     const tagged = start.evaluation?.experiment; run.experiment = tagged === undefined ? null : { id: tagged.id, arm: tagged.arm, trial: tagged.trial, of: tagged.of };
     port = start.isolation.port;
     const experiment = start.evaluation?.experiment; if (experiment !== undefined) tag = { experiment: experiment.id, commit: start.harness.commit };
@@ -88,7 +102,7 @@ function loadRunWith(root: string, id: string, viewer: BuildIdentity | null, rea
     if (recording.clockProblem !== undefined) run.clockWarning = recording.clockProblem;
     timing = { startMs: view.startMs, ended: view.end !== null, lastMs: view.lastMs, paused: view.control.state === "paused", pauses: view.control.pauses.map(p => ({ ...p })) };
   } catch (error) { run.problem = errorText(error); run.status = "invalid"; run.splits = []; delete run.measurement; timing = null; port = null; skew = null; }
-  return { run, port, tag, timing, skew };
+  return { run, port, tag, timing, skew, save: saveStart(start) };
 }
 export function loadRun(root: string, id: string, viewer: BuildIdentity | null = null): LoadedRun {
   return loadRunWith(root, id, viewer, (path, run, tolerate) => readNativeRecording(path, run, qualifiedNativeMilestone, undefined, tolerate, "display"));
@@ -173,7 +187,8 @@ const nullableFinite = (v: unknown): v is number | null => v === null || finite(
 // A LoadedRun from a worker or the disk cache, or null when it does not validate.
 export function parseLoadedRun(value: unknown): LoadedRun | null {
   if (!record(value)) return null;
-  const { run, port, tag, timing, skew } = value;
+  const { run, port, tag, timing, skew, save } = value;
+  if (!(save === undefined || save === null || (record(save) && typeof save.path === "string" && typeof save.sha1 === "string" && (save.restoration === null || (record(save.restoration) && typeof save.restoration.source_run === "string" && Number.isSafeInteger(save.restoration.source_turn)))))) return null;
   try { parseWorkbench({ version: 1, at: 0, milestones: [], problems: [], runs: [run] }); } catch { return null; }
   if (!(port === null || (Number.isSafeInteger(port) && typeof port === "number" && port > 0 && port < 65536))) return null;
   if (!(tag === null || (record(tag) && typeof tag.experiment === "string" && typeof tag.commit === "string"))) return null;
@@ -566,6 +581,7 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
       pending.run.config = configuration(start); pending.run.arm = experiment?.arm ?? null;
       pending.run.experiment = experiment === undefined ? null : { ...experiment };
       pending.tag = experiment === undefined ? null : { experiment: experiment.id, commit: start.harness.commit };
+      pending.save = saveStart(start);
     } catch (error) { pending.run.problem = errorText(error); }
     return [pending];
   });
@@ -594,6 +610,11 @@ export async function workbenchSnapshot(root: string, healthy: HealthProbe, now:
     const excluded = operator.exclusions.get(run.id); if (excluded !== undefined) run.excluded = exclusionLabel(excluded);
     return run;
   }));
+  if (mode.cards === undefined) {
+    const saves = new Map(loadedRuns.flatMap(l => l.save == null ? [] : [[l.run.id, l.save] as const]));
+    const origins = resolveOrigins(runs, saves, save => readSaveProvenance(root, save, sidecarText));
+    for (const run of runs) { const origin = origins.get(run.id); if (origin !== undefined) run.origin = origin; }
+  }
   if (mode.cards !== undefined) for (const summary of summaries) {
     if (reducedIds?.has(summary.id) === true || summary.cohort === undefined) continue;
     runs.push({ id: summary.id, cohort: null, arm: null, model: null, started: null, status: "ended", reason: null, problem: null, excluded: null, elapsedMs: null, turn: 0, config: null, splits: [], experiment: { ...summary.cohort } });

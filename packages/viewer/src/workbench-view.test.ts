@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { liveOrPaused, clockText, backToViewer, currentRunLinks, plateNotes, plateWhere, furthestMilestone, plateFacts, runDetails, viewerUrl } from "./workbench-view.js";
 import { run } from "../test-support/workbench.js";
+import type { WorkbenchRun } from "./workbench-data.js";
 const parse = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 describe("workbench visual contract", () => {
   it("picks the furthest frontier milestone by story order, not record order, and formats compact clocks", () => {
@@ -82,3 +83,15 @@ it("offers only viewable live games on the comparison page, excluding probes wit
   expect(liveOrPaused(sessions).map(row => row.id)).toEqual(["live", "paused"]);
   expect(currentRunLinks(sessions, "unavailable").join("")).not.toContain('data-watch="probe"');
 });
+
+describe("run details show the effort a run sent", () => {
+  const withConfig = (effortSent: string | null | undefined): WorkbenchRun => { const base = run(); const config = base.config; if (config === null) throw new Error("config"); return { ...base, config: { ...config, thinking: "medium", ...(effortSent === undefined ? {} : { effortSent }) } }; };
+  const shown = (r: WorkbenchRun): string => { const doc = new DOMParser().parseFromString(runDetails(r, null), "text/html"); return [...doc.querySelectorAll("dt,th,span,b,strong")].find(e => e.textContent === "Thinking")?.nextElementSibling?.textContent ?? runDetails(r, null); };
+  it("never names a level no request carried", () => {
+    expect(shown(withConfig(undefined))).toContain("thinking on");
+    expect(shown(withConfig(null))).toContain("thinking on");
+    expect(shown(withConfig("medium"))).toContain("medium");
+    expect(runDetails(withConfig(null), null)).not.toMatch(/Thinking<[^>]*>\s*<[^>]*>medium/);
+  });
+});
+

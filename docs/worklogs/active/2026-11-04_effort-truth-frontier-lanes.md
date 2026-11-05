@@ -53,3 +53,5 @@ Wiring check: removing sentEffort from playLoopBase turned reasoning-effort.test
 Real data, built viewer on the served 801 runs: best stays 274b, runner-up astra 429f; only two 2026-10-15 think-fast hint runs become custom; a fake edit twin of 274b does not rank.
 
 ## Multi-Model Review Log
+
+Round 1, packet f3aa249fb..3bbcc38ab sha 777f6d9c. Claude: BLOCKING on one real bug (Run Details still showed medium); fixed by carrying effortSent on WorkbenchConfig. Thinking-off wording in the EFFORT SENT row also fixed. Other notes are follow-ups. Grok: Cursor usage limit until 11/17. GPT: config default model refused; rerun with gpt-5.6-sol.

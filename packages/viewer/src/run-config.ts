@@ -46,7 +46,7 @@ export function configuration(start: Extract<RunEvent, { type: "run_start" }>): 
   const known = configOf(start);
   return {
     source: start.harness.commit, dirty: start.harness.dirty, vendor: start.vendor_pin, pi: start.pi_version,
-    preset: start.evaluation?.preset_id ?? null, target: start.evaluation?.target ?? null, thinking: start.sampling.thinking_level,
+    preset: start.evaluation?.preset_id ?? null, target: start.evaluation?.target ?? null, thinking: start.sampling.thinking_level, effortSent: start.sampling.reasoning_effort_sent ?? null,
     maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null,
     failureLimit: start.evaluation?.failure_limit ?? null, context: start.model.context_window, vision: start.model.vision,
     start: start.start_state.kind, resume: resumeCheckpoint(start), tools: start.tools,

@@ -6,6 +6,8 @@ export interface WorkbenchConfig {
   source: string; dirty: boolean; vendor: string; pi: string; preset: string | null; target: string | null;
   thinking: string; maxTokens: number; maxTurns: number | null; maxWallMs: number | null; failureLimit: number | null;
   extendedWallMs?: number;
+  // What the requests carried; absent on recordings from before it was recorded, which sent none.
+  effortSent?: string | null;
   context: number; vision: boolean; start: string; resume?: string | null; tools: string[]; features: { id: string; label: string; on: boolean | null }[];
 }
 export interface WorkbenchRun {

@@ -47,3 +47,7 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude delta LGTM on 910e07117. Landing.
 - Landed fast-forward at 9802997e4. `just viewer-main` serves that commit; ee2a stayed live and opens its frames on desktop and phone; `/comparisons` loads with no page errors. `just fixed-run check rayquaza-lane-8h` passes. hyperqwen reports the definition's model, build and 262,144 context.
 - Not proven: no run has used the guide yet. The Teleport note has only unit tests.
+
+## Boot start, options and slim prompt (the operator 2026-11-05 3:46 PM)
+
+- Run 0952 skipped OPTIONS because step 1 said to choose NEW GAME and its start save already had Text FAST. The operator: start from a clean boot, set Text FAST, Battle Scene OFF and Battle Style SET, skip Button Mode, turn on the slim prompt switches for this lane only, restart after landing. RED tests added.

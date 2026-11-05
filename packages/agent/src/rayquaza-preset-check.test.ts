@@ -11,4 +11,8 @@ it("the Rayquaza preset is valid and keeps the lane's switches", () => {
   expect(parsed.features["rq-battle-explainer-v1"]).toBe(true);
   expect(parsed.features["no-story-foreknowledge-v1"]).toBe(false);
   expect(parsed.features["coherent-battle-observation-v1"]).toBe(true);
+  expect(parsed.features["just-in-time-prompt-v2"]).toBe(true);
+  expect(parsed.features["jit-guide-reuse-v1"]).toBe(true);
+  expect(parsed.features["rq-slim-prompt-v1"]).toBe(true);
+  expect(parsed.start).toBeUndefined();
 });

@@ -2,7 +2,7 @@
 
 **Goal:** independently check every line of the Rayquaza guides, so a false note never reaches Qwen. A wrong hint is worse than no hint: the curriculum exists because the model confidently believes wrong facts.
 
-**Inputs:** `docs/curriculum/rayquaza-guide-badges-1-3.md` first, then `docs/curriculum/rayquaza-guide-heat-to-master-ball.md` when it lands. Format: `docs/curriculum/guide-format.md`.
+**Inputs:** `docs/curriculum/rayquaza-guide-badges-1-3.md` first, then `docs/curriculum/rayquaza-guide-heat-to-champion.md` when it lands. Format: `docs/curriculum/guide-format.md`.
 
 **For each row, verify:**
 1. The milestone id exists in `packages/agent/src/milestones.ts`, and its trigger really happens before the note is useful.

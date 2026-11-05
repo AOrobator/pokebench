@@ -5,9 +5,11 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ## Status
 
 - [ ] A: guide, truck to Heat (draft in `docs/curriculum/rayquaza-guide-badges-1-3.md`)
-- [ ] B: guide, Heat to the Master Ball (Codex, brief written)
-- [ ] C: `rq-milestone-guide-v1` delivery switch
+- [ ] B: guide, Heat through Rayquaza and the Elite Four (Codex; The operator 11/5)
+- [ ] C: `rq-milestone-guide-v1` delivery switch, and a Master Ball milestone (the operator 11/5)
 - [ ] D: fact check (Codex, brief written)
 - [ ] E: viewer badge and headline, after the operator's mockup pick
 
 ## Commits
+
+- COMMIT: `docs(curriculum): freeze the guide format and draft the Rayquaza briefs` (10a5bf4ee)

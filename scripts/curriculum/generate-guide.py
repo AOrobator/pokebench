@@ -42,6 +42,9 @@ def rows(text: str, ids: dict[str, list[int]], types: dict[str, str]) -> list[di
         step: dict[str, object] = {"after": match["after"], "map": None if match["map"] == "-" else match["map"], "note": note}
         if match["after"].startswith("MAP:"):
             step["enter"] = ids[match["after"].removeprefix("MAP:")]
+        if match["after"].startswith("AT:"):
+            _, name, x, y = match["after"].split(":")
+            step["at"] = {"id": ids[name], "x": int(x), "y": int(y)}
         tagged = TO.search(match["source"])
         if tagged:
             if types.get(tagged[1]) not in TOWN_TYPES:

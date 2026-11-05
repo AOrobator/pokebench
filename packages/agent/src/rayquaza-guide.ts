@@ -17,7 +17,7 @@ export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn
 export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, press START, choose OPTION, set TEXT SPEED to FAST, BATTLE SCENE to OFF and BATTLE STYLE to SET, then press B.";
 
 type MapId=readonly [number,number];
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly to?:{readonly map:string;readonly id:MapId}}
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId}}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -65,7 +65,7 @@ export class GuidePosition {
    this.map=event.map_id;
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
   }
-  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
+  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id,"position" in event?event.position:null):-1;
   if(reached>=0)this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
   // A press that changes a value and leaves in one batch ends with values no state showed.
@@ -103,7 +103,9 @@ export class GuidePosition {
   if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
  }
- private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}
+ private onMap(id:MapId,position:{readonly x:number;readonly y:number}|null):number {
+  return this.steps.findIndex(step=>(step.enter?.[0]===id[0]&&step.enter[1]===id[1])||(step.at!==undefined&&position!==null&&step.at.id[0]===id[0]&&step.at.id[1]===id[1]&&step.at.x===position.x&&step.at.y===position.y));
+ }
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];

@@ -65,3 +65,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Units: U9 Escape Rope from Steven's room; U13 Growl to Mud Shot, Bide declined; U15 always decline the rival; U16 Fallarbor list; U17 second Rock Smash; U21 Herb Shop and Route 109 dock; U8 Repel lines through Heat.
 - U18 and U19: Maxie plan with the Taillow lead and a no-Taillow alternative; Flannery plan with Mud Shot on Torkoal; bike down Jagged Pass.
 - The operator's answers 4:18 PM: heal with items only, before rival and gym leaders; no nicknames; League deposit to Rayquaza alone; buy X items at Rustboro Mart; fight his XP trainers; `town-center-checkpoint-v1` off in this lane. RED test for tile steps.
+- Tile steps: `AT:<Map>:<x>:<y>` rows fire on standing on the tile.

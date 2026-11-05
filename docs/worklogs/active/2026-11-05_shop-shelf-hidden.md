@@ -8,7 +8,7 @@ The operator 2026-11-05: decorative shelves should not be listed as things to in
 - [x] GREEN: `shop-shelf-hidden-v1`, default off, on in both arms of the current and Rayquaza recipes.
 - [x] Explainer linked from the feature card.
 - [x] Replay recorded Mart turns from raw RAM.
-- [ ] Read-only GPT review of the diff.
+- [x] Read-only GPT review of the diff.
 
 Not landing here. Full suites wait for a coordinator CPU window.
 
@@ -52,8 +52,10 @@ The first attempt hung because a stray `org.py` in the shared scratchpad shadowe
 
 ## Review
 
-GPT, read-only (`codex exec`), two rounds so far.
+GPT, read-only (`codex exec`), three rounds.
 
 - Round 1 was invalid: the packet used `git diff main HEAD` after main moved, so it reversed main's new commits. All 3 findings came from that and none concerned this change. Discarded.
 - Round 2, merge-base diff: VERDICT: CHANGES, one finding. Human play in `live.ts` passes a hardcoded off list without this switch, so it would run on there with no provenance. Fixed: the switch joins that list. Other default-off server switches are also missing from that list; that predates this branch and is left alone.
+- Round 3, cumulative merge-base diff at 6755cbf8f: VERDICT: LGTM. `live-human.test.ts` 7 passed; tsc and eslint clean.
 
+Claude and Grok review lanes, full suites, the live READ EXPLAINER click and a real gameplay run are still to do before landing.

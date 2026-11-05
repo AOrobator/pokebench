@@ -18,7 +18,7 @@ Single milestone. Viewer-only, so no feature switch. No layout, timeline or trai
 
 - [x] RED: ecedb6d0c, run-splits, panels and model tests fail
 - [x] GREEN: focused viewer suites pass; candidate client on live data shows 5f0f at 138 reached
-- [ ] Gates
+- [ ] Gates (focused: tsc, eslint on changed files, 5 suites 222 passed)
 - [ ] Review
 - [ ] Land, `just viewer-main`, headless proof
 

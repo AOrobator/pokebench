@@ -3,6 +3,8 @@ import {emptyCurrent,parseCurrent,currentView,MAX_OPEN_TOOLS,type CurrentState} 
 import {parseWorkbench,type WorkbenchRun,type WorkbenchSplit} from "./workbench-data.js";
 import {isRunEvent} from "./model.js";
 import type {RunEvent} from "@pokebench/agent/events";
+// An older history page keeps up to four times the newest page's 64 events.
+export const HISTORY_REPLY_EVENTS=256;
 export interface CurrentSummary {
  version:1;id:string;generation:string;revision:number;seq:number;at:number;clockAt:number;updatedAt:number;observedAt:number;complete:boolean;
  header:NonNullable<CurrentState["start"]>;run:WorkbenchRun;endedAt:number|null;totals:CurrentState["totals"]|null;control:CurrentState["control"]|null;
@@ -77,6 +79,6 @@ export function parseCurrentAnswer(value:unknown):CurrentAnswer{
   for(const change of value["changes"]){if(!object(change)||!text(change["id"],200))return fail();if(change["removed"]===true&&only(change,["id","removed"]))continue;if(change["removed"]!==false||!only(change,["id","removed","summary","snapshot"]))return fail();const s=parseCurrentSummary(change["summary"]);if(s.id!==change["id"])return fail();if(change["snapshot"]!==undefined){const d=parseCurrentSnapshot(change["snapshot"]);if(d.id!==s.id||d.revision!==s.revision||d.generation!==s.generation)return fail();}}
   if(value["reset"]&&(value["more"]||value["changes"].length!==0))return fail();return value as unknown as CurrentAnswer;
  }
- if(value["kind"]==="history"&&only(value,["kind","version","epoch","generation","state","events","before"])&&text(value["generation"],256)&&["ready","indexing","reset","oversized"].includes(String(value["state"]))&&nullable(value["before"])&&Array.isArray(value["events"])&&value["events"].length<=64&&value["events"].every(isRunEvent)&&(value["state"]==="ready"||value["events"].length===0))return value as unknown as CurrentAnswer;
+ if(value["kind"]==="history"&&only(value,["kind","version","epoch","generation","state","events","before"])&&text(value["generation"],256)&&["ready","indexing","reset","oversized"].includes(String(value["state"]))&&nullable(value["before"])&&Array.isArray(value["events"])&&value["events"].length<=HISTORY_REPLY_EVENTS&&value["events"].every(isRunEvent)&&(value["state"]==="ready"||value["events"].length===0))return value as unknown as CurrentAnswer;
  return fail();
 }

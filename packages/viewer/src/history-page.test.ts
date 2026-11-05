@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
+import { HISTORY_REPLY_EVENTS, parseCurrentAnswer } from "./current-public.js";
 import { historyPage } from "./history-page.js";
 
 const event = (seq: number, type: RunEvent["type"]): RunEvent => ({ seq, type }) as RunEvent;
@@ -52,5 +53,14 @@ describe("historyPage", () => {
     start.add(event(0, "run_start"), 10);
     expect(start.before()).toBeNull();
     expect(historyPage(true, 2, 1000).before()).toBeNull();
+  });
+
+  it("fills an older page to a size the answer parser accepts", () => {
+    const page = historyPage(true, 64, 1_000_000);
+    for (let seq = 1; seq <= 300; seq += 1) page.add({ ...event(seq, "tool_call"), v: 1, run: "r", t: "2026-11-05T00:00:00.000-05:00", turn: 1, id: "a", name: "observe", args: {} } as RunEvent, 10);
+    expect(page.events).toHaveLength(HISTORY_REPLY_EVENTS);
+    const answer = { kind: "history", version: 1, epoch: "e", generation: "g", state: "ready", before: null };
+    expect(parseCurrentAnswer({ ...answer, events: page.events }).kind).toBe("history");
+    expect(() => parseCurrentAnswer({ ...answer, events: [...page.events, page.events[0]] })).toThrow();
   });
 });

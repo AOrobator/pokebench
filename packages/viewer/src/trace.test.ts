@@ -407,7 +407,7 @@ describe("traceHtml", () => {
 
   it("calls the side panel short until it has its turns of agent steps", () => {
     const trace = new TraceBuilder();
-    const add = (turn: number, type: "assistant" | "native_action") => trace.add({ type, turn, seq: turn, t: "2026-11-05T00:00:00.000-05:00", thinking: "", text: "", tool_calls: [], usage: { input: 1, output: 1 }, latency_ms: 1, ttft_ms: null, kind: "x", details: {}, frame: 0 } as unknown as RunEvent);
+    const add = (turn: number, type: "assistant" | "native_action"): void => { trace.add({ type, turn, seq: turn, t: "2026-11-05T00:00:00.000-05:00", thinking: "", text: "", tool_calls: [], usage: { input: 1, output: 1 }, latency_ms: 1, ttft_ms: null, kind: "x", details: {}, frame: 0 } as unknown as RunEvent); };
     add(1, "native_action");
     expect(sideShort(trace.turns, 1)).toBe(true);
     add(2, "assistant");

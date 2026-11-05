@@ -7,4 +7,5 @@ Finding: recordings and the Full Trace page are complete (DeepSeek 3332: 63 of 6
 - [x] Older live history pages scan 16x further and drop assistant_delta and state, which the trace never shows
 - [x] The side panel requests pages until it has its 30 turns, whatever PokéNav shows
 - [x] Phone list gets room; tool names wrap in both lists
+- [x] Review fix: the answer parser accepts 256-event older pages
 - [ ] Gates, reviews, landing, live proof

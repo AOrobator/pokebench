@@ -13,6 +13,7 @@
 ## Decisions
 
 - `reasoning-effort-request-v1` ships ON by default. Effort goes in chat_template_kwargs; top-level reasoning_effort did not change vLLM's /tokenize count.
+- Legacy version-1 flag presets keep it off, as they keep every later switch; only v2 presets that omit it default on.
 - `sampling.reasoning_effort_sent` is recorded on every new run. Recording only, never model-facing.
 - Old recordings are never edited. No field means no effort sent; `served-effort.ts` names what each lane ran at.
 - Custom lane markers must work on pinned builds, so they read the model id, the experiment id and recorded switches.
@@ -27,7 +28,8 @@
 ## Milestones
 
 - [x] M1 RED/GREEN, focused checks
-- [ ] M2 full gates, regenerate schema, real-browser frontier proof (needs window)
+- [x] M2 full gates, regenerate schema
+- [ ] M2b trainer-card check, real-browser frontier proof
 - [ ] M3 Claude, Grok and GPT review; land on main
 - [ ] M4 just viewer-main, then launch-check before any new run
 
@@ -36,6 +38,8 @@
 COMMIT: `test: effort reaches the request and custom lanes stay off the frontier` (a18f90f4e)
 
 ## Gates
+
+Full, 2026-11-04 11:2x PM NY, on main f3aa249fb: just lint pass; just test pass (agent 2,458, viewer 855, env 2,901, gateway 38, coverage floors and no-io-proof pass); just verify-vendor pass. The clone's venv links main's mgba binding for mypy.
 
 Focused, 2026-11-04 11:04 PM NY, on main f3aa249fb: tsc agent and viewer clean. Agent reasoning-effort, presence-penalty, play-preset, features, gateway, provider, events: 133 pass. Viewer frontier, panels, next-run: pass. Changed-file eslint clean. schemas/events.v1.json regenerated.
 Wiring check: removing sentEffort from playLoopBase turned reasoning-effort.test.ts red (1 failed), restored green (5 pass).

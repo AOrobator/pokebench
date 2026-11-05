@@ -27,7 +27,7 @@ it("registers a default-on agent-side switch at the end of the recorded list", (
   expect(SERVER_FEATURES).not.toContain(ID);
   const without = Object.fromEntries(Object.entries(ALL_ON).filter(([id]) => id !== ID)) as Parameters<typeof normalizeFeatures>[0];
   expect(normalizeFeatures(without)[ID]).toBe(true);
-  expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(true);
+  expect(flagFeatures({ loopGuard: true, activeUi: true, interfaceDocs: true, objectives: true })[ID]).toBe(false);
 });
 
 it("OFF leaves the request exactly as it was", async () => {

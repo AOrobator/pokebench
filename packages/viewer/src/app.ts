@@ -10,7 +10,7 @@ import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
 import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, runWallSeconds, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
-import { cardHtml as trainerCardHtml, gymHtml, parseTrainerPageData, runHtml, trainerFacts, type TrainerFacts, type TrainerPageData } from "./trainer-page.js";
+import { cardHtml as trainerCardHtml, gymHtml, nextGym, parseTrainerPageData, runHtml, trainerFacts, type TrainerFacts, type TrainerPageData } from "./trainer-page.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
@@ -254,9 +254,7 @@ export class App {
   private trainerPage: TrainerPageData | null = null;
   private trainerPageLoad: Promise<void> | null = null;
   private trainerFacts: TrainerFacts | null = null;
-  private gymOpen: number | null = null;
-  private gymPinned = false;
-  private refocusing = false;
+  private gymPicked: number | null = null;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -1060,11 +1058,8 @@ export class App {
     this.trainerFacts = facts;
     page.style.setProperty("--tp-stripes", `url(/sprites/page/stripes-${facts.gender}.png)`);
     const focused = this.doc.activeElement instanceof HTMLElement ? this.doc.activeElement.dataset.tpBadge : undefined;
-    // Replacing the card fires focusout, and restoring focus fires focusin; neither is the reader moving.
-    this.refocusing = true;
     this.setHtml("trainer-card", trainerCardHtml(facts, data.gyms));
     if (focused !== undefined) card.querySelector<HTMLElement>(`[data-tp-badge="${focused}"]`)?.focus({ preventScroll: true });
-    this.refocusing = false;
     this.setHtml("trainer-run", runHtml(facts));
     this.paintTrainer(card);
     this.paintTrainer(this.ui("trainer-run"));
@@ -1072,42 +1067,25 @@ export class App {
   }
 
   private showGym(): void {
-    const panel = this.ui("trainer-gym"), gym = this.gymOpen === null ? undefined : this.trainerPage?.gyms[this.gymOpen];
-    panel.hidden = gym === undefined || this.trainerFacts === null;
-    for (const button of this.ui("trainer-card").querySelectorAll<HTMLElement>("[data-tp-badge]")) button.setAttribute("aria-expanded", String(button.dataset.tpBadge === String(this.gymOpen)));
-    if (gym === undefined || this.trainerFacts === null) return;
-    this.setHtml("trainer-gym", gymHtml(gym, this.trainerFacts));
-    this.paintTrainer(panel);
+    const data = this.trainerPage, facts = this.trainerFacts;
+    if (data === null || facts === null) return;
+    const index = this.gymPicked ?? nextGym(data.gyms, facts), gym = data.gyms[index];
+    for (const button of this.ui("trainer-card").querySelectorAll<HTMLElement>("[data-tp-badge]")) button.setAttribute("aria-pressed", String(button.dataset.tpBadge === String(index)));
+    if (gym === undefined) return;
+    this.setHtml("trainer-gym", gymHtml(gym, facts));
+    this.paintTrainer(this.ui("trainer-gym"));
   }
 
-  private pickGym(index: number | null, pinned: boolean): void {
-    this.gymOpen = index;
-    this.gymPinned = pinned;
-    this.showGym();
-  }
-
+  // Pointing at, tabbing to or tapping a badge shows its gym in the box, and it stays there.
   private wireTrainer(): void {
-    const card = this.ui("trainer-card"), badge = (target: EventTarget | null): number | null => {
-      const value = target instanceof Element ? target.closest<HTMLElement>("[data-tp-badge]")?.dataset.tpBadge : undefined;
-      return value === undefined ? null : Number(value);
+    const pick = (event: Event): void => {
+      const value = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-tp-badge]")?.dataset.tpBadge : undefined;
+      if (value === undefined) return;
+      this.gymPicked = Number(value);
+      this.showGym();
     };
-    const peek = (event: Event): void => { const index = badge(event.target); if (index !== null && !this.gymPinned && !this.refocusing) this.pickGym(index, false); };
-    const leave = (): void => { if (!this.gymPinned && !this.refocusing) this.pickGym(null, false); };
-    // The pointer leaving does not close what the keyboard is still on.
-    const unhover = (): void => {
-      const held = this.gymOpen !== null && this.doc.activeElement?.matches(":focus-visible") === true ? badge(this.doc.activeElement) : null;
-      if (held === null) leave(); else if (!this.gymPinned) this.pickGym(held, false);
-    };
-    card.addEventListener("mouseover", peek);
-    card.addEventListener("focusin", peek);
-    card.addEventListener("mouseout", unhover);
-    card.addEventListener("focusout", leave);
-    this.doc.addEventListener("click", (event) => {
-      const index = badge(event.target);
-      if (index !== null) this.pickGym(this.gymPinned && this.gymOpen === index ? null : index, !(this.gymPinned && this.gymOpen === index));
-      else if (this.gymPinned && !(event.target instanceof Element && event.target.closest('[data-ui="trainer-gym"]') !== null)) this.pickGym(null, false);
-    });
-    this.doc.addEventListener("keydown", (event) => { if (event.key === "Escape" && this.gymOpen !== null) this.pickGym(null, false); });
+    const card = this.ui("trainer-card");
+    for (const name of ["mouseover", "focusin", "click"]) card.addEventListener(name, pick);
   }
 
   // The current party screen remains visible while tables and fonts load.
@@ -1267,6 +1245,7 @@ export class App {
     this.historyBefore = null;
     this.olderProblem = null;
     this.traceMore = 0;
+    this.gymPicked = null;
     this.headReady = false;
     this.closeFrameStream();
     this.runId = runId;

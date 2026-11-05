@@ -21,3 +21,9 @@ Round 1 at 8829f0a27: Claude, GPT, fallback BLOCKING; Grok out of Cursor usage u
 Round 2 at a66eb5e53: fallback BLOCKING. Fixed: blank state reads in battles and transitions (579 in 5f0f) no longer blank the card; it keeps the last full sample.
 
 Round 3 at 35cefb4b7, delta: Claude, GPT, fallback LGTM. Gates at 35cefb4b7: `pnpm -r lint`, `just test` (2453, 841, 2901, 38), trainer-card-check passed. Rebutted: same-name traded lead (GPT round 2); this game has only NPC trades with other OT names. Follow-up, not fixed: Escape, hover another badge, leave can reopen the focused badge's page.
+
+Landed b1a1e2be3, post-merge `just test` passed, art built, live on 8790.
+
+## Gym box (the operator 2026-11-04: "I think that should probably just always be visible ... It should just be like a regular box.")
+
+The popup is gone. The gym box is always on the page, opens on the next gym, and pointing at, tabbing to or tapping a badge changes it in place at a fixed height. The page grows rather than scrolling inside the 620px pane. Headless at 1440, 1280, 375: no overlap between card, run and gym boxes, height stable across all eight gyms.

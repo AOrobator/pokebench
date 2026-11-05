@@ -70,7 +70,7 @@ export function cardHtml(facts: TrainerFacts, gyms: readonly Gym[]): string {
   const badges = gyms.map((gym, i) => {
     const earned = facts.badges.includes(gym.badge), left = `left:calc(var(--u)*${String(slot(i))})`;
     return (earned ? `<i class="tp-badge-art" style="${left};background-position-x:calc(var(--u)*${String(-16 * i)})"></i>` : "")
-      + `<button type="button" class="tp-slot" data-tp-badge="${String(i)}" style="${left}" aria-label="${esc(`${gym.title}, ${gym.leader}, ${earned ? "earned" : "not earned"}`)}" aria-expanded="false"></button>`;
+      + `<button type="button" class="tp-slot" data-tp-badge="${String(i)}" style="${left}" aria-label="${esc(`${gym.title}, ${gym.leader}, ${earned ? "earned" : "not earned"}`)}" aria-pressed="false"></button>`;
   }).join("");
   return `<div class="tp-card"><img class="tp-card-art" src="/sprites/page/card-${facts.gender}.png" alt=""><img class="tp-player" src="/sprites/trainers/${facts.gender === "female" ? "may" : "brendan"}.png" alt="">`
     + at(`NAME: ${facts.name}`, 24, 43) + at(`IDNo.${facts.id}`, 216, 19, true) + row("MONEY", facts.money, 67) + row("POKéDEX", BLANK, 83) + row("TIME", facts.time, 99) + badges + "</div>";
@@ -82,6 +82,12 @@ export function runHtml(facts: TrainerFacts): string {
   const party = facts.party.map(mon => `<div class="tp-mon">${mon.icon === null ? "" : icon(mon.icon, "")}${game(`Lv${String(mon.level)}`)}<div class="tp-hp"><i style="width:${mon.hp.toFixed(1)}%"></i></div></div>`).join("");
   return `<div class="tp-rows"><div class="tp-row" title="${esc(facts.modelId)}">${game("MODEL", "tp-muted")}${game(facts.model)}</div>${pair("THINKING", facts.thinking)}${pair("TURN", facts.turn)}${pair("RUN TIME", facts.runTime)}${pair("MAP", facts.map)}</div><div class="tp-party">${party}</div>${facts.legacy ? '<p class="nodata">Historical vendor readout; accurate state unavailable for this run.</p>' : ""}`;
 }
+
+// The box opens on the gym this run faces next, or the last one once all are won.
+export const nextGym = (gyms: readonly Gym[], facts: TrainerFacts): number => {
+  const next = gyms.findIndex(gym => !facts.badges.includes(gym.badge));
+  return next < 0 ? gyms.length - 1 : next;
+};
 
 export function gymHtml(gym: Gym, facts: TrainerFacts): string {
   const earned = facts.badges.includes(gym.badge), when = facts.earnedAt.get(gym.badge);

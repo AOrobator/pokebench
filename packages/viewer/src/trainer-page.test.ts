@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { Log, START, state } from "../test-support/events.js";
 import { RunView } from "./model.js";
-import { PAGE_SPRITE_PATH, cardHtml, gymHtml, parseTrainerPageData, runHtml, trainerFacts, type Gym } from "./trainer-page.js";
+import { PAGE_SPRITE_PATH, cardHtml, gymHtml, nextGym, parseTrainerPageData, runHtml, trainerFacts, type Gym } from "./trainer-page.js";
 
 const bare = (): Log => { const log = new Log(); log.add(0, START); return log; };
 const view = (log: Log): RunView => { const v = new RunView(); for (const event of log.events) v.apply(event); return v; };
@@ -94,6 +94,12 @@ describe("page html", () => {
     for (const label of ["MODEL", "THINKING", "TURN", "RUN TIME", "MAP"]) expect(html).toContain(`data-gt="${label}"`);
     expect(html).not.toContain("INTERFACE");
     expect(html).not.toContain("CONTROLS");
+  });
+
+  it("opens on the next gym, or the last when all are won", () => {
+    expect(nextGym(GYMS, facts)).toBe(1);
+    expect(nextGym(GYMS, { ...facts, badges: ["STONE", "KNUCKLE"] })).toBe(1);
+    expect(nextGym(GYMS, { ...facts, badges: [] })).toBe(0);
   });
 
   it("tells the gym's story and whether this run has the badge", () => {

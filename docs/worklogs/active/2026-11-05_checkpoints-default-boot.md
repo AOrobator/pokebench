@@ -16,8 +16,8 @@ Operator approval: The operator said yes on 2026-11-05 to making frontier checkp
 - [x] RED: tests for the boot default and the OFF switch (3 failed, 15 passed). COMMIT: `test(checkpoints): pin the boot default and the off switch` (99f838c7c)
 - [x] GREEN: selection, live.ts wiring, skill text. Focused: 18 passed; agent tsc and changed-file eslint clean. COMMIT: `feat(checkpoints): save frontier milestones by default on boot starts` (818e1a9d8)
 - [x] Gates in a CPU window at 818e1a9d8 on base 3095abed7: just lint, build, test, verify-vendor all exit 0. Agent 2460, viewer 860, env 2901, gateway 38 passed; floors held. First lint try failed only because the clone venv lacked the mGBA binding, copied from the main venv.
-- [ ] Claude, Grok and GPT review
-- [ ] Land, then `just test` on main
+- [x] Reviews: Claude, GPT through Codex, and a Sonnet fallback in place of Grok (Cursor out of usage)
+- [x] Landed by fast-forward at c02e23e2c, then `just test` on main: agent 2455, viewer 869, env 2901, gateway 38 passed; no-I/O guards OK
 
 ## Frozen boundary
 
@@ -39,3 +39,7 @@ Why that is safe: `/pokebench/checkpoint` saves under `memory_lock`, and `step_e
 Round 1 on 6a046bfb0: Claude BLOCKING and GPT (Codex, `gpt-5.6-sol`) BLOCKING, both only on the capture pause and the missing operator decision. Cursor Grok and Cursor GPT lanes failed on usage limit. Round 2 is on the fix: Claude, GPT through Codex, and a fresh read-only fallback reviewer in place of Grok (the operator's standing rule while Cursor is out of usage).
 
 Round 2 on 4c5590aa9: Claude LGTM, fallback (Sonnet) LGTM, GPT BLOCKING only on the absolute "every frame" claim, because vendor load routes run a frame outside the lock. Fix: narrowed the comment, sidecar value and this worklog. Follow-ups, not in this branch: a test that pins the lock in `checkpoint()`, a client timeout on capture requests, `0` does not stop an explicit `POKEBENCH_CHECKPOINT_AT`.
+
+Round 3 on c02e23e2c, base 560aaf991, packet SHA-256 027a66db6e2ea4f6: Claude LGTM, GPT LGTM, fallback LGTM. Full gates ran at 961e5c5d7; the later delta is one sidecar string changed in code and test, comments and this worklog, and post-merge `just test` passed at the landed head.
+
+Not a live run yet: the first real run from this build is still to come. Run 5f0f keeps its older pin.

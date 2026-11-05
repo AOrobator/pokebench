@@ -1,12 +1,13 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
-import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
+import preset from "../../../experiments/presets/rayquaza-lane-8h.json" with { type: "json" };
+import type { FeatureSet } from "./features.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { GuidePosition, OPTIONS_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
-const ON = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": true, "rq-slim-prompt-v1": true, "just-in-time-prompt-v2": true, "pokenav-call-auto-advance-v1": true, "move-learn-tool-v1": true };
+const ON = preset.features as FeatureSet;
 const steps: readonly GuideStep[] = [
   { after: "RUN_START", map: null, note: "Choose OPTION." },
   { after: "OPTIONS_OPENED", map: null, note: "Set them." },

@@ -51,3 +51,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ## Boot start, options and slim prompt (the operator 2026-11-05 3:46 PM)
 
 - Run 0952 skipped OPTIONS because step 1 said to choose NEW GAME and its start save already had Text FAST. The operator: start from a clean boot, set Text FAST, Battle Scene OFF and Battle Style SET, skip Button Mode, turn on the slim prompt switches for this lane only, restart after landing. RED tests added.
+- Boot start: preset and definition now start from `boot`. Guide opens with `RUN_START`, `OPTIONS_OPENED`, `OPTIONS_SET`; the last fires when the options menu closes with Text FAST, Scene OFF and Style SET. `OPTIONS_NOTE` covers an early new game. `rq-slim-prompt-v1` plus JIT v2 and guide reuse on in the lane recipe only. The guide line is now last of all notes. `findings.md` corrected from his 0:00:48 frame: Style SET, Button Mode L=A.

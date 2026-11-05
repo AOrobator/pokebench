@@ -541,6 +541,7 @@
     "rotating-gate-push-log-v1": true,
     "rq-milestone-guide-v1": false,
     "rq-battle-explainer-v1": false,
-    "coherent-battle-observation-v1": true
+    "coherent-battle-observation-v1": true,
+    "rq-slim-prompt-v1": false
   }
 }

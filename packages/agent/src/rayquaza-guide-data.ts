@@ -2,7 +2,9 @@ import type {GuideStep} from "./rayquaza-guide.js";
 
 // Generated from docs/curriculum/rayquaza-guide-*.md by scripts/curriculum/generate-guide.py. Do not edit by hand.
 export const RAYQUAZA_GUIDE_STEPS:readonly GuideStep[]=[
- {"after": "RUN_START", "map": null, "note": "Choose NEW GAME, choose Girl and confirm a one-letter name."},
+ {"after": "RUN_START", "map": null, "note": "Press START at the title screen. In the main menu, choose OPTION before NEW GAME."},
+ {"after": "OPTIONS_OPENED", "map": null, "note": "UP and DOWN move the cursor; LEFT and RIGHT change the value. Set TEXT SPEED to FAST, BATTLE SCENE to OFF and BATTLE STYLE to SET. Leave the rest. Then press B to save and leave."},
+ {"after": "OPTIONS_SET", "map": null, "note": "Choose NEW GAME, choose Girl and confirm a one-letter name."},
  {"after": "PLAYER_NAME_CONFIRMED", "map": "InsideOfTruck", "note": "You are in the moving truck. Press RIGHT to walk out of the open back. The boxes do nothing, so do not press A on them."},
  {"after": "FIRST_TRUCK_EXIT", "map": "LittlerootTown", "note": "Mom leads you into your house. Follow her, then go upstairs to your bedroom."},
  {"after": "PLAYER_BEDROOM", "map": null, "note": "Set the wall clock: face it, press A, accept the time and confirm. Then go back downstairs."},

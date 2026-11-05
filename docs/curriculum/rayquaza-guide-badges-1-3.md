@@ -10,7 +10,9 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| RUN_START | - | Choose NEW GAME, choose Girl and confirm a one-letter name. | KI 1, GR, fact check |
+| RUN_START | - | Press START at the title screen. In the main menu, choose OPTION before NEW GAME. | KI 0:00:47, ROM |
+| OPTIONS_OPENED | - | UP and DOWN move the cursor; LEFT and RIGHT change the value. Set TEXT SPEED to FAST, BATTLE SCENE to OFF and BATTLE STYLE to SET. Leave the rest. Then press B to save and leave. | KI 0:00:48 frame, ROM |
+| OPTIONS_SET | - | Choose NEW GAME, choose Girl and confirm a one-letter name. | KI 1, GR, fact check |
 | PLAYER_NAME_CONFIRMED | InsideOfTruck | You are in the moving truck. Press RIGHT to walk out of the open back. The boxes do nothing, so do not press A on them. | The operator, ROM, TR 07a7:29 |
 | FIRST_TRUCK_EXIT | LittlerootTown | Mom leads you into your house. Follow her, then go upstairs to your bedroom. | KI 2, GR |
 | PLAYER_BEDROOM | - | Set the wall clock: face it, press A, accept the time and confirm. Then go back downstairs. | KI 2, GR |

@@ -360,6 +360,7 @@ export const SWITCHABLE_FEATURES = [
   "rotating-gate-push-log-v1",
   "rq-milestone-guide-v1",
   "rq-battle-explainer-v1",
+  "rq-slim-prompt-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -841,6 +842,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rotating-gate-push-log-v1", "guidance", "GATE PUSH LOG", "rotating-gate-turn-reasons-v1", "Default off. Run 08b5 lost the results of its own pushes when they left the context. On: the same pinned note lists, oldest first, each turn and refused push on the current gate map with its tile, direction and result, and each entry to the map with whether the gates are at their starting positions. It shows the newest 200 lines and says how many older lines it left out. It is built from recorded state and press events, so trimming the context cannot lose it, and it is not kept in history. Off: no log."),
   on("rq-milestone-guide-v1", "guidance", "RAYQUAZA LANE GUIDE", null, "Default off; Rayquaza lane only, never in a benchmark arm. Keeps the current step of the milestone guide as the final message of every request until the next step is earned, so the model has the next goal and how to reach it. Steps come from docs/curriculum. Off: no guide note is sent."),
   on("rq-battle-explainer-v1", "guidance", "RAYQUAZA LANE BATTLE NOTE", "rq-milestone-guide-v1", "Default off; Rayquaza lane only. While a battle is active, ends each request with one short general battle note drawn from recorded mistakes: models lose on preparation, not move choice. Off: no battle note is sent."),
+  on("rq-slim-prompt-v1", "guidance", "RAYQUAZA LANE SLIM PROMPT", "just-in-time-prompt-v2", "Default off; Rayquaza lane only. Takes the PokéNav, learn_move, choose_evolution and Surf sections out of the standing prompt and sends each whole, just before the guide line, only while its trigger holds. Battle rules stay in battle guidance. Off: JIT v2 prompts unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1307,6 +1309,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rotating-gate-push-log-v1"),
     ...when("rq-milestone-guide-v1"),
     ...when("rq-battle-explainer-v1"),
+    ...when("rq-slim-prompt-v1"),
   ];
 }
 

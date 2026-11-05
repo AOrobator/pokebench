@@ -86,8 +86,6 @@
     "presence-penalty-v1",
     "story-destinations-v1",
     "just-in-time-prompt-v1",
-    "just-in-time-prompt-v2",
-    "jit-guide-reuse-v1",
     "supervisor-briefing-v2",
     "ineffective-navigation-v2",
     "positive-supervisor-v1",
@@ -206,7 +204,10 @@
     "rotating-gate-push-log-v1",
     "coherent-battle-observation-v1",
     "rq-milestone-guide-v1",
-    "rq-battle-explainer-v1"
+    "rq-battle-explainer-v1",
+    "rq-slim-prompt-v1",
+    "just-in-time-prompt-v2",
+    "jit-guide-reuse-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -297,9 +298,9 @@
     "instruction-ledger-v1": false,
     "instruction-ledger-v2": true,
     "interaction-loop-detection-v1": true,
-    "jit-guide-reuse-v1": false,
+    "jit-guide-reuse-v1": true,
     "just-in-time-prompt-v1": false,
-    "just-in-time-prompt-v2": false,
+    "just-in-time-prompt-v2": true,
     "leader-attempt-ledger-v1": false,
     "ledge-hops-v1": true,
     "levelup-box-v1": true,
@@ -543,6 +544,7 @@
     "rotating-gate-push-log-v1": true,
     "rq-milestone-guide-v1": true,
     "rq-battle-explainer-v1": true,
-    "coherent-battle-observation-v1": true
+    "coherent-battle-observation-v1": true,
+    "rq-slim-prompt-v1": true
   }
 }

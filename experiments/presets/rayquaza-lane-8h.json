@@ -91,9 +91,9 @@
     "instruction-ledger-v1": false,
     "instruction-ledger-v2": true,
     "interaction-loop-detection-v1": true,
-    "jit-guide-reuse-v1": false,
+    "jit-guide-reuse-v1": true,
     "just-in-time-prompt-v1": false,
-    "just-in-time-prompt-v2": false,
+    "just-in-time-prompt-v2": true,
     "leader-attempt-ledger-v1": true,
     "ledge-hops-v1": true,
     "levelup-box-v1": true,
@@ -338,12 +338,8 @@
     "bike-auto-mount-v1": true,
     "coherent-battle-observation-v1": true,
     "rq-milestone-guide-v1": true,
-    "rq-battle-explainer-v1": true
-  },
-  "start": {
-    "kind": "save_state",
-    "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
-    "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
+    "rq-battle-explainer-v1": true,
+    "rq-slim-prompt-v1": true
   },
   "limits": {
     "maxTurns": 20000,

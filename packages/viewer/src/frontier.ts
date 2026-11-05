@@ -39,22 +39,24 @@ export const FRONTIER_MILESTONES = [
   ...PROGRESS_CATALOG.filter(m=>EXTENDED_PROGRESS_NAMES.has(m.name)&&!OPTIONAL_PROGRESS_NAMES.has(m.name)).map(m=>({id:m.name,label:m.label})),
 ] as const;
 const RECORD_ORDER: readonly string[] = FRONTIER_MILESTONES.map(m => m.id);
-export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null }
+// best is the agent frontier, which never includes a custom lane: the best unhelped run. overall is the best run of all, which may be assisted.
+export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun | null; overall?: WorkbenchRun | null }
 // The agent frontier's live state as verified by the latest successful poll; null when it is finished or polling is unverified.
 export type FrontierStatus = "live" | "paused" | null;
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
 // A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
-const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && customLane(run) === null && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
+const newGameStart = (run: WorkbenchRun): boolean => run.config?.start === "boot" || run.config?.resume === "MAIN_MENU";
+const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && newGameStart(run);
 // Only exact known story-checkpoint identities are admitted; arbitrary save files remain unclassified.
 export function resumeMilestone(run: WorkbenchRun): (typeof FRONTIER_MILESTONES)[number] | null {
   return FRONTIER_MILESTONES.find(m => m.id === run.config?.resume) ?? null;
 }
-export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && customLane(run) === null && resumeMilestone(run) !== null;
+export const checkpointResume = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && resumeMilestone(run) !== null;
 // Flagged recordings (a ledger's infrastructure or invalid-trial note) are drawn dotted for attention but
 // still count, frontier included: how a run ended never decides inclusion (the operator 2026-10-27).
 const INVALID_TRIAL = "Invalid fixed-run trial: ";
 export function invalidTrial(run: WorkbenchRun): string | null {
-  if (run.problem !== null || run.excluded !== null || run.flag === undefined || run.measurement?.controller !== "agent" || customLane(run) !== null) return null;
+  if (run.problem !== null || run.excluded !== null || run.flag === undefined || run.measurement?.controller !== "agent") return null;
   const reason = run.flag.startsWith(INVALID_TRIAL) ? run.flag.slice(INVALID_TRIAL.length) : run.flag;
   return run.config?.start === "boot" || run.config?.resume === "MAIN_MENU" || resumeMilestone(run) !== null ? reason : null;
 }
@@ -65,11 +67,14 @@ export function endedByOperator(reason: string | null): string | null {
 }
 export const shownAgent = (run: WorkbenchRun): boolean => plottedAgent(run) || checkpointResume(run) || invalidTrial(run) !== null;
 const resumedRun = (run: WorkbenchRun): boolean => checkpointResume(run) || (invalidTrial(run) !== null && resumeMilestone(run) !== null);
-// Harness versions of every run the frontier can draw; previous keeps colors already given out (version key → color).
+// Harness versions of every benchmark run the frontier can draw; previous keeps colors already given out (version key → color).
+// Custom lanes stay out, so a helped run never renumbers, recolors or becomes the "previous version" of a benchmark configuration.
 export function frontierVersions(runs: readonly WorkbenchRun[], previous: ReadonlyMap<string, string> = new Map()): VersionIndex {
-  return harnessVersions(runs.filter(shownAgent), previous);
+  return harnessVersions(runs.filter(run => shownAgent(run) && customLane(run) === null), previous);
 }
 const OTHER_COLOR = "#536d85";
+export const ASSISTED_COLOR = "#5a2fc2";
+const runColor = (run: WorkbenchRun, versions: VersionIndex): string => customLane(run) !== null ? ASSISTED_COLOR : versions.byRun.get(run.id)?.color ?? OTHER_COLOR;
 const versionLabel = (run: WorkbenchRun, versions: VersionIndex): string => versions.byRun.get(run.id)?.name ?? modelName(run);
 export function preciseTime(ms: number): string {
   if (ms < 0) return `-${preciseTime(-ms)}`;
@@ -77,16 +82,22 @@ export function preciseTime(ms: number): string {
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, "0")}.${fraction}`;
 }
 const recordedRun = (r: WorkbenchRun): boolean => r.excluded === null && r.problem === null && r.measurement !== undefined && !r.measurement.features.some(f => /probe|synthetic|replay/.test(f));
-// The agent frontier is the best New Game start (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
-const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && customLane(r) === null && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused" || r.status === "unresponsive");
-function rankedAgents(runs: readonly WorkbenchRun[]): WorkbenchRun[] {
-  const rank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
-  const time = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[rank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
-  const agents = runs.filter(r => frontierCandidate(r) && rank(r) >= 0);
-  return agents.sort((a, b) => rank(b) - rank(a) || time(a) - time(b) || a.id.localeCompare(b.id));
+// The frontier's competitors are New Game starts (power-on or the main-menu save), live or finished; a checkpoint resume starts its clock mid-game, so it never competes.
+const frontierCandidate = (r: WorkbenchRun): boolean => recordedRun(r) && r.measurement?.controller === "agent" && (r.config?.start === "boot" || r.config?.resume === "MAIN_MENU") && (r.status === "ended" || r.status === "live" || r.status === "paused" || r.status === "unresponsive");
+const checkpointRank = (r: WorkbenchRun): number => RECORD_ORDER.findLastIndex(name => r.splits.some(s => s.name === name && s.screenshotEvidence === undefined));
+const checkpointTime = (r: WorkbenchRun): number => r.splits.find(s => s.name === RECORD_ORDER[checkpointRank(r)] && s.screenshotEvidence === undefined)?.elapsedMs ?? Infinity;
+const furthestFirst = (a: WorkbenchRun, b: WorkbenchRun): number => checkpointRank(b) - checkpointRank(a) || checkpointTime(a) - checkpointTime(b) || a.id.localeCompare(b.id);
+// The furthest native checkpoint a run reached, the one that ranks it.
+export function furthestCheckpoint(run: WorkbenchRun): { readonly index: number; readonly label: string; readonly elapsedMs: number } | null {
+  const index = checkpointRank(run), milestone = FRONTIER_MILESTONES[index];
+  return milestone === undefined ? null : { index, label: milestone.label, elapsedMs: checkpointTime(run) };
 }
+const rankedRuns = (runs: readonly WorkbenchRun[]): WorkbenchRun[] => runs.filter(r => frontierCandidate(r) && checkpointRank(r) >= 0).sort(furthestFirst);
+// The agent frontier ranks benchmark runs only, so a custom lane never changes what a run races.
+const rankedAgents = (runs: readonly WorkbenchRun[]): WorkbenchRun[] => rankedRuns(runs).filter(r => customLane(r) === null);
 export function frontierReferences(runs: readonly WorkbenchRun[]): ReferencePair {
-  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: rankedAgents(runs)[0] ?? null };
+  const ranked = rankedRuns(runs);
+  return { human: runs.find(r => r.id === HUMAN_REFERENCE && recordedRun(r) && r.status === "ended" && r.config?.start === "boot" && r.measurement?.controller === "human") ?? null, best: ranked.find(r => customLane(r) === null) ?? null, overall: ranked[0] ?? null };
 }
 // The frontier and the runner-up are enough to answer every run: excluding a run from the ranking only matters when it is the frontier.
 export interface FrontierPair { readonly best: Baseline | null; readonly runnerUp: Baseline | null }
@@ -114,22 +125,28 @@ export function milestoneStatus(run: WorkbenchRun, name: string): "reached" | "u
   if (run.reason === "operator_abort" || run.reason === "operator_stop") return "censored";
   return run.status === "ended" ? "not reached" : run.status === "live" || run.status === "paused" ? "pending" : "censored";
 }
-export function markerShape(shape: "human" | "best" | "overlay" | "resumed", x: number, y: number, color = "currentColor"): string {
-  return shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : shape === "resumed" ? `<circle cx="${String(x)}" cy="${String(y)}" r="5" fill="#fff" stroke="${color}" stroke-width="2"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
+export function markerShape(shape: "human" | "best" | "overlay" | "resumed" | "assisted", x: number, y: number, color = "currentColor"): string {
+  return shape === "assisted" ? `<path d="M ${String(x)} ${String(y - 5)} l 5 5 -5 5 -5 -5 Z" fill="#fff" stroke="${color}" stroke-width="2"/>` : shape === "best" ? `<path d="M ${String(x)} ${String(y - 6)} l 6 6 -6 6 -6 -6 Z"/>` : shape === "human" ? `<path d="M ${String(x)} ${String(y - 7)} l 2 5 5 0 -4 3 2 5 -5 -3 -5 3 2 -5 -4 -3 5 0 Z"/>` : shape === "resumed" ? `<circle cx="${String(x)}" cy="${String(y)}" r="5" fill="#fff" stroke="${color}" stroke-width="2"/>` : `<circle cx="${String(x)}" cy="${String(y)}" r="4"/>`;
 }
-function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed"): string {
+function mark(run: WorkbenchRun, name: string, x: number, y: number, color: string, shape: "human" | "best" | "overlay" | "resumed" | "assisted"): string {
   const split = run.splits.find(s => s.name === name); if (split === undefined) return "";
-  const invalid = invalidTrial(run), why = invalid === null ? "" : ` · flagged: ${invalid}`;
+  const invalid = invalidTrial(run), lane = customLane(run), why = `${lane === null ? "" : ` · heavily assisted: ${lane}`}${invalid === null ? "" : ` · flagged: ${invalid}`}`;
   const sinceSave = resumeMilestone(run) !== null ? ` · resumed at ${resumeMilestone(run)?.label ?? ""}, not from New game; minutes since the save loaded` : run.config?.resume === "MAIN_MENU" ? " · started from the main-menu save (text speed FAST), not power-on; minutes since the save loaded" : "";
   const title = `${run.id} · ${name} · active ${split.derived === true ? "≤ " : ""}${preciseTime(split.elapsedMs)} · ${split.derived === true ? (split.screenshotEvidence === undefined ? "recovered native state (first observation upper bound)" : "reviewed screenshot (observation upper bound)") : "native milestone"} #${String(split.seq)}${sinceSave}${why}${run.clockWarning === undefined ? "" : ` · ${run.clockWarning}`}`;
   const body = markerShape(shape, x, y, color);
-  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
+  return `<g class="wb-mark" role="button" tabindex="0" data-run="${esc(run.id)}" data-split="${esc(name)}" aria-label="${esc(title)}" fill="${color}" stroke="${color}" stroke-width="${shape === "best" || shape === "assisted" ? "2" : "1"}"><title>${esc(title)}</title>${body}</g>`;
 }
 export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, versions: VersionIndex): string {
   const state = status === "live" ? " · LIVE" : status === "paused" ? " · PAUSED" : "";
   const start = run.config?.resume === "MAIN_MENU" ? " · from main-menu save" : "";
   const stopped = run.reason === "operator_abort" ? " · ended by operator abort" : run.reason === "operator_stop" ? " · ended by operator stop" : "";
   return `Agent frontier${state}${stopped} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
+}
+// The one flag on the chart, hung from the furthest assisted New Game start's head; it turns upward when the head sits too low to hang.
+function assistedFlag(run: WorkbenchRun, x: number, y: number, bottom: number): string {
+  const width = 124, height = 17, stem = 48, gap = 6, down = y + gap + stem + height <= bottom;
+  const end = down ? y + gap + stem : y - gap - stem, top = down ? end : end - height, left = Math.max(0, x + gap - width);
+  return `<g data-assisted-flag="${esc(run.id)}" pointer-events="none"><line x1="${String(x)}" x2="${String(x)}" y1="${String(down ? y + gap : y - gap)}" y2="${String(end)}" stroke="#283038" stroke-width="2"/><rect x="${String(left)}" y="${String(top)}" width="${String(width)}" height="${String(height)}" rx="3" fill="${ASSISTED_COLOR}" stroke="#283038" stroke-width="2"/><text class="wb-assist-flag" x="${String(left + gap)}" y="${String(top + 11.5)}">HEAVILY ASSISTED</text></g>`;
 }
 function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): number {
   const reached = (run: WorkbenchRun, i: number): boolean => run.splits.some(s => s.name === RECORD_ORDER[i]);
@@ -149,13 +166,17 @@ export function racePlot(frontier: Baseline, run: WorkbenchRun, width: number): 
 export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null): string {
   const versions = given ?? frontierVersions([...overlays, ...currentRuns, ...(refs.best === null ? [] : [refs.best])]);
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;
-  const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean }[] = [];
+  const series: { run: WorkbenchRun; color: string; kind: "human" | "best" | "overlay" | "live" | "paused" | "resumed"; resumed: boolean; assisted: string | null }[] = [];
   const current = currentRuns.filter(r => shownAgent(r) && (r.status === "live" || r.status === "paused") && r.id !== refs.best?.id);
   const currentIds = new Set(current.map(r => r.id));
-  if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human", resumed: false });
-  if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best", resumed: false });
-  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: resumedRun(run) ? "resumed" : "overlay", resumed: resumedRun(run) });
-  for (const run of current) series.push({ run, color: versions.byRun.get(run.id)?.color ?? OTHER_COLOR, kind: run.status === "live" ? "live" : "paused", resumed: checkpointResume(run) });
+  if (refs.human !== null) series.push({ run: refs.human, color: "#304f7a", kind: "human", resumed: false, assisted: null });
+  if (refs.best !== null) series.push({ run: refs.best, color: "#af8915", kind: "best", resumed: false, assisted: null });
+  for (const run of overlays) if (!currentIds.has(run.id) && run.id !== refs.human?.id && run.id !== refs.best?.id && shownAgent(run)) series.push({ run, color: runColor(run, versions), kind: resumedRun(run) ? "resumed" : "overlay", resumed: resumedRun(run), assisted: customLane(run) });
+  for (const run of current) series.push({ run, color: runColor(run, versions), kind: run.status === "live" ? "live" : "paused", resumed: checkpointResume(run), assisted: customLane(run) });
+  // The headline names the best overall run, so the chart shows it whatever the filters select.
+  if (refs.overall != null && refs.overall.id !== refs.best?.id && !series.some(s => s.run.id === refs.overall?.id)) series.push({ run: refs.overall, color: ASSISTED_COLOR, kind: "overlay", resumed: false, assisted: customLane(refs.overall) });
+  // Only a New Game start carries the flag; a checkpoint resume is marked by its line, row and drawer.
+  const flagged = series.filter(s => s.assisted !== null && newGameStart(s.run)).map(s => s.run).sort(furthestFirst)[0];
   const milestones = zoom ? FRONTIER_MILESTONES.slice(0, zoomEnd(series.filter(s => s.kind !== "human").map(s => s.run), refs.human) + 1) : FRONTIER_MILESTONES;
   const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;
@@ -192,37 +213,38 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
       body += `<line data-resume-origin="${esc(id ?? "")}" x1="${String(at)}" x2="${String(at)}" y1="${String(top)}" y2="${String(bottom)}" stroke="#b36b00" stroke-width="1.5" stroke-dasharray="3 4" pointer-events="none"/><text class="wb-resume-tag" data-resume-origin="${esc(id ?? "")}" x="${String(at)}" text-anchor="${origin > milestones.length / 2 ? "end" : "start"}" y="${String(top + 14)}">not from zero</text>`;
     }
   }
-  for (const { run, color, kind, resumed } of series) {
+  for (const { run, color, kind, resumed, assisted } of series) {
     const active = kind === "live" || (kind === "best" && frontierStatus === "live"), isCurrent = active || kind === "paused" || (kind === "best" && frontierStatus !== null);
     const group = kind === "human" ? "__human" : kind === "best" ? "__best" : versions.byRun.get(run.id)?.id ?? "__other", member = kind === "best" ? versions.byRun.get(run.id)?.id : undefined;
     const on = focus !== null && (group === focus || member === focus), invalid = invalidTrial(run);
-    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : "", invalid === null ? "" : "wb-invalid-run"].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ` data-resume="${esc(run.config?.resume ?? "")}"` : ""}${invalid === null ? "" : ` data-invalid="${esc(invalid)}"`} style="--wb-run-color:${color}">`;
+    body += `<g class="${["wb-series", on ? "wb-on" : "", active ? "wb-live-run" : "", isCurrent && !active ? "wb-paused-run" : "", resumed ? "wb-resumed-run" : "", invalid === null ? "" : "wb-invalid-run", assisted === null ? "" : "wb-assisted-run"].filter(c => c !== "").join(" ")}" data-version="${group}"${member === undefined ? "" : ` data-member="${member}"`}${isCurrent ? ` data-current-run="${esc(run.id)}"` : ""}${active ? ` data-live-run="${esc(run.id)}"` : ""}${resumed ? ` data-resume="${esc(run.config?.resume ?? "")}"` : ""}${invalid === null ? "" : ` data-invalid="${esc(invalid)}"`}${assisted === null ? "" : ` data-assisted="${esc(assisted)}"`} style="--wb-run-color:${color}">`;
     let points: string[] = [];
-    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${kind === "overlay" ? ' opacity=".8"' : ""}${invalid !== null ? ' stroke-dasharray="2 4"' : resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
+    const flush = (): void => { if (points.length > 1) body += `<polyline data-series="${esc(run.id)}" fill="none" stroke="${color}" stroke-width="${assisted !== null ? "3" : kind === "overlay" || kind === "resumed" ? "1.5" : "2.5"}"${assisted === null && kind === "overlay" ? ' opacity=".8"' : ""}${assisted === null ? "" : ' stroke-linejoin="round"'}${invalid !== null ? ' stroke-dasharray="2 4"' : resumed ? ' stroke-dasharray="8 5"' : ""} points="${points.join(" ")}"/>`; points = []; };
     milestones.forEach((m, i) => { if (!onChart(run, m.id)) { flush(); return; } const split = run.splits.find(s => s.name === m.id); if (split === undefined) { if (milestoneStatus(invalid === null ? run : { ...run, excluded: null }, m.id) !== "unsupported") flush(); return; } const atX = x(i), atY = y(split.elapsedMs / 60000); points.push(`${String(atX)},${String(atY)}`); }); flush();
-    milestones.forEach((m, i) => { if (!onChart(run, m.id)) return; const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, kind === "human" || kind === "best" ? kind : resumed ? "resumed" : "overlay"); });
-    if (active) {
-      const latest = milestones.findLastIndex(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
-      const split = run.splits.find(s => s.name === milestones[latest]?.id);
-      if (split !== undefined) body += `<circle class="wb-live-head" cx="${String(x(latest))}" cy="${String(y(split.elapsedMs / 60000))}" r="10" fill="none" stroke="${color}" pointer-events="none"/>`;
-    }
+    milestones.forEach((m, i) => { if (!onChart(run, m.id)) return; const split = run.splits.find(s => s.name === m.id); if (split !== undefined) body += mark(run, m.id, x(i), y(split.elapsedMs / 60000), color, assisted !== null ? "assisted" : kind === "human" || kind === "best" ? kind : resumed ? "resumed" : "overlay"); });
+    const latest = milestones.findLastIndex(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
+    const head = run.splits.find(s => s.name === milestones[latest]?.id);
+    if (active && head !== undefined) body += `<circle class="wb-live-head" cx="${String(x(latest))}" cy="${String(y(head.elapsedMs / 60000))}" r="10" fill="none" stroke="${color}" pointer-events="none"/>`;
+    if (run === flagged && head !== undefined) body += assistedFlag(run, x(latest), y(head.elapsedMs / 60000), bottom);
     body += "</g>";
   }
   // Account for selected recordings even when validation, start provenance or missing checkpoints prevent a trace.
   const selected = [...new Map([...overlays, ...currentRuns].map(run => [run.id, run])).values()];
   const visible = new Set(series.filter(s => times(s.run).length > 0).map(s => s.run.id));
   const missing = selected.filter(run => !visible.has(run.id));
-  const reason = (run: WorkbenchRun): string => run.problem ?? (run.excluded !== null && invalidTrial(run) === null ? run.excluded : !shownAgent(run) ? customLane(run) ?? "Unrecognized start provenance or controller; no trace graded" : "No recorded story checkpoints at or after this run's start");
+  const reason = (run: WorkbenchRun): string => run.problem ?? (run.excluded !== null && invalidTrial(run) === null ? run.excluded : !shownAgent(run) ? "Unrecognized start provenance or controller; no trace graded" : "No recorded story checkpoints at or after this run's start");
+  const helped = selected.filter(run => customLane(run) !== null).length;
   const loading = missing.filter(run => run.problem?.startsWith("Recording is still loading;") === true).length;
-  const count = `${String(selected.length)} selected recordings · ${String(selected.filter(run => visible.has(run.id)).length)} plotted${loading === 0 ? "" : ` · ${String(loading)} loading`}${missing.length === loading ? "" : ` · ${String(missing.length - loading)} unavailable`}`;
+  const count = `${String(selected.length)} selected recordings · ${String(selected.filter(run => visible.has(run.id)).length)} plotted${loading === 0 ? "" : ` · ${String(loading)} loading`}${missing.length === loading ? "" : ` · ${String(missing.length - loading)} unavailable`}${helped === 0 ? "" : ` · ${String(helped)} assisted`}`;
   const coverage = `<details data-frontier-coverage class="wb-muted"><summary>${count}</summary><ul>${selected.map(run => {
     const last = milestones.findLast(m => onChart(run, m.id) && run.splits.some(s => s.name === m.id));
     const split = run.splits.find(s => s.name === last?.id);
     const progress = visible.has(run.id) ? `${run.status} · furthest recorded: ${last?.label ?? ""} at ${preciseTime(split?.elapsedMs ?? 0)}${invalidTrial(run) === null ? "" : ` · flagged: ${invalidTrial(run) ?? ""}`}${endedByOperator(run.reason) === null ? "" : ` · ${endedByOperator(run.reason) ?? ""}`}` : reason(run);
-    return `<li><a href="/#replay=${encodeURIComponent(run.id)}">${esc(run.id)}</a> · ${esc(progress)}</li>`;
+    const lane = customLane(run);
+    return `<li><a href="/#replay=${encodeURIComponent(run.id)}">${esc(run.id)}</a> · ${esc(progress)}${lane === null ? "" : ` · heavily assisted: ${esc(lane)}`}</li>`;
   }).join("")}</ul></details>`;
   const unavailable = `${refs.human === null ? '<p class="wb-muted">Human reference unavailable: recorded baseline is missing or invalid.</p>' : ""}${refs.best === null ? '<p class="wb-muted">Agent frontier unavailable: no valid New Game-start agent run has reached a story checkpoint yet.</p>' : ""}`;
-  const currentKeys = current.map(run => { const color = versions.byRun.get(run.id)?.color ?? OTHER_COLOR; return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${checkpointResume(run) ? " · NOT FROM ZERO" : ""} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => onChart(run, s.name) && milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
+  const currentKeys = current.map(run => { const color = runColor(run, versions); return `<span class="wb-current-key ${run.status === "live" ? "wb-live-key" : ""}" style="--wb-run-color:${color}" title="${esc(run.id)}"><i style="background:${color}"></i>${run.status === "live" ? "LIVE" : "PAUSED"}${checkpointResume(run) ? " · NOT FROM ZERO" : ""}${customLane(run) === null ? "" : " · HEAVILY ASSISTED"} · ${esc(versionLabel(run, versions))} · ${esc(run.id.slice(-4))}${run.splits.some(s => onChart(run, s.name) && milestones.some(m => m.id === s.name)) ? "" : " · waiting for first story checkpoint"}</span>`; }).join("");
   const legend = currentKeys === "" ? "" : `<div class="wb-model-legend wb-current-keys" aria-label="Runs in progress">${currentKeys}</div>`;
-  return `${coverage}${unavailable}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Story and gym trainer frontier through badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} progress checkpoints, including optional gym trainers.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.</p>`;
+  return `${coverage}${unavailable}${legend}<svg class="wb-chart wb-frontier-chart${focus === null ? "" : " wb-dim"}" viewBox="0 0 ${String(width)} ${String(height)}" role="img" aria-label="${hidden === 0 ? "Story and gym trainer frontier through badge" : `Story frontier zoomed to ${FRONTIER_MILESTONES[0].label} through ${last}`}">${body}</svg><p class="wb-muted">${hidden === 0 ? `${String(milestones.length)} progress checkpoints, including optional gym trainers.` : `Zoomed to the frontier: ${FRONTIER_MILESTONES[0].label} → ${last}, ${String(milestones.length)} of ${String(FRONTIER_MILESTONES.length)} checkpoints. ${String(hidden)} later checkpoints hidden; choose FULL BASELINE for the whole human run.`}${labelEvery === 1 ? "" : ` Some axis labels are hidden to fit this width; all ${hidden === 0 ? "recorded" : "visible"} points remain plotted.`} Recovered first-observation times are upper bounds (≤ in point details). A checkpoint the run recorded but missed breaks the line; one its build never recorded is skipped.${series.some(s => s.assisted !== null) ? " Heavily assisted runs are drawn with the frontier but are never pooled with experiment cohorts." : ""}</p>`;
 }

@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { REQUIRED_FRONTIER_MILESTONES } from "@pokebench/agent/milestones";
 import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
-import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, invalidTrial, milestoneStatus } from "./frontier.js";
+import { ASSISTED_COLOR, HUMAN_REFERENCE, FRONTIER_MILESTONES, checkpointResume, frontierPair, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, invalidTrial, milestoneStatus } from "./frontier.js";
+import { runDetails } from "./workbench-view.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 import { customLane } from "./custom-lane.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
@@ -518,7 +519,7 @@ it("thins dense phone labels while retaining every recorded point and checkpoint
  for(const m of FRONTIER_MILESTONES)expect(document.querySelector(`[data-split="${m.id}"]`)).not.toBeNull();
 });
 
-describe("custom lanes stay off the benchmark frontier", () => {
+describe("custom lanes are shown as heavily assisted", () => {
   const config = (features: { id: string; label: string; on: boolean | null }[] = []): WorkbenchRun["config"] => ({ source: "a", dirty: false, vendor: "b", pi: "c", preset: null, target: null, thinking: "medium", maxTokens: 1, maxTurns: null, maxWallMs: null, failureLimit: null, context: 1, vision: true, start: "boot", tools: [], features });
   const fastest = (id: string, extra: Partial<WorkbenchRun>): WorkbenchRun => ({ ...measured(id, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), config: config(), ...extra });
   const benchmark = (): WorkbenchRun => ({ ...best(), config: config() });
@@ -527,24 +528,111 @@ describe("custom lanes stay off the benchmark frontier", () => {
     ["labelled", { experiment: { id: "custom-hints", arm: "a", trial: 1, of: 1 } }, "custom experiment"],
     ["knowing", { config: config([{ id: "story-route-plan-v1", label: "STORY ROUTE PLAN", on: true }]) }, "story-route-plan-v1 is on"],
   ];
-  it.each(lanes)("%s run never leads, races or draws, and says why", (id, extra, why) => {
+  const plotted = (runs: readonly WorkbenchRun[], overlays: readonly WorkbenchRun[] = runs, current: readonly WorkbenchRun[] = []): void => { document.body.innerHTML = frontierPlot(frontierReferences(runs), overlays, 900, null, current); };
+  it.each(lanes)("%s run takes best overall, never best unhelped, and is drawn marked", (id, extra, why) => {
     const custom = fastest(id, extra), plain = benchmark();
-    expect(customLane(custom)).toContain(why);
-    expect(frontierReferences([plain, custom]).best?.id).toBe(plain.id);
+    expect(customLane(custom)).toBe(why);
+    const refs = frontierReferences([plain, custom]);
+    expect(refs.best?.id).toBe(plain.id);
+    expect(refs.overall?.id).toBe(id);
+    plotted([plain, custom]);
+    const series = document.querySelector<SVGGElement>(`.wb-series[data-assisted]:has(.wb-mark[data-run="${id}"])`);
+    expect(series?.dataset.assisted).toBe(why);
+    expect(series?.querySelector("polyline")?.getAttribute("stroke")).toBe(ASSISTED_COLOR);
+    expect(series?.querySelector("polyline")?.getAttribute("stroke-width")).toBe("3");
+    expect(series?.querySelector(".wb-mark path")?.getAttribute("fill")).toBe("#fff");
+    expect(series?.querySelector("circle")).toBeNull();
+    expect(series?.querySelector(".wb-mark")?.getAttribute("aria-label")).toContain(`heavily assisted: ${why}`);
+    const row = document.querySelector("[data-frontier-coverage]")?.textContent ?? "";
+    expect(row).toContain(`heavily assisted: ${why}`);
+    expect(row).toContain("1 assisted");
+    expect(document.querySelector(`[data-frontier-coverage] a[href="/#replay=${id}"]`)).not.toBeNull();
+    expect(document.body.textContent).toContain("never pooled with experiment cohorts");
+  });
+  it.each(lanes)("%s run leaves the race and the harness versions as they were", (id, extra) => {
+    const custom = fastest(id, extra), plain = benchmark(), second: WorkbenchRun = { ...measured("second", [1000]), config: config() };
+    expect(frontierPair([plain, second, custom])).toEqual(frontierPair([plain, second]));
     expect(frontierSplits([plain, custom], plain.id)).toBeNull();
     expect(frontierVersions([plain, custom]).byRun.has(id)).toBe(false);
-    document.body.innerHTML = frontierPlot(frontierReferences([plain, custom]), [custom], 900);
-    expect(document.querySelector(`.wb-mark[data-run="${id}"]`)).toBeNull();
-    const row = document.querySelector("[data-frontier-coverage]")?.textContent ?? "";
-    expect(row).toContain(why);
-    expect(document.querySelector(`[data-frontier-coverage] a[href="/#replay=${id}"]`)).not.toBeNull();
   });
-  it("a flagged or checkpoint custom run is not drawn either", () => {
+  it("a benchmark run ahead of every assisted run stays best overall, with no flag on the behind run's chart being wrong", () => {
+    const plain = benchmark(), helped: WorkbenchRun = { ...measured("helped", [9, 10]), model: "x-edit-1", config: config() };
+    const refs = frontierReferences([plain, helped]);
+    expect(refs.overall?.id).toBe(plain.id);
+    expect(refs.best?.id).toBe(plain.id);
+    plotted([plain, helped]);
+    expect(document.querySelectorAll("[data-assisted-flag]")).toHaveLength(1);
+    expect(document.querySelector("[data-assisted-flag]")?.getAttribute("data-assisted-flag")).toBe("helped");
+  });
+  it("the best overall assisted run is drawn even when the overlay filter leaves it out", () => {
+    const plain = benchmark(), helped = fastest("helped", { model: "x-edit-1" });
+    plotted([plain, helped], []);
+    expect(document.querySelector('.wb-mark[data-run="helped"]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-assisted-flag="helped"]')).toHaveLength(1);
+  });
+  it("draws one flag, at the head of the furthest assisted run, and keeps it inside the chart", () => {
+    const further = fastest("further", { model: "x-edit-1" }), nearer: WorkbenchRun = { ...measured("nearer", [1, 2]), model: "x-edit-2", config: config() };
+    plotted([benchmark(), nearer, further]);
+    expect([...document.querySelectorAll("[data-assisted-flag]")].map(f => f.getAttribute("data-assisted-flag"))).toEqual(["further"]);
+    expect(document.querySelector("[data-assisted-flag]")?.textContent).toBe("HEAVILY ASSISTED");
+    const rect = document.querySelector("[data-assisted-flag] rect");
+    expect(Number(rect?.getAttribute("x"))).toBeGreaterThanOrEqual(0);
+    expect(Number(rect?.getAttribute("y")) + 17).toBeLessThanOrEqual(490);
+  });
+  it("turns the flag upward when the head sits too low for it", () => {
+    const low: WorkbenchRun = { ...measured("low", [1, 1000]), model: "x-edit-1", config: config() }, far = measured("far", [1, 2, 3, 4, 5, 6, 7, 8, 9, 3600000]);
+    plotted([{ ...far, config: config() }, low]);
+    const rect = document.querySelector('[data-assisted-flag="low"] rect');
+    expect(Number(rect?.getAttribute("y"))).toBeLessThan(470);
+  });
+  it("a flagged or checkpoint custom run is shown as assisted and keeps its dotted or dashed line", () => {
     const flagged = fastest("flagged", { model: "x-edit-1", flag: "Invalid fixed-run trial: crashed" });
-    expect(invalidTrial(flagged)).toBeNull();
+    expect(invalidTrial(flagged)).toBe("crashed");
     const base = config(); if (base === null) throw new Error("config");
-    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "RUSTBORO_CITY" } });
-    expect(frontierVersions([resumed]).byRun.has("resumed")).toBe(false);
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "CLOCK_SET" } });
+    const refs = frontierReferences([benchmark(), resumed]);
+    expect(refs.overall?.id).toBe("dea1");
+    expect(refs.best?.id).toBe("dea1");
+    expect(checkpointResume(resumed)).toBe(true);
+    plotted([benchmark(), flagged, resumed]);
+    const line = (id: string): Element | null => document.querySelector(`polyline[data-series="${id}"]`);
+    expect(line("flagged")?.getAttribute("stroke-dasharray")).toBe("2 4");
+    expect(line("resumed")?.getAttribute("stroke-dasharray")).toBe("8 5");
+    expect(line("resumed")?.getAttribute("stroke")).toBe(ASSISTED_COLOR);
+  });
+  it("flags only a New Game start: a checkpoint resume stays marked in its row and drawer, without the flag", () => {
+    const base = config(); if (base === null) throw new Error("config");
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "CLOCK_SET" } });
+    plotted([benchmark(), resumed]);
+    expect(document.querySelector("[data-assisted-flag]")).toBeNull();
+    expect(document.querySelector('.wb-series[data-assisted]:has(.wb-mark[data-run="resumed"])')).not.toBeNull();
+    expect(document.querySelector("[data-frontier-coverage]")?.textContent).toContain("heavily assisted: weight-edited model");
+    expect(runDetails(resumed, null)).toContain("HEAVILY ASSISTED");
+  });
+  it("a checkpoint resume further along never takes the flag from a New Game start, and the main-menu save counts as one", () => {
+    const base = config(); if (base === null) throw new Error("config");
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "CLOCK_SET" } });
+    const menu: WorkbenchRun = { ...measured("menu", [1, 2]), model: "x-edit-2", config: { ...base, start: "save", resume: "MAIN_MENU" } };
+    plotted([benchmark(), resumed, menu]);
+    expect([...document.querySelectorAll("[data-assisted-flag]")].map(f => f.getAttribute("data-assisted-flag"))).toEqual(["menu"]);
+  });
+  it("a live assisted run keeps its pulse, turns violet and says so in the live key", () => {
+    const live = fastest("helped", { model: "x-edit-1", status: "live" });
+    plotted([benchmark(), live], [], [live]);
+    expect(document.querySelector('[data-live-run="helped"]')?.hasAttribute("data-assisted")).toBe(true);
+    expect(document.querySelector('[data-live-run="helped"] polyline')?.getAttribute("stroke")).toBe(ASSISTED_COLOR);
+    expect(document.querySelector(".wb-current-keys")?.textContent).toContain("HEAVILY ASSISTED");
+    expect(document.querySelector(".wb-current-key i")?.getAttribute("style")).toContain(ASSISTED_COLOR);
+  });
+  it("a chart with no assisted run stays as it was", () => {
+    plotted([benchmark()]);
+    expect(document.querySelector("[data-assisted]")).toBeNull();
+    expect(document.querySelector("[data-assisted-flag]")).toBeNull();
+    expect(document.body.textContent).not.toContain("assisted");
+  });
+  it("names the assistance in the run details drawer, and only for an assisted run", () => {
+    expect(runDetails(fastest("helped", { model: "x-edit-1" }), null)).toContain("HEAVILY ASSISTED");
+    expect(runDetails(benchmark(), null)).not.toContain("HEAVILY ASSISTED");
   });
   it("leaves benchmark runs alone: a switch that is off, a recorded-unknown switch, or an id merely containing edit", () => {
     for (const run of [benchmark(), fastest("off", { config: config([{ id: "story-route-plan-v1", label: "", on: false }]) }), fastest("unknown", { config: config([{ id: "next-milestone-hint-v1", label: "", on: null }]) }), fastest("credit", { model: "credited-model" }), fastest("slash", { model: "vendor/edit/model" }), fastest("under", { model: "qwen_edit_control" }), fastest("none", { model: null, config: null })]) expect(customLane(run)).toBeNull();

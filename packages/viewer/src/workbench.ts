@@ -2,6 +2,7 @@ import { createWorkbenchClient } from "./workbench-sync.js";
 import { frontierLegend, type SwitchDescriptions } from "./frontier-legend.js";
 import type { VersionIndex } from "./frontier-versions.js";
 import { frontierReferences, frontierPlot, frontierVersions } from "./frontier.js";
+import { frontierHeadline } from "./frontier-headline.js";
 import { WORKBENCH_POLL_MS, parseFeatureDescriptions, parseWorkbench, type WorkbenchData, type WorkbenchRun } from "./workbench-data.js";
 import { backToViewer, currentRunLinks, liveOrPaused, partyHead, plateNotes, plateWhere, runDetails, parseRunLanes, viewerUrl, type LaneUnknown, type RunLanes } from "./workbench-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
@@ -108,7 +109,7 @@ export class Workbench {
       const data = parseWorkbench(await this.deps.fetchSnapshot()); if (!this.active()) return;
       if (data.at < this.data.at) throw new Error("Outdated workbench snapshot ignored; last verified data retained.");
       this.data = data;
-      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.started, r.config, r.problem, r.excluded, r.flag, r.measurement?.controller]));
+      const versionKey = JSON.stringify(data.runs.map(r => [r.id, r.model, r.arm, r.experiment, r.started, r.config, r.problem, r.excluded, r.flag, r.measurement?.controller]));
       if (versionKey !== this.versionKey) {
         this.versions = frontierVersions(data.runs, this.versionColors);
         for (const v of this.versions.versions) this.versionColors.set(v.key, v.color);
@@ -188,16 +189,17 @@ export class Workbench {
     const refs = frontierReferences(this.data.runs), overlays = this.overlay === "none" ? [] : this.overlay === "all" ? runs : runs.filter(r => r.id === this.overlay);
     const current = this.verified ? runs.filter(r => r.status === "live" || r.status === "paused") : [], status = this.verified && (refs.best?.status === "live" || refs.best?.status === "paused") ? refs.best.status : null;
     const state = { isolated: this.isolated, legendOpen: this.legendOpen ?? false, marksOpen: this.marksOpen ?? false, howOpen: this.howOpen, changed: this.changed, all: this.allOn, expanded: this.expanded };
+    replaceKeepingFocus(this.ui("frontier-headline"), frontierHeadline(refs));
     const host = this.ui("frontier-legend");
     replaceKeepingFocus(host, frontierLegend(refs, [...overlays, ...current], this.versions, state, status, this.descriptions));
     if (this.hovered !== null && host.querySelector(`[data-ver="${this.hovered}"]`) === null) this.hovered = null;
     if (this.isolated !== null && host.querySelector(`[data-ver="${this.isolated}"]`) === null) { this.isolated = null; this.renderCharts(); return; }
     const semantic = (run: WorkbenchRun | null): unknown => run === null ? null : {
-      id: run.id, model: run.model, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded, flag: run.flag,
+      id: run.id, model: run.model, experiment: run.experiment, status: run.status, problem: run.problem, clockWarning: run.clockWarning, excluded: run.excluded, flag: run.flag,
       config: run.config, splits: run.splits,
       measurement: run.measurement === undefined ? undefined : { controller: run.measurement.controller, features: run.measurement.features, recoveredFeatures:run.measurement.recoveredFeatures },
     };
-    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated]);
+    const plotKey = JSON.stringify([semantic(refs.best), semantic(refs.overall ?? null), semantic(refs.human), overlays.map(semantic), current.map(semantic), width, this.versionKey, this.zoom, status, this.isolated]);
     if (plotKey === this.plotKey) { this.focus(); this.pressed(); return; }
     const plot = this.ui("frontier-full"), coverage = plot.querySelector<HTMLDetailsElement>("[data-frontier-coverage]");
     const active = this.doc.activeElement, coverageOpen = coverage?.open ?? false, coverageFocused = coverage?.querySelector("summary") === active;

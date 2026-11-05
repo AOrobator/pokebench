@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEPTH_ORDER, MILESTONE_ORDER } from "@pokebench/agent/milestones";
-import { analyze, depthThenTime, fisherExact, logRank, mannWhitney, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
+import { analyze, customLaneTrials, depthThenTime, fisherExact, logRank, mannWhitney, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
 import { definition } from "../test-support/fixed.js";
 import type { FixedLedgerEntry } from "./fixed-ledger.js";
 
@@ -136,6 +136,39 @@ describe("operator-excluded trials", () => {
     expect(text).toContain("| 1 | A | bundle | r1 | wrong ROM |");
     expect(renderAnalysis(report, "x", { primaryOutcome: "frontier", primaryMilestone: "STONE_BADGE", replacementReserveMs: 0 })).toContain("| 1 | A | bundle | r1 | wrong ROM |");
     expect(renderAnalysis(analyze([trial(2, "A", "control", null)], ["A"]), "x")).toContain("No run was excluded by the operator.");
+  });
+});
+
+describe("custom lanes", () => {
+  const startLine = (run: string, model: string, features: readonly string[] = [], experiment?: string): string => JSON.stringify({ type: "run_start", run, model: { id: model }, harness_features: features, ...(experiment === undefined ? {} : { evaluation: { experiment: { id: experiment, arm: "a", trial: 1, of: 1 } } }) });
+  const named = (run: string, t: AnalysisTrial): AnalysisTrial => ({ ...t, run });
+  const trials = [named("plain", trial(1, "A", "bundle", 1000)), named("edited", trial(2, "A", "bundle", 1000)), named("told", trial(3, "A", "control", null)), named("tagged", trial(4, "A", "control", null)), named("lost", trial(5, "A", "control", null)), named("broken", trial(6, "A", "control", null))];
+  const logs: Readonly<Record<string, string>> = { plain: `\n${startLine("plain", "qwen")}\n`, edited: startLine("edited", "qwen-edit-e1"), told: startLine("told", "qwen", ["story-route-plan-v1"]), tagged: startLine("tagged", "qwen", [], "custom-hints"), broken: "not json" };
+  const events = (run: string): string | null => logs[run] ?? null;
+  it("finds them from each trial's run_start, and passes a missing or unreadable log", () => {
+    expect([...customLaneTrials("bundle-v-control", trials, events)]).toEqual([["edited", "weight-edited model"], ["told", "story-route-plan-v1 is on"], ["tagged", "custom experiment"]]);
+  });
+  it("a custom experiment's own comparison is not a benchmark cohort, so it keeps its trials", () => {
+    expect(customLaneTrials("custom-hints", trials, events).size).toBe(0);
+  });
+  it("keeps them out of every comparison and lists them", () => {
+    const report = analyze(trials, ["A"], new Map(), customLaneTrials("bundle-v-control", trials, events));
+    expect(report.trials.map(t => t.run)).toEqual(["plain", "lost", "broken"]);
+    expect(report.groups[0]?.bundle.n).toBe(1);
+    expect(report.groups[0]?.control.n).toBe(2);
+    expect(report.customLanes.map(t => [t.run, t.reason])).toEqual([["edited", "weight-edited model"], ["told", "story-route-plan-v1 is on"], ["tagged", "custom experiment"]]);
+    const text = renderAnalysis(report, "t");
+    expect(text).toContain("## Custom lanes (never pooled with these arms)");
+    expect(text).toContain("| 2 | A | bundle | edited | weight-edited model |");
+    expect(renderAnalysis(report, "t", { primaryOutcome: "frontier", primaryMilestone: "RIVAL_MET", replacementReserveMs: 0 })).toContain("## Custom lanes (never pooled with these arms)");
+  });
+  it("adds nothing to a report without them", () => {
+    expect(renderAnalysis(analyze(trials.slice(0, 1), []), "t")).not.toContain("Custom lanes");
+  });
+  it("an operator exclusion wins, so a run is listed once", () => {
+    const report = analyze(trials, [], new Map([["edited", "bad"]]), new Map([["edited", "weight-edited model"]]));
+    expect(report.excluded.map(t => t.run)).toEqual(["edited"]);
+    expect(report.customLanes).toEqual([]);
   });
 });
 

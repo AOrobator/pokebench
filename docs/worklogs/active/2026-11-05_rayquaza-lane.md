@@ -58,3 +58,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - GPT on 5b28ed1a2, CHANGES: switch must stay optional in presets, slim needs the guide on, a batched LEFT+B could fake `OPTIONS_SET`, decision probes rebuilt the unslimmed prompt. RED tests added.
 - GPT fixes applied: switch optional in presets; slim only with the guide on; a LEFT or RIGHT in the leaving press clears the options check; decision probes use the slimmed core.
 - GPT recheck: three fixes confirmed. Rebutted the fourth: the slim core is identical in every scene (same hash), so probes using the `unknown` core match; probes not projecting JIT guidance predates this change and is outside the launch.
+- Claude review of ac2f7d62e, CHANGES: the pre-fight heal rule must stay in overworld guidance; the Birch screens need the new game note when options were missed; `RQ_` hints must not replace the guide line in recorded replay. RED tests added.

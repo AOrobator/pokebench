@@ -52,6 +52,16 @@ describe("options from boot", () => {
     expect(guide.current().after).toBe("OPTIONS_SET");
   });
 
+  it("gives the new game note on the Birch screens even with the options missed", () => {
+    for (const before of [[] as RunEvent[], [options(2, 1, 0), state({})]]) {
+      const guide = new GuidePosition(steps);
+      guide.observe(state({}));
+      for (const event of before) guide.observe(event);
+      guide.observe(state({ screen: "birch_speech" }));
+      expect(guide.current().after).toBe("OPTIONS_SET");
+    }
+  });
+
   it("keeps a START menu note after an early new game, until the settings are made", () => {
     const guide = new GuidePosition(steps);
     guide.observe(state({}));
@@ -90,7 +100,7 @@ describe("rq-slim-prompt-v1", () => {
     }
     const field = stableJitPrompts(ON, null, "overworld").guidance;
     expect(parts(field, "Surf:")).toBe(0);
-    expect(parts(field, "Trainer battles")).toBe(0);
+    expect(parts(field, "Trainer battles")).toBe(1);
     expect(parts(stableJitPrompts({ ...ON, "rq-slim-prompt-v1": false }, null, "overworld").guidance, "Surf:")).toBe(1);
     const battle = stableJitPrompts(ON, null, "battle").guidance;
     expect(parts(battle, "Trainer battles")).toBe(1);

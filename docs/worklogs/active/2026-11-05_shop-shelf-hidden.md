@@ -59,3 +59,4 @@ GPT, read-only (`codex exec`), three rounds.
 - Round 3, cumulative merge-base diff at 6755cbf8f: VERDICT: LGTM. `live-human.test.ts` 7 passed; tsc and eslint clean.
 
 Claude and Grok review lanes, full suites, the live READ EXPLAINER click and a real gameplay run are still to do before landing.
+- Gate at 08eb934d7: 2,565 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. Claude LGTM; GPT LGTM.

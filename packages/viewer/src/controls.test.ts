@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALL_ON, FEATURES } from "@pokebench/agent/features";
 import { BASE_MS, Log, START } from "../test-support/events.js";
-import { availableActions, controlBar, differenceCount, eligibleRuns, overlay, overlayKind, queueText, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
+import { availableActions, controlBar, differenceCount, eligibleRuns, overlay, overlayKind, queueText, runSeconds, sideStats, stateLabel, switchboard, type NextRunDraft } from "./controls.js";
 import { RunView } from "./model.js";
 
 function view(build: (log: Log) => void = () => undefined): RunView {
@@ -12,41 +12,7 @@ const control = (action: "pause" | "resume" | "stop" | "cancel_stop" | "abort", 
 const draft: NextRunDraft = { model: "Qwen", thinking: "medium", maxTurns: 300, maxWallMs: 1_800_000, failureLimit: 3, maxTokens: 4096, target: null, features: { ...ALL_ON, "state-only-decisions-v1": false } };
 
 describe("run controls", () => {
-  it("summarizes only the current split and next checkpoint", () => {
-    const recorded = { run: "test", milestones: [
-      { name: "NEW_GAME_CREATED", offsetMs: 1000 },
-      { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2000 },
-    ] };
-    const compact = splitStrip(view(), recorded, true);
-    expect(compact).not.toContain("NEW GAME");
-    expect(compact).toContain("NAME ✔");
-    expect(compact).toContain('class="next"');
-    expect(splitStrip(view(), recorded)).toContain("NEW GAME ✔");
-    expect(splitStrip(view(), null, true)).toContain("LOADING RECORDED SPLITS");
-    expect(splitStrip(view(), { run: "test", milestones: [] }, true)).toContain("NEW GAME");
-  });
 
-  it("keeps Flannery campaign progress visible after optional rewards in either split source", () => {
-    const milestones = [
-      { name: "METEORITE_RECEIVED", offsetMs: 1000 },
-      { name: "FLANNERY_DEFEATED", offsetMs: 2000 },
-      { name: "LAVARIDGE_GYM_COMPLETE", offsetMs: 3000 },
-      { name: "HEAT_BADGE", offsetMs: 3000 },
-      { name: "OVERHEAT_RECEIVED", offsetMs: 4000 },
-      { name: "GO_GOGGLES_RECEIVED", offsetMs: 5000 },
-      { name: "FUTURE_DIAGNOSTIC", offsetMs: 6000 },
-    ];
-    const native = view(l => {
-      for (const m of milestones) l.add(m.offsetMs, { type: "milestone", turn: 1, name: m.name, server_timestamp: 1, kind: "story", origin: "observed" });
-    });
-    for (const [v, recorded] of [[view(), { run: "test", milestones }], [native, undefined]] as const) {
-      expect(splitStrip(v, recorded, true)).toBe('<div class="mspl"><span class="done">OVERHEAT RECEIVED ✔</span><span class="next">PETALBURG GYM RETURN</span></div>');
-      const full = splitStrip(v, recorded);
-      for (const label of ["FLANNERY DEFEATED", "LAVARIDGE GYM COMPLETE", "HEAT BADGE", "METEORITE RECEIVED", "GO GOGGLES RECEIVED", "FUTURE DIAGNOSTIC"]) expect(full).toContain(label + " ✔");
-      expect(splitTimes(v, null, recorded)).toContain('<span>HEAT BADGE</span><span class="t">0:00:03</span>');
-    }
-    expect(splitStrip(view(), { run: "test", milestones: [{ name: "METEORITE_RECEIVED", offsetMs: 1000 }] }, true)).toBe('<div class="mspl"><span class="next">NEW GAME</span></div>');
-  });
 
   it("offers only the controls that apply to the recorded state", () => {
     expect([...availableActions(view(), true)]).toEqual(["pause", "stop", "abort"]);
@@ -135,61 +101,11 @@ describe("live side panel", () => {
     expect(sideStats(v, BASE_MS + 3_000)).toContain("CONTEXT<b>7k</b>of 10k");
   });
 
-  it("lists splits this run against the frontier, pauses excluded", () => {
-    const v = view((l) => {
-      l.add(1_000, control("pause", "applied", { emulator_frozen: true }));
-      l.add(6_000, control("resume", "applied", { paused_ms: 5_000 }));
-      l.add(10_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
-    });
-    const best = { run: "best", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 7_000 }] };
-    const html = splitStrip(v);
-    expect(html).toContain('<span class="done">NEW GAME ✔</span>');
-    expect(html).toContain('<span class="next">NAME</span>');
-    expect(html).not.toContain("splitrows");
-    expect(splitTimes(v, best)).toContain('<span class="t">0:00:05</span><span class="d g">−0:00:02</span>');
-    expect(splitTimes(v, null)).toContain("no frontier run to compare yet");
-    expect(splitTimes(v, best)).toContain("VS FRONTIER");
-    expect(splitTimes(v, { run: "tie", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 5_400 }] })).toContain('<span class="d">±0:00:00</span>');
-  });
 
-  it("renders an atomic recorded snapshot while the event stream catches up", () => {
-    const partial = view((l) => {
-      l.add(1_000, { type: "milestone", turn: 1, name: "NEW_GAME_CREATED", server_timestamp: 1, kind: "story", origin: "observed" });
-    });
-    const recorded = { run: "selected", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 1_000 }, { name: "PLAYER_NAME_CONFIRMED", offsetMs: 2_000 }] };
-    expect(splitStrip(partial, recorded)).toContain("NEW GAME ✔</span><span class=\"done\">NAME ✔");
-    expect(splitTimes(partial, null, recorded)).toContain('<span>NAME</span><span class="t">0:00:02</span>');
-    expect(splitStrip(partial, null)).toContain("LOADING RECORDED SPLITS");
-    expect(splitStrip(partial)).not.toContain("NAME ✔");
-  });
 
-  const mark = (name: string, origin: "observed" | "present_at_start" = "observed") => ({ type: "milestone" as const, turn: 1, name, server_timestamp: 1, kind: "story" as const, origin });
 
-  it("shows every milestone the run recorded in story order, past the starter", () => {
-    const v = view((l) => {
-      for (const [at, name] of [[1_000, "GAME_RUNNING"], [2_000, "STARTER_CHOSEN"], [4_000, "OLDALE_TOWN"], [3_000, "ROUTE_101_AFTER_HANDOFF"], [2_500, "BIRCH_RESCUE_COMPLETE"], [3_500, "PLAYER_BEDROOM_EXITED_AFTER_CLOCK"], [5_000, "SOME_FUTURE_SPLIT"]] as const) l.add(at, mark(name));
-    });
-    const html = splitStrip(v);
-    const chips = [...html.matchAll(/<span class="(\w*)">([^<]*)<\/span>/g)].map((m) => `${m[1] ?? ""}:${m[2] ?? ""}`);
-    expect(chips).toEqual(["done:GAME RUNNING ✔", "done:LEAVE BEDROOM ✔", "done:STARTER ✔", "done:BIRCH RESCUE ✔", "done:BACK ON ROUTE 101 ✔", "done:OLDALE ✔", "done:SOME FUTURE SPLIT ✔", "next:ROUTE 103"]);
-    const times = splitTimes(v, { run: "best", milestones: [{ name: "OLDALE_TOWN", offsetMs: 5_000 }] });
-    expect(times).toContain('<span>OLDALE</span><span class="t">0:00:04</span><span class="d g">−0:00:01</span>');
-    expect(times).toContain('<span>BIRCH RESCUE</span><span class="t">0:00:02</span>');
-    expect(times).toContain('<span>ROUTE 103</span><span class="t na">—</span><span class="d na">next</span>');
-    expect(times).not.toContain("RT 101");
-  });
 
-  it("skips present-at-start splits but starts NEXT after them", () => {
-    const v = view((l) => { l.add(1_000, mark("CLOCK_SET", "present_at_start")); });
-    expect(splitStrip(v)).toBe('<div class="mspl"><span class="next">LEAVE BEDROOM</span></div>');
-    const done = view((l) => { l.add(1_000, mark("ROCK_TOMB_RECEIVED")); });
-    expect(splitStrip(done)).toBe('<div class="mspl"><span class="done">ROCK TOMB ✔</span><span class="next">RUSTURF AQUA GRUNT DEFEATED</span></div>');
-  });
 
-  it("points NEXT at the first unreached checkpoint after the deepest checkpoint, and escapes names", () => {
-    const v = view((l) => { l.add(1_000, mark("RUNNING_SHOES_RECEIVED")); l.add(2_000, mark("ROUTE_102_TRAINER_CALVIN_DEFEATED")); l.add(3_000, mark("A<B")); });
-    expect(splitStrip(v)).toBe('<div class="mspl"><span class="done">RUNNING SHOES ✔</span><span class="done">ROUTE 102 TRAINER CALVIN DEFEATED ✔</span><span class="done">A&lt;B ✔</span><span class="next">ROUTE 102</span></div>');
-  });
 });
 
 describe("switchboard", () => {

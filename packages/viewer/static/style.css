@@ -266,9 +266,6 @@ table.splits td.d, table.splits td.t { width: 18.66%; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .stat { background: #1e2c44; color: #dfe8f5; border-radius: 8px; padding: 8px; font-size: 6.5px; line-height: 1.8; min-width: 0; } .stat b { display: block; color: #ffd447; font-size: 11px; font-weight: 400; }
 .stat .track { margin-top: 4px; height: 8px; border: 2px solid #4d6a96; border-radius: 4px; background: #fff; overflow: hidden; } .stat .track i { display: block; height: 100%; background: #4cd27a; } .stat .track i.hot { background: #f5c542; }
-.mspl { display: flex; gap: 4px; flex-wrap: wrap; } .mspl span { font-size: 6.5px; padding: 3px 5px; border-radius: 4px; background: #e3eaf2; color: #49647e; } .mspl span.done { background: #2f9e57; color: #fff; } .mspl span.next { background: #ffd447; color: #1e2c44; }
-.splitrows { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 10px; font-size: 7px; align-items: center; margin-top: 6px; }
-.splitrows .t, .splitrows .d { text-align: right; } .splitrows .g { color: #2f9e57; } .splitrows .r { color: #d03a3a; } .splitrows .na { opacity: .4; }
 .side .thinkbox { display: flex; flex-direction: column; flex: 1; min-height: 0; border-top: 3px dashed #d8e1ec; padding-top: 10px; }
 .side .thinkbox .live-thought { flex: 1; min-height: 120px; max-height: none; overflow-y: auto; font: 12px/1.65 'JetBrains Mono', monospace; }
 .small { font-size: 7px; line-height: 1.9; } .muted { opacity: .65; } .warn { color: #d03a3a; }
@@ -466,7 +463,6 @@ details.tl > summary:focus-visible { outline: 3px solid #ffd447; }
 .side .side-earlier { margin: 12px 0 4px; }
 .side .side-trace { flex: 2 1 0; min-height: 48px; overflow-y: auto; font-size: 11px; }
 .game-stream .side { overflow-y: auto; }
-.side .split-times { margin-top: 6px; } .side .split-times > summary { cursor: pointer; font-size: 6.5px; color: #3a6ea5; } .side .split-times .splitrows { margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) { .side .thinkbox .emer-arrow { animation: none; } }
 
 /* Run identity: which experiment / arm / trial is on screen. */
@@ -884,12 +880,6 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
 /* Card loading and recovery share one compact notice above the card row. */
 .card-status{flex-basis:100%;color:#dfe8f5;font-size:12px;padding:4px 0}
 /* Keep the disclosure itself stable while live split content updates. */
-.run-splits > summary { cursor: pointer; font-size: 8px; color: #3a6ea5; line-height: 1.8; }
-.run-splits > summary:focus-visible { outline: 2px solid #3a6ea5; outline-offset: 3px; }
-.run-splits + .split-preview { margin-top: 6px; }
-.run-splits[open] > summary { margin-bottom: 6px; }
-.run-splits[open] + .split-preview { display: none; }
-.mspl span { overflow-wrap: anywhere; min-width: 0; }
 
 /* Probes page (design N, runs/mockups/probes-viewer/n.html). */
 .pr-wrap { display: grid; gap: 14px; padding: 16px; max-width: 1440px; margin: 0 auto; font: 14px/1.5 Inter, system-ui, sans-serif; color: #283038; }

@@ -14,7 +14,7 @@ import { cardHtml as trainerCardHtml, gymHtml, nextGym, parseTrainerPageData, ru
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
-import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
+import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, stateLabel, type ControlAction } from "./controls.js";
 import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
@@ -681,7 +681,7 @@ export class App {
     if(state===null||this.current===null)return;const now=this.deps.now();
     for(const row of state.runs)this.knownLiveCards.add(row.id);
     const recorded=new Map((this.currentRecordedWorkbench?.runs??[]).map(run=>[run.id,run]));for(const s of state.runs){
-      // Current projector ships splits:[]; story progress and the watch-side strip come from the generation-matched cards projection.
+      // Current projector ships splits:[]; story progress and the splits page come from the generation-matched cards projection.
       // Card presence is only required when falling back to a saved trainer plate during incomplete reconstruction.
       const matched=this.recordedWorkbenchRun(s.id,s.generation),saved=matched?.card!=null?matched:null,fallback=!s.complete&&s.run.card==null?saved:null;
       recorded.set(s.id,{...s.run,experiment:s.run.experiment??matched?.experiment??null,splits:matched?.splits??currentSplits(s),...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
@@ -735,7 +735,7 @@ export class App {
   }
 
   // Live current watching paints frames and the trainer plate from the projector, but story splits stay
-  // empty there (splits:[]). The always-visible watch-side strip, split times vs frontier, and card
+  // empty there (splits:[]). The PokéNav splits page and card
   // STORY progress need `/api/cards` for the selected run. Full `/api/workbench` stays off the live index.
   private needsWorkbenchEnrichment(): boolean {
     if (this.current === null) return true;
@@ -1378,7 +1378,7 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
-    // SPLIT TIMES VS FRONTIER and the PokéNav splits page race the frontier with every pick.
+    // The PokéNav splits page races the frontier with every pick.
     void this.loadFrontier(runId);
     this.render();
   }
@@ -1742,10 +1742,6 @@ export class App {
     this.setHtml("stats", sideStats(view,nowMs,current===null&&currentSnapshot===null?undefined:currentSnapshot===null?{complete:false,contextKnown:false,timeKnown:false}:{complete:currentSnapshot.complete,contextKnown:currentSnapshot.context.estimated!==null||currentSnapshot.context.measured!==null,timeKnown:currentSnapshot.run.elapsedMs!==null}));
     if (this.extensionDialog().open || this.extensionPending !== null) this.updateExtension();
     const recordedSplits = this.mode === "loading" || this.headReady ? this.recordedSplits() : undefined;
-    const splitView = this.mode === "loading" ? view : visualSplitView(this.view, visualRun, this.view.lastMs ?? nowMs);
-    this.setHtml("split-preview", splitStrip(splitView, recordedSplits, true));
-    this.setHtml("split-strip", splitStrip(splitView, recordedSplits));
-    this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits, !this.frontierSettled && this.frontier === null));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
     const thinkingView = current?.snapshot != null && !current.snapshot.header.harness_features.includes("probe") && (view.isThinking || view.lastThought?.turn === view.turn) ? view : this.recordedThinking ?? (this.mode === "loading" ? null : view);

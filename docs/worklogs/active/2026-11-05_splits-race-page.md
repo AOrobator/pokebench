@@ -32,3 +32,7 @@ Round 4, final delta. Claude: LGTM. GPT: LGTM.
 ## Nav order
 
 Requested by the operator 2026-11-05: SPLITS sits right after POKéMON PARTY in the PokéNav. One button moved in static/index.html; the phone picker follows the button order.
+
+## Top card splits removed
+
+Requested by the operator 2026-11-05: delete SPLITS THIS RUN and the frontier splits from the top run card, since the PokéNav page has them. Removed the markup, `splitStrip`, `splitTimes` and their styles and tests.

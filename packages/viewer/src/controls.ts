@@ -5,9 +5,7 @@ import type { ControlAction as AgentControlAction } from "@pokebench/agent/run-c
 // ★ NEXT RUN page. app.ts owns state, keys and requests.
 import type { FeatureInfo, SwitchableFeature } from "@pokebench/agent/features";
 import { esc, hms, num } from "./format.js";
-import { FRONTIER_MILESTONES } from "./frontier.js";
-import { MILESTONE_ORDER, deeperMilestone, type RunView } from "./model.js";
-import { nextSplit, reachedSplits, type BestSplits } from "./run-splits.js";
+import { deeperMilestone, type RunView } from "./model.js";
 
 export type ControlAction = AgentControlAction;
 export type Overlay = "pausing" | "paused" | "stopping" | "ended" | "abort_hold" | "aborted" | null;
@@ -158,47 +156,6 @@ export function sideStats(view:RunView,nowMs:number,current?:{complete:boolean;c
     ...(view.control.maxTurns===null && view.operatorTurnLimit===null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${String(start?.budgets.max_turns ?? "unknown")} turns</p>`]),
     ...(view.control.maxWallMs === null ? [] : [`<p class="extension-note">Operator-extended continuation · original ${hms((start?.budgets.max_wall_ms ?? 0) / 1000)}</p>`]),
   ].join("");
-}
-
-const STORY_ORDER: readonly string[] = MILESTONE_ORDER;
-const FRONTIER_LABELS = new Map<string, string>(FRONTIER_MILESTONES.map((m) => [m.id, m.label]));
-const splitLabel = (name: string): string => (FRONTIER_LABELS.get(name) ?? name.replaceAll("_", " ")).toUpperCase();
-const storyIndex = (name: string): number => { const at = STORY_ORDER.indexOf(name); return at < 0 ? STORY_ORDER.length : at; };
-
-// Every split this run recorded, in story order, then the next required checkpoint. While a run's
-// event stream catches up, `recorded` is the compact workbench projection; null holds a stable
-// loading state instead of painting the partially replayed milestones one at a time.
-function runSplits(view: RunView, recorded?: BestSplits | null): { name: string; label: string; at: number | null }[] {
-  if (recorded === null) return [];
-  const source = reachedSplits(view, recorded);
-  const reached = source.map((m, i) => ({ m, i }))
-    .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
-    .map(({ m }) => ({ name: m.name, label: splitLabel(m.name), at: m.at }));
-  const next = nextSplit(view, new Set(recorded === undefined ? view.milestones.map((m) => m.name) : source.map((m) => m.name)));
-  return next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }];
-}
-
-export function splitStrip(view: RunView, recorded?: BestSplits | null, compact = false): string {
-  if (recorded === null) return '<div class="mspl"><span class="next">LOADING RECORDED SPLITS…</span></div>';
-  const all = runSplits(view, recorded);
-  // Optional rewards are catalogued after the campaign; they must not hide a later gym win.
-  const currentName = FRONTIER_MILESTONES.findLast(m => all.some(split => split.name === m.id && split.at !== null))?.id;
-  const splits = compact ? all.filter((split) => split.name === currentName || split.at === null) : all;
-  return `<div class="mspl">${splits.map(({ label, at }) => `<span class="${at === null ? "next" : "done"}">${esc(label)}${at === null ? "" : " ✔"}</span>`).join("")}</div>`;
-}
-
-// This run's split times against the agent frontier; under a second apart is a tie.
-export function splitTimes(view: RunView, frontier: BestSplits | null, recorded?: BestSplits | null, frontierLoading = false): string {
-  if (recorded === null) return '<p class="small muted">loading recorded splits…</p>';
-  const splits = runSplits(view, recorded);
-  const bests = new Map(frontier?.milestones.map((m) => [m.name, m.offsetMs / 1000]) ?? []);
-  const rows = splits.map(({ name, label, at }) => {
-    const ref = bests.get(name);
-    const tie = ref !== undefined && at !== null && Math.abs(at - ref) < 1;
-    const delta = at === null || ref === undefined ? `<span class="d na">${at === null ? "next" : ""}</span>` : tie ? `<span class="d">±${hms(0)}</span>` : `<span class="d ${at < ref ? "g" : "r"}">${at < ref ? "−" : "+"}${hms(Math.abs(at - ref))}</span>`;
-    return `<span>${esc(label)}</span><span class="t${at === null ? " na" : ""}">${at === null ? "—" : hms(at)}</span>${delta}`;
-  }).join("");
-  return `<div class="splitrows"><span class="small muted">SPLIT</span><span class="small muted t">THIS RUN</span><span class="small muted d">VS FRONTIER</span>${rows}</div>${frontier !== null ? "" : frontierLoading ? '<p class="small muted">loading the frontier run…</p>' : '<p class="small muted">no frontier run to compare yet</p>'}`;
 }
 
 function pips(history: FeatureHistory): string {

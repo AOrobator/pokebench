@@ -1,7 +1,7 @@
 # Effort truth and custom-lane frontier filter
 
 **Started:** 2026-11-04 (New York)
-**Status:** Focused checks pass; full gates waiting for a heavy-CPU window
+**Status:** Gates pass; review next
 **Operator:** The operator. "correctness fixes need to be on by default" (2026-11-04)
 **Branch:** `claude/effort-truth-frontier-lanes`
 
@@ -40,6 +40,8 @@
 COMMIT: `test: effort reaches the request and custom lanes stay off the frontier` (a18f90f4e)
 
 ## Gates
+
+Final, on 2026-11-04 night NY: just lint pass, just test pass (agent 2,458, viewer 855, env 2,901, gateway 38, floors and no-io-proof pass), just verify-vendor pass, trainer-card check 3/3. A served-module unit test was deleted because importing server.ts trips the no-I/O guard; the trainer-card check covers that failure.
 
 Trainer-card check first failed: custom-lane and served-effort were not in BROWSER_MODULES, and panels imported the server-only run-config. Vitest could not see it; the browser would have failed to load. Fixed; check passes 3/3 with main's card art.
 Headless proof on a two-run fake root, desktop and phone, no JS errors: /comparisons draws only the plain run, lists the edit twin as "Custom lane, kept off the benchmark frontier: weight-edited model", and its link opens the run.

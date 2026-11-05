@@ -270,6 +270,7 @@ export class App {
   // Until the server has ranked every run, "no frontier" is unknown, not an answer; the card poll asks again.
   private frontierSettled = false;
   private frontierSave = false;
+  private frontierStart: string | null = null;
   private frontierRetry = false;
   private frontierRequest = 0;
   private problems: string[] = [];
@@ -1171,7 +1172,7 @@ export class App {
     const knowledge = view.start?.harness_features.find(id => KNOWLEDGE_SWITCHES.has(id));
     const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
     const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
-    const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, recording?.origin));
+    const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
     this.setHtml("race-head", raceHeadline(race, label, now, loading, side));
     this.setHtml("race-rail", raceRail(race));
@@ -1210,10 +1211,10 @@ export class App {
   private async loadFrontier(runId: string, retry = false): Promise<void> {
     const request = ++this.frontierRequest;
     try {
-      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown; state?: unknown; save?: unknown };
+      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown; state?: unknown; save?: unknown; start?: unknown };
       const frontier = record.frontier === null ? null : baselineOf(record.frontier);
       if (request !== this.frontierRequest) return;
-      if (record.state !== "loading") { this.frontier = frontier; this.frontierSave = record.save === true; }
+      if (record.state !== "loading") { this.frontier = frontier; this.frontierSave = record.save === true; this.frontierStart = typeof record.start === "string" ? record.start : null; }
       this.frontierSettled = record.state !== "loading" && record.state !== "stale";
       this.frontierRetry = !this.frontierSettled;
       this.render();
@@ -1271,6 +1272,7 @@ export class App {
     this.raceFilter = "all"; this.raceOpen.clear(); this.raceMemo = null; this.racePlotMemo = null;
     this.frontier = null;
     this.frontierSave = false;
+    this.frontierStart = null;
     this.frontierSettled = false;
     this.frontierRetry = false;
     this.recordedThinkingRequest += 1;

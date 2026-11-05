@@ -27,3 +27,4 @@ GREEN: focused files only (splits-race-honest, splits-race, frontier-cache, fron
 COMMIT: `fix(viewer): race assisted runs and save runs honestly` (3da30766f). GREEN.
 Typecheck found the test fixture missing the event envelope; fixed in the next commit. Build and `pnpm -r lint` pass.
 Browser proof found the live page has no origin: `/api/cards` leaves it null, so an arbitrary save's splits landed under STONE. RED test added; the frontier answer now carries the start.
+COMMIT: `test(viewer): the frontier answer says where a save run starts` (0263e8747). RED.

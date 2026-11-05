@@ -3,7 +3,6 @@ import { esc, hms } from "./format.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import type { RunView } from "./model.js";
 import type { Baseline } from "./panels.js";
-import type { RunOrigin } from "./workbench-data.js";
 
 const BADGES = [["STONE_BADGE", "STONE", "Stone Badge"], ["KNUCKLE_BADGE", "KNUCKLE", "Knuckle Badge"], ["DYNAMO_BADGE", "DYNAMO", "Dynamo Badge"], ["HEAT_BADGE", "HEAT", "Heat Badge"], ["BALANCE_BADGE", "BALANCE", "Balance Badge"], ["FEATHER_BADGE", "FEATHER", "Feather Badge"], ["MIND_BADGE", "MIND", "Mind Badge"], ["RAIN_BADGE", "RAIN", "Rain Badge"]] as const;
 const LABELS = new Map<string, string>(FRONTIER_MILESTONES.map(m => [m.id, m.label]));
@@ -33,9 +32,9 @@ export function startIndex(view: RunView): number | null {
   return at < 0 ? null : at;
 }
 
-// As startIndex, with the recorded origin placing a save its file name does not.
-export function raceStart(view: RunView, origin: RunOrigin | null | undefined): number | null {
-  const at = FRONTIER_MILESTONES.findIndex(m => m.id === origin?.milestone);
+// As startIndex, with the save's known story position placing a save its file name does not.
+export function raceStart(view: RunView, milestone: string | null): number | null {
+  const at = FRONTIER_MILESTONES.findIndex(m => m.id === milestone);
   return startIndex(view) ?? (at < 0 ? null : at);
 }
 

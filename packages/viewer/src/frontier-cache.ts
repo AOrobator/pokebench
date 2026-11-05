@@ -13,7 +13,7 @@ const VERSION = 1;
 
 // "loading" is never "no frontier": nothing has been ranked yet, so the page must ask again.
 export type FrontierAnswer =
-  | { readonly state: "ready" | "stale"; readonly frontier: Baseline | null; readonly save?: true }
+  | { readonly state: "ready" | "stale"; readonly frontier: Baseline | null; readonly save?: true; readonly start?: string }
   | { readonly state: "loading"; readonly frontier: null };
 
 export interface FrontierCacheOptions {
@@ -76,6 +76,8 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
   // A ranking from disk answers at once but stays stale until this viewer ranks the runs itself.
   let pair: FrontierPair | null = file === null ? null : readFrontierFile(file);
   let saves: ReadonlyMap<string, Baseline | null> = new Map();
+  // Where each save run starts in the story: the card feed the page reads cannot say, only the complete runs can.
+  let starts: ReadonlyMap<string, string> = new Map();
   let rankedAt: number | null = null;
   let refreshing: Promise<void> | null = null;
   // One ranking at a time; a failed one keeps the previous ranking and is reported once, not per waiting request.
@@ -83,7 +85,7 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
     refreshing ??= options.read().then(runs => {
       const next = frontierPair(runs);
       if (file !== null && !samePair(pair, next)) writeFrontierFile(file, next);
-      pair = next; saves = saveFrontiers(runs); rankedAt = options.now();
+      pair = next; saves = saveFrontiers(runs); starts = new Map(runs.flatMap(r => r.origin?.milestone == null ? [] : [[r.id, r.origin.milestone]])); rankedAt = options.now();
     }).catch((error: unknown) => { options.onError?.(error); }).finally(() => { refreshing = null; });
     return refreshing;
   };
@@ -98,9 +100,9 @@ export function createFrontierCache(options: FrontierCacheOptions): FrontierCach
         await Promise.race([pending, new Promise(resolve => { timer = setTimeout(resolve, waitMs); })]);
         clearTimeout(timer);
       }
-      const state = fresh() ? "ready" : "stale", race = saves.get(current);
+      const state = fresh() ? "ready" : "stale", race = saves.get(current), start = starts.get(current);
       // A save run this ranking has not seen is still unanswered, not unraced.
-      if (fromSave) return race === undefined ? { state: "loading", frontier: null } : { state, frontier: race, save: true };
+      if (fromSave) return race === undefined ? { state: "loading", frontier: null } : { state, frontier: race, save: true, ...(start === undefined ? {} : { start }) };
       if (pair === null) return { state: "loading", frontier: null };
       return { state, frontier: pairFrontier(pair, current, false) };
     },

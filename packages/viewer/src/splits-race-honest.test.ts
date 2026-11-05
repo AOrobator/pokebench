@@ -68,6 +68,12 @@ describe("the frontier answer", () => {
     const cache = ranked([agent("boot", T1, BADGE), saved("rival", T1, BADGE), saved("now", T2, [])]);
     expect(await cache.answer("now", true)).toMatchObject({ state: "ready", save: true, frontier: { run: "rival" } });
   });
+  it("says where a save run starts, which only the complete runs know", async () => {
+    const origin = { milestone: "FORTREE_CITY", save: "x.state", sourceRun: null, sourceTurn: null };
+    const cache = ranked([saved("rival", T1, BADGE), saved("now", T2, [], SAVE, { origin })]);
+    expect(await cache.answer("now", true)).toMatchObject({ start: "FORTREE_CITY" });
+    expect(await cache.answer("rival", true)).not.toHaveProperty("start");
+  });
   it("answers a save run nothing earlier shares with no frontier, never the New Game one", async () => {
     expect(await ranked([agent("boot", T1, BADGE), saved("now", T2, [])]).answer("now", true)).toEqual({ state: "ready", frontier: null, save: true });
   });
@@ -104,11 +110,10 @@ describe("recording which save a run loaded", () => {
 
 describe("where the race starts", () => {
   const view = (path: string): RunView => Object.assign(new RunView(), { start: { ...START, start_state: { kind: "save_state", path, sha1: SAVE } }, startMs: BASE_MS });
-  const origin = (milestone: string | null) => ({ milestone, save: "x.state", sourceRun: null, sourceTurn: null });
   it("places an arbitrary save from its provenance, and a checkpoint name wins", () => {
-    expect(raceStart(view("x/PAUSED_BEFORE_RESTART.state"), origin("FORTREE_CITY"))).toBe(FRONTIER_MILESTONES.findIndex(m => m.id === "FORTREE_CITY"));
-    expect(raceStart(view("x/CLOCK_SET.state"), origin("FORTREE_CITY"))).toBe(FRONTIER_MILESTONES.findIndex(m => m.id === "CLOCK_SET"));
-    expect(raceStart(view("x/PAUSED_BEFORE_RESTART.state"), origin(null))).toBeNull();
+    expect(raceStart(view("x/PAUSED_BEFORE_RESTART.state"), "FORTREE_CITY")).toBe(FRONTIER_MILESTONES.findIndex(m => m.id === "FORTREE_CITY"));
+    expect(raceStart(view("x/CLOCK_SET.state"), "FORTREE_CITY")).toBe(FRONTIER_MILESTONES.findIndex(m => m.id === "CLOCK_SET"));
+    expect(raceStart(view("x/PAUSED_BEFORE_RESTART.state"), "NOT_A_MILESTONE")).toBeNull();
     expect(raceStart(view("x/PAUSED_BEFORE_RESTART.state"), null)).toBeNull();
   });
   it("races a save of unknown position and opens at its next badge when the origin knows it", () => {

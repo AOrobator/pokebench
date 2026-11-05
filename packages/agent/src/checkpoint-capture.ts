@@ -20,8 +20,8 @@ export interface CheckpointDeps {
 const nativeMilestone=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
 
 // A boot start saves every frontier milestone unless POKEBENCH_CHECKPOINT_FRONTIER=0 (the operator 2026-11-05,
-// after run 274b saved none). A save-state start already begins past its capture points, so it stays opt-in.
-export function checkpointSelection(env:NodeJS.ProcessEnv,start:{readonly kind:string}):CheckpointSelection|null {
+// after run 274b saved none). Save-state starts stay opt-in.
+export function checkpointSelection(env:NodeJS.ProcessEnv,start:{readonly kind:"boot"|"save_state"}):CheckpointSelection|null {
  const target=env["POKEBENCH_CHECKPOINT_AT"],frontier=env["POKEBENCH_CHECKPOINT_FRONTIER"];
  if(frontier!==undefined&&frontier!==""&&frontier!=="0"&&frontier!=="1")throw new Error("POKEBENCH_CHECKPOINT_FRONTIER must be 0 or 1 when set");
  if(target!==undefined&&target!==""&&frontier==="1")throw new Error("choose one of POKEBENCH_CHECKPOINT_AT and POKEBENCH_CHECKPOINT_FRONTIER");
@@ -54,9 +54,10 @@ function source(meta:RunStartMeta):Record<string,unknown>{
  };
 }
 
-// Saves native states in milestone observation order. Captures use the first
-// recorded observation and pause before asking the server for its native state;
-// the server exposes no stronger emulator-wide stability certificate.
+// Saves native states in milestone observation order, using the first recorded
+// observation. The server saves under the lock every frame runs under, so a state
+// always falls between frames. Capture must not pause: a pause ends any tool wait
+// early, and the model is then told the game is paused.
 export class CheckpointCapture {
  private pending:Promise<void>=Promise.resolve();
  private readonly seen=new Set<string>();
@@ -80,13 +81,8 @@ export class CheckpointCapture {
  async close():Promise<void>{this.closed=true;await this.settled();}
  private selected(name:string):boolean{return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
  private async post(path:string,body:unknown):Promise<Response>{return this.deps.fetch(`${this.deps.serverUrl}${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
- private async pause(paused:boolean):Promise<void>{
-  const action=paused?"pause":"unpause",reply=await this.post("/pokebench/pause",{paused});
-  if(!reply.ok)throw new Error(`${action} request failed with HTTP ${String(reply.status)}`);
-  const body=await reply.json() as {paused?:unknown};if(body.paused!==paused)throw new Error(`${action} response did not confirm paused=${String(paused)}`);
- }
  private metadata(event:MilestoneEvent,data:Buffer,sha1:string,sha256:string):Record<string,unknown>{
-  return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"paused_after_recorded_observation"}};
+  return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"between_frames_under_memory_lock"}};
  }
  private pair(dir:string,name:string,data:Buffer,meta:string):void{
   const state=join(dir,`${name}.state`),sidecar=join(dir,`${name}.json`);
@@ -111,17 +107,11 @@ export class CheckpointCapture {
   try {this.deps.write(partial,JSON.stringify({version:1,run:event.run,milestone:event.name,milestone_seq:event.seq,observed_at:event.t,error:error.message}));this.deps.rename(partial,path);} catch { /* The rejection remains the authoritative surface when disk recording also fails. */ }
  }
  private async capture(event:MilestoneEvent):Promise<void>{
-  let failure:Error|undefined;
-  try {
-   await this.pause(true);
-   const reply=await this.post("/pokebench/checkpoint",{});if(!reply.ok)throw new Error(`checkpoint request failed with HTTP ${String(reply.status)}`);
-   const body=await reply.json() as {state_base64?:unknown;sha1?:unknown;sha256?:unknown};
-   if(typeof body.state_base64!=="string"||typeof body.sha1!=="string"||typeof body.sha256!=="string")throw new Error("checkpoint reply is missing its state or digests");
-   const data=Buffer.from(body.state_base64,"base64");if(data.length===0||data.length>8*1024*1024)throw new Error("checkpoint state size is invalid");
-   const sha1=createHash("sha1").update(data).digest("hex"),sha256=createHash("sha256").update(data).digest("hex");if(sha1!==body.sha1||sha256!==body.sha256)throw new Error("checkpoint digest does not match the returned state");
-   const meta=JSON.stringify(this.metadata(event,data,sha1,sha256));this.pair(this.deps.dir,event.name,data,meta);this.promote(event,data,meta,sha1,sha256);
-  } catch(error) {failure=errorOf(error);}
-  try {await this.pause(false);} catch(error) {failure??=errorOf(error);}
-  if(failure!==undefined)throw failure;
+  const reply=await this.post("/pokebench/checkpoint",{});if(!reply.ok)throw new Error(`checkpoint request failed with HTTP ${String(reply.status)}`);
+  const body=await reply.json() as {state_base64?:unknown;sha1?:unknown;sha256?:unknown};
+  if(typeof body.state_base64!=="string"||typeof body.sha1!=="string"||typeof body.sha256!=="string")throw new Error("checkpoint reply is missing its state or digests");
+  const data=Buffer.from(body.state_base64,"base64");if(data.length===0||data.length>8*1024*1024)throw new Error("checkpoint state size is invalid");
+  const sha1=createHash("sha1").update(data).digest("hex"),sha256=createHash("sha256").update(data).digest("hex");if(sha1!==body.sha1||sha256!==body.sha256)throw new Error("checkpoint digest does not match the returned state");
+  const meta=JSON.stringify(this.metadata(event,data,sha1,sha256));this.pair(this.deps.dir,event.name,data,meta);this.promote(event,data,meta,sha1,sha256);
  }
 }

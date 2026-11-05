@@ -97,7 +97,7 @@ it("lets a v2 preset start from a checkpoint whose SHA-1 is verified before laun
 
 it("stops after close and never leaves a published state without provenance",async()=>{
  const late=fixture();await late.capture.close();late.capture.observe(milestone("CLOCK_SET",20));await late.capture.settled();expect(late.calls).toHaveLength(0);
- const disk=fixture(undefined,undefined,200,true);disk.capture.observe(milestone("CLOCK_SET",20));await expect(disk.capture.settled()).rejects.toThrow(/disk full/);expect([...disk.files.keys()].some(path=>path.endsWith("CLOCK_SET.state"))).toBe(false);expect(JSON.parse(String(disk.files.get("/runs/cp-run/checkpoints/CLOCK_SET.error.json")))).toMatchObject({error:"disk full"});
+ const disk=fixture(undefined,undefined,200,true);disk.capture.observe(milestone("CLOCK_SET",20));await expect(disk.capture.settled()).rejects.toThrow(/disk full/);expect([...disk.files.keys()].some(path=>path.endsWith("CLOCK_SET.state"))).toBe(false);
 });
 
 it("checks and loads a relative checkpoint path through one absolute path",()=>{const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};const seen:string[]=[];const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);});

@@ -41,8 +41,9 @@ Save paths are untrusted. The reader re-roots the part after `/runs/` under the 
 - [x] COMMIT GREEN: `feat(viewer): frontier fails open` (ec5227cf7 after rebase)
 - [x] Docs: grading protocol note
 - [x] Full gates on ec5227cf7 in the coordinator's START window: `just test` passed (viewer 960, Python 2930 + 38, no-I/O proof OK, floors met: agent 60.36/56.77/59.67/65.92, viewer 38.18/41.84/44.24/38.58). `just lint` stopped at mypy on `mgba._pylib`, which this worktree has not built; mypy with main's env passed on 142 files, and the claude-gateway ruff and mypy steps passed by hand. `just trainer-card-check` could not load art in a fresh worktree; with `runs/sprites` linked from main, 3 passed.
-- [ ] Claude + GPT + fallback reviews
-- [ ] Before/after headless screenshots and Hidden list on real data
+- [x] Claude + GPT + fallback reviews (see log)
+- [x] Before/after headless screenshots and Hidden list on real data (taken at 86dd4726f; the two later commits change only a probe with a problem, the race graph and a probe source)
+- [ ] Full gates on the final head 9cc3be58d or later (last full run was ec5227cf7; viewer lint clean and viewer tests 966 passed at 9cc3be58d)
 - [ ] ASK USER: The operator's go to land
 
 ## Closing the Loop
@@ -77,6 +78,11 @@ Round 2, frozen 7010a995c..86dd4726f, diff SHA-256 519ff9be6e970c1ed1987d596f473
 Round 3, delta on d666eccb4 (cumulative SHA-256 0ba150667a2d39625c2edae02cc397d16c5a2dc8c5431538d3d706b21095659c).
 - GPT: LGTM on the delta.
 - Claude CLI: no output in two attempts on the review config; stopped. Claude subagent lane, on the cumulative diff: BLOCKING, accepted: `racePlot` went through `frontierPlot`, so probe splits reached the race graph and ignored a replay rewind. `agent` now clears them. Minor, accepted: a probe source could not place a save; `reachedBy` now reads its `probeSplits`.
+
+Round 4, delta on 9cc3be58d (cumulative SHA-256 e65831f6a5e52228b68044471bfa2d3106fe63ba912b06fb3205e9c2cad0b6f2).
+- Claude subagent lane: LGTM.
+- GPT: LGTM on the delta.
+- Grok lane not run. The fallback subagent's last literal verdict was LGTM in round 1; its round 2 report found no bugs but had no verdict line, and it did not see rounds 3 and 4.
 
 ## Principles Self-Review
 

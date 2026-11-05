@@ -49,3 +49,11 @@ The first attempt hung because a stray `org.py` in the shared scratchpad shadowe
 
 - Vases, trash cans and bookshelves are flavor text like shelves but have scripts, so they stay listed under the rule given.
 - Astra presets list switches by hand, so the next Astra launch needs `shop-shelf-hidden-v1` added.
+
+## Review
+
+GPT, read-only (`codex exec`), two rounds so far.
+
+- Round 1 was invalid: the packet used `git diff main HEAD` after main moved, so it reversed main's new commits. All 3 findings came from that and none concerned this change. Discarded.
+- Round 2, merge-base diff: VERDICT: CHANGES, one finding. Human play in `live.ts` passes a hardcoded off list without this switch, so it would run on there with no provenance. Fixed: the switch joins that list. Other default-off server switches are also missing from that list; that predates this branch and is left alone.
+

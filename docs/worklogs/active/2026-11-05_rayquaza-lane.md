@@ -5,11 +5,13 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ## Status
 
 - [ ] A: guide, truck to Heat (draft in `docs/curriculum/rayquaza-guide-badges-1-3.md`)
-- [ ] B: guide, Heat through Rayquaza and the Elite Four (Codex; The operator 11/5)
+- [x] B: guide, Heat through Rayquaza and the Elite Four (Codex; 61 rows, independently checked; The operator 11/5)
 - [ ] C: `rq-milestone-guide-v1` delivery switch, and a Master Ball milestone (the operator 11/5)
 - [ ] D: fact check (Codex, brief written)
 - [ ] E: viewer badge and headline, after the operator's mockup pick
 
 ## Commits
 
+- PREVIOUS: `docs(curriculum): add Rayquaza back-half guide` (b66305ced)
+- GATE: 61 four-column rows; all notes at most 300 characters; relative links resolve; 0 CHECK rows; `git diff --check` clean. Independent fact check found 43 confirmed and 18 corrected rows.
 - COMMIT: `docs(curriculum): freeze the guide format and draft the Rayquaza briefs` (10a5bf4ee)

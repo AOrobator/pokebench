@@ -43,8 +43,8 @@ Save paths are untrusted. The reader re-roots the part after `/runs/` under the 
 - [x] Full gates on ec5227cf7 in the coordinator's START window: `just test` passed (viewer 960, Python 2930 + 38, no-I/O proof OK, floors met: agent 60.36/56.77/59.67/65.92, viewer 38.18/41.84/44.24/38.58). `just lint` stopped at mypy on `mgba._pylib`, which this worktree has not built; mypy with main's env passed on 142 files, and the claude-gateway ruff and mypy steps passed by hand. `just trainer-card-check` could not load art in a fresh worktree; with `runs/sprites` linked from main, 3 passed.
 - [x] Claude + GPT + fallback reviews (see log)
 - [x] Before/after headless screenshots and Hidden list on real data (taken at 86dd4726f; the two later commits change only a probe with a problem, the race graph and a probe source)
-- [ ] Full gates on the final head 9cc3be58d or later (last full run was ec5227cf7; viewer lint clean and viewer tests 966 passed at 9cc3be58d)
-- [ ] ASK USER: The operator's go to land
+- [x] Full gates on 4b70f3059 in the coordinator's START window, with art linked and main's env for mypy: `just test` passed (agent 2537, viewer 966, Python 2930 + 38, no-I/O proof OK; floors met: agent 60.36/56.77/59.67/65.92, viewer 38.25/41.89/44.36/38.61); TypeScript, Python and gateway lint passed; `just trainer-card-check` 3 passed.
+- [x] Landing go relayed by the coordinator 2026-11-05, conditional on green gates
 
 ## Closing the Loop
 
@@ -82,7 +82,8 @@ Round 3, delta on d666eccb4 (cumulative SHA-256 0ba150667a2d39625c2edae02cc397d1
 Round 4, delta on 9cc3be58d (cumulative SHA-256 e65831f6a5e52228b68044471bfa2d3106fe63ba912b06fb3205e9c2cad0b6f2).
 - Claude subagent lane: LGTM.
 - GPT: LGTM on the delta.
-- Grok lane not run. The fallback subagent's last literal verdict was LGTM in round 1; its round 2 report found no bugs but had no verdict line, and it did not see rounds 3 and 4.
+- Fallback subagent, fresh, on the cumulative diff: LGTM.
+- Grok lane not run; Claude + GPT + fallback is full approval under the standing Grok rule.
 
 ## Principles Self-Review
 

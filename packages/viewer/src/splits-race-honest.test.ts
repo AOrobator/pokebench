@@ -86,13 +86,14 @@ describe("the frontier answer", () => {
 });
 
 describe("recording which save a run loaded", () => {
-  const state = (path: string): typeof START => ({ ...START, start_state: { kind: "save_state", path, sha1: SAVE } });
+  const header = (start: typeof START): Parameters<typeof configuration>[0] => ({ v: 1, run: "now", seq: 0, t: T1, ...start });
+  const state = (path: string): Parameters<typeof configuration>[0] => header({ ...START, start_state: { kind: "save_state", path, sha1: SAVE } });
   it("records an arbitrary or named save and treats the main menu as New Game", () => {
     expect(configuration(state("x/PAUSED_BEFORE_RESTART.state")).saveSha1).toBe(SAVE);
     expect(configuration(state("x/ROUTE_101.state")).saveSha1).toBe(SAVE);
     expect(configuration(state("x/MAIN_MENU.state")).saveSha1).toBeUndefined();
-    expect(configuration(START).saveSha1).toBeUndefined();
-    expect([fromSave(state("x/ROUTE_101.state")), fromSave(state("x/MAIN_MENU.state")), fromSave(START)]).toEqual([true, false, false]);
+    expect(configuration(header(START)).saveSha1).toBeUndefined();
+    expect([fromSave(state("x/ROUTE_101.state")), fromSave(state("x/MAIN_MENU.state")), fromSave(header(START))]).toEqual([true, false, false]);
   });
   it("crosses the wire validated", () => {
     const data = (saveSha1: unknown): unknown => ({ version: 1, at: 0, milestones: [], problems: [], runs: [{ ...saved("now", T1, []), config: { ...saved("now", T1, []).config, saveSha1 } }] });

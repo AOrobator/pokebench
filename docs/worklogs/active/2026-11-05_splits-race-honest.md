@@ -24,3 +24,5 @@ Viewer-only correctness fix, so no feature switch (the feature-switch skill excl
 
 COMMIT: `test(viewer): assisted runs and save runs get an honest race` (2c2467279). RED.
 GREEN: focused files only (splits-race-honest, splits-race, frontier-cache, frontier-fail-open, custom-lane), 74 passed. Full gates not run.
+COMMIT: `fix(viewer): race assisted runs and save runs honestly` (3da30766f). GREEN.
+Typecheck found the test fixture missing the event envelope; fixed in the next commit. Build and `pnpm -r lint` pass.

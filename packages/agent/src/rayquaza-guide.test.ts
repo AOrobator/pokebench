@@ -102,18 +102,34 @@ describe("GuidePosition tile steps", () => {
   it("advances on standing on the step's tile", () => {
     const guide = new GuidePosition([...steps, { after: "AT:Route111:35:65", map: "Route111", note: "Press A.", at: { id: [0, 26], x: 35, y: 65 } }]);
     const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: [0, 26], position: { x, y } }) as unknown as RunEvent;
-    guide.observe(at(35, 64));
+    guide.observe(at(35, 65));
     expect(guide.current().after).toBe("RUN_START");
+    guide.observe(milestone("CLOCK_SET"));
+    guide.observe(at(35, 64));
+    expect(guide.current().after).toBe("CLOCK_SET");
     guide.observe(at(35, 65));
     expect(guide.current().after).toBe("AT:Route111:35:65");
+  });
+
+  it("advances on gaining the step's item, not on holding one already", () => {
+    const guide = new GuidePosition([...steps, { after: "GOT:RARE_CANDY", map: null, note: "Go on.", got: "RARE CANDY" }]);
+    const bag = (quantity: number): RunEvent => ({ type: "state", started: true, screen: "overworld", active_ui: null, in_battle: false, map_id: [0, 0], party: [], resources: { bag: [{ name: "RARE CANDY", quantity }] } }) as unknown as RunEvent;
+    guide.observe(milestone("CLOCK_SET"));
+    guide.observe(bag(1));
+    expect(guide.current().after).toBe("CLOCK_SET");
+    guide.observe(bag(2));
+    expect(guide.current().after).toBe("GOT:RARE_CANDY");
   });
 });
 
 describe("GuidePosition map steps", () => {
   it("advances on first entry to a step's map", () => {
     const guide = new GuidePosition([...steps, { after: "MAP:AquaHideout_B1F", map: "AquaHideout_B1F", note: "Go on.", enter: [26, 1] }]);
-    guide.observe({ type: "state", map_id: [26, 0] } as unknown as RunEvent);
+    guide.observe({ type: "state", map_id: [26, 1] } as unknown as RunEvent);
     expect(guide.current().after).toBe("RUN_START");
+    guide.observe(milestone("CLOCK_SET"));
+    guide.observe({ type: "state", map_id: [26, 0] } as unknown as RunEvent);
+    expect(guide.current().after).toBe("CLOCK_SET");
     guide.observe({ type: "state", map_id: [26, 1] } as unknown as RunEvent);
     expect(guide.current().after).toBe("MAP:AquaHideout_B1F");
   });
@@ -151,7 +167,7 @@ describe("the shipped guide", () => {
     const names = new Set(MILESTONES.map((m) => m.name));
     const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);
     expect(after[0]).toBe("RUN_START");
-    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !name.startsWith("AT:") && !name.startsWith("OPTIONS_") && !names.has(name))).toEqual([]);
+    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !name.startsWith("AT:") && !name.startsWith("GOT:") && !name.startsWith("OPTIONS_") && !names.has(name))).toEqual([]);
     expect(new Set(after).size).toBe(after.length);
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
   });

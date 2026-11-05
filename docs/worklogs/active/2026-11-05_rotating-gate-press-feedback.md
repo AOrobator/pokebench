@@ -1,7 +1,7 @@
 # Rotating-gate press feedback
 
 **Started:** 2026-11-05
-**Status:** reviewed, landing
+**Status:** landed on main a81072873 (2026-11-05), on in both arms, viewer restarted. No game run has used the switch yet.
 **Branch:** `claude/rotating-gate-press-feedback` (from main `2ca2ff475`), worktree `/private/tmp/pb-gate-press`.
 **Approval:** The operator asked for gate feedback on press as a correctness fix, on wherever its switch is on, relayed by the coordinator 2026-11-05.
 
@@ -45,3 +45,7 @@ Round 2, packet 9173ccbe4..29a4b52be, diff SHA-256 c1de312cc6afdc27260d7b323220f
 - Claude CLI (`~/.claude-review`): LGTM. Follow-ups, not fixed here: "across this batch" could say net for three pushes one way in a raw batch, unreachable with `rejected-movement-prefix-v1` on; a step that changes map is counted in "the other steps" though not read.
 - GPT (Codex CLI gpt-5.6-sol): LGTM.
 - Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.
+
+## Landing
+
+Fast-forward to main at a81072873. Post-merge `just test` at that commit: agent 2472, viewer 869, env 2901, gateway 38, all floors met. `just viewer-main`: viewer at a81072873, 1 live gameplay process kept running (5f0f, pinned to 49aadfe76, so it does not have this switch). Explainer returns 200 from 8790 and 8791 with the new section. The Harness Config card link is covered by `panels.test.ts`, not clicked in a browser. No live emulator proof yet: the evidence is the recorded 5f0f replay.

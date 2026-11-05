@@ -1,7 +1,7 @@
 # Effort truth and custom-lane frontier filter
 
 **Started:** 2026-11-04 (New York)
-**Status:** Gates pass; review next
+**Status:** Gates pass; Claude and fallback LGTM; waiting on the operator for the GPT finding and GLM
 **Operator:** The operator. "correctness fixes need to be on by default" (2026-11-04)
 **Branch:** `claude/effort-truth-frontier-lanes`
 
@@ -55,6 +55,8 @@ Wiring check: removing sentEffort from playLoopBase turned reasoning-effort.test
 Real data, built viewer on the served 801 runs: best stays 274b, runner-up astra 429f; only two 2026-10-15 think-fast hint runs become custom; a fake edit twin of 274b does not rank.
 
 ## Multi-Model Review Log
+
+Round 3, packet ..0d3902a9c sha 31555680. Claude: LGTM. Fallback subagent: LGTM. GPT: BLOCKING on one point: a custom run's own page still compares its splits against the frontier. Nothing else is affected; custom runs never become the reference. Round cap reached, so this goes to the operator: land as is (recommended) or also hide that column, which needs the server to read each run's lane.
 
 Round 2, packet ..7c3fcea2a sha cbcc810c. Fallback subagent: LGTM. Claude: BLOCKING on test gaps only. GPT (gpt-5.6-sol): BLOCKING on a loose edit matcher, a record that could claim an unsent effort on a body without template kwargs, and an unvalidated effortSent. All fixed: matcher is now -edit-, effort is added to every body, validator checks it, tests run run_start through configuration to Run Details and Harness Config.
 Follow-ups, not in this branch: tail.ts prints thinking_level; frontier-v1.json can answer stale until the first re-rank; history.ts ignores effortSent; just test cannot see a missing BROWSER_MODULES entry; stored Roxanne runtime baselines lack the key (they already failed on two older keys).

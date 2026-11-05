@@ -21,6 +21,8 @@
 
 ## Open
 
+- [ ] Follow-up: the header pill shortens qwen3.8-27b-edit-e1-x to Qwen3.8, so an edited model looks unedited except on hover.
+
 - [ ] the operator: GLM-5.3 accepts only low and high. Keep sending the configured level, or map it?
 - [ ] DeepSeek: chat_template_kwargs is forwarded through OrcaRouter; whether the provider reads it is unknown.
 - [ ] Trainer page still shows thinking_level; changing it needs a design look.
@@ -29,7 +31,7 @@
 
 - [x] M1 RED/GREEN, focused checks
 - [x] M2 full gates, regenerate schema
-- [ ] M2b trainer-card check, real-browser frontier proof
+- [x] M2b trainer-card check, real-browser frontier proof
 - [ ] M3 Claude, Grok and GPT review; land on main
 - [ ] M4 just viewer-main, then launch-check before any new run
 
@@ -38,6 +40,9 @@
 COMMIT: `test: effort reaches the request and custom lanes stay off the frontier` (a18f90f4e)
 
 ## Gates
+
+Trainer-card check first failed: custom-lane and served-effort were not in BROWSER_MODULES, and panels imported the server-only run-config. Vitest could not see it; the browser would have failed to load. Fixed; check passes 3/3 with main's card art.
+Headless proof on a two-run fake root, desktop and phone, no JS errors: /comparisons draws only the plain run, lists the edit twin as "Custom lane, kept off the benchmark frontier: weight-edited model", and its link opens the run.
 
 Full, 2026-11-04 11:2x PM NY, on main f3aa249fb: just lint pass; just test pass (agent 2,458, viewer 855, env 2,901, gateway 38, coverage floors and no-io-proof pass); just verify-vendor pass. The clone's venv links main's mgba binding for mypy.
 

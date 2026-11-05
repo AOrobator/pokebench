@@ -1,5 +1,4 @@
-import { thinkingLabel } from "./run-config.js";
-import { servedEffort } from "./served-effort.js";
+import { servedEffort, thinkingLabel } from "./served-effort.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";

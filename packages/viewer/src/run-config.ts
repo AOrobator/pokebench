@@ -37,12 +37,6 @@ export function configOf(start: Start): RunConfig | null {
   return { model: start.model.id, thinking: start.sampling.thinking_level, maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null, failureLimit: start.evaluation?.failure_limit ?? 3, target, features };
 }
 
-// thinking_level is a harness setting that no request carried before reasoning_effort_sent existed, so it is shown only when sent.
-export function thinkingLabel(sampling: { readonly thinking_level: string; readonly reasoning_effort_sent?: string | null | undefined }): string {
-  if (sampling.thinking_level === "off" || sampling.thinking_level === "none") return sampling.thinking_level;
-  return sampling.reasoning_effort_sent ?? "thinking on";
-}
-
 export function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>): string | null {
   if (start.start_state.kind !== "save_state") return null;
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";

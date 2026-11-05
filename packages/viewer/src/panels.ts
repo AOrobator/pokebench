@@ -8,8 +8,7 @@ import { esc, hms, num, signedDelta } from "./format.js";
 import { dataHtml, jsonHtml, richText } from "./inspectformat.js";
 import { ROUTE103_RIVAL_SPLITS } from "./frontier.js";
 import { displayModelName } from "./frontier-versions.js";
-import { thinkingLabel } from "./run-config.js";
-import { servedEffort } from "./served-effort.js";
+import { servedEffort, thinkingLabel } from "./served-effort.js";
 import { RETIRED_VISIBILITY, ASSUMED_TIMING, MILESTONE_ORDER, type RunView } from "./model.js";
 
 export const NO_DATA = '<span class="nodata">no data</span>';

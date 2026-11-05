@@ -9,3 +9,9 @@ const LANES: readonly (readonly [RegExp, string])[] = [
 export function servedEffort(model: string): string {
   return LANES.find(([lane]) => lane.test(model))?.[1] ?? "server default, not known";
 }
+
+// thinking_level is a harness setting that no request carried before reasoning_effort_sent existed, so it is shown only when sent.
+export function thinkingLabel(sampling: { readonly thinking_level: string; readonly reasoning_effort_sent?: string | null | undefined }): string {
+  if (sampling.thinking_level === "off" || sampling.thinking_level === "none") return sampling.thinking_level;
+  return sampling.reasoning_effort_sent ?? "thinking on";
+}

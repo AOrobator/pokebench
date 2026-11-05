@@ -1,7 +1,7 @@
 # Effort truth and custom-lane frontier filter
 
 **Started:** 2026-11-04 (New York)
-**Status:** Landed on local main at 7013f76f4; post-merge test and viewer refresh next
+**Status:** Landed and served at 5fccf8942; awaiting archive approval
 **Operator:** The operator. "correctness fixes need to be on by default" (2026-11-04)
 **Branch:** `claude/effort-truth-frontier-lanes`
 
@@ -33,13 +33,15 @@
 - [x] M2 full gates, regenerate schema
 - [x] M2b trainer-card check, real-browser frontier proof
 - [x] M3 Claude, GPT and fallback review; landed on main on the operator's word
-- [ ] M4 just viewer-main, then launch-check before any new run
+- [x] M4 viewer and projector at 5fccf8942
 
 ## Commits
 
 COMMIT: `test: effort reaches the request and custom lanes stay off the frontier` (a18f90f4e)
 
 ## Gates
+
+Post-merge on main 5fccf8942: just test pass (agent 2,458, viewer 860, env 2,901, gateway 38, no-I/O proof). just viewer-main and just current-main once; viewer pid 54773, parent launchd; run 5f0f kept pid 90992 and kept recording. Headless live check at 1440 and 390: pill reads DeepSeek-v4.1 · thinking on, no JS errors, both new modules 200, explainer 200.
 
 After round-2 fixes: just test pass (agent 2,458, viewer 860, env 2,901, gateway 38), trainer-card 3/3, verify-vendor pass; just lint rerun below. Seam check: deleting effortSent from run-config.ts turned panels.test.ts red (1 failed), restored green.
 

@@ -102,3 +102,6 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).
 - Task D recheck: last three rows fixed (Slaking, Tropius, Archie trigger tile). Guide fact-checked end to end.
 - GPT review: a buy step crossed by a jump was not logged. `noteMisses` now covers every step passed.
+- Boot build final gate, correction: the first run failed one stale test in `play-wiring.test.ts`, which still expected the old first guide line; fixed and rerun. Reviews: Claude LGTM on the last delta; GPT LGTM on the last delta, its item 4 (probe core) rebutted with the identical core hash in every scene. Landing.
+- Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.
+- Boot, options and slim prompt build landed on main; viewer and projector refreshed; live runs kept.

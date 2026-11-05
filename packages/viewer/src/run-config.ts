@@ -42,6 +42,8 @@ export function resumeCheckpoint(start: Extract<RunEvent, { type: "run_start" }>
   const file = start.start_state.path.split(/[/\\]/).pop() ?? "";
   return file === "MAIN_MENU.state" ? "MAIN_MENU" : REQUIRED_FRONTIER_MILESTONES.find(id => file === `${id}.state`) ?? null;
 }
+// The main-menu save is a New Game start; every other save starts its clock somewhere in the story.
+export const fromSave = (start: Extract<RunEvent, { type: "run_start" }>): boolean => start.start_state.kind === "save_state" && resumeCheckpoint(start) !== "MAIN_MENU";
 export function configuration(start: Extract<RunEvent, { type: "run_start" }>): WorkbenchConfig {
   const known = configOf(start);
   return {
@@ -49,7 +51,7 @@ export function configuration(start: Extract<RunEvent, { type: "run_start" }>): 
     preset: start.evaluation?.preset_id ?? null, target: start.evaluation?.target ?? null, thinking: start.sampling.thinking_level, effortSent: start.sampling.reasoning_effort_sent ?? null,
     maxTokens: start.sampling.max_tokens, maxTurns: start.budgets.max_turns ?? null, maxWallMs: start.budgets.max_wall_ms ?? null,
     failureLimit: start.evaluation?.failure_limit ?? null, context: start.model.context_window, vision: start.model.vision,
-    start: start.start_state.kind, resume: resumeCheckpoint(start), tools: start.tools,
+    start: start.start_state.kind, resume: resumeCheckpoint(start), ...(start.start_state.kind === "save_state" && fromSave(start) ? { saveSha1: start.start_state.sha1 } : {}), tools: start.tools,
     features: [...FEATURES.filter(f => f.switchable).map(f => ({ id: f.id, label: f.title, on: known === null ? (start.harness_features.includes(f.id) ? true : null) : known.features[f.id as keyof typeof known.features] })),
       ...(start.harness_features.includes(RETIRED_VISIBILITY.id)||start.evaluation?.features?.[RETIRED_VISIBILITY.id]!==undefined?[{id:RETIRED_VISIBILITY.id,label:RETIRED_VISIBILITY.label,on:start.evaluation?.features?.[RETIRED_VISIBILITY.id]??true}]:[])],
   };

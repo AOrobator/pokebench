@@ -109,3 +109,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fixes: `guide_purchase_missed` event replaces the RQ_MISSED hint, shown in Activity History as not sent to the model; item names match without a trailing period.
 - Guide fixes gate green at b7797dcc5: 2,561 agent, 989 viewer, 2,930 + 38 Python, lint and vendor clean. Claude LGTM; GPT's `tail-run` point rebutted. Added `rayquaza-lane-8h-v2` so run 0952's ledger stays in place.
 - Guide fixes landed on main; viewer and projector refreshed; `just fixed-run check rayquaza-lane-8h-v2` passes.
+- Buy lines: priority order with "as funds allow". Checked against recorded money: Petalburg median ₽3,492 (run 7442 ₽1,802), after Match Call ₽5,834, Fallarbor ₽11,828 before the Nugget and TM47 sale. No recorded money for Mossdeep; his run had ₽34,352.

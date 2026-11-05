@@ -8,7 +8,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 |---|---|---|---|
 | `HEAT_BADGE` | `LavaridgeTown_Gym_1F` | Finish Flannery’s dialogue to receive TM50 Overheat. | KI 26–27, ROM |
 | `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. | KI 27–28, ROM |
-| `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | At the Herb Shop, buy four Heal Powders, four Energy Roots and six Energy Powders as funds allow. Use Repel, go east via Route 112 to Route 111 and stand at (35,65). | KI v0:58:04–0:58:38, U8, U21, ROM |
+| `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | At the Herb Shop, buy in this order as funds allow: six Energy Powders, four Heal Powders, four Energy Roots. Use Repel, go east via Route 112 to Route 111 and stand at (35,65). | KI v0:58:04–0:58:38, U8, U21, ROM |
 | `AT:Route111:35:65` | `Route111` | Face south and press A for a hidden Rare Candy. | KI 28–30, ROM, OCR 0:58:38, audit U1 |
 | `GOT:RARE_CANDY` | `Route111` | Return to Mauville, bike to Slateport and board Briney’s boat at the Route 109 dock for Dewford. | KI v0:58:44–0:59:36, ROM, audit U1, U21, TO:MauvilleCity |
 | `DEWFORD_GYM_ENTERED` | `DewfordTown_Gym` | From (5,27), walk U R U4 R2 U R3 U7 R U9 L8 U to reach Brawly without trainers. Use bag items before Brawly if needed. At planned Lv28, use Strength against Machop, Meditite and Makuhita. | KI v0:59:45–1:00:47, U22, C1, ROM |
@@ -62,7 +62,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy 11 Hyper Potions, two Revives, 11 Max Repels and 11 X Attacks as funds allow, regardless of party. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
+| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy in this order as funds allow, regardless of party: two Revives, 11 X Attacks, 11 Hyper Potions, 11 Max Repels. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
 | `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | From (6,35): U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder; Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
 | `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center. | KI v1:48:35, U30, C1, ROM |
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Clear encountered downstairs grunts and the upstairs three-grunt chain, then join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:48:35–1:54:20, U30, C1, ROM |

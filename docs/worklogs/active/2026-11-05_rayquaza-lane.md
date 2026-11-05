@@ -95,4 +95,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - [x] Trigger follow-up after `a86675c07`: Petalburg and Mt. Pyre pickups now advance through exact `GOT:RARE_CANDY` rows whose Sources carry `TO:MauvilleCity` and `TO:FortreeCity`. Removed mid-battle healing language; item healing remains only before the Route 119 rival and Gym Leaders.
 - GREEN: generator produced 126 steps; focused `rayquaza-guide.test.ts` passed 28/28; `git diff --check` clean. Added regression coverage for repeated sequential `GOT:RARE_CANDY` triggers and retained milestone uniqueness.
 - Merged Codex's after-Heat units through 73926f790. Candy rows on Route 111, Petalburg and the summit use tile and item steps so Teleport cannot skip them. Fortree has a Teleport row again.
+- [x] Task D corrections, early route: split Brawly entry/exit paths, restore Norman’s Linoone and conditional Slaking plan, correct Route 120 candy tile, defer summit candy spending to `GOT`, attribute Winona’s Tropius moves correctly, qualify Maxie’s Crobat and Declan outcomes.
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).

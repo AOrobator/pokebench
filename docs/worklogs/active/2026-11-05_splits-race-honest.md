@@ -39,3 +39,6 @@ Build and `pnpm -r lint` pass. Agent 2537 tests; viewer 989 tests; env 2930 test
 
 Round 1 on c4e6c7b18. Claude CLI: LGTM. GPT via Codex CLI gpt-5.6-sol: LGTM. Cursor Grok and GPT: usage limit until 11/17, so a fresh read-only fallback reviewer stood in under the operator's standing rule: BLOCKING on one real finding.
 Triage. FIX: the no-race sentence was false when an earlier run was excluded; reworded. FIX: two stale comments. FOLLOW-UP: `loadFrontier` in-flight guard (already there, self-corrects), unknown-origin saves file under STONE, `runFromSave` failure answers New Game (no race renders today), `saveFrontiers` copies arrays.
+COMMIT: `fix(viewer): say truthfully why a save run has no race` (5c638507c).
+Round 2 on the delta c4e6c7b18..5c638507c: Claude CLI LGTM, GPT via Codex LGTM, fallback reviewer LGTM. Focused tests 47 passed; viewer lint passes. Delta is one page sentence, its test string and two comments, so the other gates stand.
+The operator's go (2026-11-05 4:23 PM New York): "fix the bugs and land ur changes".

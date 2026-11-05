@@ -21,7 +21,7 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 ## Milestones
 
 - [x] M1: RED tests
-- [ ] M2: GREEN, wiring, configs, explainer
+- [x] M2: GREEN, wiring, configs, explainer
 - [ ] M3: gates, reviews, landing
 
 ## Log

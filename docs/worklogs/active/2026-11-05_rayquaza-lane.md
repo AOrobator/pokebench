@@ -96,4 +96,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - GREEN: generator produced 126 steps; focused `rayquaza-guide.test.ts` passed 28/28; `git diff --check` clean. Added regression coverage for repeated sequential `GOT:RARE_CANDY` triggers and retained milestone uniqueness.
 - Merged Codex's after-Heat units through 73926f790. Candy rows on Route 111, Petalburg and the summit use tile and item steps so Teleport cannot skip them. Fortree has a Teleport row again.
 - [x] Task D corrections, early route: split Brawly entry/exit paths, restore Norman’s Linoone and conditional Slaking plan, correct Route 120 candy tile, defer summit candy spending to `GOT`, attribute Winona’s Tropius moves correctly, qualify Maxie’s Crobat and Declan outcomes.
+- [x] Task D corrections, Mossdeep–Seafloor: state Mossdeep Gym start, split Mind Badge/occupation/Steven/Dive timing, keep Room 9’s approach after its trigger, and restore the post-Kyogre surface and Route 128–129 continuity.
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).

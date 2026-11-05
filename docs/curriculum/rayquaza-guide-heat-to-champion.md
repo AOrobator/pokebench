@@ -63,19 +63,19 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy 11 Hyper Potions, two Revives, 11 Max Repels and 11 X Attacks as funds allow, regardless of party. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
-| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | Path: U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder and Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
-| `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center, defeat the four grunts and go upstairs to Steven. | KI v1:48:35–1:50:56, U30, C1, ROM |
-| `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf against Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:52:00–1:54:20, U30, C1, ROM |
-| `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house for HM08 Dive. Teach Dive to Swampert over Mud Shot; retain Surf, Strength and Rock Smash for the cavern. | KI 46, KI TMs/HMs and move changes, WT 10 |
-| `HM_DIVE_RECEIVED` | `Route128` | Use Max Repel and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the underwater cave with the submarine and surface inside. | KI v1:55:40–1:56:15, U8, ROM |
-| `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via north current), 3 (4,15→8,1), 8 (5,12→5,2), 9 (5,4→17,42). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
-| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | Surf Mightyena. Against Crobat, use X Speed, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:58:02–1:59:15, U31, C1, ROM |
+| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | From (6,35): U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder; Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
+| `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center. | KI v1:48:35, U30, C1, ROM |
+| `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Clear encountered downstairs grunts and the upstairs three-grunt chain, then join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:48:35–1:54:20, U30, C1, ROM |
+| `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house and receive HM08 Dive. | KI v1:54:20–1:55:07, U30, ROM |
+| `HM_DIVE_RECEIVED` | `Route128` | Teach Dive to Swampert over Mud Shot now, retaining Surf, Strength and Rock Smash. Use Max Repel and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the submarine cave and surface inside. | KI v1:55:07–1:56:15, U8, U31, ROM |
+| `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via the north current), 3 (4,15→8,1), 8 (5,12→5,2). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
+| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | In Room 9, go from (5,4) to Archie at (17,42). Surf Mightyena. Against Crobat, use X Speed if needed, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:57:40–1:59:15, U31, C1, ROM |
 
 ## Sootopolis and Rayquaza
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Surf west through Routes 129–131 to Pacifidlog, Fly to Mossdeep, then Surf south on Route 127 to Route 126. Dive by the Sootopolis crater, enter its underwater opening and surface inside. | KI v1:59:15–2:02:05, U7, ROM |
+| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Finish the cavern scene and surface on Route 128. Go south into Route 129, then west through 130–131 to Pacifidlog. Fly to Mossdeep; Surf south on 127, turn west into 126, Dive by the crater, enter its underwater opening and surface in Sootopolis. | KI v1:59:15–2:02:05, U7, ROM |
 | `SOOTOPOLIS_CITY` | `CaveOfOrigin_1F` | Follow Steven to the Cave of Origin and speak to Wallace inside. Choose Sky Pillar when he asks where Rayquaza is. | KI 48, WT 12 |
 | `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Use an Escape Rope, Fly to Pacifidlog, then Surf east on Route 131 and take the north opening to Sky Pillar. | KI v2:03:47–2:04:45, U32, ROM |
 | `SKY_PILLAR_OPENED` | `SkyPillar_1F` | Use the Mach Bike. From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza. | KI v2:04:45–2:05:45, U33, ROM |

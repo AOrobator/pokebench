@@ -40,6 +40,16 @@ describe("GuidePosition", () => {
   });
 });
 
+describe("GuidePosition map steps", () => {
+  it("advances on first entry to a step's map", () => {
+    const guide = new GuidePosition([...steps, { after: "MAP:AquaHideout_B1F", map: "AquaHideout_B1F", note: "Go on.", enter: [26, 1] }]);
+    guide.observe({ type: "state", map_id: [26, 0] } as unknown as RunEvent);
+    expect(guide.current().after).toBe("RUN_START");
+    guide.observe({ type: "state", map_id: [26, 1] } as unknown as RunEvent);
+    expect(guide.current().after).toBe("MAP:AquaHideout_B1F");
+  });
+});
+
 describe("rayquazaGuideContext", () => {
   const recorder = () => {
     const recorded: { text: string; milestone: string }[] = [];
@@ -72,7 +82,7 @@ describe("the shipped guide", () => {
     const names = new Set(MILESTONES.map((m) => m.name));
     const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);
     expect(after[0]).toBe("RUN_START");
-    expect(after.slice(1).filter((name) => !names.has(name))).toEqual([]);
+    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !names.has(name))).toEqual([]);
     expect(new Set(after).size).toBe(after.length);
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
   });

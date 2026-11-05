@@ -9,7 +9,7 @@ export interface CurrentSummary {
  context:CurrentState["context"];retry:CurrentState["retry"];warning:string|null;problem:string|null;
  phase:{kind:"indexing"|"thinking"|"tool"|"idle"|"paused"|"ended";pending:number;tools:string[]};
  health:{enabled:boolean;owner:boolean;ok:boolean|null;checkedAt:number|null};
- progress:{validation:"unverified";recorded:{name:string;seq:number;turn:number;at:number}[]};
+ progress:{validation:"unverified";recorded:{name:string;seq:number;turn:number;at:number;native?:boolean}[]};
 }
 export interface CurrentSnapshot extends CurrentSummary {end:CurrentState["end"];display:Pick<CurrentState,"state"|"partyState"|"card"|"health"|"frame">&Partial<Pick<CurrentState,"thought"|"streaming">>&{thinkingSince?:number|null;partyIsState?:true}}
 export type CurrentQuery={kind:"list";now:number;after?:string|null;limit?:number}|{kind:"current";run:string;now:number}|{kind:"updates";after:string|null;now:number;run?:string}|{kind:"history";run:string;before:string|null;now:number};
@@ -36,7 +36,7 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
  const h=v["health"],p=v["phase"],g=v["progress"];
  if(!only(h,["enabled","owner","ok","checkedAt"])||!object(h)||typeof h["enabled"]!=="boolean"||typeof h["owner"]!=="boolean"||(h["ok"]!==null&&typeof h["ok"]!=="boolean")||!nullableN(h["checkedAt"]))return fail();
  if(!only(p,["kind","pending","tools"])||!object(p)||!["indexing","thinking","tool","idle","paused","ended"].includes(String(p["kind"]))||!integer(p["pending"])||!Array.isArray(p["tools"])||p["pending"]>MAX_OPEN_TOOLS||p["tools"].length>16||p["tools"].length>p["pending"]||!p["tools"].every((t:unknown)=>typeof t==="string"))return fail();
- if(!only(g,["validation","recorded"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])))return fail();
+ if(!only(g,["validation","recorded"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean")))return fail();
  const data=parseWorkbench({version:1,at:0,milestones:[],runs:[v["run"]],problems:[]}),run=data.runs[0];
  if(run===undefined||run.id!==v["id"]||run.splits.length!==0||run.measurement!==undefined||run.excluded!==null)return fail();
  if(v["complete"]?(v["totals"]===null||v["control"]===null):(v["totals"]!==null||v["control"]!==null||run.elapsedMs!==null))return fail();
@@ -52,7 +52,7 @@ export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
  summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince","partyIsState"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k))||(display["partyIsState"]!==undefined&&(display["partyIsState"]!==true||display["partyState"]!==null||display["state"]===null)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
 // Cards show this until the full recording, with its qualified splits, has been read.
-export function currentSplits(s:CurrentSummary):WorkbenchSplit[]{const start=Date.parse(s.header.t);return s.progress.recorded.map(m=>({name:m.name,elapsedMs:Math.max(0,m.at-start),segmentMs:0,seq:m.seq,turn:m.turn,inputTokens:0,outputTokens:0}));}
+export function currentSplits(s:CurrentSummary):WorkbenchSplit[]{const start=Date.parse(s.header.t),limit=s.run.elapsedMs??Number.MAX_SAFE_INTEGER,boot=s.header.start_state.kind!=="save_state";if(s.header.harness_features.includes("probe"))return [];return s.progress.recorded.filter(m=>m.native??boot).map(m=>({name:m.name,elapsedMs:Math.min(limit,Math.max(0,m.at-start)),segmentMs:0,seq:m.seq,turn:m.turn,inputTokens:0,outputTokens:0}));}
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 
 export function parseCurrentQuery(value:unknown):CurrentQuery{

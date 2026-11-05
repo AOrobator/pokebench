@@ -13,6 +13,12 @@ Viewer-only, no feature switch, no card appearance change.
 - [ ] Review
 - [ ] Land, `just viewer-main`, headless proof on an older run
 
+## Review log
+
+Round 1 at 3abab0225: fallback LGTM; Claude and GPT BLOCKING. Provisional splits counted `present_at_start`, unproven and probe milestones, fixed: rows now carry `native`, older rows are trusted only on a boot start, probes get none. Split times are capped at the run's clock.
+
+Rollout order: `just viewer-main`, then `just current-main`.
+
 ## Principles self-review
 
 PB1-PB8, PB11, PB12: N/A, display only; qualified splits still replace it and grading is untouched. PB9 PASS. PB10 PASS. PB13 PENDING until the post-merge proof.

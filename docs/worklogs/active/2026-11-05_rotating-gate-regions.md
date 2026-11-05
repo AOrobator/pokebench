@@ -1,8 +1,9 @@
 # Rotating-gate regions
 
 **Started:** 2026-11-05
-**Status:** in progress
+**Status:** reviewed, landing on main. No game run has used the switch yet.
 **Branch:** `claude/rotating-gate-regions` (from main `bbb0a9c85`), worktree `/private/tmp/pb-gate-regions`.
+**Landing approval:** The operator, 11:12 AM New York in this thread: "continue, this needs to be landed on main".
 **Approval:** The operator, 3:19 AM New York, relayed by the coordinator: "sure and afterwards u can do a 1hr launch of deepseek with that feature on if the probes look like they work". The probes answered 57/64 with region letters against 8/63 with the current map (`runs/probes/gym-map-format-20261105`).
 
 ## Problem statement
@@ -22,7 +23,7 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 
 - [x] M1: RED tests
 - [x] M2: GREEN, wiring, configs, explainer
-- [ ] M3: gates, reviews, landing
+- [x] M3: gates, reviews, landing
 
 ## Log
 
@@ -40,4 +41,8 @@ Round 1, packet bbb0a9c85..d7858c0b1, diff SHA-256 af6fac89.
 - Fallback reviewer (fresh read-only subagent, Sonnet): LGTM, same note on `landing`.
 - GPT (Codex CLI gpt-5.6-sol): BLOCKING on two items, both accepted. B1: completeness compared gate ids, so a gate with some arms read passed; now the arm count of every gate must match its shape, and the fixtures carry real arm counts (28 on Fortree). B2: `landing` ignored arms; `Sections` now keeps them. Neither occurs on recorded data, and the replay is unchanged.
 - Wiring deletions went red and were restored: readout switch, `landing` arm check, per-gate arm count.
+
+Round 2, fix delta d7858c0b1..eea22b563, diff SHA-256 6df9a7b7045179b5d27036b2fd4553325e506d89ee09342c8ac86ce94bc02116.
+- Claude CLI (`~/.claude-review`): LGTM; rendered 40 recorded gym turns on head and pre-fix, identical hashes, block on all 40.
+- GPT (Codex CLI gpt-5.6-sol): LGTM, both findings verified fixed.
 - Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.

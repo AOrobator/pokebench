@@ -47,6 +47,7 @@ describe("steady scroll", () => {
 
   it("anchors on the innermost keyed row, not a box around it", () => {
     const box = pane([["a", 100]]);
+    box.scrollTop = 1;
     const outer = box.querySelector<HTMLElement>("[data-keep]");
     if (outer === null) throw new Error("no row");
     const inner = document.createElement("span");
@@ -58,17 +59,52 @@ describe("steady scroll", () => {
 
   it("skips rows scrolled above the pane and rows with no size", () => {
     const box = pane([["gone", 0], ["next", 120]]);
+    box.scrollTop = 1;
     expect(readPlace(box, null).key).toBe("next");
     const hidden = pane([["hidden", 150]], 0);
+    hidden.scrollTop = 1;
     expect(readPlace(hidden, null).key).toBeNull();
   });
 
   it("measures from the top of the screen when the page has scrolled past the pane's top", () => {
     const box = pane([["above", 20], ["seen", 70]]);
     box.getBoundingClientRect = () => ({ top: -200, bottom: 300 }) as DOMRect;
+    box.scrollTop = 1;
     expect(readPlace(box, null).key).toBe("above");
-    draw(box, [["above", -60], ["seen", 70]]);
+    draw(box, [["above", -60], ["seen", 71]]);
     expect(readPlace(box, null).key).toBe("seen");
+  });
+
+  it("leaves a reader at the top at the top when content above the first row grows", () => {
+    const box = pane([["a", 200]]);
+    const place = readPlace(box, null);
+    draw(box, [["a", 350]]);
+    returnToPlace(box, place);
+    expect(box.scrollTop).toBe(0);
+  });
+
+  it("holds nothing when the first row sits below the fold", () => {
+    const box = pane([["below", 500]]);
+    box.scrollTop = 10;
+    expect(readPlace(box, null).key).toBeNull();
+  });
+
+  it("prefers a list row to a box above it, because the list is what grows", () => {
+    const box = pane([["box", 100], ["row", 180]]);
+    box.scrollTop = 1;
+    const panel = box.querySelector<HTMLElement>('[data-keep="box"]');
+    if (panel === null) throw new Error("no box");
+    panel.dataset.keepBox = "";
+    expect(readPlace(box, null).key).toBe("row");
+  });
+
+  it("falls back to a box when no list row is on screen", () => {
+    const box = pane([["box", 100]]);
+    box.scrollTop = 1;
+    const panel = box.querySelector<HTMLElement>('[data-keep="box"]');
+    if (panel === null) throw new Error("no box");
+    panel.dataset.keepBox = "";
+    expect(readPlace(box, null).key).toBe("box");
   });
 
   it("stays put when the row being read is gone", () => {

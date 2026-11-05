@@ -19,10 +19,10 @@ Only the reader moves the reader. A click, a tap, a key press, a picked run or a
 
 1. **Hold the row, not the number.** `scrollTop` staying the same proves nothing when rows arrive above the reader. Put the row they were reading back where it was.
 2. **Do not rely on the browser.** Safari has no scroll anchoring, and Chromium's loses its anchor when `innerHTML` replaces the row.
-3. **Use `steady-scroll.ts`.** Call `readPlace` before the first real change and `returnToPlace` after the last one. Give readable rows `data-keep` and controls `data-focus`, with values taken from data (a milestone name, a badge index), never from a list position. `renderRace` in `app.ts` is the pattern.
-4. **Keep anchors in the column that grows.** In a multi-column layout, a keyed row in a static side column would hold still while the list beside it moves. Leave those columns unkeyed, as the race rail is.
-5. **Never blank what is on screen.** A refresh of the same run keeps the last page until new data arrives. An empty page collapses the pane and the browser clamps the scroll to the top. Show "Loading" only for a run that has not painted yet.
-6. **A refresh is not a new selection.** Filters, folded sections, open details, selected tabs and focus survive a same-run refresh. Reset them only when the run changes.
+3. **Use `steady-scroll.ts`.** Call `readPlace` before the first real change and `returnToPlace` after the last one. A reader at the top stays at the top, so `readPlace` holds nothing there. Give readable rows `data-keep` and controls `data-focus`, with values taken from data (a milestone name, a badge index), never from a list position. `renderRace` in `app.ts` is the pattern.
+4. **The list outranks the panels.** The anchor is the first visible keyed row. Mark a whole panel with `data-keep-box` so a list row beats it, because holding a panel above the list would let the rows move. In a multi-column layout, a static column earlier in DOM order stays unkeyed, as the race rail is.
+5. **Never blank what is on screen.** A refresh of the same run keeps the last page until new data arrives. An empty page collapses the pane and the browser clamps the scroll to the top. Show "Loading" only for a run that has not painted yet, and clear the page if the run is gone.
+6. **A refresh is not a new selection.** Filters, folded sections, open details, selected tabs and focus survive a same-run refresh. Reset them only when the run changes. Nothing folds by itself either: a section open by default stays open once shown, as `openLegs` does when a badge moves the race on.
 7. **Skip what did not change.** Compare before writing the DOM (`setHtml` does), and do not write `scrollTop` when nothing moved, because that stops a touch scroll's momentum.
 8. **Restore focus with `{ preventScroll: true }`.** Bare `focus()` and `scrollIntoView` belong only in code a click started.
 9. **Reserve space for late content.** A ticking clock or changing sentence that wraps differently moves everything below it. Images and async panels need a fixed box, or a keyed row below them.
@@ -42,4 +42,4 @@ Only the reader moves the reader. A click, a tap, a key press, a picked run or a
 
 Run that first on the old build so the failure is on record. To try a branch before it lands, route the changed `/app/*.js` modules to the branch's `packages/viewer/dist`, rewriting `@pokebench/agent/<name>` imports to `./<name>.js` as the server does.
 
-Also check that the reader's filter, folds and focus survive, that a click on a jump control still scrolls, and that a page at the top stays at the top.
+Also check that the reader's filter, folds and focus survive, that a click on a jump control still scrolls, that a page at the top stays at the top, and that the page opens at the top the first time. Force the largest update too, such as a badge landing while the reader is in that leg.

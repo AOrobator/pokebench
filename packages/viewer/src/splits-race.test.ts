@@ -3,13 +3,24 @@ import { BASE_MS, START, must } from "../test-support/events.js";
 import { BROWSER_MODULES } from "./browser-modules.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import { RunView } from "./model.js";
-import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex } from "./splits-race.js";
+import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex } from "./splits-race.js";
 
 const mark = (name: string, at: number) => ({ name, at, derived: false });
 const frontier = (...rows: readonly (readonly [string, number])[]) => ({ run: "front", milestones: rows.map(([name, s]) => ({ name, offsetMs: s * 1000 })) });
 const none = new Set<number>();
 
 describe("the race against the frontier", () => {
+  it("keeps the leg being read open when a badge moves the race on", () => {
+    const folds = new Map<number, boolean>();
+    expect([...openLegs(raceOf([mark("NEW_GAME_CREATED", 10)], null, 20, -1), folds)]).toEqual([0]);
+    expect([...openLegs(raceOf([mark("NEW_GAME_CREATED", 10), mark("STONE_BADGE", 15)], null, 20, -1), folds)]).toEqual([0, 1]);
+  });
+
+  it("leaves a leg the reader folded shut, even while current", () => {
+    const folds = new Map([[0, false]]);
+    expect([...openLegs(raceOf([mark("NEW_GAME_CREATED", 10)], null, 20, -1), folds)]).toEqual([]);
+  });
+
   it("names every row and control, so a redraw can find the reader's place and focus again", () => {
     const race = raceOf([mark("NEW_GAME_CREATED", 10), mark("CLOCK_SET", 50)], frontier(["NEW_GAME_CREATED", 12], ["CLOCK_SET", 100]), 95, -1);
     const list = raceList(race, "all", new Set([0]));

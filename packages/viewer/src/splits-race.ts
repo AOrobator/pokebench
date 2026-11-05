@@ -141,6 +141,13 @@ function rowHtml(row: RaceRow, scale: number): string {
   return `<li class="race-row" data-keep="row:${esc(row.name)}"><span class="race-name">${esc(row.label)}</span>${bar(row.gain, scale)}${gainHtml(row.gain, row.kind)}<span class="race-times">${times}</span></li>`;
 }
 
+// A leg opens by default while current. Remembering that keeps it open when a badge moves the race on,
+// because folding it by itself would pull the rows out from under the reader.
+export function openLegs(race: Race, folds: Map<number, boolean>): ReadonlySet<number> {
+  for (const leg of race.legs) if (leg.current && !folds.has(leg.index)) folds.set(leg.index, true);
+  return new Set(race.legs.filter(leg => folds.get(leg.index) === true).map(leg => leg.index));
+}
+
 // `open` holds the folded state; a filter opens whatever matches instead.
 export function raceList(race: Race, filter: RaceFilter, open: ReadonlySet<number>): string {
   const scale = barScale(race.rows.flatMap(r => r.gain === null ? [] : [r.gain])), legScale = barScale(race.legs.map(l => l.gain));

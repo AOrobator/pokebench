@@ -19,7 +19,7 @@ import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { readPlace, returnToPlace, type Place } from "./steady-scroll.js";
-import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
+import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -1178,7 +1178,8 @@ export class App {
     const source = tableSplits(this.mode, recorded), panes = ["race-rail", "race-gains", "race-losses", "race-filters", "race-list", "race-map", "race-plot"];
     if (source === null || view.startMs === null) {
       // A refresh of the run on screen keeps the last page: blanking it would throw the reader back to the top.
-      if (this.runId !== null && this.racePainted === this.runId) return;
+      // "idle" means the run is gone, so its race must not stay up looking current.
+      if (this.runId !== null && this.racePainted === this.runId && this.mode !== "idle") return;
       draw("race-head", `<p class="race-sub">${this.runId === null ? "No run selected." : "Loading recorded splits…"}</p>`);
       for (const pane of panes) draw(pane, "");
       return;
@@ -1189,7 +1190,7 @@ export class App {
     const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
     const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
     const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
-    const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
+    const open = openLegs(race, this.raceOpen);
     draw("race-head", raceHeadline(race, label, now, loading, side));
     draw("race-rail", raceRail(race));
     draw("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));

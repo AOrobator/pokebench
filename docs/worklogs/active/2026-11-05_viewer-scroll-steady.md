@@ -53,3 +53,6 @@ On 981c1c1ce, under the START window: build passes; `just test` passes with agen
 
 ## Multi-Model Review Log
 
+Round 1 on dfd1be8fc, diff SHA-256 7405cc12…. Default Claude login expired, so the Claude lane ran under `~/.claude-review`: BLOCKING. GPT via Codex gpt-5.6-sol: BLOCKING. Fallback reviewer: BLOCKING.
+Triage. FIX: earning a badge folded the leg being read (`openLegs`). FIX: a reader at the top was pushed down, including first open, and an anchor below the fold could move the page (`readPlace` holds nothing at the top or below the fold). FIX: a removed run's race stayed up (mode idle clears it). FIX: skill rule 4 wording. FIX, after the badge browser check moved a row 51px: list rows now outrank panels above them (`data-keep-box`), so the earlier rebuttal of that limit is withdrawn.
+Round 1 browser proof on the fixes, candidate modules on live 8790: six new splits with the reader mid-list moved the tracked row 0 to 1px in both engines at both sizes. First open stayed at scrollTop 0 for 22s in every case. KNUCKLE_BADGE landing with the reader in the current leg kept the leg open; the tracked row moved 34 to 37px at most, one row, because the new row lands below the held row in that leg.

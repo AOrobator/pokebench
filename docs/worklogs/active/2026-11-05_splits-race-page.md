@@ -36,3 +36,5 @@ Requested by the operator 2026-11-05: SPLITS sits right after POKéMON PARTY in 
 ## Top card splits removed
 
 Requested by the operator 2026-11-05: delete SPLITS THIS RUN and the frontier splits from the top run card, since the PokéNav page has them. Removed the markup, `splitStrip`, `splitTimes` and their styles and tests.
+
+Landed 9011ae975; lint, test (viewer suite), trainer-card-check pass on main; viewer restarted, parent launchd; headless proof: no SPLITS THIS RUN, SPLITS after party, run 3332 kept running. Claude and GPT LGTM.

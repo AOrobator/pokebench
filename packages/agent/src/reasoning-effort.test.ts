@@ -21,7 +21,7 @@ const sent = (features: FeatureSet, thinking: "medium" | "low" | "off", provider
 it("registers a default-on agent-side switch at the end of the recorded list", () => {
   expect(featureInfo(ID)).toMatchObject({ group: "guidance", needs: null, switchable: true });
   expect(featureInfo(ID).description).toContain(" Off: ");
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(344);
   expect(featuresOf(playHarnessFeatures(off, null))[ID]).toBe(false);
   expect(featuresOf(playHarnessFeatures(on, null))[ID]).toBe(true);
   expect(SERVER_FEATURES).not.toContain(ID);

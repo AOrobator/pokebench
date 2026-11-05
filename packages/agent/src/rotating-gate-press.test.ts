@@ -26,8 +26,8 @@ const field=(orientations:readonly number[],position={x:2,y:5},facing="up"):Game
 const ON={...ALL_PRESS_FACTS,gatePressFeedback:true};
 const unobserved=(state:GameStateSnapshot):GameStateSnapshot=>{const rest={...state};delete rest.map_observation;return rest;};
 
-it("registers default off, last, and needs the orientation read",()=>{
- expect(SWITCHABLE_FEATURES.at(-1)).toBe(ID);
+it("registers default off, in position, and needs the orientation read",()=>{
+ expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(345);
  expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
  expect(featureInfo(ID).needs).toBe("rotating-gate-positions-v1");
  expect(featureInfo(ID).description).toContain(" Off: ");

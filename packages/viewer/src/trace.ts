@@ -376,7 +376,7 @@ export function sideGroups(turns: readonly TraceTurn[], limit: number, boxTurn: 
   return groups;
 }
 
-export const sideShort = (turns: readonly TraceTurn[], limit: number): boolean => turns.filter((turn) => turn.entries.some((entry) => SIDE.has(entry.category))).length < limit;
+export const sideShort = (turns: readonly TraceTurn[], limit: number, boxTurn: number | null = null): boolean => sideGroups(turns, limit, boxTurn).length < limit;
 
 export function sideTraceHtml(turns: readonly TraceTurn[], limit: number, boxTurn: number | null = null): string {
   const groups = sideGroups(turns, limit, boxTurn);

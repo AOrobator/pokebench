@@ -9,4 +9,5 @@ Finding: recordings and the Full Trace page are complete (DeepSeek 3332: 63 of 6
 - [x] Phone list gets room; tool names wrap in both lists
 - [x] Review fix: the answer parser accepts 256-event older pages
 - [x] Review fix: an over-budget older scan halves down to the page width; 5f0f and 274b page to seq 0 with every call (2128, 2188)
+- [x] Review fix: sideShort uses the rendered groups, so the box turn is not counted
 - [ ] Gates, reviews, landing, live proof

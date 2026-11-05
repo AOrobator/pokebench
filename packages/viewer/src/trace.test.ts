@@ -413,6 +413,7 @@ describe("traceHtml", () => {
     add(2, "assistant");
     expect(sideShort(trace.turns, 1)).toBe(false);
     expect(sideShort(trace.turns, 2)).toBe(true);
+    expect(sideShort(trace.turns, 1, 2)).toBe(true);
   });
 
   it("loads older turns only near the oldest row of a list on screen", () => {

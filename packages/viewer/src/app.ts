@@ -1402,7 +1402,7 @@ export class App {
   private olderTurns(): void {
     const current = this.current?.state.selected === this.runId ? this.current.state : null;
     const stopped = this.olderProblem !== null || current?.historyProblem != null || (current?.historyFull === true && !this.held.has(this.ui("trace")));
-    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages, sideShort: sideShort(this.recordedThinkingTrace?.turns ?? [], SIDE_TURNS) });
+    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages, sideShort: sideShort(this.recordedThinkingTrace?.turns ?? [], SIDE_TURNS, this.boxTurn()) });
     if (step === "reveal") {
       this.traceLimit += TRACE_TURNS;
       this.render();
@@ -1410,6 +1410,11 @@ export class App {
       this.olderPages -= 1;
       void this.loadOlderHistory();
     }
+  }
+
+  private boxTurn(): number | null {
+    const view = this.recordedThinking;
+    return view === null || view.isThinking ? null : view.lastThought?.turn ?? null;
   }
 
   private async loadOlderHistory(): Promise<void> {
@@ -1667,9 +1672,8 @@ export class App {
       // After this draw, so a short list keeps filling and a fast scroll keeps going.
       if (!this.olderQueued) { this.olderQueued = true; queueMicrotask(() => { this.olderQueued = false; this.olderTurns(); }); }
     }
-    const sideView = this.recordedThinking;
     const sideTrace = this.recordedThinkingTrace;
-    const boxTurn = sideView === null || sideView.isThinking ? null : sideView.lastThought?.turn ?? null;
+    const boxTurn = this.boxTurn();
     const sideKey = `${this.mode}|${String(sideTrace?.version ?? -1)}|${String(boxTurn ?? "")}`;
     if (sideKey !== this.sideKey) {
       const side = this.ui("side-trace");

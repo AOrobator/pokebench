@@ -15,7 +15,7 @@ import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
-import { customLane } from "./custom-lane.js";
+import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
@@ -190,7 +190,7 @@ function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
   return events;
 }
 
-const frontierKey = (frontier: Baseline | null): string => frontier === null ? "" : `${frontier.run}:${frontier.milestones.map(m => `${m.name}:${String(m.offsetMs)}`).join()}`;
+const frontierKey = (frontier: Baseline | null): string => frontier === null ? "" : JSON.stringify(frontier);
 
 function baselineOf(value: unknown): Baseline {
   const record = value as { run?: unknown; milestones?: unknown };
@@ -1167,7 +1167,7 @@ export class App {
       return;
     }
     const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
-    const custom = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) !== null, racing = !custom && startIndex(view) !== null, frontier = racing && recording !== undefined ? this.frontier : null, loading = racing && frontier === null && (recording === undefined || !this.frontierSettled);
+    const custom = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) !== null || view.start?.harness_features.some(id => KNOWLEDGE_SWITCHES.has(id)) === true, racing = !custom && startIndex(view) !== null, frontier = racing && recording !== undefined ? this.frontier : null, loading = racing && frontier === null && (recording === undefined || !this.frontierSettled);
     const { race, now } = this.raceOf(view, nowMs, source, frontier);
     const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
     this.setHtml("race-head", raceHeadline(race, label, now, loading));
@@ -1178,7 +1178,7 @@ export class App {
     this.setHtml("race-list", raceList(race, this.raceFilter, open));
     this.setHtml("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label));
     const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640;
-    if (frontier === null || recording === undefined) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : "No frontier run to plot."}</p>`); return; }
+    if (frontier === null || recording === undefined || recording.config === null) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : "No frontier run to plot."}</p>`); return; }
     // Rewinding hides later splits from the graph as it does from the list.
     const shown = new Set(race.rows.map(row => row.name)), splits = this.mode === "replay" ? recording.splits.filter(split => shown.has(split.name)) : recording.splits;
     const key = [run, splits.map(split => `${split.name}:${String(split.elapsedMs)}`).join(), recording.status, frontierKey(frontier), width].join("|");

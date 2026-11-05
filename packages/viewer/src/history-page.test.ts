@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "@pokebench/agent/events";
 import { HISTORY_REPLY_EVENTS, parseCurrentAnswer } from "./current-public.js";
-import { historyPage } from "./history-page.js";
+import { historyPage, narrowerScan, olderHistoryScan } from "./history-page.js";
 
 const event = (seq: number, type: RunEvent["type"]): RunEvent => ({ seq, type }) as RunEvent;
 
@@ -62,5 +62,12 @@ describe("historyPage", () => {
     const answer = { kind: "history", version: 1, epoch: "e", generation: "g", state: "ready", before: null };
     expect(parseCurrentAnswer({ ...answer, events: page.events }).kind).toBe("history");
     expect(() => parseCurrentAnswer({ ...answer, events: [...page.events, page.events[0]] })).toThrow();
+  });
+
+  it("narrows an over-budget scan down to the page width, then stops", () => {
+    const scans: number[] = [];
+    for (let scan: number | null = olderHistoryScan(64); scan !== null; scan = narrowerScan(scan, 64)) scans.push(scan);
+    expect(scans).toEqual([1024, 512, 256, 128, 64]);
+    expect(historyPage(true, 64, 1000, 128).scan).toBe(128);
   });
 });

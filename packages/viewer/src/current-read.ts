@@ -4,7 +4,7 @@ import {openCurrentStore,checkCurrentState,type CurrentStore,type PublicationRow
 import {parseCurrentSummary,parseCurrentSnapshot,publicCheckpoint,type CurrentQuery,type CurrentAnswer} from "./current-public.js";
 import {parseProjectorAux} from "./current-service.js";
 import {openCurrentSource,sourceEvidence,lineCursor,readCurrentLines,type SourceOptions} from "./current-source.js";
-import {historyPage} from "./history-page.js";
+import {historyPage,narrowerScan} from "./history-page.js";
 export const CURRENT_READ_LIMITS={events:64,bytes:32*1024*1024,replyBytes:2*1024*1024,list:50,updates:128,recentMs:600000};
 export class CurrentReadError extends Error {override readonly name="CurrentReadError";constructor(readonly status:number,message:string){super(message);}}
 export interface CurrentReaderOptions {runsRoot:string;database:string;read?:(value:{run:string;bytes:number;offset:number;purpose:"data"|"anchor"})=>void;limits?:Partial<typeof CURRENT_READ_LIMITS>;beforeReadRows?:()=>void}
@@ -25,9 +25,9 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
  let store:CurrentStore|null=null,identity="",closed=false;
  const connect=():CurrentStore=>{const file=lstatSync(options.database);if(file.isSymbolicLink()||!file.isFile())throw new Error("Invalid current database");const next=`${String(file.dev)}:${String(file.ino)}`;if(next!==identity){store?.close();store=null;identity="";store=openCurrentStore(options.database,{readOnly:true,...(options.beforeReadRows===undefined?{}:{beforeReadRows:options.beforeReadRows})});identity=next;}
   const root=realpathSync(options.runsRoot),stat=lstatSync(root);if(store===null||store.boundRoot()!==`${root}:${String(stat.dev)}:${String(stat.ino)}`)throw new Error("Current database recordings root mismatch");return store;};
- const history=(db:CurrentStore,q:Extract<CurrentQuery,{kind:"history"}>):CurrentAnswer=>{
+ const history=(db:CurrentStore,q:Extract<CurrentQuery,{kind:"history"}>,scan?:number):CurrentAnswer=>{
   runId(q.run);const decoded=q.before===null?null:cursor(q.before,"history");if(decoded!==null&&(decoded["run"]!==q.run||typeof decoded["generation"]!=="string"||!n(decoded["before"])))throw new CurrentReadError(400,"Invalid history cursor binding");
-  const before=decoded===null?Number.MAX_SAFE_INTEGER:decoded["before"] as number,page=historyPage(decoded!==null,limits.events,limits.replyBytes),window=db.historyWindow(q.run,before,page.scan-1),saved=window.current;
+  const before=decoded===null?Number.MAX_SAFE_INTEGER:decoded["before"] as number,page=historyPage(decoded!==null,limits.events,limits.replyBytes,scan),window=db.historyWindow(q.run,before,page.scan-1),saved=window.current;
   const answer=(state:"ready"|"indexing"|"reset"|"oversized",events:Extract<CurrentAnswer,{kind:"history"}>["events"]=[],next:string|null=q.before):CurrentAnswer=>({kind:"history",version:1,epoch:window.epoch,generation:saved?.source.generation??"",state,events,before:next});
   if(saved===null||typeof window.auxiliary!=="string")return answer("indexing");
   if(decoded!==null&&(decoded["epoch"]!==window.epoch||decoded["generation"]!==saved.source.generation))return answer("reset",[],null);
@@ -42,7 +42,7 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
    const upper=saved.source.offset,c=lineCursor(offset),bounded={stat:{size:upper},read:(at:number,length:number,purpose?:"data"|"anchor")=>file.read(at,Math.max(0,Math.min(length,upper-at)),purpose)};let bytes=0,reached=false;
    for(let steps=0;steps<page.scan+17;steps++){
     const batch=readCurrentLines(bounded,c,limits.bytes-bytes,1);bytes+=batch.bytes;const line=batch.lines[0];
-    if(line===undefined){if(batch.atEnd){reached=true;break;}return answer("oversized",[],q.before);}
+    if(line===undefined){if(batch.atEnd){reached=true;break;}const narrower=decoded===null?null:narrowerScan(page.scan,limits.events);return narrower===null?answer("oversized",[],q.before):history(db,q,narrower);}
     if(line.event.run!==q.run)throw new Error("Foreign indexed history event");if(line.event.seq>=target){reached=true;break;}
     if(line.raw.length>limits.replyBytes)return answer("oversized",[],q.before);page.add(line.event,line.raw.length);
     if(c.offset>=upper){reached=true;break;}

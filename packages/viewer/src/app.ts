@@ -698,7 +698,7 @@ export class App {
         else if(!snapshot.complete)void this.loadWorkbench();
       }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
       if(state.history!==this.currentHistoryEvents){
-        const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
+        const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;if(state.history.length<previous.length)this.olderPages=OLDER_PAGES;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
         const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traceVersions.delete(this.ui("trace"));this.traced=0;this.traceKey=this.sideKey="";}
         if(state.history.length>0)this.setRecordedThinking(history,state.history);
       }

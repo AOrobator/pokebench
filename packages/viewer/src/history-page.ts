@@ -16,11 +16,17 @@ export interface HistoryPage {
   before(): number | null;
 }
 
-export function historyPage(older: boolean, limit: number, replyBytes: number): HistoryPage {
+export const olderHistoryScan = (limit: number): number => limit * OLDER_SCAN;
+
+// State snapshots can fill the read budget before a wide scan reaches its cursor.
+// Halving ends at the page width, which always fit, so a heavy stretch still pages.
+export const narrowerScan = (scan: number, limit: number): number | null => scan > limit ? Math.max(limit, Math.floor(scan / 2)) : null;
+
+export function historyPage(older: boolean, limit: number, replyBytes: number, scan = older ? olderHistoryScan(limit) : limit): HistoryPage {
   const keep = older ? limit * OLDER_KEEP : limit, events: RunEvent[] = [], lengths: number[] = [];
   let payload = 0, trimmed = false, skipped: number | null = null;
   return {
-    scan: older ? limit * OLDER_SCAN : limit,
+    scan,
     events,
     add(event, bytes) {
       if (older && OLDER_SKIPS.has(event.type)) { skipped ??= event.seq; return; }

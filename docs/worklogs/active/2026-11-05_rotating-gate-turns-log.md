@@ -46,4 +46,9 @@ Round 2, packet 165f79568..0172311b5, diff SHA-256 f7dcc98dcb4dec189b2ecf6fca37d
 - Claude CLI: BLOCKING, one finding: the note grows without limit outside the context fitter, against the operator's 2026-10-28 rule. Accepted: the note shows the newest 200 whole lines and says how many are hidden; the recorded log and `lines()` stay whole. Reported to the operator.
 - GPT: BLOCKING on two items. A press that only turned the player to face an arm logged a refused push: accepted, the log requires already facing that way. The first read of a run that starts in the gym said "entered": accepted, it says "first read on".
 
+Round 3, packet 165f79568..af227d171, diff SHA-256 5adfee299f3891e8a6a3382ea28e1c4454523bc8b8357a8eb76185378f306ff7.
+- Fallback reviewer: LGTM.
+- Claude CLI: BLOCKING, one finding: the facing check dropped 9 of 30 real refusals in 08b5, because the 10-frame hold turns the player and then meets the arm. Accepted. This reverses round 2's GPT item: the line says only that the arm did not turn, true either way, so the check is removed.
+- GPT: BLOCKING on three items. Unread first read said "entered": accepted, entry now needs an earlier different map. The feature card said "every": accepted, it states the 200-line limit. Explainer index and card test: accepted.
+
 ## Landing

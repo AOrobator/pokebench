@@ -1194,6 +1194,16 @@ it("links the rotating-gate regions card to its explainer, default off",async()=
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe("/explainers/rotating-gate-regions-v1.html");
 });
 
+it("links the gate turn and push log cards to their explainer, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ for(const id of ["rotating-gate-turn-reasons-v1","rotating-gate-push-log-v1"] as const){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  expect(FEATURE_EXPLAINERS[id]).toBe("rotating-gate-turns-log-v1.html");
+  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe("/explainers/rotating-gate-turns-log-v1.html");
+ }
+});
+
 it("links the six rotating-gate cards to one explainer, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);

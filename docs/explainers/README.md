@@ -53,6 +53,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Adjacent tiles v1](adjacent-tiles-v1.html)
 - [Disproved beliefs ledger v1](disproved-beliefs-v1.html)
 - [Same-plan breaker v1](same-plan-breaker-v1.html)
+- [Gate turns and push log](rotating-gate-turns-log-v1.html)
 - [Runs survive viewer restarts](run-survives-viewer.html)
 
 The original ignored runs/explainers copies remain for existing links. Make future updates here. Runtime probes, generated measurement data and helper scripts remain under runs/.

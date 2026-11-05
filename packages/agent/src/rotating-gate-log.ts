@@ -49,6 +49,7 @@ export class GateLog {
  #latest:State|null=null;
  #previous:State|null=null;
  #map:string|null=null;
+ #arrived=false;
  #presses:Press[]=[];
 
  observe(event:RunEvent):void {
@@ -61,14 +62,15 @@ export class GateLog {
   const map=mapKey(state);
   this.#latest=state;
   if(map===null)return;
+  if(this.#map!==null&&map!==this.#map)this.#arrived=true;
   const gates=gatesOf(state);
   // A read with no gates on the same map is a transition, not a new visit, so its press stays pending.
   if(gates===null||gates==="unread"){if(map!==this.#map){this.#map=map;this.#previous=null;this.#presses=[];}return;}
   const presses=this.#presses;this.#presses=[];
-  const entered=this.#previous===null||this.#map!==map,first=this.#map===null;
+  const entered=this.#previous===null||this.#map!==map;
   this.#map=map;
   const lines=this.#lines.get(map)??[];this.#lines.set(map,lines);
-  if(entered)lines.push(`Turn ${String(state.turn)}: ${first?"first read on":"entered"} ${state.location??"this map"}: ${entryFact(map,gates)}`);
+  if(entered)lines.push(`Turn ${String(state.turn)}: ${this.#arrived?"entered":"first read on"} ${state.location??"this map"}: ${entryFact(map,gates)}`);
   else if(this.#previous!==null)lines.push(...this.#changes(this.#previous,state,gates,presses));
   this.#previous=state;
  }
@@ -84,8 +86,9 @@ export class GateLog {
   const direction=moves.length===1||(stayed&&moves.every(move=>move===moves[0]))?moves[0]:undefined;
   const turned=[...gates].sort(([a],[b])=>gateOrder(a)-gateOrder(b)).flatMap(([group,gate])=>{const old=was.get(group);return old===undefined||old.orientation===gate.orientation?[]:[turnOf(group,old,gate)];});
   if(turned.length>0)return turned.map(line=>direction!==undefined&&from!==null&&to!==null?`${turn}${direction} from ${point(from)} to ${point(to)}: ${line}`:`${turn}${line} with no single press read`);
-  // Facing a new way turns the player in place without reaching the gate's collision check.
-  if(direction===undefined||from===null||!stayed||!walkable(before)||before.facing?.toUpperCase()!==direction)return [];
+  // A held press from another facing turns the player and then meets the arm, so facing proves nothing (08b5 turn 27).
+  // The line says the arm did not turn, which holds either way.
+  if(direction===undefined||from===null||!stayed||!walkable(before))return [];
   const refused=armAhead(before,direction,true,true);
   return refused===null?[]:[`${turn}${direction} at ${point(from)}: ${refused}`];
  }
@@ -95,7 +98,7 @@ export class GateLog {
  /** The newest whole lines, saying how many older ones are not shown. */
  shown():readonly string[] {
   const lines=this.lines(),hidden=lines.length-GATE_LOG_LINES;
-  return hidden>0?[`${String(hidden)} older lines not shown.`,...lines.slice(hidden)]:lines;
+  return hidden>0?[`Older lines not shown: ${String(hidden)}.`,...lines.slice(hidden)]:lines;
  }
  latest():State|null {return this.#latest;}
 }

@@ -19,22 +19,23 @@ export interface CheckpointDeps {
 
 const nativeMilestone=(name:string):boolean=>MILESTONES.some(m=>m.name===name&&m.kind!=="legacy");
 
-// The original single-target setting remains valid. All-frontier capture is an
-// explicit opt-in because pausing and writing a native state is measurement work.
-export function checkpointSelection(env:NodeJS.ProcessEnv):CheckpointSelection|null {
+// A boot start saves every frontier milestone unless POKEBENCH_CHECKPOINT_FRONTIER=0 (the operator 2026-11-05,
+// after run 274b saved none). A save-state start already begins past its capture points, so it stays opt-in.
+export function checkpointSelection(env:NodeJS.ProcessEnv,start:{readonly kind:string}):CheckpointSelection|null {
  const target=env["POKEBENCH_CHECKPOINT_AT"],frontier=env["POKEBENCH_CHECKPOINT_FRONTIER"];
- if(frontier!==undefined&&frontier!==""&&frontier!=="1")throw new Error("POKEBENCH_CHECKPOINT_FRONTIER must be 1 when set");
+ if(frontier!==undefined&&frontier!==""&&frontier!=="0"&&frontier!=="1")throw new Error("POKEBENCH_CHECKPOINT_FRONTIER must be 0 or 1 when set");
  if(target!==undefined&&target!==""&&frontier==="1")throw new Error("choose one of POKEBENCH_CHECKPOINT_AT and POKEBENCH_CHECKPOINT_FRONTIER");
  if(target!==undefined&&target!==""){
   if(!nativeMilestone(target))throw new Error(`POKEBENCH_CHECKPOINT_AT must name a native milestone, got ${target}`);
   return {kind:"single",target};
  }
- return frontier==="1"?{kind:"frontier"}:null;
+ if(frontier==="0")return null;
+ return frontier==="1"||start.kind==="boot"?{kind:"frontier"}:null;
 }
 
 // Backwards-compatible accessor for callers that only support the original setting.
 export function checkpointTarget(env:NodeJS.ProcessEnv):string|null {
- const selection=checkpointSelection(env);
+ const selection=checkpointSelection(env,{kind:"save_state"});
  return selection?.kind==="single"?selection.target:null;
 }
 

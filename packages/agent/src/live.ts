@@ -303,7 +303,7 @@ async function playAgent(): Promise<void> {
   const researchNote=loadCheckpointResearchNote(features,start,researchFile===undefined||researchHash===undefined?undefined:{path:researchFile,sha256:researchHash},path=>readFileSync(path,"utf8"));
   if(researchNote!==null&&continuation!==null)throw new Error("checkpoint research note requires ordinary save-state startup, not restored history");
   if(continuation!==null){validateLiveContinuationStart(continuation,start);validateLiveContinuationFeatures(continuation,features);}
-  const captureMode=checkpointSelection(process.env);
+  const captureMode=checkpointSelection(process.env,start);
   const experiment=experimentFromEnv(process.env);
   const { model, port, gatewayUrl, apiKey } = await live();
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");

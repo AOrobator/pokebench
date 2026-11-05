@@ -10,8 +10,8 @@ Operator approval: The operator said yes on 2026-11-05 to making frontier checkp
 
 ## Progress
 
-- [x] RED: tests for the boot default and the OFF switch (3 failed, 15 passed)
-- [ ] GREEN: selection, live.ts wiring, skill text
+- [x] RED: tests for the boot default and the OFF switch (3 failed, 15 passed). COMMIT: `test(checkpoints): pin the boot default and the off switch` (99f838c7c)
+- [x] GREEN: selection, live.ts wiring, skill text. Focused: 18 passed; agent tsc and changed-file eslint clean.
 - [ ] Gates in a CPU window
 - [ ] Claude, Grok and GPT review
 - [ ] Land, then `just test` on main

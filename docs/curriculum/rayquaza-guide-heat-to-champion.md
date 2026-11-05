@@ -18,7 +18,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take Randall’s Speed, Parker’s Confusion and Jody’s Strength rooms. Use bag items before Norman. On Spinda: X Attack×3, X Speed, Strength; decline Take Down. Mud Shot Vigoroth; Strength Linoone. Use Slaking’s loafing turns for Rock Smash×2, then Mud Shot if safe. | KI v1:02:06–1:06:50, U23, C1, ROM |
+| `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take Randall’s Speed, Parker’s Confusion and Jody’s Strength rooms. Use bag items before Norman. On Spinda: X Attack×3, X Speed, Strength; decline Take Down. Mud Shot Vigoroth; Strength Linoone. Rock Smash Slaking, then Mud Shot as safe; watch for Counter. | KI v1:02:06–1:06:50, U23, C1, ROM |
 | `BALANCE_BADGE` | `PetalburgCity_WallysHouse` | Finish Norman’s dialogue for Facade, then get HM03 Surf from Wally’s father in the house beside the Gym. | KI 32, WT 06 |
 | `HM_SURF_RECEIVED` | `PetalburgCity` | Teach Surf over Water Gun. In Petalburg, Surf across the pond and step ashore at (11,28). | KI v1:08:01–1:08:10, audit U1, ROM |
 | `AT:PetalburgCity:11:28` | `PetalburgCity` | Face south and press A for a hidden Rare Candy. | KI v1:08:10, ROM, audit U1 |
@@ -41,7 +41,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `AT:MtPyre_Summit:37:6` | `MtPyre_Summit` | Face south and press A for a hidden Rare Candy. | KI v1:21:27, U25, U45, ROM |
 | `GOT:RARE_CANDY` | `FortreeCity` | Spend the candy if it completes the planned level. Return to Fortree and use the Devon Scope at the invisible Gym blocker. | KI v1:21:40–1:21:47, U1, ROM, TO:FortreeCity |
 | `FORTREE_GYM_OBSTRUCTION_CLEARED` | `FortreeCity_Gym` | Enter the Fortree Gym after clearing the invisible Kecleon. | PATH 4, ROM |
-| `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | From (15,24): U2,L12,U3,L,D2,R2,U3,R3,U4,R2,U2,L2,D3,U,R2,U4,L2,U2,L6,U2,R,D2,R3,U6,L3,D6,R4,L,U4,R10,U. Use items before Winona. Strength Swablu, Tropius and Altaria; heal on Tropius’s Solar Beam charge if needed. Boost on Protect; Strength Pelipper; Surf Skarmory. | KI v1:22:00–1:26:54, U26, C1, ROM |
+| `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | From (15,24): U2,L12,U3,L,D2,R2,U3,R3,U4,R2,U2,L2,D3,U,R2,U4,L2,U2,L6,U2,R,D2,R3,U6,L3,D6,R4,L,U4,R10,U. Use items before Winona. Strength Swablu, Tropius and Altaria; watch for Tropius’s Solar Beam. Boost on Protect; Strength Pelipper; Surf Skarmory. | KI v1:22:00–1:26:54, U26, C1, ROM |
 | `FEATHER_BADGE` | `LavaridgeTown` | Finish the Gym dialogue for Aerial Ace, then Fly to Lavaridge. Go east on Route 112 to the Cable Car, ride to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI v1:27:25–1:28:30, U5, ROM |
 
 ## Magma and Aqua hideouts
@@ -69,7 +69,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house and receive HM08 Dive. | KI v1:54:20–1:55:07, U30, ROM |
 | `HM_DIVE_RECEIVED` | `Route128` | Teach Dive to Swampert over Mud Shot now, retaining Surf, Strength and Rock Smash. Use Max Repel and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the submarine cave and surface inside. | KI v1:55:07–1:56:15, U8, U31, ROM |
 | `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via the north current), 3 (4,15→8,1), 8 (5,12→5,2). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
-| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | In Room 9, go from (5,4) to Archie at (17,42). Surf Mightyena. Against Crobat, use X Speed if needed, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:57:40–1:59:15, U31, C1, ROM |
+| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | In Room 9, walk from (5,4) to (17,42) to trigger Archie. Surf Mightyena. Against Crobat, use X Speed if needed, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:57:40–1:59:15, U31, C1, ROM |
 
 ## Sootopolis and Rayquaza
 

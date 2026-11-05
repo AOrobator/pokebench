@@ -100,3 +100,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - [x] Task D corrections, Sky Pillar–Champion: restore Sky Pillar 1F (10,1), distinguish B2F water from the B1F return, make Wallace boosts survival-conditional, and apply the checker’s confirmed-row clarity/source improvements.
 - [x] Task D source audit: every changed guide row remains at most 300 characters and cites KI time/frame evidence, an audit id and ROM; the Weather Institute clarity edit now cites the observed grunt/Shelly interval.
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).
+- Task D recheck: last three rows fixed (Slaking, Tropius, Archie trigger tile). Guide fact-checked end to end.

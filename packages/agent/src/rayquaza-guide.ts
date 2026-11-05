@@ -38,6 +38,7 @@ export class GuidePosition {
  private teleportReady=false;
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
+ private arrivedOn=-1;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"screen" in event){
@@ -49,7 +50,11 @@ export class GuidePosition {
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
   }
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
-  if(reached<0)return;
+  if(reached>=0)this.advance(event,reached);
+  const to=this.current().to;
+  if(to!==undefined&&this.map!==null&&mapKey(to.id)===mapKey(this.map))this.arrivedOn=this.furthest;
+ }
+ private advance(event:RunEvent,reached:number):void {
   this.earned.add(reached);
   const atStart=event.type==="milestone"&&event.origin==="present_at_start";
   if(atStart)this.atStart.add(reached);
@@ -66,7 +71,7 @@ export class GuidePosition {
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
   const to=this.current().to;
-  if(to===undefined||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
+  if(to===undefined||this.arrivedOn===this.furthest||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
   const home=mapKey(to.id),here=mapKey(this.map);
   if(mapKey(this.lastHeal)!==home||here===home||!OUTDOORS.has(here))return [];
   return [{text:`TELEPORT: Use Teleport from the party menu to return to your respawn point in ${to.map.replace(/([a-z])([A-Z])/g,"$1 $2")} instead of walking.`,milestone:"RQ_TELEPORT"}];

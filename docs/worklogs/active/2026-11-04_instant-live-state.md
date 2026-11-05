@@ -17,8 +17,8 @@ Viewer-only, no harness behavior, so no feature switch. No timeline marks added.
 - [x] RED/GREEN: recent-events page refreshes on a turn change or every 3 s
 - [x] Thinking panel reads the snapshot on live runs
 - [x] Rehearsal on a scratch copy of 5f0f events, 37 MB backlog: first state 65 ms (was 4553 ms), backfill 4.5 s, final state identical to a full fold
-- [ ] Gates
-- [ ] Review
+- [x] Gates: `just lint`, `just build`, `just test`, `just verify-vendor` passed at 03320e94e under the coordinator's CPU window
+- [x] Review: Claude LGTM and GPT LGTM at 03320e94e, fallback LGTM on the delta before its final one-line guard; Grok unavailable (Cursor usage limit until 11/17)
 - [ ] Land, `just current-main`, `just viewer-main`, headless proof
 
 ## Review log

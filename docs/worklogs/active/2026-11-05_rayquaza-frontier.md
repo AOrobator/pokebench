@@ -39,3 +39,5 @@ Custom lanes (a weight-edited model, a `custom-` experiment, a knowledge switch)
 - Not run: `just test`, `just coverage`, `just lint` (need the heavy-CPU window); cloud review lanes; live 8790 proof.
 - Coordinator decisions, 2026-11-05: (1) only a New Game start (boot or the MAIN_MENU save) carries the assisted flag; resumes like think-fast_3393 and 1f08 stay marked in their row and drawer. (2) An assisted run leading on time at the same checkpoint shows the time gap, not "+0 checkpoints".
 - RED for both decisions: see the failures in frontier and frontier-headline focused suites.
+- RED commit: `test(frontier): flag New Game starts only, show the time gap on a checkpoint tie` (b35105626): 6 failed, 62 passed in the two suites.
+- GREEN for both decisions: focused viewer suites 18 files, 245 tests passing; `tsc --noEmit` clean; eslint clean on changed files. Not re-proved in a browser: this round was focused tests only. Full gates, cloud review and live proof remain open.

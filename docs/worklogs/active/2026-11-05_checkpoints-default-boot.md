@@ -27,13 +27,15 @@ Included: `checkpointSelection` start-aware default, `0` as OFF, live.ts passing
 
 The operator, 2026-11-05 12:45 AM on the save-pause question: "fix it first then land". Boundary now also covers removing the pause from capture.
 
-Why that is safe: `/pokebench/checkpoint` saves under `memory_lock`, and `step_environment` runs every frame under the same lock (the only frame-advance call in the server), so a save always lands between frames. A tool wait no longer sees a pause, so capture no longer reaches the model and is measurement again. `/pokebench/pause` stays for operator and continuation use.
+Why that is safe: `/pokebench/checkpoint` saves under `memory_lock`, and `step_environment` runs the frame loop under the same lock, so a save lands between loop frames. Vendor `/load_state` and `/load_checkpoint` run a frame outside that lock, but no PokeBench run calls them, so concurrent state loads are out of this contract. A tool wait no longer sees a pause, so capture no longer reaches the model and is measurement again. `/pokebench/pause` stays for operator and continuation use.
 
 - [x] RED: capture must never call `/pokebench/pause`; pause-only failure tests removed with the behavior
-- [x] GREEN: `pause()` removed from `CheckpointCapture`; sidecar `capture.stability` is now `between_frames_under_memory_lock`. Focused: 13 passed; agent tsc and changed-file eslint clean. COMMIT (RED): `test(checkpoints): capture must not pause the game` (ec3059746)
+- [x] GREEN: `pause()` removed from `CheckpointCapture`; sidecar `capture.stability` is now `saved_under_frame_loop_lock`. Focused: 13 passed; agent tsc and changed-file eslint clean. COMMIT (RED): `test(checkpoints): capture must not pause the game` (ec3059746)
 - [x] Real-server A/B on a scratch port from a copy of 5f0f's STARTER_CHOSEN state, firing during real `/pokebench/battle/wait` and `/pokebench/state` calls for 25 s each: pause and unpause 746 times gave 238 `paused` of 1475 battle waits; 848 saves gave 0 `paused` of 1250. Save round trip median 5.8 ms, max 25 ms. 12 no-pause states loaded and ran 120 frames.
 - [x] Full gates at 961e5c5d7: just lint, build, test, verify-vendor all exit 0. Agent 2455, viewer 869, env 2901, gateway 38 passed; floors held. Agent count fell by 5 because pause-only tests went with the behavior. COMMIT: `fix(checkpoints): save without pausing the game` (961e5c5d7)
 
 ## Review log
 
 Round 1 on 6a046bfb0: Claude BLOCKING and GPT (Codex, `gpt-5.6-sol`) BLOCKING, both only on the capture pause and the missing operator decision. Cursor Grok and Cursor GPT lanes failed on usage limit. Round 2 is on the fix: Claude, GPT through Codex, and a fresh read-only fallback reviewer in place of Grok (the operator's standing rule while Cursor is out of usage).
+
+Round 2 on 4c5590aa9: Claude LGTM, fallback (Sonnet) LGTM, GPT BLOCKING only on the absolute "every frame" claim, because vendor load routes run a frame outside the lock. Fix: narrowed the comment, sidecar value and this worklog. Follow-ups, not in this branch: a test that pins the lock in `checkpoint()`, a client timeout on capture requests, `0` does not stop an explicit `POKEBENCH_CHECKPOINT_AT`.

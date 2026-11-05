@@ -55,9 +55,10 @@ function source(meta:RunStartMeta):Record<string,unknown>{
 }
 
 // Saves native states in milestone observation order, using the first recorded
-// observation. The server saves under the lock every frame runs under, so a state
-// always falls between frames. Capture must not pause: a pause ends any tool wait
-// early, and the model is then told the game is paused.
+// observation. The server saves under the lock the frame loop steps under, so a state
+// falls between loop frames. Vendor load routes run a frame outside that lock, but no
+// PokeBench run calls them. Capture must not pause: a pause ends any tool wait early,
+// and the model is then told the game is paused.
 export class CheckpointCapture {
  private pending:Promise<void>=Promise.resolve();
  private readonly seen=new Set<string>();
@@ -82,7 +83,7 @@ export class CheckpointCapture {
  private selected(name:string):boolean{return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
  private async post(path:string,body:unknown):Promise<Response>{return this.deps.fetch(`${this.deps.serverUrl}${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
  private metadata(event:MilestoneEvent,data:Buffer,sha1:string,sha256:string):Record<string,unknown>{
-  return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"between_frames_under_memory_lock"}};
+  return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"saved_under_frame_loop_lock"}};
  }
  private pair(dir:string,name:string,data:Buffer,meta:string):void{
   const state=join(dir,`${name}.state`),sidecar=join(dir,`${name}.json`);

@@ -44,7 +44,7 @@ it("saves the single target once with complete run and event provenance",async()
  const {capture,calls,files}=fixture();capture.observe(milestone("PLAYER_BEDROOM",10));capture.observe(milestone("CLOCK_SET",20));capture.observe(milestone("CLOCK_SET",30));await capture.settled();
  expect(calls.map(c=>c.url.replace("http://127.0.0.1:9",""))).toEqual(["/pokebench/checkpoint"]);expect(files.get("/runs/cp-run/checkpoints/CLOCK_SET.state")).toEqual(STATE);
  const meta=JSON.parse(String(files.get("/runs/cp-run/checkpoints/CLOCK_SET.json"))) as Record<string,unknown>;
- expect(meta).toMatchObject({version:1,run:"cp-run",milestone:"CLOCK_SET",milestone_event:{seq:20,turn:4,origin:"observed",evidence:[19]},state:{sha1,sha256,bytes:STATE.length},source:{rom_sha1:"a".repeat(40),harness:{commit:"b".repeat(40),dirty:false},start_state:START.start_state,harness_features:START.harness_features,evaluation_features:{"fix-v1":true}},capture:{basis:"first_observed_native_milestone",stability:"between_frames_under_memory_lock"}});
+ expect(meta).toMatchObject({version:1,run:"cp-run",milestone:"CLOCK_SET",milestone_event:{seq:20,turn:4,origin:"observed",evidence:[19]},state:{sha1,sha256,bytes:STATE.length},source:{rom_sha1:"a".repeat(40),harness:{commit:"b".repeat(40),dirty:false},start_state:START.start_state,harness_features:START.harness_features,evaluation_features:{"fix-v1":true}},capture:{basis:"first_observed_native_milestone",stability:"saved_under_frame_loop_lock"}});
 });
 
 it("captures every observed required frontier milestone in order and excludes non-frontier evidence",async()=>{

@@ -137,6 +137,15 @@ function zoomEnd(agents: readonly WorkbenchRun[], human: WorkbenchRun | null): n
   const next = human === null ? -1 : RECORD_ORDER.findIndex((_, i) => i > farthest && reached(human, i));
   return Math.min(RECORD_ORDER.length - 1, Math.max(1, next === -1 ? farthest + 1 : next));
 }
+// The frontier story graph for one run against the agent frontier: the same drawing, two lines, no legend.
+export function racePlot(frontier: Baseline, run: WorkbenchRun, width: number): string {
+  if (run.config === null) return "";
+  const agent = (source: WorkbenchRun): WorkbenchRun => ({ ...source, excluded: null, problem: null, measurement: source.measurement ?? { controller: "agent", features: [], logSha256: "", pausedMs: 0, rawSplits: [] } });
+  const plain: WorkbenchRun = { ...run, id: frontier.run, status: "ended", reason: null, elapsedMs: null, turn: 0, card: null, config: { ...run.config, start: "boot", resume: null }, splits: frontier.milestones.map(m => ({ name: m.name, elapsedMs: m.offsetMs, segmentMs: 0, seq: 0, turn: 0, inputTokens: 0, outputTokens: 0, ...(m.derived === true ? { derived: true as const } : {}) })) };
+  const live = run.status === "live" || run.status === "paused";
+  const html = frontierPlot({ human: null, best: agent(plain) }, live ? [] : [agent(run)], width, null, live ? [agent(run)] : [], true);
+  return html.slice(html.indexOf("<svg"), html.indexOf("</svg>") + 6).replaceAll(" · native milestone #0", "");
+}
 export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRun[], requestedWidth: number, given: VersionIndex | null = null, currentRuns: readonly WorkbenchRun[] = [], zoom = false, frontierStatus: FrontierStatus = null, focus: string | null = null): string {
   const versions = given ?? frontierVersions([...overlays, ...currentRuns, ...(refs.best === null ? [] : [refs.best])]);
   const width = Number.isFinite(requestedWidth) ? Math.max(240, Math.round(requestedWidth)) : 640;

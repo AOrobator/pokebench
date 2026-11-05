@@ -9,13 +9,15 @@ import { esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
-import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, runWallSeconds, splits, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
+import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, inspector, partyNotice, runWallSeconds, thinkingDialog, trainerCard, type Baseline } from "./panels.js";
 import { cardHtml as trainerCardHtml, gymHtml, nextGym, parseTrainerPageData, runHtml, trainerFacts, type TrainerFacts, type TrainerPageData } from "./trainer-page.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
 import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, splitStrip, splitTimes, stateLabel, type ControlAction } from "./controls.js";
-import { tableSplits, type BestSplits } from "./run-splits.js";
+import { racePlot } from "./frontier.js";
+import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
+import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -187,11 +189,6 @@ function recordedHead(value: unknown, runId: string): readonly RunEvent[] {
   return events;
 }
 
-function comparisonLabel(run: string, value: unknown): string {
-  const record = value as { controller?: { kind?: unknown }; romIdentity?: unknown };
-  return record.controller?.kind === "human" && record.romIdentity === "unverified" ? `${run} (ROM unverified)` : run;
-}
-
 function baselineOf(value: unknown): Baseline {
   const record = value as { run?: unknown; milestones?: unknown };
   const milestones = record.milestones;
@@ -256,20 +253,21 @@ export class App {
   private olderPages = OLDER_PAGES;
   private trainerPage: TrainerPageData | null = null;
   private trainerPageLoad: Promise<void> | null = null;
+  private raceMapData: readonly RaceMapSection[] | null = null;
+  private raceFilter: RaceFilter = "all";
+  private readonly raceOpen = new Map<number, boolean>();
+  private raceMemo: { key: string; race: Race; now: number } | null = null;
+  private racePlotMemo: { key: string; html: string } | null = null;
   private trainerFacts: TrainerFacts | null = null;
   private gymPicked: number | null = null;
   private restoringFocus = false;
   private historyRequest = 0;
   private headReady = false;
-  private baseline: Baseline | null = null;
-  private baselineRequest = 0;
   private frontier: Baseline | null = null;
   // Until the server has ranked every run, "no frontier" is unknown, not an answer; the card poll asks again.
   private frontierSettled = false;
   private frontierRetry = false;
-  private comparisonRequest = 0;
   private frontierRequest = 0;
-  private comparisonsRun: string | null = null;
   private problems: string[] = [];
   private trace = this.newTrace();
   private traced = 0;
@@ -631,6 +629,7 @@ export class App {
     }
     this.placeForWidth();
     this.doc.defaultView?.addEventListener("resize", () => { this.placeForWidth(); });
+    this.ui("race").addEventListener("click", (event) => { if (event.target instanceof Element) this.raceClick(event.target as HTMLElement); });
     this.ui("run-head").addEventListener("click", () => { this.showSheet(true); });
     this.ui("run-sheet-shade").addEventListener("click", () => { this.showSheet(false); });
     this.ui("run-sheet-close").addEventListener("click", () => { this.showSheet(false); });
@@ -1009,9 +1008,6 @@ export class App {
       this.olderPages = OLDER_PAGES;
       this.render();
     });
-    this.picker("baseline").addEventListener("change", (event) => {
-      void this.pickBaseline((event.target as HTMLSelectElement).value);
-    });
   }
 
   private filterFeatures(): void {
@@ -1031,7 +1027,7 @@ export class App {
   }
 
   private showPage(name: string): void {
-    if (name === "splits" && this.runId !== null) { if(this.current!==null){void this.loadWorkbench();void this.loadFrontier(this.runId);}if(this.comparisonsRun!==this.runId)void this.loadComparisons(this.runId); }
+    if (name === "splits") { void this.loadTrainerPage(); if (this.runId !== null && this.current !== null) { void this.loadWorkbench(); void this.loadFrontier(this.runId); } }
     if (name === "bag") { this.bagNextPoll = 0; }
     if (name === "party") void this.loadPartyArt();
     if (name === "trainer") void this.loadTrainerPage();
@@ -1043,7 +1039,7 @@ export class App {
   }
 
   loadTrainerPage(): Promise<void> {
-    this.trainerPageLoad ??= this.deps.fetchJson("/sprites/page/data.json").then(parseTrainerPageData, () => null).then((data) => { this.trainerPage = data; this.render(); });
+    this.trainerPageLoad ??= this.deps.fetchJson("/sprites/page/data.json").catch(() => null).then((value) => { this.trainerPage = parseTrainerPageData(value); this.raceMapData = parseRaceMap(value); this.render(); });
     return this.trainerPageLoad;
   }
 
@@ -1153,29 +1149,48 @@ export class App {
     }
   }
 
+  private raceOf(view: RunView, nowMs: number, recorded: BestSplits | undefined): { race: Race; now: number } {
+    const now = Math.floor(runWallSeconds(view, nowMs)), marks = reachedSplits(view, recorded), key = [this.runId, marks.length, marks.at(-1)?.at, this.frontier?.run, this.frontier?.milestones.length, now].join("|");
+    if (this.raceMemo?.key !== key) this.raceMemo = { key, race: raceOf(marks, this.frontier, now, startIndex(view)), now };
+    return this.raceMemo;
+  }
+
+  private renderRace(view: RunView, nowMs: number, recorded: BestSplits | null | undefined): void {
+    if (this.ui("race").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
+    const source = tableSplits(this.mode, recorded);
+    if (source === null || view.startMs === null) { this.setHtml("race-head", '<p class="race-sub">Loading recorded splits…</p>'); return; }
+    const { race, now } = this.raceOf(view, nowMs, source), run = this.runId ?? "", label = runLabel(run);
+    const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
+    this.setHtml("race-head", raceHeadline(race, label, now));
+    this.setHtml("race-rail", raceRail(race));
+    this.setHtml("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
+    this.setHtml("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));
+    this.setHtml("race-filters", raceFilters(this.raceFilter, race));
+    this.setHtml("race-list", raceList(race, this.raceFilter, open));
+    this.setHtml("race-map", raceMap(this.raceMapData, view.cardState?.location, race, label));
+    const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640, recording = this.workbench?.runs.find(item => item.id === run);
+    if (this.frontier === null || recording === undefined) { this.setHtml("race-plot", `<p class="race-sub">${this.frontier === null ? "No frontier run to plot yet." : "Loading the story graph…"}</p>`); return; }
+    const key = [run, recording.splits.length, recording.status, this.frontier.run, this.frontier.milestones.length, width].join("|");
+    if (this.racePlotMemo?.key !== key) this.racePlotMemo = { key, html: racePlot(this.frontier, recording, width) };
+    this.setHtml("race-plot", this.racePlotMemo.html);
+  }
+
+  private raceClick(target: HTMLElement): void {
+    const filter = target.closest<HTMLElement>("[data-race-filter]")?.dataset.raceFilter, leg = target.closest<HTMLElement>("[data-race-leg]")?.dataset.raceLeg, jump = target.closest<HTMLElement>("[data-race-jump]")?.dataset.raceJump;
+    if (filter === "all" || filter === "up" || filter === "dn") this.raceFilter = filter;
+    else if (leg !== undefined) { const open = target.closest("[data-race-leg]")?.getAttribute("aria-expanded") === "true"; this.raceOpen.set(Number(leg), !open); }
+    else if (jump !== undefined) { this.raceFilter = "all"; this.raceOpen.set(Number(jump), true); }
+    else return;
+    this.render();
+    if (jump !== undefined) this.doc.querySelector(`[data-race-section="${jump}"]`)?.scrollIntoView({ block: "start" });
+  }
+
   private renderBag(): void {
     if (this.ui("bag").closest<HTMLElement>("[data-nav-page]")?.hidden !== false) return;
     void this.pollBag();
     this.setHtml("bag-range", this.bagSummary?.range ?? "");
     const status = this.bagProblem === "" ? "" : `<p class="nodata" role="status">${esc(this.bagProblem)}</p>`;
     this.setHtml("bag", status + (this.bagSummary?.html ?? (this.bagProblem === "" ? '<p class="nodata" role="status">Loading complete bag history…</p>' : "")));
-  }
-
-  private async pickBaseline(runId: string): Promise<void> {
-    const request = ++this.baselineRequest;
-    this.baseline = null;
-    this.render();
-    if (runId === "") return;
-    try {
-      const baseline = baselineOf(await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/milestones`));
-      // A newer pick or a run switch supersedes this response.
-      if (request !== this.baselineRequest) return;
-      this.baseline = baseline;
-    } catch (error) {
-      if (request !== this.baselineRequest) return;
-      this.problem(`baseline ${runId}: ${String(error)}`);
-    }
-    this.render();
   }
 
   private async loadFrontier(runId: string, retry = false): Promise<void> {
@@ -1192,29 +1207,6 @@ export class App {
       if (request !== this.frontierRequest) return;
       this.frontierRetry = true;
       if (!retry) this.problem(`frontier: ${String(error)}`);
-    }
-  }
-
-  private async loadComparisons(runId: string): Promise<void> {
-    this.comparisonsRun = runId;
-    const request = ++this.comparisonRequest;
-    const baselineRequest = this.baselineRequest;
-    try {
-      const value = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/comparisons`);
-      const record = value as { candidates?: unknown; baseline?: unknown };
-      if (!Array.isArray(record.candidates)) throw new Error("malformed comparisons");
-      const rawCandidates: unknown[] = record.candidates;
-      const candidates = rawCandidates.map(baselineOf);
-      const baseline = record.baseline === null ? null : baselineOf(record.baseline);
-      if (request !== this.comparisonRequest) return;
-      // Populate only validated references, even when the user disabled the
-      // automatic default while loading. Never expose unchecked run choices.
-      this.picker("baseline").replaceChildren(option(this.doc, "", "none"), ...candidates.map((c, i) => option(this.doc, c.run, comparisonLabel(c.run, rawCandidates[i]))));
-      if (baselineRequest === this.baselineRequest) this.baseline = baseline;
-      this.picker("baseline").value = this.baseline?.run ?? "";
-      this.render();
-    } catch (error) {
-      if (request === this.comparisonRequest) { this.comparisonsRun = null; this.problem(`comparisons: ${String(error)}`); }
     }
   }
 
@@ -1256,18 +1248,16 @@ export class App {
     this.headReady = false;
     this.closeFrameStream();
     this.runId = runId;
-    this.comparisonRequest += 1; this.comparisonsRun = null;
     this.following = automatic || (this.runs[0]?.id === runId && this.runs[0].ended !== true);
     this.view = new RunView();
     this.shown = this.view;
     this.partyUi = { slot: 0, tab: 0, move: null };
     this.clock = null;
     this.mode = "loading";
-    this.baseline = null;
+    this.raceFilter = "all"; this.raceOpen.clear(); this.raceMemo = null; this.racePlotMemo = null;
     this.frontier = null;
     this.frontierSettled = false;
     this.frontierRetry = false;
-    this.baselineRequest += 1;
     this.recordedThinkingRequest += 1;
     this.recordedThinking = null;
     this.recordedThinkingTrace = null;
@@ -1288,7 +1278,6 @@ export class App {
     this.setHtml("inspector", inspector(undefined));
     this.picker("run").value = runId;
     // References are eligible only after the owned server validates their logs.
-    this.picker("baseline").replaceChildren(option(this.doc, "", "none"));
     this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
@@ -1378,9 +1367,8 @@ export class App {
       if (this.mode !== "replay") this.startReplay(true);
       this.render();
     });
-    // The watch-side SPLIT TIMES VS FRONTIER card races the frontier with every pick; comparisons stay gated to the PokéNav splits page.
+    // SPLIT TIMES VS FRONTIER and the PokéNav splits page race the frontier with every pick.
     void this.loadFrontier(runId);
-    if (this.doc.querySelector('[data-page="splits"][aria-pressed="true"]') !== null) void this.loadComparisons(runId);
     this.render();
   }
 
@@ -1790,9 +1778,7 @@ export class App {
     this.setHtml("budgets",totalsKnown?budgets(view,nowMs):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');
     this.setHtml("counters",totalsKnown?counters(view):'<p class="nodata">Lifetime totals are still loading.</p>');
     this.setHtml("metric-history", metricHistory(this.traceOwner()));
-    const split = splits(view, this.baseline, nowMs, this.frontier, false, tableSplits(this.mode, recordedSplits));
-    this.setHtml("splits-summary", split.summary);
-    this.setHtml("splits", split.table);
+    this.renderRace(view, nowMs, recordedSplits);
     this.laneMotion??=new LaneMotion(this.ui("lanes"),this.deps.animateLanes);
     this.laneMotion.render(this.current?.state.selected===this.runId?this.timelineFeed.view:this.shown,nowMs,clock!==null&&this.mode==="replay"?clock.playing?clock.speed:0:this.headReady&&this.view.end!==null?0:1);
     this.renderTrace(nowMs);

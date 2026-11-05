@@ -49,6 +49,10 @@ GYMS: tuple[tuple[str, str, str, str, str, str, str, str], ...] = (
 )  # fmt: skip
 
 
+# region_map.c: 233 tiles on a 64-wide affine tilemap; the land fits the top-left 256x160.
+MAP_TILES, MAP_STRIDE, MAP_WIDTH, MAP_HEIGHT = 233, 64, 256, 160
+
+
 def parse_party(source: str, symbol: str) -> list[tuple[str, int]]:
     """The (species constant, level) pairs of one trainer party in trainer_parties.h."""
     match = re.search(rf"sParty_{re.escape(symbol)}\[\] = \{{(.*?)\n\}};", source, re.S)
@@ -117,6 +121,47 @@ def build_leaders(rom: object, gfx: Path, out: Path) -> dict[str, str]:
     }
 
 
+def build_region_map(rom: object, gfx: Path, root: Path, out: Path) -> dict[str, str]:
+    """The Hoenn region map from its 8bpp tiles and tilemap, cropped to the land the game shows."""
+    region = gfx / "pokenav/region_map"
+    sheet = Image.open(region / "map.png")
+    width = sheet.width // 8
+    pixels = sheet.load()
+    tiles = [
+        bytes(pixels[(n % width) * 8 + x, (n // width) * 8 + y] for y in range(8) for x in range(8))
+        for n in range(MAP_TILES)
+    ]
+    tilemap = (region / "map.bin").read_bytes()
+    proof = {
+        "tiles": art.hexoff(rom.lz(b"".join(tiles), "region map tiles")),  # type: ignore[attr-defined]
+        "tilemap": art.hexoff(rom.lz(tilemap, "region map tilemap")),  # type: ignore[attr-defined]
+        "palette": art.hexoff(rom.raw(art.gbapal(art.jasc(region / "map.pal")), "region map palette")),  # type: ignore[attr-defined]
+    }
+    raw = sheet.getpalette() or []
+    colors = [tuple(raw[i : i + 3]) for i in range(0, len(raw), 3)]
+    image = Image.new("RGB", (MAP_WIDTH, MAP_HEIGHT))
+    for cell in range(MAP_STRIDE * MAP_STRIDE):
+        tx, ty = cell % MAP_STRIDE, cell // MAP_STRIDE
+        if tx * 8 >= MAP_WIDTH or ty * 8 >= MAP_HEIGHT:
+            continue
+        tile = tiles[tilemap[cell]]
+        for i, index in enumerate(tile):
+            image.putpixel((tx * 8 + i % 8, ty * 8 + i // 8), colors[index])
+    image.save(out / "region-map.png")
+    proof["run"] = indexed(rom, region / "brendan_icon.png", out / "map-run.png", "map run icon", True)
+    proof["frontier"] = indexed(rom, region / "may_icon.png", out / "map-frontier.png", "map frontier icon", True)
+    return proof
+
+
+def map_sections(root: Path) -> list[dict[str, object]]:
+    data = json.loads((root / "src/data/region_map/region_map_sections.json").read_text())
+    return [
+        {key: section[key] for key in ("name", "x", "y", "width", "height")}
+        for section in data["map_sections"]
+        if "x" in section
+    ]
+
+
 def gym_table(root: Path) -> list[dict[str, object]]:
     parties = (root / "src/data/trainer_parties.h").read_text()
     ids = art.species_ids(root)
@@ -151,10 +196,12 @@ def build(out: Path, root: Path, rom_path: Path) -> None:
         "badges": indexed(rom, gfx / "trainer_card/badges.png", out / "badges.png", "badges", True),
         "text_window": indexed(rom, gfx / "text_window/1.png", out / "text-window.png", "text window", False),
         "leaders": build_leaders(rom, gfx, out),
+        "region_map": build_region_map(rom, gfx, root, out),
     }  # fmt: skip
     data = {
         "version": 1,
         "gyms": gym_table(root),
+        "map": map_sections(root),
         "proof": proof,
         "source": {
             "pokeemerald": art.git_sha(root),

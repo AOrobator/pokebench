@@ -19,7 +19,7 @@ export interface TrainerFacts {
 const BLANK = "---";
 const EGG_ICON = 412;
 // What /sprites/page/ may serve from runs/sprites/trainer-page-v1.
-export const PAGE_SPRITE_PATH = /^(data\.json|card-(male|female)\.png|stripes-(male|female)\.png|text-window\.png|badges\.png|leader-[a-z-]+\.png)$/;
+export const PAGE_SPRITE_PATH = /^(data\.json|card-(male|female)\.png|stripes-(male|female)\.png|text-window\.png|badges\.png|region-map\.png|map-run\.png|map-frontier\.png|leader-[a-z-]+\.png)$/;
 const SPRITE = /^leader-[a-z-]+\.png$/;
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === "string" && v !== "";

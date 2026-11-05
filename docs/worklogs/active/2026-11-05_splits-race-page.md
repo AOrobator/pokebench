@@ -13,8 +13,8 @@ Single milestone. Viewer presentation plus trainer-page art, so no feature switc
 
 ## M1
 
-- [ ] RED
-- [ ] GREEN
+- [x] RED: 7c9be2f9a
+- [x] GREEN: focused viewer suites pass
 - [ ] Gates
 - [ ] Review
 - [ ] Land, `just trainer-page-art`, `just viewer-main`, live proof

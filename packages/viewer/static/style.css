@@ -1164,3 +1164,45 @@ b.wb-add, b.wb-rem { white-space:nowrap; }
   .tp-gym-body { grid-template-columns: auto minmax(0, 1fr); }
   .tp-team { grid-column: 1 / -1; }
 }
+
+/* PokéNav splits: this run racing the frontier. */
+.race { container-type:inline-size; }
+.race-headline { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 24px; background:#1e2d4a; color:#fff; border-radius:8px; padding:12px 16px; margin-bottom:10px; }
+.race-lead { margin:0; font:16px/1.6 'Press Start 2P',monospace; color:#ffd447; }
+.race-sub { margin:0; font:9px/1.9 'Press Start 2P',monospace; }
+.race-headline .race-sub { color:#dfeaf5; }
+.race-tally { display:flex; flex-wrap:wrap; gap:4px 14px; font:10px/1.7 'Press Start 2P',monospace; }
+.race-tally .up { color:#8fe6ad; } .race-tally .dn { color:#ffb0b0; }
+.race-grid { display:grid; grid-template-columns:190px minmax(0,1.25fr) minmax(0,1fr); gap:10px; align-items:start; }
+.race-main,.race-side { display:grid; gap:10px; min-width:0; }
+.race-swings { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.race-box { background:#fff8e0; border:3px solid #1e2d4a; border-radius:8px; padding:8px; min-width:0; font:9px/1.7 'Press Start 2P',monospace; color:#283848; }
+.race-box h4 { margin:0 0 8px; font:400 10px/1.5 'Press Start 2P',monospace; color:#1e2d4a; }
+.race-box ol { list-style:none; margin:0; padding:0; }
+.race-swings li { display:flex; justify-content:space-between; gap:10px; padding:4px 2px; border-bottom:2px dotted #d8d0b0; }
+.race-swings li:last-child { border-bottom:0; }
+.race-g { white-space:nowrap; text-align:right; } .race-g.up { color:#18803c; } .race-g.dn { color:#c02828; } .race-g.ev { color:#5a6a78; font-size:8px; }
+.race-bar { position:relative; display:block; height:12px; min-width:0; }
+.race-bar i { position:absolute; left:50%; top:-2px; bottom:-2px; border-left:2px solid #1e2d4a; }
+.race-bar u { position:absolute; top:1px; bottom:1px; } .race-bar u.up { background:#2f9e57; } .race-bar u.dn { background:#d04a4a; }
+.race-badge { display:block; width:24px; height:24px; background:url(/sprites/page/badges.png) calc(var(--badge) * -24px) 0/192px 24px no-repeat; image-rendering:pixelated; }
+.race-rail { display:grid; gap:6px; }
+.race-stop { display:grid; grid-template-columns:24px minmax(0,1fr); gap:2px 8px; align-items:center; width:100%; background:#fff8e0; border:3px solid #1e2d4a; border-radius:8px; padding:6px; color:#283848; font:8px/1.6 'Press Start 2P',monospace; text-align:left; cursor:pointer; }
+.race-stop .race-bar { grid-column:1/-1; }
+.race-stop.off { background:#e8e8e0; color:#5a6a78; cursor:default; } .race-stop.off .race-badge { opacity:.3; }
+.race-filters { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; font-size:8px; color:#5a6a78; }
+.race-filters button { border:2px solid #1e2d4a; border-radius:6px; padding:3px 8px; background:#fff; color:#283848; font:8px/1.6 'Press Start 2P',monospace; cursor:pointer; }
+.race-filters button[aria-pressed=true] { background:#30a858; color:#fff; }
+.race-leg { margin-bottom:6px; }
+.race-head { display:grid; grid-template-columns:24px minmax(0,1.3fr) minmax(0,1fr) 108px; gap:2px 8px; align-items:center; width:100%; background:#3a6ea8; color:#fff; border:0; border-radius:6px; padding:5px 8px; font:9px/1.6 'Press Start 2P',monospace; text-align:left; cursor:pointer; }
+.race-head .race-g,.race-head .race-g.up,.race-head .race-g.dn { color:#fff; }
+.race-head .race-bar i { border-color:#fff; } .race-head .race-bar u.up { background:#7fe0a0; } .race-head .race-bar u.dn { background:#ff9a9a; }
+.race-count { grid-column:2/-1; font-size:7px; color:#dfeaf5; }
+.race-row { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 108px; gap:0 8px; align-items:center; padding:5px 8px; border-bottom:2px dotted #d8d0b0; }
+.race-times { grid-column:1/-1; font-size:7px; color:#5a6a78; }
+.race-map { position:relative; aspect-ratio:256/160; background:url(/sprites/page/region-map.png) 0 0/100% 100%; image-rendering:pixelated; border:3px solid #1e2d4a; border-radius:8px; overflow:hidden; }
+.race-who { position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; font:7px/1.2 'Press Start 2P',monospace; color:#fff; text-shadow:1px 1px 0 #1e2d4a,-1px -1px 0 #1e2d4a,1px -1px 0 #1e2d4a,-1px 1px 0 #1e2d4a; }
+.race-who img { width:28px; height:28px; image-rendering:pixelated; }
+[data-ui="race-plot"] svg { display:block; width:100%; height:auto; background:#fff; }
+@container (max-width:1000px) { .race-grid { grid-template-columns:minmax(0,1fr); } .race-rail { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@container (max-width:640px) { .race-lead { font-size:11px; } .race-rail { grid-template-columns:repeat(2,minmax(0,1fr)); } .race-swings { grid-template-columns:minmax(0,1fr); } .race-head { grid-template-columns:24px minmax(0,1fr) 108px; } .race-head .race-bar { grid-column:2/-1; grid-row:2; } .race-count { grid-column:1/-1; } .race-row { grid-template-columns:minmax(0,1fr) 108px; } .race-row .race-bar { grid-column:1/-1; grid-row:2; } }

@@ -45,8 +45,7 @@ export interface ReferencePair { human: WorkbenchRun | null; best: WorkbenchRun 
 export type FrontierStatus = "live" | "paused" | null;
 const modelName = (run: WorkbenchRun): string => run.model ?? "Model not recorded";
 // A main-menu save (options set, before NEW GAME) starts the game from New game: it plots with boot runs, tagged.
-const newGameStart = (run: WorkbenchRun): boolean => run.config?.start === "boot" || run.config?.resume === "MAIN_MENU";
-const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && newGameStart(run);
+const plottedAgent = (run: WorkbenchRun): boolean => run.excluded === null && run.problem === null && run.measurement?.controller === "agent" && (run.config?.start === "boot" || run.config?.resume === "MAIN_MENU");
 // Only exact known story-checkpoint identities are admitted; arbitrary save files remain unclassified.
 export function resumeMilestone(run: WorkbenchRun): (typeof FRONTIER_MILESTONES)[number] | null {
   return FRONTIER_MILESTONES.find(m => m.id === run.config?.resume) ?? null;
@@ -142,7 +141,7 @@ export function frontierLabel(run: WorkbenchRun, status: FrontierStatus, version
   const stopped = run.reason === "operator_abort" ? " · ended by operator abort" : run.reason === "operator_stop" ? " · ended by operator stop" : "";
   return `Agent frontier${state}${stopped} · ${esc(versionLabel(run, versions))} · ${esc(run.id)}${start}`;
 }
-// The one flag on the chart, hung from the furthest assisted New Game start's head; it turns upward when the head sits too low to hang.
+// The one flag on the chart, hung from the furthest assisted run's head; it turns upward when the head sits too low to hang.
 function assistedFlag(run: WorkbenchRun, x: number, y: number, bottom: number): string {
   const width = 124, height = 17, stem = 48, gap = 6, down = y + gap + stem + height <= bottom;
   const end = down ? y + gap + stem : y - gap - stem, top = down ? end : end - height, left = Math.max(0, x + gap - width);
@@ -175,8 +174,7 @@ export function frontierPlot(refs: ReferencePair, overlays: readonly WorkbenchRu
   for (const run of current) series.push({ run, color: runColor(run, versions), kind: run.status === "live" ? "live" : "paused", resumed: checkpointResume(run), assisted: customLane(run) });
   // The headline names the best overall run, so the chart shows it whatever the filters select.
   if (refs.overall != null && refs.overall.id !== refs.best?.id && !series.some(s => s.run.id === refs.overall?.id)) series.push({ run: refs.overall, color: ASSISTED_COLOR, kind: "overlay", resumed: false, assisted: customLane(refs.overall) });
-  // Only a New Game start carries the flag; a checkpoint resume is marked by its line, row and drawer.
-  const flagged = series.filter(s => s.assisted !== null && newGameStart(s.run)).map(s => s.run).sort(furthestFirst)[0];
+  const flagged = series.filter(s => s.assisted !== null).map(s => s.run).sort(furthestFirst)[0];
   const milestones = zoom ? FRONTIER_MILESTONES.slice(0, zoomEnd(series.filter(s => s.kind !== "human").map(s => s.run), refs.human) + 1) : FRONTIER_MILESTONES;
   const hidden = FRONTIER_MILESTONES.length - milestones.length, last = milestones[milestones.length - 1]?.label ?? "";
   const left = 43, right = width - 15, top = 20, bottom = 490, height = 635;

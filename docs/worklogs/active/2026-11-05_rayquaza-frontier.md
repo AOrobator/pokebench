@@ -15,8 +15,8 @@ Custom lanes (a weight-edited model, a `custom-` experiment, a knowledge switch)
 - `frontierReferences` keeps `best` on today's Agent frontier rule (best unhelped) and adds `overall`, which may be assisted.
 - `frontierPair` is unchanged, so the race, `frontier-cache` and its disk cache keep their behavior.
 - `frontierVersions` still leaves assisted runs out, so benchmark harness versions keep their numbers, colors and diffs.
-- `frontier-headline.ts`: pure tiles, BEST OVERALL and BEST UNHELPED, with a `+N checkpoints` gap, or SAME RUN.
-- Chart: violet line, hollow diamonds, one HEAVILY ASSISTED flag at the furthest assisted head. The best-overall run is drawn whatever the overlay filter says.
+- `frontier-headline.ts`: pure tiles. One BEST OVERALL tile when it is the best unhelped run; BEST OVERALL and BEST UNHELPED only when an assisted run leads, with a `+N checkpoints` gap or, on a same-checkpoint tie, `Same checkpoint · 12m faster`.
+- Chart: violet line, hollow diamonds, one HEAVILY ASSISTED flag at the furthest assisted head, whatever its start. The best-overall run is drawn whatever the overlay filter says.
 - `fixed-analysis` and the next-run switch history leave custom lanes out of their statistics.
 
 ## Milestones
@@ -41,3 +41,8 @@ Custom lanes (a weight-edited model, a `custom-` experiment, a knowledge switch)
 - RED for both decisions: see the failures in frontier and frontier-headline focused suites.
 - RED commit: `test(frontier): flag New Game starts only, show the time gap on a checkpoint tie` (b35105626): 6 failed, 62 passed in the two suites.
 - GREEN for both decisions: focused viewer suites 18 files, 245 tests passing; `tsc --noEmit` clean; eslint clean on changed files. Not re-proved in a browser: this round was focused tests only. Full gates, cloud review and live proof remain open.
+- The operator corrections, 2026-11-05, supersede the coordinator decisions above: (1) one tile when best overall is the best unhelped run, no "same run" text; (2) New Game flag limit reverted, checkpoint and resume starts can carry the flag; (3) trainer cards out of scope: no changes, no tests, no trainer-card-check; (4) a same-checkpoint tie reads "Same checkpoint · 12m faster".
+- RED commit: `test(frontier): one tile unless assisted leads, name the tie, flag any start` (85c64be9f): 3 failed, 63 passed in the two suites.
+- GREEN for the corrections: focused viewer suites 18 files, 243 tests passing (the count falls from 245 because the two New Game flag tests became one and the tie tests merged); `tsc --noEmit` clean; eslint clean on changed files. The flag stays one per chart, on the furthest assisted run of any start.
+- GREEN commit: `feat(frontier): one tile unless assisted leads, name the tie, flag any start` (0601299fe)
+- Headless shots re-taken at 1280 and 390 from build 0601299 on a private viewer, port 18811: one tile on real data, synthetic assisted lead (+5), synthetic tie (Same checkpoint · 12m faster). No console errors, no horizontal overflow, no "same run" text. Saved under `runs/mockups/rayquaza-frontier/shots/`. trainer-card-check not run, per the operator: out of scope.

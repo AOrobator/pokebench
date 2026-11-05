@@ -20,7 +20,7 @@ type Milestone = Extract<RunEvent, { type: "milestone" }>;
 // A probe's native milestones are never graded, but the viewer's display reading keeps them so its frontier can draw the run dimmed.
 export const keepsSplits = (features: readonly string[], clockPolicy: "strict" | "display"): boolean => clockPolicy === "display" || !features.includes("probe");
 // Those splits go only to the frontier: every other surface keeps treating a probe as having none.
-export function probeSplitsApart(features: readonly string[], splits: RecordingSplit[], measurement: RecordingMeasurement): { splits: RecordingSplit[]; probeSplits?: RecordingSplit[]; measurement: RecordingMeasurement } {
+export function probeSplitsApart(features: readonly string[], splits: RecordingSplit[], measurement: RecordingMeasurement): { splits: RecordingSplit[]; probeSplits?: RecordingSplit[] | null; measurement: RecordingMeasurement } {
   return features.includes("probe") ? { splits: [], probeSplits: splits, measurement: { ...measurement, rawSplits: [] } } : { splits, measurement };
 }
 type State = Extract<RunEvent, { type: "state"; started: boolean }>;

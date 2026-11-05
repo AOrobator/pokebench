@@ -74,6 +74,10 @@ Round 2, frozen 7010a995c..86dd4726f, diff SHA-256 519ff9be6e970c1ed1987d596f473
 - Fallback subagent: no bugs found, accepted the `settleSkew` rebuttal, no literal verdict line. Observation accepted: a load error now clears `probeSplits`.
 - GPT: BLOCKING on one finding, accepted: a probe with a problem was faint but not dotted. `invalidTrial` now reports the problem for any run that is not operator excluded.
 
+Round 3, delta on d666eccb4 (cumulative SHA-256 0ba150667a2d39625c2edae02cc397d16c5a2dc8c5431538d3d706b21095659c).
+- GPT: LGTM on the delta.
+- Claude CLI: no output in two attempts on the review config; stopped. Claude subagent lane, on the cumulative diff: BLOCKING, accepted: `racePlot` went through `frontierPlot`, so probe splits reached the race graph and ignored a replay rewind. `agent` now clears them. Minor, accepted: a probe source could not place a save; `reachedBy` now reads its `probeSplits`.
+
 ## Principles Self-Review
 
 PB1 PASS (the graph draws recorded splits; grading unchanged). PB2 PASS (failed and odd runs now show). PB3 PASS (no claim from one run). PB4 PASS (resumes and assisted runs stay tagged; the frontier stays New Game only). PB5 PASS (one reporting change, hypothesis in the problem statement). PB6 N/A (no model context). PB7 PASS (the graph reads recorded events; sidecars are only provenance for a recorded save). PB8 N/A (no model tool calls). PB9 PASS (probe splits and start-unknown volume raised to the operator). PB10 PASS (no test skipped, floors unchanged, tests that encoded hiding rewritten to the new rule). PB11 N/A (no dependency change). PB12 PASS (no ROM or protected path). PB13 PASS so far: review and landing are pending and recorded.

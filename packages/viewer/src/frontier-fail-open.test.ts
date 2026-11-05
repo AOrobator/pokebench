@@ -77,6 +77,11 @@ describe("the frontier fails open", () => {
     expect(series("dim")?.classList.contains("wb-probe-run")).toBe(true);
     expect(document.querySelector('[data-run="dim"]')?.getAttribute("aria-label")).toContain("probe session");
   });
+  it("keeps probe splits out of the race graph, even when a replay rewinds", () => {
+    const base = raced("dim"), frontier = { run: "best", milestones: NAMES.map((name, i) => ({ name, offsetMs: (i + 1) * 60000 })) };
+    document.body.innerHTML = racePlot(frontier, { ...base, splits: [], probeSplits: base.splits, excluded: "Excluded probe session" }, 900);
+    expect(document.querySelector('[data-run="dim"]')).toBeNull();
+  });
   it("still draws a probe with a problem dotted, with the problem on its marks", () => {
     const base = raced("dim");
     plot([{ ...base, splits: [], probeSplits: base.splits, excluded: "Excluded probe session", problem: "viewer build is older" }]);

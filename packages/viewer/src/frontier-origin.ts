@@ -38,7 +38,7 @@ export function resolveOrigins(runs: readonly WorkbenchRun[], saves: ReadonlyMap
   const reachedBy = (id: string, turn: number): string | null => {
     const source = byId.get(id); if (source === undefined) return null;
     const own = ORDER.includes(source.config?.resume ?? "") ? source.config?.resume ?? null : originOf(id)?.milestone ?? null;
-    return source.splits.reduce((best, s) => s.screenshotEvidence === undefined && s.turn <= turn && ORDER.includes(s.name) ? later(best, s.name) : best, own);
+    return (source.probeSplits ?? source.splits).reduce((best, s) => s.screenshotEvidence === undefined && s.turn <= turn && ORDER.includes(s.name) ? later(best, s.name) : best, own);
   };
   const originOf = (id: string): RunOrigin | null => {
     const done = origins.get(id), save = saves.get(id);

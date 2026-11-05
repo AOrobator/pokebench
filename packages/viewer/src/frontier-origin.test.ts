@@ -49,6 +49,10 @@ describe("placing a save by provenance", () => {
     const named = source("named", [split("STONE_BADGE", 2)], { config: { ...config, resume: "CLOCK_SET" } });
     expect(origin([named], save("x.state"), { run: "named", turn: 2 }).get("resumed")?.milestone).toBe("STONE_BADGE");
   });
+  it("places a save from a probe source's own splits", () => {
+    const probe = source("probe", [], { probeSplits: [split("STONE_BADGE", 50)] });
+    expect(origin([probe], save("x.state"), { run: "probe", turn: 100 }).get("resumed")?.milestone).toBe("STONE_BADGE");
+  });
   it("survives a provenance cycle", () => {
     const origins = resolveOrigins([saved("a"), saved("b")], new Map([["a", save("a.state")], ["b", save("b.state")]]), start => start.path.endsWith("a.state") ? { run: "b", turn: 1 } : { run: "a", turn: 1 });
     expect(origins.get("a")?.milestone).toBeNull();

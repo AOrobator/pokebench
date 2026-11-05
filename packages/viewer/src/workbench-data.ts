@@ -28,7 +28,7 @@ export interface WorkbenchRun {
   experiment?: WorkbenchExperiment | null;
   origin?: RunOrigin | null;
   // A probe's native splits, for the frontier alone; splits stays empty so nothing else reads a probe as progress.
-  probeSplits?: WorkbenchSplit[];
+  probeSplits?: WorkbenchSplit[] | null;
 }
 export interface WorkbenchExperiment { id: string; arm: string; trial: number; of: number }
 export interface WorkbenchMon { speciesId: number | null; level: number; egg: boolean }

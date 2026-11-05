@@ -29,7 +29,8 @@ const unobserved=(state:GameStateSnapshot):GameStateSnapshot=>{const rest={...st
 
 it("registers default off, in position, and needs the orientation read",()=>{
  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(345);
- expect(playHarnessFeatures(ALL_ON,null).at(-1)).toBe(ID);
+ const recorded=playHarnessFeatures(ALL_ON,null);
+ expect(recorded[recorded.indexOf(ID)-1]).toBe("reasoning-effort-request-v1");
  expect(featureInfo(ID).needs).toBe("rotating-gate-positions-v1");
  expect(featureInfo(ID).description).toContain(" Off: ");
  const {[ID]:enabled,...old}=ALL_ON;expect(enabled).toBe(true);expect(normalizeFeatures(old)[ID]).toBe(false);

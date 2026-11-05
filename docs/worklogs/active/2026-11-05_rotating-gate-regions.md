@@ -29,5 +29,6 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 - RED a13c04330: `test_rotating_gate_regions.py` failed to import `map_regions`; the agent and viewer tests name a switch that was not registered.
 - GREEN: focused env 64 pass (regions, readouts, sections, observation consistency), agent 68 pass (regions, features, play-preset, gate navigation). Viewer panels needs the agent build, so it waits for the gate window.
 - Replay of the 8 probe turns from recorded raw RAM through `rerender`, runs 5f0f and 3332: 8 of 8 give the same area partition and the same gate lines as the prototype. The only difference is three new lines per turn for the gym's ledges (for example D to E, E to F, F to B), which the prototype drew as walls.
+- Gate pass 1: lint pass; `rotating-gate-press.test.ts` pinned the last recorded switch with `.at(-1)`, now pinned by its neighbour.
 
 ## Multi-Model Review Log

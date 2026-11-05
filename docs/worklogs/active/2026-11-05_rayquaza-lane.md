@@ -30,3 +30,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fight-note fact check at 3fba9cc09: fixed the Route 111 and Gym-entry carry-overs, the Rock Tomb fallback, the explainer's heal rule, and the header's battle exception.
 - Merged the operator's frontier corrections (one tile, every assisted run can be flagged, same-checkpoint ties). CLAUDE.md wording matches.
 - Full gates found three issues, all fixed: `DEFAULT_NEXT_RUN` lacked both new switches, so viewer drafts would have enabled them; a history fixture; a lint error in a test.
+- Review (GPT) findings: guide moved outermost in `live.ts` through `finalGuide`, so auto-talk cannot land after it; the battle note uses `battleOnScreen`, so post-battle evolution is excluded. Rebutted: a `custom-` experiment's own arms are not benchmark cohorts.

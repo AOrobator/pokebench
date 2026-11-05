@@ -1,4 +1,5 @@
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
+import {battleOnScreen} from "./battle-context.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {RAYQUAZA_GUIDE_STEPS} from "./rayquaza-guide-data.js";
@@ -15,7 +16,7 @@ export class GuidePosition {
  inBattle=false;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
-  if(event.type==="state"&&"in_battle" in event)this.inBattle=event.in_battle;
+  if(event.type==="state"&&"screen" in event)this.inBattle=battleOnScreen(event,true);
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached>this.furthest)this.furthest=reached;
  }

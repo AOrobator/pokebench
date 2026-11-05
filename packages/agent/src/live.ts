@@ -6,7 +6,7 @@ import {StableJitContext} from "./jit-v2-context.js";
 import {JitContext} from "./jit-context.js";
 import {exactCountProblems,payloadCounter} from "./exact-context.js";
 import type {FitReport} from "./context-budget.js";
-import {battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {finalGuide,battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {ModelErrorRecovery} from "./model-error-recovery.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import { GAME_PORT_POOL, allocatePort, noPortMessage } from "./port-allocator.js";
@@ -440,7 +440,7 @@ async function playAgent(): Promise<void> {
         base: {...normalBase,...(continuation===null?{}:{onPayload:async(payload:unknown,currentModel:Model<Api>)=>{const next=await normalBase.onPayload?.(payload,currentModel)??payload;return continuationPayload(continuation.seed,next,body=>{const directory=join(RUNS_ROOT,runId,"campaign-requests");mkdirSync(directory,{recursive:true});const bytes=gzipSync(body),name=String(++requestIndex).padStart(5,"0");writeFileSync(join(directory,`${name}.json.gz`),bytes,{flag:"wx"});writeFileSync(join(directory,`${name}.receipt.json`),JSON.stringify({index:requestIndex,turn:recorder.currentTurn(),offset:messages.length,sha256:createHash("sha256").update(bytes).digest("hex")}),{flag:"wx"});});}}),beforeToolCall:({toolCall})=>Promise.resolve(features["just-in-time-prompt-v2"]||jit.allowed(toolCall.name)?undefined:{block:true,reason:"This tool was not available for the screen of this decision; inspect the current state and choose an available tool."})},
         requestContext: context=>{const presentation=features["just-in-time-prompt-v2"]?stableJit:jit;const next=presentation.context(context);recorder.recordRequestContext(presentation.receipt());return next;},
         governor,
-        transformContext: autoTalkContext(features,new StateWatcher(gameServerUrl),tools,battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),context.breaker,recorder,controller.signal),
+        transformContext: finalGuide(features,recorder,autoTalkContext(features,new StateWatcher(gameServerUrl),tools,battleDecisionContext(features,new StateWatcher(gameServerUrl),tools,context.transformContext,recorder,controller.signal),context.breaker,recorder,controller.signal)),
         window: context.window,
         ...budget,
         emit: event=>{if(event.type==="message_end"){exact?.observe(event.message);if(restored!==null)messages.push(event.message);}return recorder.emit(event);},

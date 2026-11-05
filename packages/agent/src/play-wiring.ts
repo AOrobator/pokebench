@@ -104,8 +104,13 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const campaign=discoveredGymChecklist(features,memoryRecorder,instructionGoals?.transform??history.transform);
  // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.
  const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,campaign))));
- const transformContext=rayquazaGuideContext(features,memoryRecorder,gateLogContext(features,memoryRecorder,rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places))));
+ const transformContext=gateLogContext(features,memoryRecorder,rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places)));
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
+}
+
+// rq-milestone-guide-v1: outermost, so nothing a wrapped transform appends can land after the guide.
+export function finalGuide(features:FeatureSet,recorder:Parameters<typeof rayquazaGuideContext>[1],transform:Transform):Transform {
+ return rayquazaGuideContext(features,recorder,transform);
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

@@ -63,3 +63,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
 - Fix units through Heat on `claude/rq-front-fixes`. U4: no grind before Rustboro Gym, Water Gun learned mid-gym.
 - Units: U9 Escape Rope from Steven's room; U13 Growl to Mud Shot, Bide declined; U15 always decline the rival; U16 Fallarbor list; U17 second Rock Smash; U21 Herb Shop and Route 109 dock; U8 Repel lines through Heat.
+- U18 and U19: Maxie plan with the Taillow lead and a no-Taillow alternative; Flannery plan with Mud Shot on Torkoal; bike down Jagged Pass.

@@ -83,10 +83,10 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | ROUTE_114 | Route114 | Use a Super Repel and follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
 | METEOR_FALLS_CONFRONTATION_RESOLVED | MeteorFalls_1F_1R | Leave through Route 115 south to Rustboro, then go east to Rusturf Tunnel. Use Rock Smash inside to reach the man who gives HM04 Strength. | KI 22, 23, WT 04 |
 | HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, go north on Route 111, Rock Smash the rocks at (19,100) and (18,101) again, then west on Route 112 to the Cable Car. | KI 23, 24, fact check, TO:MauvilleCity |
-| MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. Against Maxie, use Guard Spec and X Attack first. | KI 24, battle plans |
-| MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Walk south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
+| MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. For Maxie, lead with Taillow: use Guard Spec on its turn, let it faint, then send Marshtomp. No Taillow? Use Guard Spec first. Then X Attack, Strength on Mightyena and Zubat, Mud Shot on Camerupt. | KI 24, battle plans, frame 0:53:06, OCR 0:53:13, audit U18 |
+| MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Bike south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
 | LAVARIDGE_TOWN | LavaridgeTown | Heal at the Pokémon Center, then enter the Gym. | KI 25, ROM, TR 274b:1445 |
-| LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Each vent swaps floors. In order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Flannery is at (13,9). Save your best Water move and healing for Torkoal; she may use Hyper Potions. | KI 26, PATH 3, ROM, TR ol4h:1670 |
+| LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Each vent swaps floors. In order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Flannery is at (13,9). Use X Attack, Strength on Slugma, Mud Shot on Camerupt and Torkoal; Sunny Day weakens Water. | KI 26, PATH 3, ROM, TR ol4h:1670, OCR 0:56:47, audit U19 |
 | FLANNERY_DEFEATED | - | Finish Flannery's dialogue to collect the Heat Badge and TM50 Overheat. | KI route, fact check |
 
 ## Needs

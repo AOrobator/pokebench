@@ -14,6 +14,7 @@ A guide is Markdown with one table per stretch, in play order. Each row is one n
 - **Source:** every row cites at least one: `KI <n>` (findings route step) or `KI <section>`, `WT <part>`, `GR` (gold run), `PATH <segment>`, `ROM`, `TR <run>:<turn>` (recorded trace), `the operator`.
 - **AT:** a row named `AT:<Map>:<x>:<y>` fires when the player stands on that tile.
 - **GOT:** a row named `GOT:<ITEM_NAME>` fires when that item count rises in the Bag. These rows and `MAP:`/`AT:` rows fire only from the step just before them.
+- **NEEDS:** add `NEEDS:POTION+REPEL` to Source to log any item missing from the Bag when the step passes. It is never shown to the model.
 - **TO:** add `TO:<TownMap>` to Source when the note starts with a trip to that town, with nothing to do on the way. The Teleport note fires only on these rows, until the player reaches the town.
 - **CHECK:** append `CHECK` to the note when it is not yet confirmed against ROM data or a recorded game state. A line is cleared only by the fact check.
 

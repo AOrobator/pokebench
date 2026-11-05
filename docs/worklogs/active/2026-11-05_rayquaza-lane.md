@@ -71,3 +71,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Codex fact check at 0ea9ac2f8: a Mart visit before Match Call could jump the guide, and Teleport could skip the Route 111 candy. RED tests: map and tile steps fire only from the step just before them; `GOT:` steps fire on gaining an item.
 - Fixes from the fact check: map and tile steps adjacent only, `GOT:` item steps, Route 111 Teleport after the candy, Rock Tomb row order, Foresight on the right row, Guard Specs first, softer Maxie plan, Flannery plan covers Numel, prep lines moved out of the in-battle note.
 - The operator 4:30 PM: log missed purchases with no catch-up prompt. RED test added. Shelf readout is its own unit on `claude/shop-shelf-hidden`.
+- `NEEDS:` rows log `RQ_MISSED` with the items and money when the step passes. Nothing reaches the model.

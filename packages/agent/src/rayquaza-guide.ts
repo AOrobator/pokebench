@@ -20,7 +20,7 @@ export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, pr
 export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
 
 type MapId=readonly [number,number];
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string}
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -53,6 +53,7 @@ export class GuidePosition {
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
  private arrivedOn=-1;
+ private misses:{readonly after:string;readonly items:readonly string[]}[]=[];
  private gotCount:{readonly step:number;readonly count:number}|null=null;
  private bootStart=false;
  private optionsDone=false;
@@ -106,12 +107,23 @@ export class GuidePosition {
   if(index>=0)this.advance(event,index);
  }
  private advance(event:RunEvent,reached:number):void {
+  const from=this.furthest;
   this.earned.add(reached);
   const atStart=event.type==="milestone"&&event.origin==="present_at_start";
   if(atStart)this.atStart.add(reached);
   else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
+  const before=this.furthest;
   for(let next=this.next(atStart);next!==null;next=this.next(atStart))this.furthest=next;
+  if(this.furthest!==before||before!==from)this.noteMisses(from);
  }
+ private noteMisses(from:number):void {
+  const step=this.steps[from],bag=this.latest?.resources?.bag;
+  if(step?.needs===undefined||bag==null)return;
+  const items=step.needs.filter(item=>!bag.some(entry=>entry.name===item&&entry.quantity>0));
+  if(items.length>0)this.misses.push({after:step.after,items});
+ }
+ // let it fail: a miss is logged for analysis and never told to the model.
+ takeMisses():readonly {readonly after:string;readonly items:readonly string[]}[] {return this.misses.splice(0);}
  private next(atStart:boolean):number|null {
   if(this.earned.has(this.furthest+1))return this.furthest+1;
   if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
@@ -151,6 +163,7 @@ export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;
   if(step.after!==recorded){recorder.recordMilestoneHint({text,milestone:step.after});recorded=step.after;}
+  for(const miss of guide.takeMisses())recorder.recordMilestoneHint({text:`Missed at ${miss.after}: ${miss.items.join(", ")}; money ${String(guide.latest?.money??"unknown")}`,milestone:"RQ_MISSED"});
   const situation=guide.situationNotes();
   for(const note of situation)if(!told.includes(note.text))recorder.recordMilestoneHint(note);
   told=situation.map(note=>note.text);

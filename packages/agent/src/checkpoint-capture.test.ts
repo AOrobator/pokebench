@@ -77,9 +77,20 @@ it("refuses a bad state, records the capture failure, continues later milestones
  const down=fixture(undefined,{detail:"native checkpoint unavailable"},503);down.capture.observe(milestone("CLOCK_SET",20));await expect(down.capture.settled()).rejects.toThrow(/503/);expect(down.calls.at(-1)?.body).toEqual({paused:false});
 });
 
+const boot={kind:"boot"} as const,saved={kind:"save_state"} as const;
+it("saves every frontier milestone on a boot start unless the switch is off",()=>{
+ expect(checkpointSelection({},boot)).toEqual({kind:"frontier"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:""},boot)).toEqual({kind:"frontier"});
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"},boot)).toEqual({kind:"frontier"});
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"0"},boot)).toBeNull();
+});
+it("keeps save-state starts opt-in",()=>{
+ expect(checkpointSelection({},saved)).toBeNull();expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"0"},saved)).toBeNull();
+ expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"},saved)).toEqual({kind:"frontier"});
+});
 it("reads explicit capture modes from the environment and preserves the single-target contract",()=>{
- expect(checkpointSelection({})).toBeNull();expect(checkpointTarget({})).toBeNull();expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toEqual({kind:"single",target:"CLOCK_SET"});expect(checkpointTarget({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toBe("CLOCK_SET");expect(checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1"})).toEqual({kind:"frontier"});
- expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"yes"})).toThrow(/must be 1/);expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1",POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toThrow(/choose one/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
+ expect(checkpointTarget({})).toBeNull();expect(checkpointTarget({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"})).toBe("CLOCK_SET");expect(checkpointTarget({POKEBENCH_CHECKPOINT_FRONTIER:"1"})).toBeNull();
+ for(const start of [boot,saved]){expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"},start)).toEqual({kind:"single",target:"CLOCK_SET"});expect(checkpointSelection({POKEBENCH_CHECKPOINT_AT:"CLOCK_SET",POKEBENCH_CHECKPOINT_FRONTIER:"0"},start)).toEqual({kind:"single",target:"CLOCK_SET"});}
+ expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"yes"},boot)).toThrow(/must be 0 or 1/);expect(()=>checkpointSelection({POKEBENCH_CHECKPOINT_FRONTIER:"1",POKEBENCH_CHECKPOINT_AT:"CLOCK_SET"},boot)).toThrow(/choose one/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"invented"})).toThrow(/native milestone/);expect(()=>checkpointTarget({POKEBENCH_CHECKPOINT_AT:"PLAYER_NAME_SET"})).toThrow(/native milestone/);
 });
 
 const v2={version:2,id:"cp",target:"RIVAL_MET",limits:{maxTurns:1500,maxWallMs:900000,failureLimit:3},sampling:{thinkingLevel:"medium",maxTokens:4096},features:{...ALL_ON,"state-only-decisions-v1":false}};

@@ -12,8 +12,8 @@ The feed (current-state projector) was still at 23bd43908 and stopped on run 5f0
 
 - [x] RED: `card-row.test.ts`, module missing
 - [x] GREEN: `cardRow` used by both replay paths in `App.cardInputs`
-- [ ] Gates
-- [ ] Review
+- [x] Gates: `just lint`, `just build`, `just test`, `just verify-vendor` passed at c0afe1feb under the coordinator's CPU window
+- [x] Review of c0afe1feb: Claude CLI LGTM, Codex GPT LGTM, fallback subagent LGTM; Grok unavailable (Cursor usage limit until 11/17)
 - [ ] Land, `just viewer-main`, headless proof on an older run
 
 ## Principles self-review

@@ -32,6 +32,7 @@ import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
+import {rayquazaGuideContext} from "./rayquaza-guide.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {loopEvidence} from "./loop/types.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
@@ -103,7 +104,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
  const campaign=discoveredGymChecklist(features,memoryRecorder,instructionGoals?.transform??history.transform);
  // Scene/type-gap/question context is prepared before the final eligible town checkpoint note.
  const priorContext=currentQuestionFocus(features,memoryRecorder,moveMatchupContext(features,memoryRecorder,typeGapLastMessage(features,memoryRecorder,sceneFollowupContext(features,memoryRecorder,campaign))));
- const transformContext=gateLogContext(features,memoryRecorder,rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places)));
+ const transformContext=rayquazaGuideContext(features,memoryRecorder,gateLogContext(features,memoryRecorder,rusturfEntryFollowupContext(features,memoryRecorder,townCenterContext(features,memoryRecorder,priorContext,places))));
  return {...(instructionGoals===null?{}:{instructionGoals}),tools,transformContext,window:contextWindow(features),breaker,...(history.training===undefined?{}:{training:history.training})};
 }
 

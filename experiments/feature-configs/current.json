@@ -537,6 +537,7 @@
     "rotating-gate-press-feedback-v1": true,
     "rotating-gate-regions-v1": true,
     "rotating-gate-turn-reasons-v1": true,
-    "rotating-gate-push-log-v1": true
+    "rotating-gate-push-log-v1": true,
+    "rq-milestone-guide-v1": false
   }
 }

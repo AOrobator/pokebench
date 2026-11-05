@@ -110,6 +110,26 @@ describe("missed items", () => {
     expect(guide.takeMisses()).toEqual([{ after: "MAP:X", items: ["REPEL"] }]);
   });
 
+  it("matches the game's item names, which can end in a period", () => {
+    const guide = new GuidePosition([{ after: "RUN_START", map: null, note: "Buy.", needs: ["GUARD SPEC"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    guide.observe(field({ resources: { bag: [{ name: "GUARD SPEC.", quantity: 2 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([]);
+  });
+
+  it("records a miss as its own event, never as a delivered hint", async () => {
+    const hints: string[] = [];
+    const missed: unknown[] = [];
+    let listener: (event: RunEvent) => void = () => undefined;
+    const context = rayquazaGuideContext(ON, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: (body: { text: string }) => { hints.push(body.text); }, recordPurchaseMissed: (body: unknown) => { missed.push(body); } }, (m) => Promise.resolve(m), [{ after: "RUN_START", map: null, note: "Buy.", needs: ["REPEL"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    listener(field({ money: 300, resources: { bag: [] } }));
+    listener(name());
+    const out = await context([user("o")]);
+    expect(missed).toEqual([{ step: "RUN_START", items: ["REPEL"], money: 300 }]);
+    expect(hints.some((h) => h.includes("Missed"))).toBe(false);
+    expect(out.some((m) => JSON.stringify(m).includes("REPEL"))).toBe(false);
+  });
+
   it("logs nothing when everything was bought", () => {
     const guide = new GuidePosition(needy);
     guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }, { name: "REPEL", quantity: 2 }] } }));

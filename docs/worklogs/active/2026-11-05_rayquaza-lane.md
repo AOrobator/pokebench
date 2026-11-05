@@ -105,3 +105,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Boot build final gate, correction: the first run failed one stale test in `play-wiring.test.ts`, which still expected the old first guide line; fixed and rerun. Reviews: Claude LGTM on the last delta; GPT LGTM on the last delta, its item 4 (probe core) rebutted with the identical core hash in every scene. Landing.
 - Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.
 - Boot, options and slim prompt build landed on main; viewer and projector refreshed; live runs kept.
+- Claude review: Guard Spec's ROM name ends in a period, and the viewer labels every milestone_hint as sent to the model. RED tests: name match and a separate guide_purchase_missed event.

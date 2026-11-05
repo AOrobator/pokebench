@@ -27,3 +27,8 @@ Round 1 at c9fab9136, packet 4abf818e: Claude BLOCKING, GPT BLOCKING, fallback s
 - Fixed: RETRY HISTORY after a failed older page retries that page, Jump to latest repeats after an in-flight older page, replay keeps its speed across a page.
 
 Gates at c9fab9136: build, `just test` (agent 2453, viewer 825, env 2894, gateway 38, no-io-proof), trainer-card-check passed. `just lint`: pnpm lint, ruff passed; mypy reports only missing `mgba._pylib` in this worktree's venv (native binding is per clone), no Python changed.
+
+Round 2 at b94fe8215, packet 24ca576c: GPT BLOCKING, fallback BLOCKING (Claude stopped for the new head). Gates at b94fe8215: `pnpm -r lint`, `just test` (2453, 825, 2894, 38), trainer-card-check passed.
+
+- Fixed: RETRY's direction lives in the client state (`historyOlder`), set by each read and cleared with the selection, and falls back to the newest page when nothing older exists.
+- Fixed: wheel and touch at the end of a scrollable list grant more pages too.

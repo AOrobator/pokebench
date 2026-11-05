@@ -249,7 +249,6 @@ export class App {
   private traceMore = 0;
   private olderQueued = false;
   private olderPages = OLDER_PAGES;
-  private retryOlder = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -943,7 +942,7 @@ export class App {
     });
     this.ui("trace").addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
-      if(target.closest("[data-history-retry]")!==null){this.olderPages=OLDER_PAGES;if(this.olderProblem!==null){this.olderProblem=null;void this.loadOlderHistory();}else void this.current?.history(this.retryOlder);return;}
+      if(target.closest("[data-history-retry]")!==null){this.olderPages=OLDER_PAGES;if(this.olderProblem!==null){this.olderProblem=null;void this.loadOlderHistory();}else{const state=this.current?.state;void this.current?.history(state?.historyOlder===true&&state.before!==null);}return;}
       this.inspectRow(target);
     });
     this.ui("side-trace").addEventListener("click", (event) => { this.inspectRow(event.target as HTMLElement); });
@@ -956,9 +955,9 @@ export class App {
         else this.holdTrace(list);
         if (name === "trace") this.readOlder();
       });
-      // A list too short to scroll sends no scroll event, so reaching for more counts too.
+      // A list at its end sends no scroll event, so reaching for more counts too.
       if (name === "trace") for (const gesture of ["wheel", "touchmove"]) list.addEventListener(gesture, (event) => {
-        if (list.scrollHeight > list.clientHeight || (event instanceof WheelEvent && event.deltaY <= 0)) return;
+        if (list.scrollHeight - list.scrollTop - list.clientHeight > 1 || (event instanceof WheelEvent && event.deltaY <= 0)) return;
         this.holdTrace(list);
         this.readOlder();
       }, { passive: true });
@@ -1349,7 +1348,7 @@ export class App {
   }
 
   private async loadOlderHistory(): Promise<void> {
-    if(this.current?.state.selected===this.runId){await this.current.history(true);this.retryOlder=this.current.state.historyProblem!==null;if(!this.held.has(this.ui("trace")))this.current.holdHistory(false);return;}
+    if(this.current?.state.selected===this.runId){await this.current.history(true);if(!this.held.has(this.ui("trace")))this.current.holdHistory(false);return;}
     const run = this.runId, before = this.historyBefore;
     if (run === null || before === null || this.historyLoading) return;
     const request = ++this.historyRequest;

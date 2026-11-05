@@ -15,3 +15,5 @@ Default off by design when it landed (worklog `2026-10-21_coherent-battle-observ
 ## Gates
 
 `just test`: 2,508 agent, 893 viewer, 2,930 Python. `just lint` and `just verify-vendor` clean. Review: GPT (Codex CLI, gpt-5.6-sol) LGTM; Claude (subagent, CLI login expired) LGTM; Grok skipped, Cursor out of usage, per the operator's standing rule.
+
+Landed fast-forward on main at cfe4909e9. Config checks repeated on main. Runs already live are unaffected.

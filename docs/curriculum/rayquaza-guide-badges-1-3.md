@@ -27,14 +27,14 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | OLDALE_TOWN | OldaleTown | Keep going north out of Oldale onto Route 103. Your rival is near (10,3). Talk to them. | KI 4, ROM, TR 828b:98 |
 | RIVAL_BATTLE_WON | Route103 | Go back to Birch's lab in Littleroot, south through Oldale and Route 101. He gives you the Pokédex. | KI 4 |
 | RECEIVED_POKEDEX | LittlerootTown | Your rival gives you Poké Balls. Then talk to Mom outside for the Running Shoes. | KI 4 |
-| RUNNING_SHOES_RECEIVED | Route102 | Go to Petalburg City: north to Oldale, then west on Route 102. Heal first if Mudkip is hurt. | KI 5 |
+| RUNNING_SHOES_RECEIVED | Route102 | Go to Petalburg City: north to Oldale, then west on Route 102. | KI 5 |
 
 ## Petalburg to the Stone Badge
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROUTE_102 | Route102 | Do not start a trainer fight below half HP. Heal at Oldale if you must. Keep going west to Petalburg City. | KI 5 |
-| PETALBURG_CITY | PetalburgCity | Buy 5 Potions and 2 Repels at the Mart, then enter the Gym to meet your dad, Norman. | KI 6 |
+| ROUTE_102 | Route102 | Beat Youngster Calvin at (33,14) and skip the other trainers. Keep going west to Petalburg City. | KI 5, ROM, OCR 0:07:59, audit U11 |
+| PETALBURG_CITY | PetalburgCity | Buy 5 Potions and 2 Repels at the Mart. Step into the Pokémon Center and straight back out, which sets your respawn there. Then enter the Gym to meet your dad, Norman. | KI 6, frame 0:09:12, ROM, audit U2 |
 | DAD_FIRST_MEETING | - | Agree to help Wally catch a Pokémon. Follow the scene to the end, then return with him to the Gym. | KI 6, GR |
 | WALLY_TUTORIAL_COMPLETE | PetalburgCity | Your dad tells you to collect badges. Leave Petalburg by the west exit. Rustboro is north of Route 104, through Petalburg Woods. | KI 7 |
 | ROUTE_104 | Route104 | Walk north on the beach sand, past the cottage, to the Petalburg Woods entrance. No Surf is needed. Use a Repel before the Woods. | KI 7 |
@@ -48,11 +48,12 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow in the first grass with the Great Ball, then use a Repel. Decline Bide. Briney's boat waits until this is done. | KI 11, 12, ROM, TR 7da5:560 |
+| ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow in the first grass with the Great Ball, use a Repel, and beat Hiker Devan at (42,13). Decline Bide. | KI 11, 12, ROM, TR 7da5:560 |
 | RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check, TO:RustboroCity |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | RustboroCity_DevonCorp_3F | Finish Mr. Stone's talk and the Match Call tutorial. | KI 15, tested 2026-11-05, fact check |
-| MATCH_CALL_TUTORIAL_COMPLETE | RustboroCity | Your rival offers a battle on Route 104: always say NO. Buy 3 X Attacks, 2 X Speeds and a Repel at Petalburg Mart if you can. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board from the pier. | KI 15, ROM, TR 5f0f:296, 80c8:295, tested 2026-11-05 |
+| MATCH_CALL_TUTORIAL_COMPLETE | RustboroCity | Go into the Rustboro Mart before leaving town. | The operator, audit U1 |
+| MAP:RustboroCity_Mart | RustboroCity_Mart | Buy 3 X Attacks, 2 X Speeds and a Repel. Then head south. Your rival offers a battle on Route 104: always say NO. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board from the pier. | KI 15, shops, ROM, TR 5f0f:296, 80c8:295, tested 2026-11-05, the operator, TO:PetalburgCity |
 | DEWFORD_TOWN | DewfordTown | Skip the Gym for now. Go north to Route 106, use a Repel, and go into Granite Cave. Steven is in the deepest room. | KI 16 |
 | GRANITE_CAVE | GraniteCave_1F | Steven is in the cave, not in Dewford. On 1F, first take the Escape Rope ball at (17,7) from (18,7), facing west. Route: 1F (17,11), B1F (28,21), B2F (29,13), back up B1F, 1F (35,3), then the door at (5,10). You do not need Flash. | KI 16, TR 429f:684 |
 | STEVEN_REGISTERED | DewfordTown | Use the Escape Rope from your Bag to leave the cave, then talk to Mr. Briney at the Dewford dock, about (12,9). Sail to Slateport. | KI 17, ROM, TR 0517:2830 |
@@ -65,11 +66,11 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROUTE_110 | Route110 | At (36,67), face east and press A for a hidden Full Heal. Your rival is north with Slugma, Wingull and Grovyle. Heal first. Teach TM39 Rock Tomb if you have not: it hits Wingull and Slugma x2. Grovyle's Absorb hits Marshtomp x4, so save HP and Potions. Use X Attack and X Speed when safe. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868 |
-| ROUTE_110_RIVAL_DEFEATED | Route110 | Take the Elixir ball at (6,38) from (5,38), facing east, then continue north to Mauville City. | KI 18 |
+| ROUTE_110 | Route110 | Beat Isabel and Kaleb at (8,76). At (36,67), face east and press A for a hidden Full Heal. Rival is north with Slugma, Wingull and Grovyle: use Potions first. Teach TM39 Rock Tomb if you have not: x2 on Wingull and Slugma. Grovyle's Absorb hits Marshtomp x4. Use X Attack and X Speed when safe. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868 |
+| ROUTE_110_RIVAL_DEFEATED | Route110 | Beat Alyssa at (10,39) and Edward at (3,39). Take the Elixir ball at (6,38) from (5,38), facing east, then continue north to Mauville City. Decline Foresight. | KI 18, ROM, OCR 0:36:39, audit U11 |
 | MAUVILLE_CITY | MauvilleCity | Get HM06 Rock Smash from the scientist in the house with the door at (32,14). | KI 19, ROM, WT 03, fact check |
-| HM_ROCK_SMASH_RECEIVED | MauvilleCity | Get the Mach Bike from the shop east of the Pokémon Center. Teach Rock Smash in place of Rock Tomb, or Tackle if you still have it. Talk to Wally outside the Gym, beat him, then enter. | KI 19, WT 03, fact check |
-| MAUVILLE_GYM_ENTERED | MauvilleCity_Gym | Step on the floor switch at (3,9) to open the way, then walk up to Wattson at (5,2). Use X Speed and X Attack first, then Mud Shot. Electric moves cannot hit Marshtomp. | KI 20, ROM, TR d41e:4880 |
+| HM_ROCK_SMASH_RECEIVED | MauvilleCity | Get the Mach Bike from the shop east of the Pokémon Center. Teach Rock Smash in place of Rock Tomb, or Tackle if you still have it. Bike east on Route 118, beat Youngster Deandre at (7,7), then heal at the Mauville Pokémon Center. Beat Wally outside the Gym, then enter. | KI 19, WT 03, fact check, ROM, OCR 0:38:49, 0:39:45, audit U2, U10 |
+| MAUVILLE_GYM_ENTERED | MauvilleCity_Gym | Beat Ben at (5,10). Step on the floor switch at (3,9) to open the way, then walk up to Wattson at (5,2). Use X Speed and X Attack first, then Mud Shot. Electric moves cannot hit Marshtomp. | KI 20, ROM, TR d41e:4880 |
 
 ## Fallarbor, Meteor Falls and the Heat Badge
 
@@ -80,12 +81,12 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | FIERY_PATH | FieryPath | Go through Fiery Path to Route 112's north part, then east to Route 111 north, then leave west near y=7-10 onto Route 113. | PATH 3, ROM, TR ol4h:931 |
 | ROUTE_113 | Route113 | Go west to Fallarbor Town. | KI 21, ROM, fact check |
 | FALLARBOR_TOWN | FallarborTown | At (3,15), face west and press A for a hidden Nugget. At the Mart, sell it and TM47, keep TM34, then buy 11 Super Repels, 10 X Attacks, 5 X Speeds, 3 X Specials, 2 Escape Ropes, 2 Guard Specs and a Super Potion as funds allow. Then go west onto Route 114. | KI shops, fact check |
-| ROUTE_114 | Route114 | Use a Super Repel and follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
+| ROUTE_114 | Route114 | Use a Super Repel, beat Hiker Lucas at (30,72), and follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
 | METEOR_FALLS_CONFRONTATION_RESOLVED | MeteorFalls_1F_1R | Leave through Route 115 south to Rustboro, then go east to Rusturf Tunnel. Use Rock Smash inside to reach the man who gives HM04 Strength. | KI 22, 23, WT 04 |
-| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, go north on Route 111, Rock Smash the rocks at (19,100) and (18,101) again, then west on Route 112 to the Cable Car. | KI 23, 24, fact check, TO:MauvilleCity |
+| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, beat Aroma Lady Rose at (7,12) on Route 118, go north on Route 111, Rock Smash the rocks at (19,100) and (18,101) again, then west on Route 112 to the Cable Car. | KI 23, 24, fact check, TO:MauvilleCity |
 | MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. For Maxie, lead with Taillow: use Guard Spec on its turn, let it faint, then send Marshtomp. No Taillow? Use Guard Spec first. Then X Attack, Strength on Mightyena and Zubat, Mud Shot on Camerupt. | KI 24, battle plans, frame 0:53:06, OCR 0:53:13, audit U18 |
 | MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Bike south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
-| LAVARIDGE_TOWN | LavaridgeTown | Heal at the Pokémon Center, then enter the Gym. | KI 25, ROM, TR 274b:1445 |
+| LAVARIDGE_TOWN | LavaridgeTown | Go straight into the Gym. | KI 25, ROM, seg 3 #29, audit U20 |
 | LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Each vent swaps floors. In order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Flannery is at (13,9). Use X Attack, Strength on Slugma, Mud Shot on Camerupt and Torkoal; Sunny Day weakens Water. | KI 26, PATH 3, ROM, TR ol4h:1670, OCR 0:56:47, audit U19 |
 | FLANNERY_DEFEATED | - | Finish Flannery's dialogue to collect the Heat Badge and TM50 Overheat. | KI route, fact check |
 

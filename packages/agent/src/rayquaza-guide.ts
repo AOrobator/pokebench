@@ -9,7 +9,7 @@ import {RAYQUAZA_GUIDE_STEPS,RAYQUAZA_OUTDOOR_MAPS} from "./rayquaza-guide-data.
 import type {RunRecorder} from "./recorder.js";
 
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
-export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can move first and finish the fight. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money.";
+export const BATTLE_EXPLAINER="BATTLE: Run from needless wild battles. After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can finish first. Before a leader or rival, heal with items. Decline optional battles if unready: whiting out halves your money.";
 
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
 export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";

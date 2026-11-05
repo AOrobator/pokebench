@@ -5,7 +5,7 @@ import type { FeatureSet } from "./features.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { GuidePosition, OPTIONS_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const ON = preset.features as FeatureSet;
 const steps: readonly GuideStep[] = [
@@ -87,6 +87,16 @@ describe("options from boot", () => {
   it("is the opening of the shipped guide", () => {
     expect(RAYQUAZA_GUIDE_STEPS.slice(0, 3).map((s) => s.after)).toEqual(["RUN_START", "OPTIONS_OPENED", "OPTIONS_SET"]);
     expect(RAYQUAZA_GUIDE_STEPS[1]?.note).toMatch(/TEXT SPEED to FAST.*BATTLE SCENE to OFF.*BATTLE STYLE to SET/);
+  });
+});
+
+describe("shop note", () => {
+  it("names the clerk inside a shop and nowhere else", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(field({ location: "PETALBURG CITY MART" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([SHOP_NOTE]);
+    guide.observe(field({ location: "PETALBURG CITY" }));
+    expect(guide.situationNotes()).toEqual([]);
   });
 });
 

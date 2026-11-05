@@ -8,6 +8,10 @@ Merged 2026-11-05 from `ki-deviation-audit-claude.md` and `ki-deviation-audit-co
 
 **Found by.** Both, Claude or Codex. "Class" for each row is the section it sits in.
 
+## Operator decisions (the operator, 2026-11-05 4:18 PM)
+
+Healing: items only, right before rival and gym leader fights; his own Center steps stay (Petalburg and Fortree respawn, Mauville heal). No nicknames for Mudkip or Rayquaza (intended). League: deposit down to Rayquaza alone. Buy X items at Rustboro Mart regardless of party. Fight his XP trainers. `town-center-checkpoint-v1` off in this lane.
+
 ## INTENDED
 
 | ID | Deviation | Found by | Sev | KI evidence | Guide | Fix |

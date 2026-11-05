@@ -66,3 +66,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - U18 and U19: Maxie plan with the Taillow lead and a no-Taillow alternative; Flannery plan with Mud Shot on Torkoal; bike down Jagged Pass.
 - The operator's answers 4:18 PM: heal with items only, before rival and gym leaders; no nicknames; League deposit to Rayquaza alone; buy X items at Rustboro Mart; fight his XP trainers; `town-center-checkpoint-v1` off in this lane. RED test for tile steps.
 - Tile steps: `AT:<Map>:<x>:<y>` rows fire on standing on the tile.
+- Decisions applied through Heat: heal lines cut to items, Center steps at Petalburg and Mauville, XP trainers named, Rustboro Mart step, Route 111 tile step, Teleport rows, `town-center-checkpoint-v1` off, wild rule in the battle note. Run 0952 spent 11 turns on Petalburg Mart shelves and bought nothing; RED test for a shop note.

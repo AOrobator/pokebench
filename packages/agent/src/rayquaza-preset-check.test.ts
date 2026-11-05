@@ -16,6 +16,7 @@ it("the Rayquaza preset is valid and keeps the lane's switches", () => {
   expect(parsed.features["jit-guide-reuse-v1"]).toBe(true);
   expect(parsed.features["rq-slim-prompt-v1"]).toBe(true);
   expect(parsed.features["context-exact-count-v1"]).toBe(false);
+  expect(parsed.features["town-center-checkpoint-v1"]).toBe(false);
   expect(parsed.start).toBeUndefined();
 });
 

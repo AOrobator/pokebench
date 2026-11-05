@@ -68,6 +68,8 @@ export class GuidePosition {
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached>=0)this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
+  // A press that changes a value and leaves in one batch ends with values no state showed.
+  if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
   const to=this.current().to;
   if(to!==undefined&&this.map!==null&&mapKey(to.id)===mapKey(this.map))this.arrivedOn=this.furthest;
  }

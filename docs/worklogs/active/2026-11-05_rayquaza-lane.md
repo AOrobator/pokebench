@@ -56,3 +56,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Hard cap: with exact count off, `context-token-budget-v1` stays on at 251,904 tokens and a test asserts it; `model-error-recovery-v1` lowers a sticky ceiling after any refusal.
 - Rehearsal rehearsal-boot-2 from clean boot: `OPTIONS_OPENED` turn 6, `OPTIONS_SET` turn 10, NEW GAME turn 13. First request 5,543 tokens against 9,407; system prompt 4,015 characters against 21,874.
 - GPT on 5b28ed1a2, CHANGES: switch must stay optional in presets, slim needs the guide on, a batched LEFT+B could fake `OPTIONS_SET`, decision probes rebuilt the unslimmed prompt. RED tests added.
+- GPT fixes applied: switch optional in presets; slim only with the guide on; a LEFT or RIGHT in the leaving press clears the options check; decision probes use the slimmed core.

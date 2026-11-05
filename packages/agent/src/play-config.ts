@@ -335,7 +335,7 @@ export function rqMovedSections(features:FeatureSet,target:string|null):Readonly
 // V2 reuses the existing paragraphs; the standing core retains cross-scene policy.
 export function stableJitPrompts(features: FeatureSet, target: string | null, scene: PromptScene): {core:string;guidance:string} {
   const scoped={...features,"just-in-time-prompt-v1":true};
-  const slim=(text:string):string=>features["rq-slim-prompt-v1"]?rqSlim(text,scene):text;
+  const slim=(text:string):string=>features["rq-slim-prompt-v1"]&&features["rq-milestone-guide-v1"]?rqSlim(text,scene):text;
   const whole=playSystemPrompt(scoped,target,"core"),base=slim(whole);
   const shared=new Set(whole.split("\n\n"));
   const guidance=scene==="unknown"?"":slim(playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n"));

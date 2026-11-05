@@ -12,3 +12,7 @@ describe("customLaneOfStart", () => {
     for (const id of KNOWLEDGE_SWITCHES) expect(customLaneOfStart({ ...start, harness_features: [id] })).toBe(`${id} is on`);
   });
 });
+
+it("treats the Rayquaza guide as a knowledge switch",()=>{
+ expect(KNOWLEDGE_SWITCHES.has("rq-milestone-guide-v1")).toBe(true);
+});

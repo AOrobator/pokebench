@@ -4,7 +4,7 @@ import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { BATTLE_EXPLAINER, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const OFF = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": false };
 const ON = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": true };
@@ -85,5 +85,35 @@ describe("the shipped guide", () => {
     expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !names.has(name))).toEqual([]);
     expect(new Set(after).size).toBe(after.length);
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
+  });
+});
+
+describe("rq-battle-explainer-v1", () => {
+  const recorder = () => {
+    let listener: (event: RunEvent) => void = () => undefined;
+    return { emit: (event: RunEvent) => { listener(event); }, subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: () => undefined };
+  };
+  const inner = (messages: AgentMessage[]): Promise<AgentMessage[]> => Promise.resolve(messages);
+  const both = { ...ON, "rq-battle-explainer-v1": true };
+  const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, map_id: [0, 0] }) as unknown as RunEvent;
+
+  it("is the final message only while a battle is active", async () => {
+    const r = recorder();
+    const context = rayquazaGuideContext(both, r, inner, steps);
+    expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+    r.emit(inBattle(true));
+    const fight = await context([user("o")]);
+    expect(fight.at(-1)).toMatchObject({ role: "user", content: BATTLE_EXPLAINER });
+    expect(fight.at(-2)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+    r.emit(inBattle(false));
+    expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+  });
+
+  it("stays out when its own switch is off, and keeps within its size", async () => {
+    const r = recorder();
+    const context = rayquazaGuideContext({ ...ON, "rq-battle-explainer-v1": false }, r, inner, steps);
+    r.emit(inBattle(true));
+    expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+    expect(BATTLE_EXPLAINER.length).toBeLessThanOrEqual(400);
   });
 });

@@ -125,5 +125,8 @@ it("ends every request with the current guide step only when rq-milestone-guide-
  expect(await contextTools(OFF,recorder().api,base).transformContext([task])).toEqual([task]);
  const r=recorder();
  const out=await contextTools({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},base).transformContext([task]);
- expect(out.at(-1)).toMatchObject({role:"user",content:expect.stringMatching(/^GUIDE: Choose NEW GAME/)});
+ const last=out.at(-1);
+ expect(last?.role).toBe("user");
+ expect(last?.role==="user"?last.content:null).toEqual(expect.any(String));
+ expect(JSON.stringify(last)).toContain("GUIDE: Choose NEW GAME");
 });

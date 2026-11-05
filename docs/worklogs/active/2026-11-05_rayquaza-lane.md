@@ -29,3 +29,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Preset `experiments/presets/rayquaza-lane-8h.json`: control plus every bundle switch, guide and explainer on, `coherent-battle-observation-v1` on, `no-story-foreknowledge-v1` and `story-route-plan-v1` off, MAIN_MENU start, 8 hours. Parsed by the real validator in `rayquaza-preset-check.test.ts`. Explainer page added.
 - Fight-note fact check at 3fba9cc09: fixed the Route 111 and Gym-entry carry-overs, the Rock Tomb fallback, the explainer's heal rule, and the header's battle exception.
 - Merged the operator's frontier corrections (one tile, every assisted run can be flagged, same-checkpoint ties). CLAUDE.md wording matches.
+- Full gates found three issues, all fixed: `DEFAULT_NEXT_RUN` lacked both new switches, so viewer drafts would have enabled them; a history fixture; a lint error in a test.

@@ -18,11 +18,11 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take Randall’s Speed, Parker’s Confusion and Jody’s Strength rooms. Use bag items before Norman. On Spinda: X Attack×3, X Speed, Heal Powder×2, Strength. Mud Shot Vigoroth. On Slaking’s loafing turns: Strength, Rock Smash×2, Mud Shot. | KI v1:02:06–1:06:50, U23, C1, ROM |
+| `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take Randall’s Speed, Parker’s Confusion and Jody’s Strength rooms. Use bag items before Norman. On Spinda: X Attack×3, X Speed, then Strength. Mud Shot Vigoroth. On Slaking’s loafing turns: Strength, Rock Smash×2, then Mud Shot. | KI v1:02:06–1:06:50, U23, C1, ROM |
 | `BALANCE_BADGE` | `PetalburgCity_WallysHouse` | Finish Norman’s dialogue for Facade, then get HM03 Surf from Wally’s father in the house beside the Gym. | KI 32, WT 06 |
 | `HM_SURF_RECEIVED` | `PetalburgCity` | Teach Surf over Water Gun. In Petalburg, Surf across the pond and step ashore at (11,28). | KI v1:08:01–1:08:10, audit U1, ROM |
 | `AT:PetalburgCity:11:28` | `PetalburgCity` | Face south and press A for a hidden Rare Candy. | KI v1:08:10, ROM, audit U1 |
-| `GOT:RARE_CANDY:2` | `Route118` | Return to Mauville and Surf east across Route 118. Finish Steven’s east-bank scene, use Repel and continue north to Route 119. | KI v1:08:18–1:08:59, U8, U24, ROM, audit U1, TO:MauvilleCity |
+| `GOT:RARE_CANDY` | `Route118` | Return to Mauville and Surf east across Route 118. Finish Steven’s east-bank scene, use Repel and continue north to Route 119. | KI v1:08:18–1:08:59, U8, U24, ROM, audit U1, TO:MauvilleCity |
 | `ROUTE_119` | `Route119` | With Repel active, bike north on the trainer-skipping path and use the short Surf crossing to reach the Weather Institute. Fight the Aqua grunts inside and go upstairs to Shelly. | KI v1:08:59–1:11:37, U8, U24, ROM |
 | `WEATHER_INSTITUTE_ENTERED` | `Route119_WeatherInstitute_2F` | Use Mud Shot against Shelly’s Carvanha and Surf against Mightyena. Keep a party slot available for Castform or collect it after making room. | KI 34, KI battle plans, WT 07 |
 | `WEATHER_INSTITUTE_AQUA_WITHDRAWN` | `Route119` | Accept Castform. Use bag items before the rival, then take the Elixir at (24,42) from (25,42), facing west, and cross the bridge. Set up X Speed and X Attack if safe. Surf Slugma; Strength Grovyle and Pelipper. | KI v1:12:24–1:14:28, C1, ROM |
@@ -39,9 +39,9 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep Swampert and Castform ready for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. | KI 38, WT 08 |
 | `MAGMA_EMBLEM_RECEIVED` | `MtPyre_Summit` | On the summit, stand at (37,6). | KI v1:21:09, U25, ROM |
 | `AT:MtPyre_Summit:37:6` | `MtPyre_Summit` | Face south and press A for a hidden Rare Candy. Spend it if it completes the planned level. | KI v1:21:27, U25, U45, ROM |
-| `GOT:RARE_CANDY:3` | `FortreeCity` | Return to Fortree and use the Devon Scope at the invisible Gym blocker. | KI v1:21:40–1:21:47, U1, ROM, TO:FortreeCity |
+| `GOT:RARE_CANDY` | `FortreeCity` | Return to Fortree and use the Devon Scope at the invisible Gym blocker. | KI v1:21:40–1:21:47, U1, ROM, TO:FortreeCity |
 | `FORTREE_GYM_OBSTRUCTION_CLEARED` | `FortreeCity_Gym` | Enter the Fortree Gym after clearing the invisible Kecleon. | PATH 4, ROM |
-| `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | U2,L12,U3,L,D2,R2,U3,R3,U4,R2,U2,L2,D3,U,R2,U4,L2,U2,L6,U2,R,D2,R3,U6,L3,D6,R4,L,U4,R10,U. Use items before Winona. X Attack; Strength Swablu/Altaria. Tropius: Aerial Ace, Strength, Energy Powder, then Strength. Boost on Protect; Strength×2 Pelipper; Surf Skarmory; decline Muddy Water. | KI v1:22:00–1:26:54, U26, C1, ROM |
+| `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | U2,L12,U3,L,D2,R2,U3,R3,U4,R2,U2,L2,D3,U,R2,U4,L2,U2,L6,U2,R,D2,R3,U6,L3,D6,R4,L,U4,R10,U. Use items before Winona. X Attack; Strength Swablu/Altaria. Tropius: Aerial Ace, then Strength. Boost on Protect; Strength×2 Pelipper; Surf Skarmory; decline Muddy Water. | KI v1:22:00–1:26:54, U26, C1, ROM |
 | `FEATHER_BADGE` | `LavaridgeTown` | Finish the Gym dialogue for Aerial Ace, then Fly to Lavaridge. Go east on Route 112 to the Cable Car, ride to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI v1:27:25–1:28:30, U5, ROM |
 
 ## Magma and Aqua hideouts
@@ -49,7 +49,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `MAGMA_HIDEOUT` | `MagmaHideout_1F` | Use Super Repel and keep one Escape Rope. Take 1F’s (25,34) exit to 2F_1R, its (17,33) exit to 3F_1R, then (7,21) to 4F. Bring Strength and Rock Smash; optional item rooms are detours. | KI v1:28:30–1:33:07, U8, U27, ROM |
-| `MAGMA_HIDEOUT_MAXIE_CHAMBER` | `MagmaHideout_4F` | Defeat Tabitha if still blocking the route. Surf Mightyena. If Crobat survives, use Energy Powder after Wing Attack, then Surf twice; Surf Camerupt. | KI v1:33:07–1:34:57, U27, C1, ROM |
+| `MAGMA_HIDEOUT_MAXIE_CHAMBER` | `MagmaHideout_4F` | Defeat Tabitha if still blocking the route. Surf Mightyena, use Surf twice if Crobat survives, then Surf Camerupt. | KI v1:33:07–1:34:57, U27, C1, ROM |
 | `MAGMA_HIDEOUT_STORY_COMPLETE` | `SlateportCity_Harbor` | Use the saved Escape Rope after Maxie, Fly to Slateport and talk to Captain Stern at the harbor. Finish the submarine theft scene to open Aqua Hideout. | KI v1:34:57–1:35:55, U27, ROM |
 | `SLATEPORT_SUBMARINE_THEFT_WITNESSED` | `LilycoveCity` | Fly to Lilycove and Surf from the east shore to Aqua Hideout. Take the Master Ball detour before pursuing the submarine. | KI 42, KI master-ball, WT 09 |
 | `AQUA_HIDEOUT` | `AquaHideout_1F` | Surf through the entrance and go downstairs to B1F. | KI master-ball, WT 09, ROM |
@@ -63,13 +63,13 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy 11 Hyper Potions, two Revives, 11 Max Repels and 11 X Attacks as funds allow, regardless of party. Use Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler. | KI v1:41:57, U8, C1, C5, ROM |
-| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | Path: U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder; Revive Castform and Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
+| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | Path: U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use owned spares as fodder and Surf with Swampert. | KI v1:42:15–1:47:51, U29, C1, ROM |
 | `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center, defeat the four grunts and go upstairs to Steven. | KI v1:48:35–1:50:56, U30, C1, ROM |
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Join Steven against Maxie and Tabitha. Lead Swampert, use Guard Spec then X Special, and Surf against Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:52:00–1:54:20, U30, C1, ROM |
 | `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house for HM08 Dive. Teach Dive to Swampert over Mud Shot; retain Surf, Strength and Rock Smash for the cavern. | KI 46, KI TMs/HMs and move changes, WT 10 |
 | `HM_DIVE_RECEIVED` | `Route128` | Use Max Repel and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the underwater cave with the submarine and surface inside. | KI v1:55:40–1:56:15, U8, ROM |
 | `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via north current), 3 (4,15→8,1), 8 (5,12→5,2), 9 (5,4→17,42). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
-| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | Surf Mightyena. Against Crobat, use X Speed and Energy Powder after Air Cutter, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:58:02–1:59:15, U31, C1, ROM |
+| `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | Surf Mightyena. Against Crobat, use X Speed, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:58:02–1:59:15, U31, C1, ROM |
 
 ## Sootopolis and Rayquaza
 

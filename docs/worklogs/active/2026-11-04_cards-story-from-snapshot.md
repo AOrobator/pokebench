@@ -9,8 +9,8 @@ Viewer-only, no feature switch, no card appearance change.
 ## M1
 
 - [x] RED/GREEN: `currentSplits` builds card splits from the snapshot's recorded progress until the qualified splits arrive
-- [ ] Gates
-- [ ] Review
+- [x] Gates: `just lint`, `just build`, `just test`, `just verify-vendor` passed under the coordinator's CPU window
+- [x] Review: Claude LGTM and GPT LGTM on the final delta, fallback LGTM on the feature; Grok unavailable (Cursor usage limit until 11/17). Accepted note: after a long pause an old milestone can briefly highlight as new until qualified splits arrive
 - [ ] Land, `just viewer-main`, headless proof on an older run
 
 ## Review log

@@ -142,6 +142,7 @@ Production reader -> typed state/events -> StateMilestones -> recorder -> native
 | `CASTFORM_RECEIVED` | `{"flag":151}` | optional |
 | `METEORITE_RECEIVED` | `{"flag":115}` | optional |
 | `EXP_SHARE_RECEIVED` | `{"flag":272}` | optional |
+| `MASTER_BALL_OBTAINED` | `{"flag":1124}` | optional |
 
 ## Proof limits
 

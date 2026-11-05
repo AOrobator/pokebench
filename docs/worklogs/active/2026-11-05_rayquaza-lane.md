@@ -13,3 +13,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ## Commits
 
 - COMMIT: `docs(curriculum): freeze the guide format and draft the Rayquaza briefs` (10a5bf4ee)
+- Master Ball milestone: `MASTER_BALL_OBTAINED`, optional, from FLAG_ITEM_AQUA_HIDEOUT_B1F_MASTER_BALL (1124). No switch: it is grading the model never sees, and it is outside required frontier order. Focused tests: 6 files, 45 passed.

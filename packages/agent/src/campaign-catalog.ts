@@ -931,6 +931,13 @@ export const CAMPAIGN_ADDITIONS:readonly (ProgressDefinition & {readonly anchor:
     "anchor": null,
     "optional": true
   },
+  {
+    "name": "MASTER_BALL_OBTAINED",
+    "label": "Master Ball obtained",
+    "flag": 1124,
+    "anchor": null,
+    "optional": true
+  },
   {"name":"RAYQUAZA_ENCOUNTER_RETIRED","label":"Optional Rayquaza encounter retired","flag":448,"anchor":null,"optional":true}
 ];
 

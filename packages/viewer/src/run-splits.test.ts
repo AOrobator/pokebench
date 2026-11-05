@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RunView } from "./model.js";
 import { nextSplit, reachedSplits, tableSplits } from "./run-splits.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
-import { BROWSER_MODULES } from "./server.js";
+import { BROWSER_MODULES } from "./browser-modules.js";
 import { BASE_MS, START, must } from "../test-support/events.js";
 
 const view = (): RunView => Object.assign(new RunView(), { start: START, startMs: BASE_MS });

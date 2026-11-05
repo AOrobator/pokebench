@@ -13,7 +13,7 @@ import { brand, runIdentity, budgets, counters, fieldContext, harnessConfig, ins
 import { cardHtml as trainerCardHtml, gymHtml, nextGym, parseTrainerPageData, runHtml, trainerFacts, type TrainerFacts, type TrainerPageData } from "./trainer-page.js";
 import { ReplayClock } from "./replay.js";
 import { LaneMotion, TimelineFeed, type LaneAnimator } from "./timeline.js";
-import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
+import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, sideShort, traceGroups, type TraceCategory, type TraceGroup, type TraceTurn } from "./trace.js";
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, stateLabel, type ControlAction } from "./controls.js";
 import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
@@ -1402,7 +1402,7 @@ export class App {
   private olderTurns(): void {
     const current = this.current?.state.selected === this.runId ? this.current.state : null;
     const stopped = this.olderProblem !== null || current?.historyProblem != null || (current?.historyFull === true && !this.held.has(this.ui("trace")));
-    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages });
+    const step = olderStep(this.ui("trace"), { more: this.traceMore, history: this.historyBefore !== null && !stopped, busy: this.historyLoading, pages: this.olderPages, sideShort: sideShort(this.recordedThinkingTrace?.turns ?? [], SIDE_TURNS) });
     if (step === "reveal") {
       this.traceLimit += TRACE_TURNS;
       this.render();

@@ -463,6 +463,14 @@ details.tl > summary:focus-visible { outline: 3px solid #ffd447; }
 .side .side-earlier { margin: 12px 0 4px; }
 .side .side-trace { flex: 2 1 0; min-height: 48px; overflow-y: auto; font-size: 11px; }
 .game-stream .side { overflow-y: auto; }
+/* A phone's side panel is a page section, not a fixed pane: give steps room and keep tool names readable. */
+@media (max-width: 759.98px) {
+  .side .side-trace { flex: none; max-height: 320px; }
+  [data-ui="side-trace"] .tl-row, [data-ui="trace"] .tl-row { flex-wrap: wrap; }
+  [data-ui="side-trace"] .tl-title, [data-ui="trace"] .tl-title { flex: 1 1 0; white-space: normal; overflow-wrap: anywhere; }
+  [data-ui="side-trace"] .tl-res, [data-ui="trace"] .tl-res { flex-basis: 100%; order: 5; }
+  [data-ui="side-trace"] .tl-desc, [data-ui="trace"] .tl-desc { display: none; }
+}
 @media (prefers-reduced-motion: reduce) { .side .thinkbox .emer-arrow { animation: none; } }
 
 /* Run identity: which experiment / arm / trial is on screen. */

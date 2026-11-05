@@ -4,7 +4,7 @@ import type { RunEvent } from "@pokebench/agent/events";
 import { NAME_CONFIRMED } from "../../agent/test-support/events.js";
 import { BASE_MS, Log, START, assistant, fullRun, must, state } from "../test-support/events.js";
 import { eventText } from "./panels.js";
-import { STAR_SVG, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
+import { STAR_SVG, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroups, sideShort, sideTraceHtml, showsInTrace, traceGroups, traceHtml, traceRow, type TraceCategory, type TraceStep } from "./trace.js";
 
 function build(events: readonly RunEvent[]): TraceBuilder {
   const builder = new TraceBuilder();
@@ -392,6 +392,27 @@ describe("traceHtml", () => {
     expect(olderTail(true)).toContain("Scroll for older turns");
     expect(olderTail(true, true)).toContain("Loading older turns");
     expect(olderTail(true)).not.toContain("<button");
+  });
+
+  it("keeps fetching for a short side panel while the trace list is hidden or far from its end", () => {
+    const left = { more: 3, history: true, busy: false, pages: 2, sideShort: true };
+    const hidden = { scrollTop: 0, clientHeight: 0, scrollHeight: 0 };
+    expect(olderStep(hidden, left)).toBe("fetch");
+    expect(olderStep({ scrollTop: 0, clientHeight: 600, scrollHeight: 10_000 }, left)).toBe("fetch");
+    expect(olderStep(hidden, { ...left, busy: true })).toBe("none");
+    expect(olderStep(hidden, { ...left, pages: 0 })).toBe("none");
+    expect(olderStep(hidden, { ...left, history: false })).toBe("none");
+    expect(olderStep(hidden, { ...left, sideShort: false })).toBe("none");
+  });
+
+  it("calls the side panel short until it has its turns of agent steps", () => {
+    const trace = new TraceBuilder();
+    const add = (turn: number, type: "assistant" | "native_action") => trace.add({ type, turn, seq: turn, t: "2026-11-05T00:00:00.000-05:00", thinking: "", text: "", tool_calls: [], usage: { input: 1, output: 1 }, latency_ms: 1, ttft_ms: null, kind: "x", details: {}, frame: 0 } as unknown as RunEvent);
+    add(1, "native_action");
+    expect(sideShort(trace.turns, 1)).toBe(true);
+    add(2, "assistant");
+    expect(sideShort(trace.turns, 1)).toBe(false);
+    expect(sideShort(trace.turns, 2)).toBe(true);
   });
 
   it("loads older turns only near the oldest row of a list on screen", () => {

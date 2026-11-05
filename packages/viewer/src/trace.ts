@@ -350,10 +350,11 @@ const OLDER_MARGIN_PX = 1600;
 export const OLDER_PAGES = 16;
 
 // What scrolling back does next. A list that is not on screen measures zero and asks for nothing.
-export function olderStep(box: { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number }, left: { readonly more: number; readonly history: boolean; readonly busy: boolean; readonly pages: number }): "reveal" | "fetch" | "none" {
-  if (box.clientHeight === 0 || box.scrollHeight - box.scrollTop - box.clientHeight > OLDER_MARGIN_PX) return "none";
-  if (left.more > 0) return "reveal";
-  return left.history && !left.busy && left.pages > 0 ? "fetch" : "none";
+// The side panel fills whatever the PokéNav shows, so `sideShort` asks for pages on its own.
+export function olderStep(box: { readonly scrollTop: number; readonly scrollHeight: number; readonly clientHeight: number }, left: { readonly more: number; readonly history: boolean; readonly busy: boolean; readonly pages: number; readonly sideShort?: boolean }): "reveal" | "fetch" | "none" {
+  const fetch = left.history && !left.busy && left.pages > 0 ? "fetch" : "none";
+  if (box.clientHeight === 0 || box.scrollHeight - box.scrollTop - box.clientHeight > OLDER_MARGIN_PX) return left.sideShort === true ? fetch : "none";
+  return left.more > 0 ? "reveal" : fetch;
 }
 
 export const groupHtml = (group: TraceGroup): string => `<div class="tgroup" data-group="${group.key}">${group.html()}</div>`;
@@ -374,6 +375,8 @@ export function sideGroups(turns: readonly TraceTurn[], limit: number, boxTurn: 
   }
   return groups;
 }
+
+export const sideShort = (turns: readonly TraceTurn[], limit: number): boolean => turns.filter((turn) => turn.entries.some((entry) => SIDE.has(entry.category))).length < limit;
 
 export function sideTraceHtml(turns: readonly TraceTurn[], limit: number, boxTurn: number | null = null): string {
   const groups = sideGroups(turns, limit, boxTurn);

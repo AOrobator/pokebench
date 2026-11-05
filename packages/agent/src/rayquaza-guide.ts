@@ -15,7 +15,7 @@ export class GuidePosition {
  inBattle=false;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
-  if(event.type==="state"&&"in_battle" in event)this.inBattle=event.in_battle===true;
+  if(event.type==="state"&&"in_battle" in event)this.inBattle=event.in_battle;
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached>this.furthest)this.furthest=reached;
  }

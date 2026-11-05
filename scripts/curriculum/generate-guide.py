@@ -5,7 +5,7 @@ import re
 import sys
 from pathlib import Path
 
-ROW = re.compile(r"^\| (?P<after>[A-Z0-9_:]+) \| (?P<map>\S+) \| (?P<note>.+?) \| (?P<source>.+?) \|$")
+ROW = re.compile(r"^\| `?(?P<after>[A-Za-z0-9_:]+)`? \| `?(?P<map>[^`\s]+)`? \| (?P<note>.+?) \| (?P<source>.+?) \|$")
 HEADER = """import type {GuideStep} from "./rayquaza-guide.js";
 
 // Generated from docs/curriculum/rayquaza-guide-*.md by scripts/curriculum/generate-guide.py. Do not edit by hand.

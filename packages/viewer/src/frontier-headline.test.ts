@@ -35,32 +35,33 @@ describe("frontier headline tiles", () => {
     expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("+5checkpoints");
     expect(document.querySelector(".wb-fh-rule")?.textContent).toContain("never pooled with experiment cohorts");
   });
-  it("keeps both tiles when no assisted run leads, and the right one reads same run", () => {
+  it("shows one tile when best overall is the best unhelped run", () => {
     render([reached("run-274b", 12, 1000, { reason: "operator_abort" }), reached("run-aaaa", 3, 500, edited)]);
+    expect(document.querySelectorAll("[data-frontier-tile]")).toHaveLength(1);
     expect(tile("overall")?.className).not.toContain("wb-fh-help");
+    expect(tile("overall")?.querySelector(".wb-fh-key")?.textContent).toBe("BEST OVERALL");
     expect(tile("overall")?.querySelector(".wb-fh-plain")?.textContent).toBe("UNHELPED");
-    expect(tile("unhelped")?.querySelector(".wb-fh-plain")?.textContent).toBe("SAME RUN");
-    expect(tile("unhelped")?.querySelector(".wb-fh-mile")?.textContent).toBe(tile("overall")?.querySelector(".wb-fh-mile")?.textContent);
-    expect(tile("unhelped")?.querySelector(".wb-fh-who")?.textContent).toContain("ended by operator abort");
+    expect(tile("overall")?.querySelector(".wb-fh-who")?.textContent).toContain("ended by operator abort");
+    expect(tile("unhelped")).toBeNull();
     expect(document.querySelector(".wb-fh-gap")).toBeNull();
-    expect(document.querySelector(".wb-fh-heads")?.className).toContain("wb-fh-same");
+    expect(document.querySelector(".wb-fh-heads")?.className).toContain("wb-fh-one");
+    expect(document.body.textContent?.toUpperCase()).not.toContain("SAME RUN");
   });
   it("says one checkpoint in the singular", () => {
     expect(headlineModel(frontierReferences([reached("a", 5, 90), reached("b", 6, 90, edited)])).gap).toBe(1);
     render([reached("a", 5, 90), reached("b", 6, 90, edited)]);
     expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("+1checkpoint");
   });
-  it("shows the time gap when an assisted run leads on time at the same checkpoint", () => {
-    const refs = frontierReferences([reached("a", 5, 400000), reached("b", 5, 100000, edited)]);
-    expect(headlineModel(refs)).toMatchObject({ gap: 0, fasterMs: 300000 });
-    render([reached("a", 5, 400000), reached("b", 5, 100000, edited)]);
-    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("5:00faster");
-    render([reached("a", 5, 4000000), reached("b", 5, 100000, edited)]);
-    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("1:05:00faster");
-  });
-  it("keeps a gap under a second readable", () => {
-    render([reached("a", 5, 90), reached("b", 5, 80, edited)]);
-    expect(document.querySelector(".wb-fh-gap")?.textContent).toBe("0:00.010faster");
+  it("says the checkpoints are the same and gives the time difference on a tie", () => {
+    const refs = frontierReferences([reached("a", 5, 1000000), reached("b", 5, 280000, edited)]);
+    expect(headlineModel(refs)).toMatchObject({ gap: 0, fasterMs: 720000 });
+    const gapText = (slow: number, fast: number): string | null | undefined => { render([reached("a", 5, slow), reached("b", 5, fast, edited)]); return document.querySelector(".wb-fh-gap")?.textContent; };
+    expect(gapText(1000000, 280000)).toBe("Same checkpoint · 12m faster");
+    expect(gapText(4000000, 100000)).toBe("Same checkpoint · 1h 5m faster");
+    expect(gapText(50000, 5000)).toBe("Same checkpoint · 45s faster");
+    expect(gapText(90, 80)).toBe("Same checkpoint · under 1s faster");
+    expect(gapText(90, 90)).toBe("Same checkpoint · same time");
+    expect(document.querySelectorAll("[data-frontier-tile]")).toHaveLength(2);
   });
   it("has no time gap when the assisted run is ahead by checkpoints", () => {
     expect(headlineModel(frontierReferences([reached("a", 5, 90), reached("b", 6, 900, edited)])).fasterMs).toBeNull();

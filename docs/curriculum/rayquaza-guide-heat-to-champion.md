@@ -36,7 +36,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `MAGMA_EMBLEM_RECEIVED` | `FortreeCity` | At (37,6), face south and press A for a hidden Rare Candy. Then return to Fortree. Use the Devon Scope at the invisible blocker on the Gym approach. | KI 39, WT 07 |
 | `FORTREE_GYM_OBSTRUCTION_CLEARED` | `FortreeCity_Gym` | Enter the Fortree Gym after clearing the invisible Kecleon. | PATH 4, ROM |
 | `FORTREE_GYM_ENTERED` | `FortreeCity_Gym` | At (15,24), walk U2 L12 U3 L D2 R2 U3 R3 U4 R2 U2 L2 D3 U R2 U4 L2 U2 L6 U2 R D2 R3 U6 L3 D6 R4 L U4 R10 U. Use Strength on Swablu, Tropius, Pelipper and Altaria; Surf Skarmory. Heal before Solar Beam and watch Protect. | PATH 4, KI battle plans, ROM |
-| `FEATHER_BADGE` | `JaggedPass` | Finish the Gym dialogue for Aerial Ace and keep it for Rayquaza. Use the Route 112 Cable Car to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI 39–40, WT 09 |
+| `FEATHER_BADGE` | `LavaridgeTown` | Finish the Gym dialogue for Aerial Ace, then Fly to Lavaridge. Go east on Route 112 to the Cable Car, ride to Mt. Chimney and descend Jagged Pass to the Magma Emblem entrance. | KI v1:27:25–1:28:30, U5, ROM |
 
 ## Magma and Aqua hideouts
 
@@ -69,12 +69,12 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route126` | After the surface scene, head toward Sootopolis via Route 126. If following the Fly route, register Pacifidlog through Routes 130–131 first. Dive by the Sootopolis crater, enter its underwater opening and surface inside. | KI 48–49, WT 12, PATH 6 |
+| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Surf west through Routes 129–131 to Pacifidlog, Fly to Mossdeep, then Surf south on Route 127 to Route 126. Dive by the Sootopolis crater, enter its underwater opening and surface inside. | KI v1:59:15–2:02:05, U7, ROM |
 | `SOOTOPOLIS_CITY` | `CaveOfOrigin_1F` | Follow Steven to the Cave of Origin and speak to Wallace inside. Choose Sky Pillar when he asks where Rayquaza is. | KI 48, WT 12 |
-| `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Leave the cave, using an Escape Rope if useful. Fly to Pacifidlog if registered, then Surf east on Route 131 and take the north opening to Sky Pillar. | KI 49, WT 12 |
-| `SKY_PILLAR_OPENED` | `SkyPillar_1F` | From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza to wake it. | KI 49, WT 12, PATH 6, ROM |
-| `RAYQUAZA_AWAKENED` | `SootopolisCity` | Return to Sootopolis and finish the scene where Rayquaza ends Groudon and Kyogre’s fight. | KI 50, WT 12 |
-| `SOOTOPOLIS_CRISIS_RESOLVED` | `SkyPillar_1F` | Return via Pacifidlog and Route 131; reach (10,1). Mach Bike: 2F D2 R D10 L10 U4 R2 U8; 3F D4 L2 D6 R D R10 U5 L U6; 4F D11 L8 U8 R4 U3 to drop, take the stairs back, D L4 U; 5F D L2 D2 R D4 L D4 R5 D R7 U5 L U6 L2 U; top D L4 U4 R2 U4. Master Ball Rayquaza; Fly to Sootopolis for HM07. | KI 51–53, KI master-ball, WT 12, PATH 6, ROM |
+| `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Use an Escape Rope, Fly to Pacifidlog, then Surf east on Route 131 and take the north opening to Sky Pillar. | KI v2:03:47–2:04:45, U32, ROM |
+| `SKY_PILLAR_OPENED` | `SkyPillar_1F` | Use the Mach Bike. From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza. | KI v2:04:45–2:05:45, U33, ROM |
+| `RAYQUAZA_AWAKENED` | `SootopolisCity` | Fly to Sootopolis and finish the scene where Rayquaza ends Groudon and Kyogre’s fight. | KI v2:05:45–2:06:35, U32, ROM |
+| `SOOTOPOLIS_CRISIS_RESOLVED` | `SkyPillar_1F` | Fly to Pacifidlog and Surf east to Sky Pillar. Mach Bike from (10,1): 2F D2 R D10 L10 U4 R2 U8; 3F D4 L2 D6 R D R10 U5 L U6; 4F D11 L8 U8 R4 U3 drop, stairs back, D L4 U; 5F D L2 D2 R D4 L D4 R5 D R7 U5 L U6 L2 U; top D L4 U4 R2 U4. Master Ball Rayquaza; Fly to Sootopolis. | KI v2:06:55–2:09:20, U32, ROM |
 | `HM_WATERFALL_RECEIVED` | `SootopolisCity_Gym_1F` | Enter Juan’s Gym after receiving HM07. | KI 53, WT 12, ROM |
 | `SOOTOPOLIS_GYM_ENTERED` | `SootopolisCity_Gym_1F` | Step on every ice tile once; a repeat drops you below. Heal Rayquaza before Juan. Use Outrage only if healthy enough to finish its forced turns, then heal or cure confusion when you regain control. | KI 53, KI battle plans, WT 12, ROM |
 
@@ -82,7 +82,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `RAIN_BADGE` | `Route128` | Teach Rayquaza Aerial Ace over ExtremeSpeed and Waterfall over Rest, keeping Fly and Outrage. Retain Swampert for field HMs. Surf through Routes 127 and 128 to Ever Grande and climb the waterfall. | KI 54, KI TMs/HMs and move changes, WT 13 |
+| `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Deliberately drop to B1F to exit, then Fly to Mossdeep. Teach Rayquaza Aerial Ace over ExtremeSpeed and Waterfall over Rest, keeping Fly and Outrage. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
 | `EVER_GRANDE_LANDING` | `EverGrandeCity` | Heal at the Pokémon Center above the waterfall and enter Victory Road. Keep Swampert and Rayquaza with you for the field moves. | KI 54–55, WT 13 |
 | `VICTORY_ROAD` | `VictoryRoad_1F` | Beat Wally near the entrance. Use Rayquaza’s Aerial Ace on Altaria, Waterfall on Delcatty and Magneton, and Outrage on Roselia and Gardevoir if safe. | KI 55, KI battle plans |
 | `VICTORY_ROAD_WALLY_DEFEATED` | `VictoryRoad_1F` | Continue across the raised path and descend to B1F. Keep the field moves available and use Repel to save PP. | KI 55, WT 13, PATH 7 |

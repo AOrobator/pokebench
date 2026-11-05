@@ -61,3 +61,12 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review of ac2f7d62e, CHANGES: the pre-fight heal rule must stay in overworld guidance; the Birch screens need the new game note when options were missed; `RQ_` hints must not replace the guide line in recorded replay. RED tests added.
 - Fixes applied: only `Overworld:` is dropped from battle and menu guidance; Birch and naming screens reach `OPTIONS_SET` for display only; `RQ_` hints are skipped in recorded notes.
 - Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
+
+## After-Heat deviation fixes (Codex)
+
+- [x] Unit 1: correct Fly legs, post-Seafloor Pacifidlog order and Mach Bike directions (`U5`, `U6`, `U7`, `U32`, `U33`, `U35`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean.
+- [ ] Unit 2: add settled Repel, item and party-order instructions.
+- [ ] Unit 3: correct settled Gym and boss plans.
+- [ ] Unit 4: add settled hideout, cavern and Victory Road waypoints.
+- OPEN, unchanged by operator direction: heal lines (`C1`), nicknames (`U41`), League deposit (`U40`), Rustboro X items (`C5`), XP trainers (`U10`, `U11`) and `town-center-checkpoint-v1` plus dependent Center/Teleport wiring (`U1`–`U3`). No `TO:` tags added.

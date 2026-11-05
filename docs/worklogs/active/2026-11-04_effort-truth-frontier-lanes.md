@@ -1,7 +1,7 @@
 # Effort truth and custom-lane frontier filter
 
 **Started:** 2026-11-04 (New York)
-**Status:** Gates pass; Claude and fallback LGTM; waiting on the operator for the GPT finding and GLM
+**Status:** Landed on local main at 7013f76f4; post-merge test and viewer refresh next
 **Operator:** The operator. "correctness fixes need to be on by default" (2026-11-04)
 **Branch:** `claude/effort-truth-frontier-lanes`
 
@@ -23,7 +23,7 @@
 
 - [ ] Follow-up: the header pill shortens qwen3.8-27b-edit-e1-x to Qwen3.8, so an edited model looks unedited except on hover.
 
-- [ ] the operator: GLM-5.3 accepts only low and high. Keep sending the configured level, or map it?
+- [x] the operator: GLM-5.3 keeps sending the configured level (land it, 2026-11-05).
 - [ ] DeepSeek: chat_template_kwargs is forwarded through OrcaRouter; whether the provider reads it is unknown.
 - [ ] Trainer page still shows thinking_level; changing it needs a design look.
 
@@ -32,7 +32,7 @@
 - [x] M1 RED/GREEN, focused checks
 - [x] M2 full gates, regenerate schema
 - [x] M2b trainer-card check, real-browser frontier proof
-- [ ] M3 Claude, Grok and GPT review; land on main
+- [x] M3 Claude, GPT and fallback review; landed on main on the operator's word
 - [ ] M4 just viewer-main, then launch-check before any new run
 
 ## Commits
@@ -55,6 +55,8 @@ Wiring check: removing sentEffort from playLoopBase turned reasoning-effort.test
 Real data, built viewer on the served 801 runs: best stays 274b, runner-up astra 429f; only two 2026-10-15 think-fast hint runs become custom; a fake edit twin of 274b does not rank.
 
 ## Multi-Model Review Log
+
+The operator, 2026-11-05 12:10 AM NY: "land it", in answer to the GPT finding and GLM question. So custom runs keep their own Frontier column, and GLM sends the configured level. Fast-forward merged at 7013f76f4; main had not moved.
 
 Round 3, packet ..0d3902a9c sha 31555680. Claude: LGTM. Fallback subagent: LGTM. GPT: BLOCKING on one point: a custom run's own page still compares its splits against the frontier. Nothing else is affected; custom runs never become the reference. Round cap reached, so this goes to the operator: land as is (recommended) or also hide that column, which needs the server to read each run's lane.
 

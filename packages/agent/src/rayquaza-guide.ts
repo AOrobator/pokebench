@@ -77,6 +77,8 @@ export class GuidePosition {
  private followOptions(event:GameStateSnapshot&RunEvent):void {
   this.latest=event;
   if(!event.started)this.bootStart=true;
+  // Past the menus without the options: the new game note still has to reach the Birch screens.
+  if(!event.started&&(event.screen==="birch_speech"||event.screen==="naming"))this.reach("OPTIONS_SET",event);
   const opened=event.screen==="options_menu";
   if(opened){
    const details=event.active_ui?.details;

@@ -498,7 +498,7 @@ export async function decisionSession(run: RecordedRun, turn: number, features: 
 export function recordedNotes(prior: readonly RunEvent[], turn: number): string[] {
   let guard: string | null = null, hint: string | null = null;
   for (const e of prior) {
-    if (e.type === "milestone_hint") hint = e.text;
+    if (e.type === "milestone_hint" && !e.milestone.startsWith("RQ_")) hint = e.text;
     if (e.type !== "loop_guard" || ("mode" in e && e.mode === "diagnostic")) continue;
     if (e.phase === "warning") guard = `LOOP GUARD (${e.kind}): ${e.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
     else if (e.phase === "supervisor") guard = e.message;

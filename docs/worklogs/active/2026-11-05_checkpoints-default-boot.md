@@ -22,3 +22,11 @@ Operator approval: The operator said yes on 2026-11-05 to making frontier checkp
 ## Frozen boundary
 
 Included: `checkpointSelection` start-aware default, `0` as OFF, live.ts passing `start`, one sentence in the plain-run-launch skill. Non-goals: registered harness feature, viewer changes, `launch.sh` and `fixed-runner.ts` (they still set `1`, which stays valid), any live run. Built in a shared clone because this thread may not create a git worktree; lands by fast-forward.
+
+## Operator decision and boundary amendment
+
+The operator, 2026-11-05 12:45 AM on the save-pause question: "fix it first then land". Boundary now also covers removing the pause from capture.
+
+Why that is safe: `/pokebench/checkpoint` saves under `memory_lock`, and `step_environment` runs every frame under the same lock (the only frame-advance call in the server), so a save always lands between frames. A tool wait no longer sees a pause, so capture no longer reaches the model and is measurement again. `/pokebench/pause` stays for operator and continuation use.
+
+- [x] RED: capture must never call `/pokebench/pause`; pause-only failure tests removed with the behavior

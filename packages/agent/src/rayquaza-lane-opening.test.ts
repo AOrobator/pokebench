@@ -90,6 +90,27 @@ describe("options from boot", () => {
   });
 });
 
+describe("missed items", () => {
+  const needy: readonly GuideStep[] = [
+    { after: "RUN_START", map: null, note: "Buy.", needs: ["POTION", "REPEL"] },
+    { after: "PLAYER_NAME_CONFIRMED", map: null, note: "Go." },
+  ];
+  it("logs what was missing when a step passes, and tells the model nothing", () => {
+    const guide = new GuidePosition(needy);
+    guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([{ after: "RUN_START", items: ["REPEL"] }]);
+    expect(guide.takeMisses()).toEqual([]);
+    expect(guide.situationNotes()).toEqual([]);
+  });
+  it("logs nothing when everything was bought", () => {
+    const guide = new GuidePosition(needy);
+    guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }, { name: "REPEL", quantity: 2 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([]);
+  });
+});
+
 describe("shop note", () => {
   it("names the clerk inside a shop and nowhere else", () => {
     const guide = new GuidePosition(steps);

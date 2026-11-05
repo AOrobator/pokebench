@@ -34,10 +34,10 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | After | Map | Note | Source |
 |---|---|---|---|
 | ROUTE_102 | Route102 | Do not start a trainer fight below half HP. Heal at Oldale if you must. Keep going west to Petalburg City. | KI 5 |
-| PETALBURG_CITY | PetalburgCity | Buy 5 Potions and a few Repels at the Mart, then enter the Gym to meet your dad, Norman. | KI 6 |
+| PETALBURG_CITY | PetalburgCity | Buy 5 Potions and 2 Repels at the Mart, then enter the Gym to meet your dad, Norman. | KI 6 |
 | DAD_FIRST_MEETING | - | Agree to help Wally catch a Pokémon. Follow the scene to the end, then return with him to the Gym. | KI 6, GR |
 | WALLY_TUTORIAL_COMPLETE | PetalburgCity | Your dad tells you to collect badges. Leave Petalburg by the west exit. Rustboro is north of Route 104, through Petalburg Woods. | KI 7 |
-| ROUTE_104 | Route104 | Walk north on the beach sand, past the cottage, to the Petalburg Woods entrance. No Surf is needed. | KI 7 |
+| ROUTE_104 | Route104 | Walk north on the beach sand, past the cottage, to the Petalburg Woods entrance. No Surf is needed. Use a Repel before the Woods. | KI 7 |
 | PETALBURG_WOODS | PetalburgWoods | Go north up the east side. A Devon researcher is being robbed. Help him and beat the Team Aqua grunt. | KI 8 |
 | TEAM_AQUA_WOODS_EVENT_COMPLETE | PetalburgWoods | Leave Petalburg Woods by the north exit, then go north on Route 104 to Rustboro City. | KI 8, 9 |
 | RUSTBORO_CITY | RustboroCity | Go straight into the Gym. Do not grind first. | KI 10, 0:13:37, audit U4 |
@@ -48,17 +48,17 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow on the way. Mr. Briney's boat is not available until this story is done. | KI 11, 12, ROM, TR 7da5:560 |
+| ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow in the first grass with the Great Ball, then use a Repel. Decline Bide. Briney's boat waits until this is done. | KI 11, 12, ROM, TR 7da5:560 |
 | RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check, TO:RustboroCity |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | RustboroCity_DevonCorp_3F | Finish Mr. Stone's talk and the Match Call tutorial. | KI 15, tested 2026-11-05, fact check |
-| MATCH_CALL_TUTORIAL_COMPLETE | RustboroCity | Your rival may offer a battle in Rustboro. It is optional: say NO unless you have Potions and full HP. Buy 3 X Attacks, 2 X Speeds and a Repel at Petalburg Mart if you can. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board from the pier. | KI 15, ROM, TR 5f0f:296, 80c8:295, tested 2026-11-05 |
-| DEWFORD_TOWN | DewfordTown | Skip the Gym for now. Go north to Route 106 and into Granite Cave. Steven is in the deepest room. | KI 16 |
+| MATCH_CALL_TUTORIAL_COMPLETE | RustboroCity | Your rival offers a battle on Route 104: always say NO. Buy 3 X Attacks, 2 X Speeds and a Repel at Petalburg Mart if you can. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board from the pier. | KI 15, ROM, TR 5f0f:296, 80c8:295, tested 2026-11-05 |
+| DEWFORD_TOWN | DewfordTown | Skip the Gym for now. Go north to Route 106, use a Repel, and go into Granite Cave. Steven is in the deepest room. | KI 16 |
 | GRANITE_CAVE | GraniteCave_1F | Steven is in the cave, not in Dewford. On 1F, first take the Escape Rope ball at (17,7) from (18,7), facing west. Route: 1F (17,11), B1F (28,21), B2F (29,13), back up B1F, 1F (35,3), then the door at (5,10). You do not need Flash. | KI 16, TR 429f:684 |
-| STEVEN_REGISTERED | DewfordTown | Leave the cave and talk to Mr. Briney at the Dewford dock, about (12,9). Sail to Slateport. | KI 17, ROM, TR 0517:2830 |
+| STEVEN_REGISTERED | DewfordTown | Use the Escape Rope from your Bag to leave the cave, then talk to Mr. Briney at the Dewford dock, about (12,9). Sail to Slateport. | KI 17, ROM, TR 0517:2830 |
 | ROUTE_109_BEACH_REACHED | Route109 | Get the Soft Sand from the kids on the beach and give it to Mudkip. Then go north to Slateport City. | KI 17, ROM, fact check |
 | SLATEPORT_CITY | SlateportCity | Visit Stern's shipyard, then the Oceanic Museum. Captain Stern is upstairs in the museum. | KI 17, TR d41e:4130, fact check |
-| OCEANIC_MUSEUM_ENTERED | - | Pay the ₽50 fee, go upstairs and talk to Captain Stern. Beat both Team Aqua grunts and finish the dialogue to hand over the Devon Goods. | KI 17, fact check |
+| OCEANIC_MUSEUM_ENTERED | - | Pay the ₽50 fee, go upstairs and talk to Captain Stern. Beat both Team Aqua grunts and finish the dialogue to hand over the Devon Goods. When Mudkip evolves, teach Mud Shot over Growl. | KI 17, fact check |
 | DEVON_GOODS_DELIVERED | Route110 | Teach TM39 Rock Tomb in place of Tackle now. Then go north out of Slateport onto Route 110 and stay on the walking path, not the Cycling Road. Mauville is at the north end. | KI 18, TR 5f0f:760 |
 
 ## Mauville and the Dynamo Badge
@@ -79,10 +79,10 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | ROUTE_111_NORTH | Route111 | Go west onto Route 112 and take Fiery Path. As Marshtomp, respect Grass foes, even at low level: Mega Drain hits x4 and heals them. Water and Ground moves are weak on pure Grass, so use a neutral move, and skip optional battles against them. | ROM, TR 5f0f:865 |
 | FIERY_PATH | FieryPath | Go through Fiery Path to Route 112's north part, then east to Route 111 north, then leave west near y=7-10 onto Route 113. | PATH 3, ROM, TR ol4h:931 |
 | ROUTE_113 | Route113 | Go west to Fallarbor Town. | KI 21, ROM, fact check |
-| FALLARBOR_TOWN | FallarborTown | At (3,15), face west and press A for a hidden Nugget. At the Mart, sell it and spare TMs, then buy 11 Super Repels, 10 X Attacks, 5 X Speeds, 3 X Specials, 2 Escape Ropes, a Guard Spec and a Super Potion as funds allow. Then go west onto Route 114. | KI shops, fact check |
-| ROUTE_114 | Route114 | Follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
+| FALLARBOR_TOWN | FallarborTown | At (3,15), face west and press A for a hidden Nugget. At the Mart, sell it and TM47, keep TM34, then buy 11 Super Repels, 10 X Attacks, 5 X Speeds, 3 X Specials, 2 Escape Ropes, 2 Guard Specs and a Super Potion as funds allow. Then go west onto Route 114. | KI shops, fact check |
+| ROUTE_114 | Route114 | Use a Super Repel and follow Route 114 into Meteor Falls. Walk west on 1F to about (14,18) to start the Team Magma scene, and wait for it to end. | KI 22, ROM, TR l24h:2470 |
 | METEOR_FALLS_CONFRONTATION_RESOLVED | MeteorFalls_1F_1R | Leave through Route 115 south to Rustboro, then go east to Rusturf Tunnel. Use Rock Smash inside to reach the man who gives HM04 Strength. | KI 22, 23, WT 04 |
-| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, then go north on Route 111 and west on Route 112 to the Cable Car. | KI 23, 24, fact check, TO:MauvilleCity |
+| HM_STRENGTH_RECEIVED | Route112 | Teach Strength in place of Mud-Slap. Return to Mauville, go north on Route 111, Rock Smash the rocks at (19,100) and (18,101) again, then west on Route 112 to the Cable Car. | KI 23, 24, fact check, TO:MauvilleCity |
 | MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. Against Maxie, use Guard Spec and X Attack first. | KI 24, battle plans |
 | MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Walk south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
 | LAVARIDGE_TOWN | LavaridgeTown | Heal at the Pokémon Center, then enter the Gym. | KI 25, ROM, TR 274b:1445 |

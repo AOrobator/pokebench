@@ -21,6 +21,12 @@ Viewer-only, no harness behavior, so no feature switch. No timeline marks added.
 - [ ] Review
 - [ ] Land, `just current-main`, `just viewer-main`, headless proof
 
+## Review log
+
+Round 1 (GPT, 1bd040640, BLOCKING): old snapshot rows rejected by the new parser, fixed: the three thinking fields are optional when reading. Refresh marked done while a page was loading, fixed. Tail may miss the current `turn_start` during a long response: rebutted, recovery-only and clears at the next turn or backfill.
+
+Rollout order: `just viewer-main` first, then `just current-main`.
+
 ## Principles self-review
 
 PB1-PB8, PB11, PB12: N/A, display-only change that records nothing and changes no run. PB9 PASS: asked for directly by the operator. PB10 PASS: no gate weakened. PB13 PENDING until the post-merge browser proof.

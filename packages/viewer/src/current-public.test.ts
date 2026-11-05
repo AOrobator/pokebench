@@ -1,5 +1,6 @@
 import {parseWorkbench} from "./workbench-data.js";
 import {expect,it} from "vitest";
+import {currentFixture} from "../test-support/current.js";
 import {Log,START,RUN,assistant,state} from "../test-support/events.js";
 import {emptyCurrent,foldCurrent} from "./current-state.js";
 import type {ProjectorAux} from "./current-service.js";
@@ -30,3 +31,4 @@ it("retains approximate display elapsed after backwards recorded time without gr
  const incomplete=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,8,{...aux,complete:false}).detail) as unknown);
  expect(incomplete.run.elapsedMs).toBeNull();expect(incomplete.control).toBeNull();
 });
+it("reads a snapshot saved before thinking was published",()=>{const f=currentFixture(),old:Record<string,unknown>=JSON.parse(JSON.stringify(f.snapshot)) as Record<string,unknown>,display=old["display"] as Record<string,unknown>;delete display["thought"];delete display["streaming"];delete display["thinkingSince"];expect(publicCurrentView(parseCurrentSnapshot(old)).lastThought).toBeNull();});

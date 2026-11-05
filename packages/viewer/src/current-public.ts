@@ -11,7 +11,7 @@ export interface CurrentSummary {
  health:{enabled:boolean;owner:boolean;ok:boolean|null;checkedAt:number|null};
  progress:{validation:"unverified";recorded:{name:string;seq:number;turn:number;at:number}[]};
 }
-export interface CurrentSnapshot extends CurrentSummary {end:CurrentState["end"];display:Pick<CurrentState,"state"|"partyState"|"card"|"health"|"frame"|"thought"|"streaming">&{thinkingSince:number|null}}
+export interface CurrentSnapshot extends CurrentSummary {end:CurrentState["end"];display:Pick<CurrentState,"state"|"partyState"|"card"|"health"|"frame">&Partial<Pick<CurrentState,"thought"|"streaming">>&{thinkingSince?:number|null}}
 export type CurrentQuery={kind:"list";now:number;after?:string|null;limit?:number}|{kind:"current";run:string;now:number}|{kind:"updates";after:string|null;now:number;run?:string}|{kind:"history";run:string;before:string|null;now:number};
 export type CurrentAnswer=
  |{kind:"list";version:1;epoch:string;cursor:string;runs:CurrentSummary[];next:string|null;indexing:boolean;problems:string[]}
@@ -27,7 +27,7 @@ const nullableText=(v:unknown)=>v===null||typeof v==="string";
 const only=(v:unknown,allowed:readonly string[]):boolean=>object(v)&&Object.keys(v).every(k=>allowed.includes(k));
 const keys=["version","id","generation","revision","seq","at","clockAt","updatedAt","observedAt","complete","header","run","endedAt","totals","control","context","retry","warning","problem","phase","health","progress"];
 export function publicCheckpoint(s:CurrentSummary,display:CurrentSnapshot["display"]={state:null,partyState:null,card:null,health:null,frame:null,thought:null,streaming:{thinking:"",text:""},thinkingSince:null},end:CurrentState["end"]=null):CurrentState{
- const blank=emptyCurrent();return parseCurrent({...blank,run:s.id,seq:s.seq,nextSeq:s.seq+1,at:s.at,turn:s.run.turn,start:s.header,end,state:display.state,partyState:display.partyState,card:display.card,health:display.health,frame:display.frame,thought:display.thought,streaming:display.streaming,requestAt:display.thinkingSince,context:s.context,retry:s.retry,totals:s.totals??blank.totals,control:s.control??blank.control,warning:s.warning});
+ const blank=emptyCurrent();return parseCurrent({...blank,run:s.id,seq:s.seq,nextSeq:s.seq+1,at:s.at,turn:s.run.turn,start:s.header,end,state:display.state,partyState:display.partyState,card:display.card,health:display.health,frame:display.frame,thought:display.thought??null,streaming:display.streaming??blank.streaming,requestAt:display.thinkingSince??null,context:s.context,retry:s.retry,totals:s.totals??blank.totals,control:s.control??blank.control,warning:s.warning});
 }
 function summary(value:unknown,detail:boolean):CurrentSummary{
  const fail=():never=>{throw new Error("Invalid current display response");};if(!object(value))return fail();const v=value;
@@ -49,7 +49,7 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
 }
 export const parseCurrentSummary=(value:unknown):CurrentSummary=>summary(value,false);
 export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
- summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince"])||!object(display)||!["state","partyState","card","health","frame","thought","streaming","thinkingSince"].every(k=>Object.hasOwn(display,k)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
+ summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 

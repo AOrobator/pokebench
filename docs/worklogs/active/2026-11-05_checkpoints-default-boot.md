@@ -58,3 +58,7 @@ Boundary: selection, its live.ts caller, comments, skill sentence. `launch.sh` a
 - [x] Review round 1 on 0ec13791: Claude, GPT and fallback all BLOCKING on continuation replay. Fix: run filter in `observe`, test through real `RunRecorder.restoreHistory`. Note: fixed-run save-state launches cannot pass `0`, because the launcher strips the variable.
 - [x] Replay test proven: removing the run filter fails it (1 failed, 13 passed); restored, 14 passed.
 - [x] Full gates after the replay fix: just lint, build, test, verify-vendor all exit 0; floors held.
+- [x] Review round 2 on 91244c2f7, base 2ca2ff475, packet SHA-256 d68e6526b0a79323: Claude LGTM, GPT LGTM, Sonnet fallback LGTM. Grok unavailable (Cursor out of usage).
+- [x] Landed by fast-forward at 91244c2f7, then `just test` on main passed.
+
+Follow-ups: pin `restoreRunIdentity:true` in the replay test; hand readers of `first-arrival.json` should check `source.start_state`, since a checkpoint start can win it; no real run has used this build yet.

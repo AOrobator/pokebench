@@ -127,5 +127,5 @@ it("keeps the guide after anything a wrapped transform appends",async()=>{
  const r=recorder();
  const out=await finalGuide({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},autoTalk)([task]);
  expect(out).toHaveLength(3);
- expect(JSON.stringify(out.at(-1))).toContain("GUIDE: Choose NEW GAME");
+ expect(JSON.stringify(out.at(-1))).toContain("GUIDE: Press START");
 });

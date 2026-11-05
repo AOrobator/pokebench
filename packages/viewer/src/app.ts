@@ -18,7 +18,7 @@ import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runS
 import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
-import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
+import { parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -269,6 +269,8 @@ export class App {
   private frontier: Baseline | null = null;
   // Until the server has ranked every run, "no frontier" is unknown, not an answer; the card poll asks again.
   private frontierSettled = false;
+  private frontierSave = false;
+  private frontierStart: string | null = null;
   private frontierRetry = false;
   private frontierRequest = 0;
   private problems: string[] = [];
@@ -1152,9 +1154,9 @@ export class App {
     }
   }
 
-  private raceOf(view: RunView, nowMs: number, recorded: BestSplits | undefined, frontier: Baseline | null): { race: Race; now: number } {
-    const now = Math.floor(runWallSeconds(view, nowMs)), marks = reachedSplits(view, recorded), key = [this.runId, marks.map(m => `${m.name}:${String(m.at)}`).join(), frontierKey(frontier), now].join("|");
-    if (this.raceMemo?.key !== key) this.raceMemo = { key, race: raceOf(marks, frontier, now, startIndex(view)), now };
+  private raceOf(view: RunView, nowMs: number, recorded: BestSplits | undefined, frontier: Baseline | null, start: number | null): { race: Race; now: number } {
+    const now = Math.floor(runWallSeconds(view, nowMs)), marks = reachedSplits(view, recorded), key = [this.runId, marks.map(m => `${m.name}:${String(m.at)}`).join(), frontierKey(frontier), start, now].join("|");
+    if (this.raceMemo?.key !== key) this.raceMemo = { key, race: raceOf(marks, frontier, now, start), now };
     return this.raceMemo;
   }
 
@@ -1167,18 +1169,20 @@ export class App {
       return;
     }
     const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
-    const custom = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) !== null || view.start?.harness_features.some(id => KNOWLEDGE_SWITCHES.has(id)) === true, racing = !custom && startIndex(view) !== null, frontier = racing && recording !== undefined ? this.frontier : null, loading = racing && frontier === null && (recording === undefined || !this.frontierSettled);
-    const { race, now } = this.raceOf(view, nowMs, source, frontier);
+    const knowledge = view.start?.harness_features.find(id => KNOWLEDGE_SWITCHES.has(id));
+    const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
+    const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
+    const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = new Set(race.legs.filter(leg => this.raceOpen.get(leg.index) ?? leg.current).map(leg => leg.index));
-    this.setHtml("race-head", raceHeadline(race, label, now, loading));
+    this.setHtml("race-head", raceHeadline(race, label, now, loading, side));
     this.setHtml("race-rail", raceRail(race));
     this.setHtml("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
     this.setHtml("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));
     this.setHtml("race-filters", raceFilters(this.raceFilter, race));
     this.setHtml("race-list", raceList(race, this.raceFilter, open));
-    this.setHtml("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label));
+    this.setHtml("race-map", this.raceMapData === undefined ? "" : raceMap(this.raceMapData, view.cardState?.location, race, label, side.name));
     const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640;
-    if (frontier === null || recording === undefined || recording.config === null) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : "No frontier run to plot."}</p>`); return; }
+    if (frontier === null || recording === undefined || recording.config === null) { this.setHtml("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : side.save ? "No earlier run from this save to plot." : "No frontier run to plot."}</p>`); return; }
     // Rewinding hides later splits from the graph as it does from the list.
     const shown = new Set(race.rows.map(row => row.name)), splits = this.mode === "replay" ? recording.splits.filter(split => shown.has(split.name)) : recording.splits;
     const key = [run, splits.map(split => `${split.name}:${String(split.elapsedMs)}`).join(), recording.status, frontierKey(frontier), width].join("|");
@@ -1207,10 +1211,10 @@ export class App {
   private async loadFrontier(runId: string, retry = false): Promise<void> {
     const request = ++this.frontierRequest;
     try {
-      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown; state?: unknown };
+      const record = await this.deps.fetchJson(`/api/runs/${encodeURIComponent(runId)}/frontier`) as { frontier?: unknown; state?: unknown; save?: unknown; start?: unknown };
       const frontier = record.frontier === null ? null : baselineOf(record.frontier);
       if (request !== this.frontierRequest) return;
-      if (record.state !== "loading") this.frontier = frontier;
+      if (record.state !== "loading") { this.frontier = frontier; this.frontierSave = record.save === true; this.frontierStart = typeof record.start === "string" ? record.start : null; }
       this.frontierSettled = record.state !== "loading" && record.state !== "stale";
       this.frontierRetry = !this.frontierSettled;
       this.render();
@@ -1267,6 +1271,8 @@ export class App {
     this.mode = "loading";
     this.raceFilter = "all"; this.raceOpen.clear(); this.raceMemo = null; this.racePlotMemo = null;
     this.frontier = null;
+    this.frontierSave = false;
+    this.frontierStart = null;
     this.frontierSettled = false;
     this.frontierRetry = false;
     this.recordedThinkingRequest += 1;

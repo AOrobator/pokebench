@@ -86,8 +86,6 @@
     "presence-penalty-v1",
     "story-destinations-v1",
     "just-in-time-prompt-v1",
-    "just-in-time-prompt-v2",
-    "jit-guide-reuse-v1",
     "supervisor-briefing-v2",
     "ineffective-navigation-v2",
     "positive-supervisor-v1",
@@ -103,7 +101,8 @@
     "player-map-visibility-v2",
     "dark-area-flash-reminder-v1",
     "story-route-plan-v1",
-    "no-story-foreknowledge-v1"
+    "no-story-foreknowledge-v1",
+    "context-exact-count-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",
@@ -156,7 +155,6 @@
     "move-learn-loop-fingerprint-v1",
     "fixed-point-breaker-v1",
     "drought-battle-heal-hold-v1",
-    "context-exact-count-v1",
     "grass-strides-v1",
     "pokenav-short-list-v1",
     "pokenav-call-auto-advance-v1",
@@ -207,6 +205,9 @@
     "coherent-battle-observation-v1",
     "rq-milestone-guide-v1",
     "rq-battle-explainer-v1",
+    "rq-slim-prompt-v1",
+    "just-in-time-prompt-v2",
+    "jit-guide-reuse-v1",
     "shop-shelf-hidden-v1"
   ],
   "features": {
@@ -298,9 +299,9 @@
     "instruction-ledger-v1": false,
     "instruction-ledger-v2": true,
     "interaction-loop-detection-v1": true,
-    "jit-guide-reuse-v1": false,
+    "jit-guide-reuse-v1": true,
     "just-in-time-prompt-v1": false,
-    "just-in-time-prompt-v2": false,
+    "just-in-time-prompt-v2": true,
     "leader-attempt-ledger-v1": false,
     "ledge-hops-v1": true,
     "levelup-box-v1": true,
@@ -481,7 +482,7 @@
     "instruction-goal-advisory-v1": false,
     "goal-review-repair-feedback-v1": false,
     "map-observability-v1": true,
-    "context-exact-count-v1": true,
+    "context-exact-count-v1": false,
     "type-gap-team-v1": true,
     "supplies-v1": false,
     "untalked-in-gym-v1": false,
@@ -545,6 +546,7 @@
     "rq-milestone-guide-v1": true,
     "rq-battle-explainer-v1": true,
     "coherent-battle-observation-v1": true,
+    "rq-slim-prompt-v1": true,
     "shop-shelf-hidden-v1": true
   }
 }

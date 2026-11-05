@@ -1,5 +1,8 @@
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 import {battleOnScreen} from "./battle-context.js";
+import {moveLearningChoice} from "./learn-move.js";
+import {rqMovedSections} from "./play-config.js";
+import type {GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import {RAYQUAZA_GUIDE_STEPS,RAYQUAZA_OUTDOOR_MAPS} from "./rayquaza-guide-data.js";
@@ -11,6 +14,8 @@ export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before ret
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
 export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";
 
+export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, press START, choose OPTION, set TEXT SPEED to FAST, BATTLE SCENE to OFF and BATTLE STYLE to SET, then press B.";
+
 type MapId=readonly [number,number];
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly to?:{readonly map:string;readonly id:MapId}}
 export interface SituationNote {readonly text:string;readonly milestone:string}
@@ -19,6 +24,12 @@ const TELEPORT_MOVE=100;
 const BATTLE_TYPE_TRAINER=8;
 const ABRA_LINE=new Set(["ABRA","KADABRA","ALAKAZAM"]);
 const OUTDOORS=new Set(RAYQUAZA_OUTDOOR_MAPS);
+const SECTION_TRIGGERS:ReadonlyMap<string,(state:GameStateSnapshot)=>boolean>=new Map([
+ ["PokéNav calls",s=>s.screen==="pokenav"],
+ ["- choose_evolution",s=>s.screen==="evolution"||s.screen==="trade_evolution"],
+ ["- learn_move",moveLearningChoice],
+ ["Surf:",s=>s.surf_gate?.can_surf===true&&s.screen==="overworld"&&!s.in_battle],
+]);
 const mapKey=(id:MapId):string=>`${String(id[0])}/${String(id[1])}`;
 
 // How far one milestone may move the guide. Wide enough for steps that never fired, narrow enough that an
@@ -39,6 +50,11 @@ export class GuidePosition {
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
  private arrivedOn=-1;
+ private bootStart=false;
+ private optionsDone=false;
+ private optionsReady=false;
+ private inOptions=false;
+ latest:GameStateSnapshot|null=null;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"screen" in event){
@@ -51,8 +67,29 @@ export class GuidePosition {
   }
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached>=0)this.advance(event,reached);
+  if(event.type==="state"&&"screen" in event)this.followOptions(event);
+  // A press that changes a value and leaves in one batch ends with values no state showed.
+  if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
   const to=this.current().to;
   if(to!==undefined&&this.map!==null&&mapKey(to.id)===mapKey(this.map))this.arrivedOn=this.furthest;
+ }
+ // Leaving the menu saves it in every path (option_menu.c), so the last values seen are the saved ones.
+ private followOptions(event:GameStateSnapshot&RunEvent):void {
+  this.latest=event;
+  if(!event.started)this.bootStart=true;
+  // Past the menus without the options: the new game note still has to reach the Birch screens.
+  if(!event.started&&(event.screen==="birch_speech"||event.screen==="naming"))this.reach("OPTIONS_SET",event);
+  const opened=event.screen==="options_menu";
+  if(opened){
+   const details=event.active_ui?.details;
+   if(!this.inOptions)this.reach("OPTIONS_OPENED",event);
+   if(details?.["text_speed"]!==undefined)this.optionsReady=details["text_speed"]===2&&details["battle_scene_off"]===1&&details["battle_style"]===1;
+  }else if(this.inOptions&&this.optionsReady){this.optionsDone=true;this.reach("OPTIONS_SET",event);}
+  this.inOptions=opened;
+ }
+ private reach(name:string,event:RunEvent):void {
+  const index=this.steps.findIndex(step=>step.after===name);
+  if(index>=0)this.advance(event,index);
  }
  private advance(event:RunEvent,reached:number):void {
   this.earned.add(reached);
@@ -70,6 +107,7 @@ export class GuidePosition {
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
+  if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
   const to=this.current().to;
   if(to===undefined||this.arrivedOn===this.furthest||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
   const home=mapKey(to.id),here=mapKey(this.map);
@@ -91,14 +129,18 @@ type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
 export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=RAYQUAZA_GUIDE_STEPS):Transform {
  if(!features["rq-milestone-guide-v1"])return transform;
  const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true,true);
- let recorded:string|null=null,told:readonly string[]=[];
+ let recorded:string|null=null,told:readonly string[]=[],sectionsShown:readonly string[]=[];
+ const sections=features["rq-slim-prompt-v1"]?rqMovedSections(features,null):new Map<string,string>();
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;
   if(step.after!==recorded){recorder.recordMilestoneHint({text,milestone:step.after});recorded=step.after;}
   const situation=guide.situationNotes();
   for(const note of situation)if(!told.includes(note.text))recorder.recordMilestoneHint(note);
   told=situation.map(note=>note.text);
-  const notes=[text,...(features["rq-battle-explainer-v1"]&&guide.inBattle?[BATTLE_EXPLAINER]:[]),...told];
+  const state=guide.latest,due=state===null?[]:[...sections.keys()].filter(prefix=>SECTION_TRIGGERS.get(prefix)?.(state)===true);
+  for(const prefix of due)if(!sectionsShown.includes(prefix))recorder.recordMilestoneHint({text:`JIT section: ${prefix}`,milestone:"RQ_SECTION"});
+  sectionsShown=due;
+  const notes=[...due.flatMap(prefix=>sections.get(prefix)??[]),...(features["rq-battle-explainer-v1"]&&guide.inBattle?[BATTLE_EXPLAINER]:[]),...told,text];
   return [...await transform(messages),...notes.map(content=>({role:"user" as const,content,timestamp:Date.now()}))];
  };
 }

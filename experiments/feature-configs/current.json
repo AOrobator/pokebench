@@ -543,6 +543,7 @@
     "rq-milestone-guide-v1": false,
     "rq-battle-explainer-v1": false,
     "coherent-battle-observation-v1": true,
+    "rq-slim-prompt-v1": false,
     "shop-shelf-hidden-v1": true
   }
 }

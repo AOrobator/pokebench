@@ -24,9 +24,7 @@
       "maxWallMs": 28800000,
       "primary": false,
       "start": {
-        "kind": "save_state",
-        "path": "runs/launch-receipts/fast-text/MAIN_MENU.state",
-        "sha1": "b3a6cc1c19836600a15febf41b8f8b19661ce5d4"
+        "kind": "boot"
       },
       "singleArm": "bundle"
     }

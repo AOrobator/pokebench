@@ -17,7 +17,7 @@ import { gameTools } from "./game-tools.js";
 import { Governor, NUDGE, attachLoopGuard, slideWindow, withoutTextOnlyReplies } from "./harness.js";
 import { cutOffReplyNotice } from "./cut-off-reply.js";
 import type { LoopNotice } from "./loop-detection.js";
-import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, targetGoal, toolSwitches } from "./play-config.js";
+import { PLAY_LIMITS, PLAY_TASK, playSystemPrompt, stableJitPrompts, targetGoal, toolSwitches } from "./play-config.js";
 import { contextTools, finalGuide, loopSupervisor, playGameTools, stallBriefing, trustOptions } from "./play-wiring.js";
 import { HarnessTrust, TRUST_HEADER, awayText } from "./harness-trust.js";
 import type { Place } from "./story-destinations.js";
@@ -473,7 +473,7 @@ export async function decisionSession(run: RecordedRun, turn: number, features: 
   recorderView.size = null;
   const messages = (await wiring.transform(windowed)).filter(isMessage);
   const recorderSize = recordedTrim ? lastMeasured() : null;
-  const context:DecisionContext={ turn, systemPrompt: playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
+  const context:DecisionContext={ turn, systemPrompt: features["rq-slim-prompt-v1"]&&features["just-in-time-prompt-v2"]?stableJitPrompts(features,goal,"unknown").core:playSystemPrompt(features, goal), messages, tools: wiring.tools.map(asTool), size: contextSize(messages), ...(recorderSize === null ? {} : { recorderSize }) };
   let continuing:AgentMessage[]=[...windowed];
   return {context,bookkeeping:async message=>{
    const calls=message.content.filter((p):p is ToolCall=>p.type==="toolCall");
@@ -498,7 +498,7 @@ export async function decisionSession(run: RecordedRun, turn: number, features: 
 export function recordedNotes(prior: readonly RunEvent[], turn: number): string[] {
   let guard: string | null = null, hint: string | null = null;
   for (const e of prior) {
-    if (e.type === "milestone_hint") hint = e.text;
+    if (e.type === "milestone_hint" && !e.milestone.startsWith("RQ_")) hint = e.text;
     if (e.type !== "loop_guard" || ("mode" in e && e.mode === "diagnostic")) continue;
     if (e.phase === "warning") guard = `LOOP GUARD (${e.kind}): ${e.message} Recovery is bounded; objective wording and new evidence IDs alone do not establish progress.`;
     else if (e.phase === "supervisor") guard = e.message;

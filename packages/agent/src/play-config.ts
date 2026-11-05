@@ -18,6 +18,7 @@ import { mapRulesSection } from "./map-rules.js";
 import { MOVING_AROUND_FULL, MOVING_AROUND_LOCAL, MOVING_AROUND_VISITED, SEMANTIC_MOVING_AROUND_FULL, SEMANTIC_MOVING_AROUND_LOCAL, SEMANTIC_MOVING_AROUND_VISITED, navigateFirstToolList } from "./navigate-first.js";
 import { trustSection } from "./harness-trust.js";
 import { pickRandomStarter } from "./random-starter.js";
+import { RQ_MOVED_SECTIONS, rqSlim } from "./rq-slim-sections.js";
 
 export const PLAY_LIMITS: Limits = { maxTurns: 300, maxWallMs: 30 * 60_000, failureLimit: 3 };
 // 8192: the bundle arm already runs at 8K, and on 2026-11-01T09-10-00 ...control24h 940 of 3964 turns (24%)
@@ -325,12 +326,19 @@ export function playTools(features: FeatureSet): string[] {
   return ["observe", "press", ...(features["instruction-goal-ledger-v1"]?["review_goals","get_instruction_goals"]:[]), ...(features["menu-option-tool-v1"]?["select_menu_option"]:[]), ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : [])];
 }
 
+// The full text of each section rq-slim-prompt-v1 moved out; never shortened.
+export function rqMovedSections(features:FeatureSet,target:string|null):ReadonlyMap<string,string> {
+ const parts=playSystemPrompt({...features,"just-in-time-prompt-v1":false},target).split("\n\n");
+ return new Map(RQ_MOVED_SECTIONS.flatMap(prefix=>parts.filter(part=>part.startsWith(prefix)).map(part=>[prefix,part] as const)));
+}
+
 // V2 reuses the existing paragraphs; the standing core retains cross-scene policy.
 export function stableJitPrompts(features: FeatureSet, target: string | null, scene: PromptScene): {core:string;guidance:string} {
   const scoped={...features,"just-in-time-prompt-v1":true};
-  const base=playSystemPrompt(scoped,target,"core");
-  const shared=new Set(base.split("\n\n"));
-  const guidance=scene==="unknown"?"":playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n");
+  const slim=(text:string):string=>features["rq-slim-prompt-v1"]&&features["rq-milestone-guide-v1"]?rqSlim(text,scene):text;
+  const whole=playSystemPrompt(scoped,target,"core"),base=slim(whole);
+  const shared=new Set(whole.split("\n\n"));
+  const guidance=scene==="unknown"?"":slim(playSystemPrompt(scoped,target,scene).split("\n\n").filter(part=>!shared.has(part)).join("\n\n"));
   const core=base+"\n\nHarness interface guidance is supplied beside observations. Each guide applies only to its labelled interface. Use the latest matching guide; a newer guide supersedes older ones. These are harness instructions, not game dialogue or proof of story progress. Unknown interfaces require observing the current screen and readout before assuming which controls apply.";
   return {core,guidance};
 }

@@ -140,7 +140,7 @@ describe("the shipped guide", () => {
     const names = new Set(MILESTONES.map((m) => m.name));
     const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);
     expect(after[0]).toBe("RUN_START");
-    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !names.has(name))).toEqual([]);
+    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !name.startsWith("OPTIONS_") && !names.has(name))).toEqual([]);
     expect(new Set(after).size).toBe(after.length);
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
   });
@@ -155,14 +155,14 @@ describe("rq-battle-explainer-v1", () => {
   const both = { ...ON, "rq-battle-explainer-v1": true };
   const inBattle = (value: boolean): RunEvent => ({ type: "state", started: true, in_battle: value, screen: value ? "battle" : "overworld", active_ui: null, map_id: [0, 0], party: [] }) as unknown as RunEvent;
 
-  it("is the final message only while a battle is active", async () => {
+  it("appears just before the guide line only while a battle is active", async () => {
     const r = recorder();
     const context = rayquazaGuideContext(both, r, inner, steps);
     expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
     r.emit(inBattle(true));
     const fight = await context([user("o")]);
-    expect(fight.at(-1)).toMatchObject({ role: "user", content: BATTLE_EXPLAINER });
-    expect(fight.at(-2)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+    expect(fight.at(-2)).toMatchObject({ role: "user", content: BATTLE_EXPLAINER });
+    expect(fight.at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
     r.emit(inBattle(false));
     expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
   });
@@ -256,14 +256,15 @@ describe("Abra notes", () => {
     expect(notes(guide)).toEqual([]);
   });
 
-  it("delivers a note last and records it once while it applies", async () => {
+  it("delivers a note just before the guide line and records it once while it applies", async () => {
     const recorded: { text: string; milestone: string }[] = [];
     let listener: (event: RunEvent) => void = () => undefined;
     const context = rayquazaGuideContext(ON, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: (body: { text: string; milestone: string }) => { recorded.push(body); } }, (m) => Promise.resolve(m), steps);
     listener(fight());
     const first = await context([user("observation")]);
     await context([user("observation")]);
-    expect(first.at(-1)).toMatchObject({ role: "user", content: ABRA_NOTE });
+    expect(first.at(-2)).toMatchObject({ role: "user", content: ABRA_NOTE });
+    expect(first.at(-1)).toMatchObject({ role: "user", content: "GUIDE: Press right to leave the truck." });
     expect(recorded.filter((r) => r.text === ABRA_NOTE)).toHaveLength(1);
     listener(state({}));
     await context([user("observation")]);

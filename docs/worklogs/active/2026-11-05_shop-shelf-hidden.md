@@ -26,7 +26,8 @@ Source pokeemerald 731ad5b. ROM SHA-1 f3ae088181bf583e55daf962a92bb46f4f1d07b7, 
 
 - RED: `test(readout): RED for shop-shelf-hidden-v1` (8b6456041). Python collection error on the missing switch; 4 agent tests failed.
 - GREEN: `feat(readout): hide shop shelves and scriptless signs behind shop-shelf-hidden-v1` (0ae000505).
-- Explainer and replay: `docs(explainer): shop-shelf-hidden-v1 with the Mart replay`.
+- Explainer and replay: `docs(explainer): shop-shelf-hidden-v1 with the Mart replay` (5d7117735).
+- Merge of main a34a356f6: conflicts in the switch lists and recipes against `rq-slim-prompt-v1`; both kept, this switch last. Focused checks repeated: 115 Python, 71 agent, 158 viewer panels; tsc and eslint clean.
 
 ## Checks
 

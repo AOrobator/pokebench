@@ -5,7 +5,7 @@ Video: https://www.youtube.com/watch?v=QBrjHTzy4LU, titled "Pokemon Emerald Any%
 ## How to read the timestamps
 
 - **v** is video time. **run** is the LiveSplit run time. The timer reads 0.5 at video 0:00:54.5, so **run = video − 53.9 s**. I checked this against the timer at run 0:12:41, 0:45:58, 1:00:46 and 2:08:06, and it holds within ±0.1 s.
-- The timer starts on NEW GAME. The options (Text FAST, Battle Scene OFF, Battle Style SHIFT; video 0:00:48) and the save clear (0:00:36) happen before it starts.
+- The timer starts on NEW GAME. The options (Text FAST, Battle Scene OFF, Battle Style SET, Button Mode L=A; video 0:00:48 frame) and the save clear (0:00:36) happen before it starts.
 - Evidence comes from five places:
   - the 1 fps OCR of the dialogue box (`ocr_dialogue.tsv`, ±1 s);
   - his LiveSplit overlay (exact);
@@ -280,7 +280,7 @@ Map-entry milestones are the weakest. They are mostly bracketed or inferred, bec
 Times are video time. Run time is 54 s less.
 
 1. **Boot and setup.**
-   - Clears the save (0:00:36), then sets options: Text FAST, Battle Scene OFF, Battle Style SHIFT (0:00:48).
+   - Clears the save (0:00:36), then sets options: Text FAST, Battle Scene OFF, Battle Style SET, Button Mode L=A (0:00:48).
    - NEW GAME at 0:00:54. Girl, named **A** (0:01:21).
 2. **Littleroot.**
    - Truck to house to bedroom. **Saves in the bedroom at in-game time 0:00 (0:02:09), then soft-resets.** The © screen is at 0:02:16 and "internal battery has run dry" at 0:02:21.
@@ -530,7 +530,7 @@ Taxis:
 
 ## Menu, text and option tricks
 
-- **Options before the timer:** Text FAST, Battle Scene OFF, Battle Style SHIFT.
+- **Options before the timer:** Text FAST, Battle Scene OFF, Battle Style SET, Button Mode L=A.
 - Name **"A"**, which needs the fewest inputs.
 - Castform is nicknamed "G". Other Pokémon are not nicknamed; he declines nickname prompts (2:09:16 Rayquaza).
 - Mach Bike is registered to Select.
@@ -668,7 +668,7 @@ Path frames at 2 fps are in `frames/path/<map>/`; sheets are in `sheets/path/`.
 
 1. **Exact splits and the timer offset.** His 20 LiveSplit splits are listed above. The operator's draft quoted "2:24:44 vs 2:29:44"; the title is 2:29:44, which is 2:29:55 before DS conversion. "Dewford" is a split for the Steven letter and leaving Dewford, not for Brawly.
 2. **The starter is RNG-manipulated.** Frame 5822, Lonely, 25/28/31/30/22/27. He saves in the bedroom at in-game 0:00 and soft-resets (0:02:09–0:02:21) before the clock. The notes treat the opening as plain options and naming.
-3. **Battle Style SHIFT and Battle Scene OFF** are set alongside Text FAST.
+3. **Battle Style SET and Battle Scene OFF** are set alongside Text FAST.
 4. **Calvin at 2 HP.** The run was nearly over on Route 102.
 5. **Taillow was caught with the Great Ball** from the Woods researcher. He has Poké Balls ×4, Great Ball ×1 at the Rayquaza catch: 4 Poké Balls left.
 6. **Route correction for the Knuckle Badge.** After Flannery he Teleports to Mauville, bikes Route 110 to Slateport and takes **Mr. Briney's boat** to Dewford. He then sails back to **Route 104** and walks into Petalburg. The notes say Route 109 on foot and an Abra to Petalburg.

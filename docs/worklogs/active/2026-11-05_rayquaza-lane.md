@@ -47,3 +47,20 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude delta LGTM on 910e07117. Landing.
 - Landed fast-forward at 9802997e4. `just viewer-main` serves that commit; ee2a stayed live and opens its frames on desktop and phone; `/comparisons` loads with no page errors. `just fixed-run check rayquaza-lane-8h` passes. hyperqwen reports the definition's model, build and 262,144 context.
 - Not proven: no run has used the guide yet. The Teleport note has only unit tests.
+
+## Boot start, options and slim prompt (the operator 2026-11-05 3:46 PM)
+
+- Run 0952 skipped OPTIONS because step 1 said to choose NEW GAME and its start save already had Text FAST. The operator: start from a clean boot, set Text FAST, Battle Scene OFF and Battle Style SET, skip Button Mode, turn on the slim prompt switches for this lane only, restart after landing. RED tests added.
+- Boot start: preset and definition now start from `boot`. Guide opens with `RUN_START`, `OPTIONS_OPENED`, `OPTIONS_SET`; the last fires when the options menu closes with Text FAST, Scene OFF and Style SET. `OPTIONS_NOTE` covers an early new game. `rq-slim-prompt-v1` plus JIT v2 and guide reuse on in the lane recipe only. The guide line is now last of all notes. `findings.md` corrected from his 0:00:48 frame: Style SET, Button Mode L=A.
+- The rehearsal refused JIT v2 beside `context-exact-count-v1`, which can drop a turn that holds JIT guidance. Exact count is off in this lane's recipe and preset; `context-token-budget-v1` and `model-error-recovery-v1` stay on.
+- Hard cap: with exact count off, `context-token-budget-v1` stays on at 251,904 tokens and a test asserts it; `model-error-recovery-v1` lowers a sticky ceiling after any refusal.
+- Rehearsal rehearsal-boot-2 from clean boot: `OPTIONS_OPENED` turn 6, `OPTIONS_SET` turn 10, NEW GAME turn 13. First request 5,543 tokens against 9,407; system prompt 4,015 characters against 21,874.
+- GPT on 5b28ed1a2, CHANGES: switch must stay optional in presets, slim needs the guide on, a batched LEFT+B could fake `OPTIONS_SET`, decision probes rebuilt the unslimmed prompt. RED tests added.
+- GPT fixes applied: switch optional in presets; slim only with the guide on; a LEFT or RIGHT in the leaving press clears the options check; decision probes use the slimmed core.
+- GPT recheck: three fixes confirmed. Rebutted the fourth: the slim core is identical in every scene (same hash), so probes using the `unknown` core match; probes not projecting JIT guidance predates this change and is outside the launch.
+- Claude review of ac2f7d62e, CHANGES: the pre-fight heal rule must stay in overworld guidance; the Birch screens need the new game note when options were missed; `RQ_` hints must not replace the guide line in recorded replay. RED tests added.
+- Fixes applied: only `Overworld:` is dropped from battle and menu guidance; Birch and naming screens reach `OPTIONS_SET` for display only; `RQ_` hints are skipped in recorded notes.
+- Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
+- Boot build final gate, correction: the first run failed one stale test in `play-wiring.test.ts`, which still expected the old first guide line; fixed and rerun. Reviews: Claude LGTM on the last delta; GPT LGTM on the last delta, its item 4 (probe core) rebutted with the identical core hash in every scene. Landing.
+- Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.
+- Boot, options and slim prompt build landed on main; viewer and projector refreshed; live runs kept.

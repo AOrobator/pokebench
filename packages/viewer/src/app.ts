@@ -23,6 +23,7 @@ import { paintGameText, parseGameFont, type GameFont, type GlyphPixels, type Gly
 import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi } from "./party-view.js";
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { cardRow } from "./card-row.js";
+import { currentSplits } from "./current-public.js";
 import { WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { isProbeRun, plateFacts } from "./workbench-view.js";
 
@@ -679,7 +680,7 @@ export class App {
       // Current projector ships splits:[]; story progress and the watch-side strip come from the generation-matched cards projection.
       // Card presence is only required when falling back to a saved trainer plate during incomplete reconstruction.
       const matched=this.recordedWorkbenchRun(s.id,s.generation),saved=matched?.card!=null?matched:null,fallback=!s.complete&&s.run.card==null?saved:null;
-      recorded.set(s.id,{...s.run,experiment:s.run.experiment??matched?.experiment??null,splits:matched?.splits??[],...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
+      recorded.set(s.id,{...s.run,experiment:s.run.experiment??matched?.experiment??null,splits:matched?.splits??currentSplits(s),...(fallback===null?{}:{card:fallback.card}),elapsedMs:s.run.elapsedMs===null?fallback?.elapsedMs??null:s.run.elapsedMs+(s.run.status==="live"?Math.max(0,now-s.clockAt):0)});
     }
     this.workbench={version:1,at:now,milestones:[],problems:state.problem===null?[]:[state.problem],runs:[...recorded.values()]};
     const merged=new Map(this.currentCatalog.map(run=>[run.id,run]));for(const s of state.runs)merged.set(s.id,{id:s.id,model:s.run.model,started:s.header.t,ended:s.run.status==="ended",problem:s.problem,live:s.run.status==="live"||s.run.status==="paused"});this.listRuns(runChoices([...merged.values()]));this.cardsProblem=state.stale;

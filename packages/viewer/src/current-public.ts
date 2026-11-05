@@ -1,6 +1,6 @@
 // Browser-safe display protocol. It is deliberately not a resumable checkpoint.
 import {emptyCurrent,parseCurrent,currentView,MAX_OPEN_TOOLS,type CurrentState} from "./current-state.js";
-import {parseWorkbench,type WorkbenchRun} from "./workbench-data.js";
+import {parseWorkbench,type WorkbenchRun,type WorkbenchSplit} from "./workbench-data.js";
 import {isRunEvent} from "./model.js";
 import type {RunEvent} from "@pokebench/agent/events";
 export interface CurrentSummary {
@@ -51,6 +51,8 @@ export const parseCurrentSummary=(value:unknown):CurrentSummary=>summary(value,f
 export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
  summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince","partyIsState"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k))||(display["partyIsState"]!==undefined&&(display["partyIsState"]!==true||display["partyState"]!==null||display["state"]===null)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
+// Cards show this until the full recording, with its qualified splits, has been read.
+export function currentSplits(s:CurrentSummary):WorkbenchSplit[]{const start=Date.parse(s.header.t);return s.progress.recorded.map(m=>({name:m.name,elapsedMs:Math.max(0,m.at-start),segmentMs:0,seq:m.seq,turn:m.turn,inputTokens:0,outputTokens:0}));}
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 
 export function parseCurrentQuery(value:unknown):CurrentQuery{

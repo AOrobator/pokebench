@@ -1,3 +1,5 @@
+import { thinkingLabel } from "./run-config.js";
+import { servedEffort } from "./served-effort.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
 import { Window } from "happy-dom";
@@ -659,7 +661,7 @@ it("shows the shortest model name in the header with the thinking level, and the
  const log=new Log();log.add(0,{...START,model:{...START.model,id:"deepseek/deepseek-v4.1-flash"}});
  const root=new Window().document.createElement("div");root.innerHTML=runIdentity(view(log));
  const pill=[...root.querySelectorAll(".id-cell")].find(c=>c.querySelector("small")?.textContent==="MODEL · THINKING");
- expect(pill?.querySelector("span")?.textContent).toBe("DeepSeek-v4.1 · medium");
+ expect(pill?.querySelector("span")?.textContent).toBe("DeepSeek-v4.1 · thinking on");
  expect(pill?.getAttribute("title")).toBe("deepseek/deepseek-v4.1-flash");
 });
 
@@ -668,13 +670,13 @@ it("shows the experiment, arm and trial strip, the preset, or just the model and
  const cells=(html:string)=>{const w=new Window();const root=w.document.createElement("div");root.innerHTML=html;const out=[...root.querySelectorAll(".id-cell")].map(c=>`${c.querySelector("small")?.textContent??""}=${c.querySelector("span")?.textContent??""}`);void w.happyDOM.abort();return{out,root};};
  const withExperiment=new Log();withExperiment.add(0,{...START,evaluation:{preset_id:"factorial-both",target:null,failure_limit:3,flags,experiment:{id:"factorial-2x2-<think>",arm:"both",trial:5,of:8}}});
  const exp=cells(runIdentity(view(withExperiment)));
- expect(exp.out).toEqual(["PRESET=factorial-both","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(exp.out).toEqual(["PRESET=factorial-both","MODEL · THINKING=think-swarm · thinking on",`RUN=…${RUN.slice(-4)}`]);
  expect(exp.root.querySelectorAll(".trial-dots i.done")).toHaveLength(0);
  expect(exp.root.querySelectorAll(".trial-dots i.now")).toHaveLength(0);
  expect(exp.root.querySelector("think")).toBeNull();
  const presetOnly=new Log();presetOnly.add(0,{...START,evaluation:{preset_id:"checkpoint-clock-set",target:"CLOCK_SET",failure_limit:3,flags}});
- expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
- expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · medium",`RUN=…${RUN.slice(-4)}`]);
+ expect(cells(runIdentity(view(presetOnly))).out).toEqual(["PRESET=checkpoint-clock-set","MODEL · THINKING=think-swarm · thinking on",`RUN=…${RUN.slice(-4)}`]);
+ expect(cells(runIdentity(view(fullRun()))).out).toEqual(["MODEL · THINKING=think-swarm · thinking on",`RUN=…${RUN.slice(-4)}`]);
  expect(runIdentity(new RunView())).toBe("");
 });
 
@@ -1238,4 +1240,20 @@ it("links the native instruction tasks card without inferring historical activat
  const enabled=must(doc.querySelector(`[data-feature="${id}"]`));
  expect(enabled.querySelector(".config-badge")?.textContent).toBe("ON");
  expect(enabled.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
+it("shows the effort a run sent, and never a level no request carried",()=>{
+ expect(thinkingLabel({thinking_level:"medium"})).toBe("thinking on");
+ expect(thinkingLabel({thinking_level:"medium",reasoning_effort_sent:null})).toBe("thinking on");
+ expect(thinkingLabel({thinking_level:"medium",reasoning_effort_sent:"medium"})).toBe("medium");
+ expect(thinkingLabel({thinking_level:"off",reasoning_effort_sent:null})).toBe("off");
+});
+it("names what each lane ran at when no effort was sent, and how that is known",()=>{
+ expect(servedEffort("qwen3.8-27b")).toBe("server ran xhigh (measured)");
+ expect(servedEffort("qwen3.8-27b-edit-e1-a")).toBe("server ran xhigh (measured)");
+ expect(servedEffort("Qwen3.8-Flash-Next-UD-IQ4_XS")).toBe("server ran xhigh (from its template)");
+ expect(servedEffort("/cache/GLM-5.3-Flash-UD-IQ4_XS-00001-of-00005.gguf")).toBe("server ran Max (from its template)");
+ expect(servedEffort("think-swarm")).toBe("this lane's template has no effort setting");
+ expect(servedEffort("/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf")).toBe("this lane's template has no effort setting");
+ expect(servedEffort("deepseek/deepseek-v4.1-flash")).toBe("server default, not known");
 });

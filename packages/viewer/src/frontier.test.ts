@@ -5,6 +5,7 @@ import { run } from "../test-support/frontier-run.js";
 import { frontierLegend } from "./frontier-legend.js";
 import { HUMAN_REFERENCE, FRONTIER_MILESTONES, frontierReferences, frontierLabel, frontierPlot, frontierSplits, frontierVersions, invalidTrial, milestoneStatus } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
+import { customLane } from "./custom-lane.js";
 const referenceNames = ["PLAYER_NAME_CONFIRMED", "FIRST_TRUCK_EXIT", "CLOCK_SET", "PLAYER_HOUSE_EXITED_AFTER_CLOCK", "RIVAL_HOUSE_ENTERED", "RIVAL_BEDROOM_REACHED", "RIVAL_MET", "STARTER_CHOSEN", "RUSTBORO_CITY_GYM", "STONE_BADGE"];
 function measured(id: string, times: readonly (number | null)[], controller: "agent" | "human" = "agent"): WorkbenchRun {
   return Object.assign(run({ id, cohort: "selected", splits: times.flatMap((elapsedMs, i) => elapsedMs === null ? [] : [{ name: referenceNames[i] ?? "", elapsedMs, segmentMs: 0, seq: i + 1, turn: 1, inputTokens: 0, outputTokens: 0 }]) }), {
@@ -515,4 +516,37 @@ it("thins dense phone labels while retaining every recorded point and checkpoint
  const labels=[...document.querySelectorAll('text[transform]')].map(n=>Number(n.getAttribute('transform')?.match(/translate\(([0-9.]+)/)?.[1]));
  expect(labels.length).toBeLessThan(16);for(let i=1;i<labels.length;i++)expect((labels[i]??0)-(labels[i-1]??0)).toBeGreaterThanOrEqual(25);
  for(const m of FRONTIER_MILESTONES)expect(document.querySelector(`[data-split="${m.id}"]`)).not.toBeNull();
+});
+
+describe("custom lanes stay off the benchmark frontier", () => {
+  const config = (features: { id: string; label: string; on: boolean | null }[] = []): WorkbenchRun["config"] => ({ source: "a", dirty: false, vendor: "b", pi: "c", preset: null, target: null, thinking: "medium", maxTokens: 1, maxTurns: null, maxWallMs: null, failureLimit: null, context: 1, vision: true, start: "boot", tools: [], features });
+  const fastest = (id: string, extra: Partial<WorkbenchRun>): WorkbenchRun => ({ ...measured(id, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), config: config(), ...extra });
+  const benchmark = (): WorkbenchRun => ({ ...best(), config: config() });
+  const lanes: readonly [string, Partial<WorkbenchRun>, string][] = [
+    ["edited", { model: "qwen3.8-27b-edit-e1-a" }, "weight-edited model"],
+    ["labelled", { experiment: { id: "custom-hints", arm: "a", trial: 1, of: 1 } }, "custom experiment"],
+    ["knowing", { config: config([{ id: "story-route-plan-v1", label: "STORY ROUTE PLAN", on: true }]) }, "story-route-plan-v1 is on"],
+  ];
+  it.each(lanes)("%s run never leads, races or draws, and says why", (id, extra, why) => {
+    const custom = fastest(id, extra), plain = benchmark();
+    expect(customLane(custom)).toContain(why);
+    expect(frontierReferences([plain, custom]).best?.id).toBe(plain.id);
+    expect(frontierSplits([plain, custom], plain.id)).toBeNull();
+    expect(frontierVersions([plain, custom]).byRun.has(id)).toBe(false);
+    document.body.innerHTML = frontierPlot(frontierReferences([plain, custom]), [custom], 900);
+    expect(document.querySelector(`.wb-mark[data-run="${id}"]`)).toBeNull();
+    const row = document.querySelector("[data-frontier-coverage]")?.textContent ?? "";
+    expect(row).toContain(why);
+    expect(document.querySelector(`[data-frontier-coverage] a[href="/#replay=${id}"]`)).not.toBeNull();
+  });
+  it("a flagged or checkpoint custom run is not drawn either", () => {
+    const flagged = fastest("flagged", { model: "x-edit-1", flag: "Invalid fixed-run trial: crashed" });
+    expect(invalidTrial(flagged)).toBeNull();
+    const base = config(); if (base === null) throw new Error("config");
+    const resumed = fastest("resumed", { model: "x-edit-1", config: { ...base, start: "save", resume: "RUSTBORO_CITY" } });
+    expect(frontierVersions([resumed]).byRun.has("resumed")).toBe(false);
+  });
+  it("leaves benchmark runs alone: a switch that is off, a recorded-unknown switch, or an id merely containing edit", () => {
+    for (const run of [benchmark(), fastest("off", { config: config([{ id: "story-route-plan-v1", label: "", on: false }]) }), fastest("unknown", { config: config([{ id: "next-milestone-hint-v1", label: "", on: null }]) }), fastest("credit", { model: "credited-model" }), fastest("none", { model: null, config: null })]) expect(customLane(run)).toBeNull();
+  });
 });

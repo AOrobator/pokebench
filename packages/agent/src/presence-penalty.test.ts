@@ -33,6 +33,6 @@ it("sends and records the Qwen3.6 card's thinking-mode value only when on", () =
   expect(PRESENCE_PENALTY).toBe(1.5);
   expect(samplingExtras(off(ID))).toEqual({});
   expect(samplingExtras(ALL_ON)).toEqual({ presence_penalty: 1.5 });
-  expect(playSampling(off(ID), "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096 });
-  expect(playSampling(ALL_ON, "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096, presence_penalty: 1.5 });
+  expect(playSampling(off(ID), "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096, reasoning_effort_sent: null });
+  expect(playSampling(ALL_ON, "medium", 4096)).toEqual({ thinking_level: "medium", max_tokens: 4096, presence_penalty: 1.5, reasoning_effort_sent: null });
 });

@@ -13,6 +13,7 @@ A guide is Markdown with one table per stretch, in play order. Each row is one n
 - **Note:** 300 characters at most, plain text, one or two sentences, second person, present tense. Say what to do and how. Name the tool only when it matters. Nothing that changes per run (levels, money, exact party), except where the note is about the planned team.
 - **Source:** every row cites at least one: `KI <n>` (findings route step) or `KI <section>`, `WT <part>`, `GR` (gold run), `PATH <segment>`, `ROM`, `TR <run>:<turn>` (recorded trace), `the operator`.
 - **AT:** a row named `AT:<Map>:<x>:<y>` fires when the player stands on that tile.
+- **GOT:** a row named `GOT:<ITEM_NAME>` fires when that item count rises in the Bag. These rows and `MAP:`/`AT:` rows fire only from the step just before them.
 - **TO:** add `TO:<TownMap>` to Source when the note starts with a trip to that town, with nothing to do on the way. The Teleport note fires only on these rows, until the player reaches the town.
 - **CHECK:** append `CHECK` to the note when it is not yet confirmed against ROM data or a recorded game state. A line is cleared only by the fact check.
 

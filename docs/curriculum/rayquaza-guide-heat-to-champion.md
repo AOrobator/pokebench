@@ -9,7 +9,8 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `HEAT_BADGE` | `LavaridgeTown_Gym_1F` | Finish Flannery’s dialogue to receive TM50 Overheat. | KI 26–27, ROM |
 | `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. | KI 27–28, ROM |
 | `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | At the Herb Shop, buy four Heal Powders, four Energy Roots and six Energy Powders as funds allow. Go east via Route 112 to Route 111 and stand at (35,65). | KI 28–30, KI shops, WT 02, ROM |
-| `AT:Route111:35:65` | `Route111` | Face south and press A for a hidden Rare Candy. Then return to Mauville, bike to Slateport and take Briney’s boat from the Route 109 dock to Dewford Gym. | KI 28–30, ROM, TR frame 0:58:38, audit U1, TO:MauvilleCity |
+| `AT:Route111:35:65` | `Route111` | Face south and press A for a hidden Rare Candy. | KI 28–30, ROM, OCR 0:58:38, audit U1 |
+| `GOT:RARE_CANDY` | `Route111` | Return to Mauville, bike to Slateport and take Briney’s boat from the Route 109 dock to Dewford Gym. | KI 28–30, ROM, audit U1, U21, TO:MauvilleCity |
 | `DEWFORD_GYM_ENTERED` | `DewfordTown_Gym` | Reach Brawly in the dark Gym. Use Marshtomp’s Strength against Machop, Meditite and Makuhita. Heal if a foe survives and leaves you in danger. | KI 30, KI battle plans, WT 02 |
 | `KNUCKLE_BADGE` | `DewfordTown` | Finish Brawly’s dialogue for Bulk Up. Take Briney’s boat back to Route 104, then go east to Petalburg Gym. Use an available Rare Candy before Norman if it helps the planned Marshtomp. | KI 30–32 |
 

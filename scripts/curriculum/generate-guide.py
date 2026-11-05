@@ -45,6 +45,8 @@ def rows(text: str, ids: dict[str, list[int]], types: dict[str, str]) -> list[di
         if match["after"].startswith("AT:"):
             _, name, x, y = match["after"].split(":")
             step["at"] = {"id": ids[name], "x": int(x), "y": int(y)}
+        if match["after"].startswith("GOT:"):
+            step["got"] = match["after"].removeprefix("GOT:").replace("_", " ")
         tagged = TO.search(match["source"])
         if tagged:
             if types.get(tagged[1]) not in TOWN_TYPES:

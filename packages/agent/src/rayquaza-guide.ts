@@ -9,7 +9,7 @@ import {RAYQUAZA_GUIDE_STEPS,RAYQUAZA_OUTDOOR_MAPS} from "./rayquaza-guide-data.
 import type {RunRecorder} from "./recorder.js";
 
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
-export const BATTLE_EXPLAINER="BATTLE: Run from needless wild battles. After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can finish first. Before a leader or rival, heal with items. Decline optional battles if unready: whiting out halves your money.";
+export const BATTLE_EXPLAINER="BATTLE: Run from needless wild battles. After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can finish first. Whiting out halves your money.";
 
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
 export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";
@@ -20,7 +20,7 @@ export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, pr
 export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
 
 type MapId=readonly [number,number];
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId}}
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -53,6 +53,7 @@ export class GuidePosition {
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
  private arrivedOn=-1;
+ private gotCount:{readonly step:number;readonly count:number}|null=null;
  private bootStart=false;
  private optionsDone=false;
  private optionsReady=false;
@@ -69,7 +70,8 @@ export class GuidePosition {
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
   }
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id,"position" in event?event.position:null):-1;
-  if(reached>=0)this.advance(event,reached);
+  // A place or tile counts only from the step before it, so an early visit moves nothing.
+  if(reached>=0&&(event.type==="milestone"||reached===this.furthest+1))this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
   // A press that changes a value and leaves in one batch ends with values no state showed.
   if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
@@ -79,6 +81,7 @@ export class GuidePosition {
  // Leaving the menu saves it in every path (option_menu.c), so the last values seen are the saved ones.
  private followOptions(event:GameStateSnapshot&RunEvent):void {
   this.latest=event;
+  this.followItem(event);
   if(!event.started)this.bootStart=true;
   // Past the menus without the options: the new game note still has to reach the Birch screens.
   if(!event.started&&(event.screen==="birch_speech"||event.screen==="naming"))this.reach("OPTIONS_SET",event);
@@ -89,6 +92,14 @@ export class GuidePosition {
    if(details?.["text_speed"]!==undefined)this.optionsReady=details["text_speed"]===2&&details["battle_scene_off"]===1&&details["battle_style"]===1;
   }else if(this.inOptions&&this.optionsReady){this.optionsDone=true;this.reach("OPTIONS_SET",event);}
   this.inOptions=opened;
+ }
+ private followItem(event:GameStateSnapshot&RunEvent):void {
+  const step=this.furthest+1,item=this.steps[step]?.got,bag=event.resources?.bag;
+  if(item===undefined||bag==null)return;
+  const count=bag.filter(entry=>entry.name===item).reduce((sum,entry)=>sum+entry.quantity,0);
+  const gained=this.gotCount?.step===step&&count>this.gotCount.count;
+  this.gotCount={step,count};
+  if(gained)this.advance(event,step);
  }
  private reach(name:string,event:RunEvent):void {
   const index=this.steps.findIndex(step=>step.after===name);

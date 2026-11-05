@@ -101,3 +101,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - [x] Task D source audit: every changed guide row remains at most 300 characters and cites KI time/frame evidence, an audit id and ROM; the Weather Institute clarity edit now cites the observed grunt/Shelly interval.
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).
 - Task D recheck: last three rows fixed (Slaking, Tropius, Archie trigger tile). Guide fact-checked end to end.
+- GPT review: a buy step crossed by a jump was not logged. `noteMisses` now covers every step passed.

@@ -103,6 +103,13 @@ describe("missed items", () => {
     expect(guide.takeMisses()).toEqual([]);
     expect(guide.situationNotes()).toEqual([]);
   });
+  it("logs a buy step the guide jumps over", () => {
+    const guide = new GuidePosition([{ after: "RUN_START", map: null, note: "Go." }, { after: "MAP:X", map: null, note: "Buy.", needs: ["REPEL"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    guide.observe(field({ resources: { bag: [] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([{ after: "MAP:X", items: ["REPEL"] }]);
+  });
+
   it("logs nothing when everything was bought", () => {
     const guide = new GuidePosition(needy);
     guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }, { name: "REPEL", quantity: 2 }] } }));

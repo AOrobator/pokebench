@@ -112,9 +112,8 @@ export class GuidePosition {
   const atStart=event.type==="milestone"&&event.origin==="present_at_start";
   if(atStart)this.atStart.add(reached);
   else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
-  const before=this.furthest;
   for(let next=this.next(atStart);next!==null;next=this.next(atStart))this.furthest=next;
-  if(this.furthest!==before||before!==from)this.noteMisses(from);
+  for(let step=from;step<this.furthest;step++)this.noteMisses(step);
  }
  private noteMisses(from:number):void {
   const step=this.steps[from],bag=this.latest?.resources?.bag;

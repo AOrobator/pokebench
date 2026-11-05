@@ -43,3 +43,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Codex Task D at 1fa580e64: every tile confirmed. Fixed its three corrections: Route 120 approach by Surf; the summit Rare Candy moved to `MAGMA_EMBLEM_RECEIVED`, because the Emblem fires first, with `TO:FortreeCity` removed so Teleport cannot skip it; Abra and Teleport wording. Teleport now fires on two rows, to Rustboro and Mauville.
 - Claude review of 1fa580e64, CHANGES: on `HM_STRENGTH_RECEIVED` the Teleport note sent the model back to Mauville from Routes 111 and 112. RED test on the real row added.
 - Fix: the guide remembers reaching the step's town and stops the Teleport note for that step.
+- Final gate at 910e07117: `just test` 2,537 agent, 922 viewer, 2,930 + 38 Python, floors met; lint and vendor clean. GPT delta LGTM.
+- Claude delta LGTM on 910e07117. Landing.

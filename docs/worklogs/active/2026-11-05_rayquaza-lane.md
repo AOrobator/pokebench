@@ -21,3 +21,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Delete-the-wiring check: removing `rayquazaGuideContext` from `contextTools` turned the factory test red; restored.
 - Fact check of 6c7440200: 40 confirmed, 11 wrong, 1 unconfirmed; all 12 fixed, with new Route 109 and Route 113 steps; 54 steps.
 - `MAP:<name>` steps supported: the generator resolves the map id from pokeemerald, and the guide advances on first entry.
+- Merged `claude/rayquaza-frontier`. `rq-milestone-guide-v1` is a knowledge switch, so guide runs show as heavily assisted, never best unhelped.

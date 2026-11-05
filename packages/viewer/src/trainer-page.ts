@@ -36,7 +36,8 @@ export function parseTrainerPageData(value: unknown): TrainerPageData | null {
 const mapName = (location: string | null | undefined): string => location == null ? BLANK : location.replaceAll("_", " ").replace(/([A-Z])(\d)/, "$1 $2");
 
 export function trainerFacts(view: RunView, wallSeconds: number): TrainerFacts {
-  const state = view.state, party = view.partyMembers;
+  // A battle or map transition reads blank for a moment; the card keeps the last full sample through it.
+  const state = view.state?.name != null ? view.state : view.partyState ?? view.state, party = view.partyMembers;
   // The player's own Pokémon carry the player's ID; a traded one in the lead must not lend its trainer's.
   const owner = party.find(mon => mon.ot_id != null && mon.ot_name != null && mon.ot_name === state?.name) ?? (party.some(mon => mon.ot_name != null) ? undefined : party.find(mon => mon.ot_id != null));
   const earnedAt = new Map(view.milestones.flatMap(mark => {

@@ -17,3 +17,5 @@ Viewer-only, so no feature switch. The protected run cards are not touched: this
 Round 1 at 8829f0a27: Claude, GPT, fallback BLOCKING; Grok out of Cursor usage until 11/17. Gates at 8829f0a27: `pnpm -r lint`, ruff, `just test` (2453, 838, 2901, 38), trainer-card-check passed.
 
 - Fixed: a badge held at a checkpoint start no longer shows an earned time; eggs draw as eggs; ID and gender come from the player's own Pokémon; a redraw neither reopens a dismissed gym page nor closes a focused one; the pointer leaving keeps what the keyboard is on.
+
+Round 2 at a66eb5e53: fallback BLOCKING. Fixed: blank state reads in battles and transitions (579 in 5f0f) no longer blank the card; it keeps the last full sample.

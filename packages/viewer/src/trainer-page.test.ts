@@ -40,6 +40,13 @@ describe("trainerFacts", () => {
     expect(facts(log)).toMatchObject({ gender: "female", id: "00222" });
   });
 
+  it("keeps the card through a blank read in a battle or transition", () => {
+    const log = bare();
+    log.add(1, state({ name: "MAY", money: 50, play_time_s: 3600, badges: ["STONE"], location: "ROUTE112", party: [{ species: "B", species_id: 2, level: 5, hp: 1, max_hp: 1, ot_id: 222, ot_name: "MAY", ot_gender: "female" }] }));
+    log.add(2, state({ screen: "battle", name: null, money: null, play_time_s: null, badges: [], location: null, party: [] }));
+    expect(facts(log)).toMatchObject({ gender: "female", name: "MAY", id: "00222", money: "¥50", time: "1:00", map: "ROUTE 112", badges: ["STONE"] });
+  });
+
   it("shows blanks, not guesses, before the game starts", () => {
     const log = bare();
     log.add(1, state({ started: false, name: null, money: null, play_time_s: null, location: null, party: [], badges: [] }));

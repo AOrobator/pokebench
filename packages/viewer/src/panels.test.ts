@@ -1223,6 +1223,15 @@ it("links the warps-by-landing-area card, default off",async()=>{
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links the shop shelf card, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="shop-shelf-hidden-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links the moving-NPC path step-in card without inferring historical activation",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="moving-npc-intercept-v1";

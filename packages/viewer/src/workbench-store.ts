@@ -37,7 +37,7 @@ function metadata(path: string): { value: unknown; digest: string } {
   const bytes = readFileSync(path, "utf8");
   return { value: JSON.parse(bytes) as unknown, digest: sha256(bytes) };
 }
-// The checkpoint a run resumed from, read from its run_start alone (null: power-on or an unreadable start).
+// Whether a run started from any save but the main menu; an unreadable start is treated as New Game.
 export function runFromSave(root: string, id: string): boolean {
   try { return fromSave(startOf(root, id)); } catch { return false; }
 }

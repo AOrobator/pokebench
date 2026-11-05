@@ -113,7 +113,7 @@ const NEW_GAME_SIDE = raceSide(null, false, null);
 
 export function raceHeadline(race: Race, label: string, now: number, loading = false, side: RaceSide = NEW_GAME_SIDE): string {
   const run = side.assisted === null ? label : `ASSISTED ${label}`, name = esc(side.name);
-  const none = side.save ? `${esc(run)}: no race. No earlier unassisted run from this save has recorded a milestone.` : `${esc(run)}: no frontier comparison for this run.`;
+  const none = side.save ? `${esc(run)}: no race. No earlier benchmark run from this save has a milestone to race.` : `${esc(run)}: no frontier comparison for this run.`;
   const lead = !race.compared ? loading ? "Loading the frontier run…" : none : race.gap === null ? `No shared milestones with the ${name} yet.` : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the ${name}!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the ${name}!`;
   const where = race.frontierEnd !== null && now > race.frontierEnd.at ? `${hms(now)} is past the ${name}'s last milestone, ${esc(race.frontierEnd.label)} at ${hms(race.frontierEnd.at)}.` : race.frontierAt === null ? "" : `At ${hms(now)} the ${name} had reached ${esc(race.frontierAt.label)}.`;
   const pace = race.pace === null ? "" : ` ${race.pace.gain >= 0 ? "Gained" : "Lost"} ${short(race.pace.gain)} over the last ${String(race.pace.count)} milestone${race.pace.count === 1 ? "" : "s"}.`;

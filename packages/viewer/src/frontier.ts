@@ -121,7 +121,7 @@ export function frontierPair(runs: readonly WorkbenchRun[]): FrontierPair {
   return { best: nativeSplits(best), runnerUp: nativeSplits(runnerUp) };
 }
 // The frontier a run's splits race: the frontier graph's agent frontier among the other runs (a frontier run races
-// the next one, not itself), with its native splits; a checkpoint resume's clock starts mid-game, so it has none.
+// the next one, not itself), with its native splits. A save run races saveFrontiers instead.
 export function pairFrontier(pair: FrontierPair, current: string, resumed: boolean): Baseline | null {
   if (resumed) return null;
   return pair.best?.run === current ? pair.runnerUp : pair.best;

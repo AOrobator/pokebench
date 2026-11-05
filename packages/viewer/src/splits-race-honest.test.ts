@@ -140,7 +140,7 @@ describe("what the race page says", () => {
   });
   it("says why a save run has no race", () => {
     const html = raceHeadline(raceOf([{ name: "FORTREE_CITY", at: 40 }], null, 50, null), "…ee2a", 50, false, raceSide(null, true, null));
-    expect(html).toContain("No earlier unassisted run from this save has recorded a milestone");
+    expect(html).toContain("No earlier benchmark run from this save has a milestone to race");
     expect(html).not.toContain("no frontier comparison");
   });
   it("says a run is heavily assisted before anything else, even without a race", () => {

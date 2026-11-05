@@ -34,6 +34,12 @@ describe("trainerFacts", () => {
     expect(f.party[0]?.hp).toBeCloseTo(89.9, 1);
   });
 
+  it("reads the player from their own Pokémon, not a traded lead", () => {
+    const log = bare();
+    log.add(1, state({ name: "MAY", party: [{ species: "A", species_id: 1, level: 5, hp: 1, max_hp: 1, ot_id: 111, ot_name: "BOB", ot_gender: "male" }, { species: "B", species_id: 2, level: 5, hp: 1, max_hp: 1, ot_id: 222, ot_name: "MAY", ot_gender: "female" }] }));
+    expect(facts(log)).toMatchObject({ gender: "female", id: "00222" });
+  });
+
   it("shows blanks, not guesses, before the game starts", () => {
     const log = bare();
     log.add(1, state({ started: false, name: null, money: null, play_time_s: null, location: null, party: [], badges: [] }));
@@ -46,6 +52,17 @@ describe("trainerFacts", () => {
     const v = view(log);
     v.milestones.push({ name: "STONE_BADGE", ms: (v.startMs ?? 0) + 65_000, seq: 2 });
     expect(trainerFacts(v, 100).earnedAt.get("STONE")).toBe("0:01:05");
+  });
+
+  it("gives no date for a badge the run started with, and draws eggs as eggs", () => {
+    const log = bare();
+    log.add(1, state({ badges: ["STONE"], party: [{ species: "WYNAUT", species_id: 360, level: 5, hp: 10, max_hp: 10, is_egg: true }] }));
+    const v = view(log);
+    v.milestones.push({ name: "STONE_BADGE", ms: v.startMs ?? 0, seq: 2, origin: "present_at_start" });
+    const f = trainerFacts(v, 100);
+    expect(f.earnedAt.has("STONE")).toBe(false);
+    expect(gymHtml(GYM, f)).toContain('data-gt="Earned"');
+    expect(f.party[0]?.icon).toBe(412);
   });
 });
 

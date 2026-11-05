@@ -255,6 +255,7 @@ export class App {
   private trainerFacts: TrainerFacts | null = null;
   private gymOpen: number | null = null;
   private gymPinned = false;
+  private refocusing = false;
   private historyRequest = 0;
   private headReady = false;
   private baseline: Baseline | null = null;
@@ -1058,8 +1059,11 @@ export class App {
     this.trainerFacts = facts;
     page.style.setProperty("--tp-stripes", `url(/sprites/page/stripes-${facts.gender}.png)`);
     const focused = this.doc.activeElement instanceof HTMLElement ? this.doc.activeElement.dataset.tpBadge : undefined;
+    // Replacing the card fires focusout, and restoring focus fires focusin; neither is the reader moving.
+    this.refocusing = true;
     this.setHtml("trainer-card", trainerCardHtml(facts, data.gyms));
     if (focused !== undefined) card.querySelector<HTMLElement>(`[data-tp-badge="${focused}"]`)?.focus({ preventScroll: true });
+    this.refocusing = false;
     this.setHtml("trainer-run", runHtml(facts));
     this.paintTrainer(card);
     this.paintTrainer(this.ui("trainer-run"));
@@ -1086,11 +1090,16 @@ export class App {
       const value = target instanceof Element ? target.closest<HTMLElement>("[data-tp-badge]")?.dataset.tpBadge : undefined;
       return value === undefined ? null : Number(value);
     };
-    const peek = (event: Event): void => { const index = badge(event.target); if (index !== null && !this.gymPinned) this.pickGym(index, false); };
-    const leave = (): void => { if (!this.gymPinned) this.pickGym(null, false); };
+    const peek = (event: Event): void => { const index = badge(event.target); if (index !== null && !this.gymPinned && !this.refocusing) this.pickGym(index, false); };
+    const leave = (): void => { if (!this.gymPinned && !this.refocusing) this.pickGym(null, false); };
+    // The pointer leaving does not close what the keyboard is still on.
+    const unhover = (): void => {
+      const held = this.gymOpen !== null && this.doc.activeElement?.matches(":focus-visible") === true ? badge(this.doc.activeElement) : null;
+      if (held === null) leave(); else if (!this.gymPinned) this.pickGym(held, false);
+    };
     card.addEventListener("mouseover", peek);
     card.addEventListener("focusin", peek);
-    card.addEventListener("mouseout", leave);
+    card.addEventListener("mouseout", unhover);
     card.addEventListener("focusout", leave);
     this.doc.addEventListener("click", (event) => {
       const index = badge(event.target);

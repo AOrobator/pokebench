@@ -17,6 +17,7 @@ export interface TrainerFacts {
 }
 
 const BLANK = "---";
+const EGG_ICON = 412;
 // What /sprites/page/ may serve from runs/sprites/trainer-page-v1.
 export const PAGE_SPRITE_PATH = /^(data\.json|card-(male|female)\.png|stripes-(male|female)\.png|text-window\.png|badges\.png|leader-[a-z-]+\.png)$/;
 const SPRITE = /^leader-[a-z-]+\.png$/;
@@ -35,14 +36,16 @@ export function parseTrainerPageData(value: unknown): TrainerPageData | null {
 const mapName = (location: string | null | undefined): string => location == null ? BLANK : location.replaceAll("_", " ").replace(/([A-Z])(\d)/, "$1 $2");
 
 export function trainerFacts(view: RunView, wallSeconds: number): TrainerFacts {
-  const state = view.state, party = view.partyMembers, owner = party.find(mon => mon.ot_id != null);
+  const state = view.state, party = view.partyMembers;
+  // The player's own Pokémon carry the player's ID; a traded one in the lead must not lend its trainer's.
+  const owner = party.find(mon => mon.ot_id != null && mon.ot_name != null && mon.ot_name === state?.name) ?? (party.some(mon => mon.ot_name != null) ? undefined : party.find(mon => mon.ot_id != null));
   const earnedAt = new Map(view.milestones.flatMap(mark => {
     const badge = /^([A-Z]+)_BADGE$/.exec(mark.name)?.[1];
-    return badge === undefined || view.startMs === null ? [] : [[badge, hms((mark.ms - view.startMs - view.control.pausedBefore(mark.ms)) / 1000)] as const];
+    return badge === undefined || view.startMs === null || mark.origin === "present_at_start" ? [] : [[badge, hms((mark.ms - view.startMs - view.control.pausedBefore(mark.ms)) / 1000)] as const];
   }));
   const play = state?.play_time_s ?? null, id = view.start?.model.id ?? "";
   return {
-    gender: party.find(mon => mon.ot_gender != null)?.ot_gender === "female" ? "female" : "male",
+    gender: owner?.ot_gender === "female" ? "female" : "male",
     name: state?.name ?? BLANK,
     id: owner?.ot_id == null ? "-----" : String(owner.ot_id % 65_536).padStart(5, "0"),
     money: state?.money == null ? BLANK : `¥${String(state.money)}`,
@@ -50,7 +53,7 @@ export function trainerFacts(view: RunView, wallSeconds: number): TrainerFacts {
     badges: state?.badges ?? [], earnedAt,
     model: displayModelName(id), modelId: id, thinking: view.start?.sampling.thinking_level ?? BLANK,
     turn: view.turn.toLocaleString("en-US"), runTime: hms(wallSeconds), map: mapName(state?.location),
-    party: party.map(mon => ({ icon: mon.species_id ?? null, level: mon.level ?? 0, hp: mon.hp != null && mon.max_hp != null && mon.max_hp > 0 ? (mon.hp / mon.max_hp) * 100 : 0 })),
+    party: party.map(mon => ({ icon: mon.is_egg === true ? EGG_ICON : mon.species_id ?? null, level: mon.level ?? 0, hp: mon.hp != null && mon.max_hp != null && mon.max_hp > 0 ? (mon.hp / mon.max_hp) * 100 : 0 })),
     legacy: view.legacyState,
   };
 }

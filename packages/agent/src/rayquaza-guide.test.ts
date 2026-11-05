@@ -98,6 +98,17 @@ describe("GuidePosition early milestones", () => {
   });
 });
 
+describe("GuidePosition tile steps", () => {
+  it("advances on standing on the step's tile", () => {
+    const guide = new GuidePosition([...steps, { after: "AT:Route111:35:65", map: "Route111", note: "Press A.", at: { id: [0, 26], x: 35, y: 65 } }]);
+    const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: [0, 26], position: { x, y } }) as unknown as RunEvent;
+    guide.observe(at(35, 64));
+    expect(guide.current().after).toBe("RUN_START");
+    guide.observe(at(35, 65));
+    expect(guide.current().after).toBe("AT:Route111:35:65");
+  });
+});
+
 describe("GuidePosition map steps", () => {
   it("advances on first entry to a step's map", () => {
     const guide = new GuidePosition([...steps, { after: "MAP:AquaHideout_B1F", map: "AquaHideout_B1F", note: "Go on.", enter: [26, 1] }]);
@@ -140,7 +151,7 @@ describe("the shipped guide", () => {
     const names = new Set(MILESTONES.map((m) => m.name));
     const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);
     expect(after[0]).toBe("RUN_START");
-    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !name.startsWith("OPTIONS_") && !names.has(name))).toEqual([]);
+    expect(after.slice(1).filter((name) => !name.startsWith("MAP:") && !name.startsWith("AT:") && !name.startsWith("OPTIONS_") && !names.has(name))).toEqual([]);
     expect(new Set(after).size).toBe(after.length);
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.note.length > 300)).toEqual([]);
   });

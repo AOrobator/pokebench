@@ -11,11 +11,21 @@ export function reachedSplits(view: RunView, recorded: BestSplits | undefined): 
   return view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, at: (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000, derived: m.derived === true }));
 }
 
-// A checkpoint start with no split yet has no known position: its start milestones are not in the recorded splits.
+// Where the run began among the frontier milestones; null for a save with no known position.
+function startIndex(view: RunView): number | null {
+  const state = view.start?.start_state;
+  if (state === undefined || state.kind !== "save_state") return -1;
+  const file = state.path.split(/[/\\]/).pop() ?? "";
+  if (file === "MAIN_MENU.state") return -1;
+  const at = FRONTIER_MILESTONES.findIndex((m) => file === `${m.id}.state`);
+  return at < 0 ? null : at;
+}
+
 export function nextSplit(view: RunView, names: ReadonlySet<string>): string | undefined {
-  if (names.size === 0 && view.start !== null && view.start.start_state.kind !== "boot") return undefined;
   const deepest = Math.max(-1, ...FRONTIER_MILESTONES.map((m, i) => (names.has(m.id) ? i : -1)));
-  return FRONTIER_MILESTONES[deepest + 1]?.id;
+  const start = startIndex(view);
+  if (deepest < 0 && start === null) return undefined;
+  return FRONTIER_MILESTONES[Math.max(deepest, start ?? -1) + 1]?.id;
 }
 
 // Replay stays on the folded events: recorded splits hold the whole run, and rewinding must hide later ones.

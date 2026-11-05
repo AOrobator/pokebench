@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { RunView } from "./model.js";
 import { nextSplit, reachedSplits, tableSplits } from "./run-splits.js";
-import { BASE_MS, START } from "../test-support/events.js";
+import { FRONTIER_MILESTONES } from "./frontier.js";
+import { BROWSER_MODULES } from "./server.js";
+import { BASE_MS, START, must } from "../test-support/events.js";
 
 const view = (): RunView => Object.assign(new RunView(), { start: START, startMs: BASE_MS });
 
@@ -24,10 +26,20 @@ describe("the one source of a run's reached splits", () => {
     expect(nextSplit(new RunView(), new Set())).toBe("NEW_GAME_CREATED");
   });
 
-  it("claims no next split for a checkpoint start until it reaches one", () => {
-    const resumed = Object.assign(view(), { start: { ...START, start_state: { kind: "save_state", path: "gym.state", sha1: "a".repeat(40) } } });
-    expect(nextSplit(resumed, new Set())).toBeUndefined();
-    expect(nextSplit(resumed, new Set(["ROXANNE_DEFEATED"]))).toBeDefined();
+  it("starts from where the save began, and claims nothing for an unknown save", () => {
+    const from = (path: string): RunView => Object.assign(view(), { start: { ...START, start_state: { kind: "save_state", path, sha1: "a".repeat(40) } } });
+    const first = must(FRONTIER_MILESTONES[0]).id, second = must(FRONTIER_MILESTONES[1]).id, third = must(FRONTIER_MILESTONES[2]).id;
+    expect(nextSplit(from("x/MAIN_MENU.state"), new Set())).toBe(first);
+    expect(nextSplit(from(`x/${first}.state`), new Set(["ROUTE_102_TRAINER_CALVIN_DEFEATED"]))).toBe(second);
+    expect(nextSplit(from(`x/${first}.state`), new Set([second]))).toBe(third);
+    expect(nextSplit(from("x/custom.state"), new Set())).toBeUndefined();
+    expect(nextSplit(from("x/custom.state"), new Set(["ROUTE_102_TRAINER_CALVIN_DEFEATED"]))).toBeUndefined();
+    expect(nextSplit(from("x/custom.state"), new Set([first]))).toBe(second);
+    expect(nextSplit(from("custom.state"), new Set())).toBeUndefined();
+  });
+
+  it("is served to the browser, which imports it from the panels", () => {
+    expect(BROWSER_MODULES).toContain("run-splits");
   });
 
   it("keeps replay on the folded events so rewinding still hides later splits", () => {

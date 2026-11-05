@@ -25,3 +25,5 @@ Single milestone. Viewer-only, so no feature switch. No layout, timeline or trai
 ## Multi-Model Review Log
 
 Round 1, packet 3095abed7..73b0a639c sha 08404330. Claude: LGTM. Fallback subagent: LGTM. GPT (gpt-5.6-sol): BLOCKING on one point: a checkpoint-start run with no split yet showed next new game created. Fixed in nextSplit, which now claims no next until such a run reaches one. Grok lane out of Cursor usage until 11/17.
+
+Round 2, delta ..7514818af sha 5e55501c. Claude: BLOCKING, GPT: BLOCKING. Both real: a non-frontier first split on a checkpoint start still said next new game created, and MAIN_MENU saves lost their next split. nextSplit now starts from the save's own position (MAIN_MENU as boot, a known checkpoint as itself, an unknown save claims nothing until a frontier split). GPT's folded-view note is rebutted: present milestones there give a true position, unchanged behavior. Also found while checking: run-splits was missing from BROWSER_MODULES and would have 404ed in the served viewer; fixed with a test. Round 3 runs past the two-round cap because every blocker was a real bug in this diff.

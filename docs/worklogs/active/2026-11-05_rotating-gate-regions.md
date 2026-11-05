@@ -1,7 +1,7 @@
 # Rotating-gate regions
 
 **Started:** 2026-11-05
-**Status:** reviewed, landing on main. No game run has used the switch yet.
+**Status:** landed on main 1a6210c16 (2026-11-05), on in both arms and the plain preset, viewer restarted. No game run has used the switch yet.
 **Branch:** `claude/rotating-gate-regions` (from main `bbb0a9c85`), worktree `/private/tmp/pb-gate-regions`.
 **Landing approval:** The operator, 11:12 AM New York in this thread: "continue, this needs to be landed on main".
 **Approval:** The operator, 3:19 AM New York, relayed by the coordinator: "sure and afterwards u can do a 1hr launch of deepseek with that feature on if the probes look like they work". The probes answered 57/64 with region letters against 8/63 with the current map (`runs/probes/gym-map-format-20261105`).
@@ -46,3 +46,7 @@ Round 2, fix delta d7858c0b1..eea22b563, diff SHA-256 6df9a7b7045179b5d27036b2fd
 - Claude CLI (`~/.claude-review`): LGTM; rendered 40 recorded gym turns on head and pre-fix, identical hashes, block on all 40.
 - GPT (Codex CLI gpt-5.6-sol): LGTM, both findings verified fixed.
 - Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.
+
+## Landing
+
+Fast-forward to main at 1a6210c16. Post-merge `just test` at that commit: agent 2475, viewer 892, env 2930, gateway 38, all floors met, no-I/O guards OK. `just viewer-main`: viewer at 1a6210c16, 0 live gameplay processes, explainer route 200.

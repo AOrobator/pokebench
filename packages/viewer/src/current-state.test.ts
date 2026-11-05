@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RunView } from "./model.js";
+import { thinkingDialog } from "./panels.js";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { behindLive, currentView, emptyCurrent, foldCurrent, jumpToTail, parseCurrent, MAX_OPEN_TOOLS, MAX_CURRENT_MILESTONES } from "./current-state.js";
 
@@ -66,7 +67,7 @@ describe("current thinking in the checkpoint", () => {
   it("restores in-flight thinking, then clears it on the next turn", () => {
     const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(2, { type: "assistant_delta", turn: 1, thinking: "hmm", text: "" });
     const open = currentView(parseCurrent(JSON.parse(JSON.stringify(apply(log)))));
-    expect(open.streaming.thinking).toBe("hmm"); expect(open.isThinking).toBe(true);
+    expect(open.streaming.thinking).toBe("hmm"); expect(open.isThinking).toBe(true); expect(thinkingDialog(open, open.turnStartMs ?? 0).body).toContain("hmm");
     log.add(3, assistant({ turn: 1, thinking: "hmm", text: "ok" })); log.add(1, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 9 } });
     expect(currentView(apply(log)).streaming.thinking).toBe("");
   });

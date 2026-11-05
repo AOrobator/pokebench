@@ -38,7 +38,7 @@ export function currentView(s: CurrentState): RunView {
   // A compressed completed pause is equivalent for current elapsed time only.
   if(s.control.pausedMs>0)v.control.pauses.push({startMs:0,endMs:s.control.pausedMs});
   if(s.control.pauseAt!==null)v.control.pauses.push({startMs:s.control.pauseAt,endMs:null});
-  v.lastThought=s.thought;v.streaming=s.streaming;if(s.requestAt!==null)v.thinkingSpans.push({startMs:s.requestAt,endMs:null});
+  v.lastThought=s.thought;v.streaming=s.streaming;if(s.requestAt!==null){v.turnStartMs=s.requestAt;v.thinkingSpans.push({startMs:s.requestAt,endMs:null});}
   return v;
 }
 export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNext = 1, toolLimit = MAX_OPEN_TOOLS, milestoneLimit = MAX_CURRENT_MILESTONES): CurrentState {

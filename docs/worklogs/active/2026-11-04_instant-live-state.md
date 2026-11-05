@@ -25,6 +25,8 @@ Viewer-only, no harness behavior, so no feature switch. No timeline marks added.
 
 Round 1 (GPT, 1bd040640, BLOCKING): old snapshot rows rejected by the new parser, fixed: the three thinking fields are optional when reading. Refresh marked done while a page was loading, fixed. Tail may miss the current `turn_start` during a long response: rebutted, recovery-only and clears at the next turn or backfill.
 
+Round 1 (Claude, 1bd040640, BLOCKING): in-flight thinking did not render (`turnStartMs`), fixed with a `thinkingDialog` test. Parser finding same as GPT. Interval refresh could drop the last update before a quiet period, fixed with a pending flag. Live probes lost their body, fixed: probes keep the history view.
+
 Rollout order: `just viewer-main` first, then `just current-main`.
 
 ## Principles self-review

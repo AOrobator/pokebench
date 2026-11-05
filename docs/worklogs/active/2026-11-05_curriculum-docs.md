@@ -29,3 +29,4 @@ Prose-only: `git diff --check`, link check, independent review. No application g
 - `git diff --check`: clean after `.gitattributes`. Link check: no broken relative links.
 - Review packet base 165f79568, head 321132bdd, sha256 prefix 64a728a93799ef84. GPT (Codex CLI, gpt-5.6-sol): VERDICT: LGTM. Claude (subagent, CLI login expired): VERDICT: LGTM. Grok skipped: Cursor out of usage, per the operator's standing rule.
 - Delta after review: one README sentence and a worklog note (4ddd65a37), the operator's frontier decision.
+- Landed fast-forward on main at fd4ab0cc4; documentation checks repeated on main, clean.

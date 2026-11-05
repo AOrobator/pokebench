@@ -393,3 +393,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Entrance, not water](deep-south-warp-label-v1.html): behavior 0x6E (MB_DEEP_SOUTH_WARP, the PETALBURG WOODS entrances) reads `Wp:entrance` instead of `deep_water_exit`; default OFF.
 
 - [Recovery note off the battle screen](recovery-note-field-only-v1.html): the open navigation-recovery note is not sent with battle requests and returns on the field; default OFF, needs navigation-recovery-v1.
+
+- [Shop shelves off the list](shop-shelf-hidden-v1.html): shop shelf tiles and signs with no script leave the interaction list and `interaction_targets`; shelves stay solid and every scripted target and hidden item stays listed.

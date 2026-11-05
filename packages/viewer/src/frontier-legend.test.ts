@@ -148,3 +148,15 @@ it("explains early-stop frontier eligibility consistently in marks and chart hel
   expect(document.querySelector(".wb-how-grid")?.textContent).toContain("An operator stop ends observation early; earned progress still counts toward the frontier.");
   expect(document.querySelector(".wb-how-grid")?.textContent).not.toContain("crash, model error or operator stop");
 });
+
+it("leads What the marks mean with the assisted key, and leaves it unclickable", () => {
+  const { runs, best } = fixture();
+  document.body.innerHTML = frontierLegend({ human: null, best }, runs, frontierVersions(runs), { ...closed, marksOpen: true, howOpen: true });
+  const first = document.querySelector<HTMLElement>(".wb-marks li");
+  expect(first?.textContent).toContain("Violet line, hollow diamonds");
+  expect(first?.textContent).toContain("It can take best overall, never best unhelped.");
+  expect(first?.dataset.ver).toBeUndefined();
+  expect(first?.querySelector("svg path")?.getAttribute("fill")).toBe("#fff");
+  expect(document.querySelector('[data-reference="best"]')?.textContent).toContain("Heavily assisted runs never take it.");
+  expect(document.querySelector(".wb-how")?.textContent).toContain("violet");
+});

@@ -43,9 +43,9 @@ describe("the race against the frontier", () => {
     expect(raceOf([], null, 1, stone).legs.find(l => l.current)?.badge).toBe("KNUCKLE");
   });
 
-  it("does not race a save with no known position", () => {
+  it("races whatever frontier it is handed, known position or not", () => {
     const race = raceOf([mark("CLOCK_SET", 10)], frontier(["CLOCK_SET", 100]), 20, null);
-    expect([race.compared, race.gap, race.rows[0]?.kind]).toEqual([false, null, "none"]);
+    expect([race.compared, race.gap, race.rows[0]?.kind]).toEqual([true, -90, "up"]);
   });
 
   it("has no current badge once the last one is won", () => {

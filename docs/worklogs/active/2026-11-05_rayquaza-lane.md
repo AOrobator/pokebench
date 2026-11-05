@@ -106,3 +106,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.
 - Boot, options and slim prompt build landed on main; viewer and projector refreshed; live runs kept.
 - Claude review: Guard Spec's ROM name ends in a period, and the viewer labels every milestone_hint as sent to the model. RED tests: name match and a separate guide_purchase_missed event.
+- Fixes: `guide_purchase_missed` event replaces the RQ_MISSED hint, shown in Activity History as not sent to the model; item names match without a trailing period.

@@ -118,7 +118,7 @@ export class GuidePosition {
  private noteMisses(from:number):void {
   const step=this.steps[from],bag=this.latest?.resources?.bag;
   if(step?.needs===undefined||bag==null)return;
-  const items=step.needs.filter(item=>!bag.some(entry=>entry.name===item&&entry.quantity>0));
+  const items=step.needs.filter(item=>!bag.some(entry=>entry.name?.replace(/\.$/,"")===item&&entry.quantity>0));
   if(items.length>0)this.misses.push({after:step.after,items});
  }
  // let it fail: a miss is logged for analysis and never told to the model.
@@ -150,7 +150,7 @@ export class GuidePosition {
 }
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
+type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">&Partial<Pick<RunRecorder,"recordPurchaseMissed">>;
 
 // rq-milestone-guide-v1: the current step stays the request's final message until the next step, so it
 // is present on map entry and during a stall without separate triggers.
@@ -162,7 +162,7 @@ export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;
   if(step.after!==recorded){recorder.recordMilestoneHint({text,milestone:step.after});recorded=step.after;}
-  for(const miss of guide.takeMisses())recorder.recordMilestoneHint({text:`Missed at ${miss.after}: ${miss.items.join(", ")}; money ${String(guide.latest?.money??"unknown")}`,milestone:"RQ_MISSED"});
+  for(const miss of guide.takeMisses())recorder.recordPurchaseMissed?.({step:miss.after,items:[...miss.items],money:guide.latest?.money??null});
   const situation=guide.situationNotes();
   for(const note of situation)if(!told.includes(note.text))recorder.recordMilestoneHint(note);
   told=situation.map(note=>note.text);

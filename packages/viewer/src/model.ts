@@ -88,6 +88,7 @@ const KNOWN: Record<RunEvent["type"], true> = {
   ledger_context:true,
   belief_ledger:true,
   milestone_hint:true,
+  guide_purchase_missed:true,
   decision_input:true,
   wait_input:true,
   human_input:true,

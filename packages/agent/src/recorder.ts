@@ -209,6 +209,7 @@ export class RunRecorder {
   recordNavigationContext(body:Omit<BodyOf<"navigation_context">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"navigation_context",turn:this.turn+1,...body});}
   recordLedgerContext(body:Omit<BodyOf<"ledger_context">,"type"|"turn">,timing:"next"|"current"="next"):void {if(this.restoring)return;this.append({type:"ledger_context",turn:this.turn+(timing==="current"?0:body.instruction_goals===undefined?1:0),...body});}
   recordMilestoneHint(body:Omit<BodyOf<"milestone_hint">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"milestone_hint",turn:this.turn+1,...body});}
+  recordPurchaseMissed(body:Omit<BodyOf<"guide_purchase_missed">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"guide_purchase_missed",turn:this.turn,...body});}
   recordBeliefLedger(body:Omit<BodyOf<"belief_ledger">,"type"|"turn">):void {if(this.restoring)return;this.append({type:"belief_ledger",turn:this.turn+1,...body});}
   recordWaitInput(id:string,duration_ms:number):void {this.append({type:"wait_input",turn:this.turn,tool_call_id:id,duration_ms});}
   recordControl(body: Omit<BodyOf<"operator_control">, "type" | "turn">): void { this.append({ type: "operator_control", turn: this.turn, ...body }); }

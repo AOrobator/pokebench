@@ -212,6 +212,23 @@ describe("splits", () => {
     expect(table).not.toContain("Best");
   });
 
+  it("fills a live run's table from recorded splits when its current view has no milestones", () => {
+    const live = Object.assign(new RunView(), { start: START, startMs: BASE_MS });
+    const recorded = { run: RUN, milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 3000 }, { name: "PLAYER_NAME_CONFIRMED", offsetMs: 5000, derived: true }] };
+    const best: Baseline = { run: "record", milestones: [{ name: "NEW_GAME_CREATED", offsetMs: 2000 }] };
+    const { summary, table } = splits(live, null, BASE_MS + 9000, best, false, recorded);
+    expect(summary).toContain("2 reached");
+    expect(summary).not.toContain("next game running");
+    expect(table).toContain('<tr class="done"><td class="n">new game created</td><td class="t">0:00:03</td>');
+    expect(table).toContain('0:00:02<br><span class="d-behind">+0:01</span>');
+    expect(table).toContain('player name confirmed*</td><td class="t" title="Recovered from recorded game state · first observation (upper bound)">0:00:05</td>');
+    expect(table).toContain('<tr class="todo"><td class="n">game running</td><td class="t">—</td>');
+  });
+
+  it("holds a loading state instead of painting nothing reached while recorded splits load", () => {
+    expect(splits(view(fullRun()), null, END, null, false, null)).toEqual({ summary: "loading recorded splits…", table: '<p class="small muted">loading recorded splits…</p>' });
+  });
+
   it("marks a reached milestone slower than the baseline as behind, and keeps extra ones", () => {
     const slow: Baseline = { run: "b", milestones: [{ name: "PLAYER_NAME_SET", offsetMs: 1000 }] };
     const { table } = splits(view(fullRun()), slow, END);

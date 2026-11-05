@@ -66,7 +66,8 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 
 - [x] Unit 1: correct Fly legs, post-Seafloor Pacifidlog order and Mach Bike directions (`U5`, `U6`, `U7`, `U32`, `U33`, `U35`).
   - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean.
-- [ ] Unit 2: add settled Repel, item and party-order instructions.
+- [x] Unit 2: add settled Repel, item and party-order instructions (`U8`, `U21`, `U24`, `U25`, `U27`, `U28`, `U31`, `U34`, `U43`–`U45`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Previous unit: 3d88baf32.
 - [ ] Unit 3: correct settled Gym and boss plans.
 - [ ] Unit 4: add settled hideout, cavern and Victory Road waypoints.
 - OPEN, unchanged by operator direction: heal lines (`C1`), nicknames (`U41`), League deposit (`U40`), Rustboro X items (`C5`), XP trainers (`U10`, `U11`) and `town-center-checkpoint-v1` plus dependent Center/Teleport wiring (`U1`–`U3`). No `TO:` tags added.

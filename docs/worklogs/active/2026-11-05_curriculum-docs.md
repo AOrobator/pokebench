@@ -15,6 +15,12 @@ Docs only: commit the game-knowledge curriculum, the just-in-time lesson and kee
 
 - COMMIT: `docs(curriculum): add the game-knowledge curriculum and the just-in-time lesson` (142646361)
 
+- COMMIT: `docs(curriculum): keep source CSV line endings out of whitespace checks` (8e508a6f0)
+
+## Corrections
+
+The lesson's grammar side finding was wrong and is rewritten: `tool-schema-dialect.ts` rewrites tuples for vLLM lanes; the rehearsal stub was not discovered as vLLM.
+
 ## Gates
 
 Prose-only: `git diff --check`, link check, independent review. No application gates.

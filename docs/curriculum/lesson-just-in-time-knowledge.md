@@ -37,4 +37,4 @@ The fact: *"Mr. Briney's boat cannot be boarded from the pier or by walking to i
 ## Side findings
 
 - Before b1c5cbf37 the harness sent no `reasoning_effort`; f604's first request was confirmed to run at `xhigh` while records say `medium`. Older runs likely the same but not confirmed.
-- The restored hyperqwen rejects the f604 harness's tools under strict grammar (`'triggers'`, from the `map_id` tuple). Check this before any Qwen run.
+- A test client that does not look like vLLM to discovery sends raw tuple tool schemas, which strict grammar refuses (`'triggers'`). Real vLLM lanes are rewritten since 2026-10-27, so this was a false alarm from our own rehearsal.

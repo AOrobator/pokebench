@@ -429,12 +429,14 @@ describe("invalid fixed-run trials", () => {
     expect(document.querySelector("[data-bar=marks]")?.textContent).toContain("still counts");
     expect(document.querySelector("[data-bar=marks]")?.textContent).not.toContain("never counts as the agent frontier");
   });
-  it("keeps other exclusions and a resumed invalid trial's dashes as before", () => {
+  it("keeps only operator exclusions off the chart and a resumed invalid trial's dashes as before", () => {
     const probe = { ...invalid("probe", "x"), excluded: "Excluded probe session" };
     const operator = { ...invalid("operator", "x"), excluded: "Operator exclusion: wrong ROM" };
     const problem = { ...invalid("problem", "x"), problem: "invalid" };
     document.body.innerHTML = frontierPlot(frontierReferences([human(), best()]), [probe, operator, problem], 900);
-    expect(document.querySelector('[data-series="probe"], [data-series="operator"], [data-series="problem"]')).toBeNull();
+    expect(document.querySelector('[data-series="operator"]')).toBeNull();
+    expect(document.querySelector('[data-series="probe"]')?.closest(".wb-series")?.classList.contains("wb-probe-run")).toBe(true);
+    expect(document.querySelector('polyline[data-series="problem"]')?.getAttribute("stroke-dasharray")).toBe("2 4");
     expect(document.querySelector("[data-invalid-notice]")).toBeNull();
     const resumed = invalid("resumed-invalid", "model/gateway error");
     if (resumed.config === null) throw new Error("config");
@@ -464,15 +466,18 @@ describe("recorded comparison coverage", () => {
     const probe = { ...plotted, id: "probe", excluded: "Excluded probe session" };
     const broken = { ...plotted, id: "broken", problem: "invalid event <schema>" };
     const unknown = { ...plotted, id: "unknown", config: null };
-    document.body.innerHTML = frontierPlot({ human: null, best: null }, [plotted, empty, probe, broken, unknown], 900, undefined, [plotted]);
+    const excluded = { ...plotted, id: "excluded", excluded: "Operator exclusion: wrong ROM" };
+    const brokenEmpty = { ...empty, id: "broken-empty", problem: "invalid event <schema>" };
+    document.body.innerHTML = frontierPlot({ human: null, best: null }, [plotted, empty, probe, broken, unknown, excluded, brokenEmpty], 900, undefined, [plotted]);
     const coverage = document.querySelector('[data-frontier-coverage]');
-    expect(coverage?.textContent).toContain("5 selected recordings · 1 plotted · 4 unavailable");
+    expect(coverage?.textContent).toContain("7 selected recordings · 4 plotted · 3 unavailable");
     expect(coverage?.textContent).toContain("No recorded story checkpoints");
-    expect(coverage?.textContent).toContain("Excluded probe session");
+    expect(coverage?.textContent).toContain("probe session");
+    expect(coverage?.textContent).toContain("Operator exclusion: wrong ROM");
     expect(coverage?.textContent).toContain("invalid event <schema>");
-    expect(coverage?.textContent).toContain("Unrecognized start provenance");
-    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(5);
-    expect(document.querySelectorAll('[data-run="probe"], [data-run="broken"], [data-run="unknown"]')).toHaveLength(0);
+    expect(coverage?.textContent).toContain("start unknown");
+    expect(coverage?.querySelectorAll('a[href^="/#replay="]')).toHaveLength(7);
+    expect(document.querySelectorAll('[data-run="excluded"], [data-run="broken-empty"], [data-run="empty"]')).toHaveLength(0);
   });
 });
 

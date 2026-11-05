@@ -1,10 +1,10 @@
 import { customLane } from "./custom-lane.js";
 import { esc } from "./format.js";
-import { FRONTIER_MILESTONES, furthestCheckpoint, preciseTime, type ReferencePair } from "./frontier.js";
+import { FRONTIER_MILESTONES, furthestCheckpoint, type ReferencePair } from "./frontier.js";
 import type { WorkbenchRun } from "./workbench-data.js";
 import { clockText } from "./workbench-view.js";
 // The two answers above the story frontier: best overall, which may be heavily assisted, and best unhelped.
-// Pure, and it also runs in the browser. Both tiles stay when no assisted run leads, so the layout never jumps.
+// Pure, and it also runs in the browser. There are two tiles only when an assisted run leads; otherwise those answers are one run.
 export interface HeadlineTile { readonly run: string; readonly assisted: string | null; readonly label: string; readonly level: number; readonly elapsedMs: number; readonly who: string; readonly note: string | null }
 export interface HeadlineModel { readonly overall: HeadlineTile | null; readonly unhelped: HeadlineTile | null; readonly gap: number | null; readonly fasterMs: number | null; readonly same: boolean }
 const note = (run: WorkbenchRun, assisted: string | null): string | null => {
@@ -32,12 +32,18 @@ function card(key: string, name: string, chip: string, shown: HeadlineTile): str
     + `<p class="wb-fh-story"><span class="wb-fh-word">STORY</span> <span class="wb-fh-bar" role="img" aria-label="${level} of ${of} checkpoints"><i style="width:${(100 * shown.level / total).toFixed(1)}%"></i></span> ${level}/${of}</p>`
     + `<p class="wb-fh-who">${esc(shown.who)}${shown.note === null ? "" : `<br>${esc(shown.note)}`}</p></article>`;
 }
+function timeGap(ms: number): string {
+  const seconds = Math.floor(ms / 1000), hours = Math.floor(seconds / 3600), minutes = Math.floor(seconds / 60) % 60;
+  return ms === 0 ? "same time" : `${seconds === 0 ? "under 1s" : hours > 0 ? `${String(hours)}h ${String(minutes)}m` : minutes > 0 ? `${String(minutes)}m` : `${String(seconds)}s`} faster`;
+}
 const plain = (text: string): string => `<span class="wb-fh-plain">${text}</span>`;
 export function frontierHeadline(refs: ReferencePair): string {
   const { overall, unhelped, gap, fasterMs, same } = headlineModel(refs);
   if (overall === null) return "";
   const left = card("overall", "BEST OVERALL", overall.assisted === null ? plain("UNHELPED") : `<span class="wb-fh-badge">${ICON}HEAVILY ASSISTED</span>`, overall);
-  const right = unhelped === null ? '<article class="wb-fh-tile" data-frontier-tile="unhelped"><p class="wb-fh-key">BEST UNHELPED</p><p class="wb-fh-who">No unhelped run has reached a checkpoint yet.</p></article>' : card("unhelped", "BEST UNHELPED", plain(same ? "SAME RUN" : "UNHELPED"), unhelped);
-  const between = gap === null ? "" : fasterMs !== null ? `<p class="wb-fh-gap"><b>${fasterMs < 1000 ? preciseTime(fasterMs) : clockText(fasterMs)}</b><span>faster</span></p>` : `<p class="wb-fh-gap"><b>+${String(gap)}</b><span>checkpoint${gap === 1 ? "" : "s"}</span></p>`;
-  return `<div class="wb-fh-heads${between === "" ? " wb-fh-same" : ""}">${left}${between}${right}</div><p class="wb-fh-rule">Best unhelped uses the Agent frontier rule. Heavily assisted runs are never pooled with experiment cohorts.</p>`;
+  const rule = '<p class="wb-fh-rule">Best unhelped uses the Agent frontier rule. Heavily assisted runs are never pooled with experiment cohorts.</p>';
+  if (same) return `<div class="wb-fh-heads wb-fh-one">${left}</div>${rule}`;
+  const right = unhelped === null ? '<article class="wb-fh-tile" data-frontier-tile="unhelped"><p class="wb-fh-key">BEST UNHELPED</p><p class="wb-fh-who">No unhelped run has reached a checkpoint yet.</p></article>' : card("unhelped", "BEST UNHELPED", plain("UNHELPED"), unhelped);
+  const between = gap === null ? "" : fasterMs !== null ? `<p class="wb-fh-gap wb-fh-tie"><span>Same checkpoint ·</span> <b>${timeGap(fasterMs)}</b></p>` : `<p class="wb-fh-gap"><b>+${String(gap)}</b><span>checkpoint${gap === 1 ? "" : "s"}</span></p>`;
+  return `<div class="wb-fh-heads${between === "" ? " wb-fh-nogap" : ""}">${left}${between}${right}</div>${rule}`;
 }

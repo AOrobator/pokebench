@@ -45,7 +45,7 @@ describe("frontier headline tiles", () => {
     expect(tile("unhelped")).toBeNull();
     expect(document.querySelector(".wb-fh-gap")).toBeNull();
     expect(document.querySelector(".wb-fh-heads")?.className).toContain("wb-fh-one");
-    expect(document.body.textContent?.toUpperCase()).not.toContain("SAME RUN");
+    expect(document.body.textContent.toUpperCase()).not.toContain("SAME RUN");
   });
   it("says one checkpoint in the singular", () => {
     expect(headlineModel(frontierReferences([reached("a", 5, 90), reached("b", 6, 90, edited)])).gap).toBe(1);
@@ -55,7 +55,7 @@ describe("frontier headline tiles", () => {
   it("says the checkpoints are the same and gives the time difference on a tie", () => {
     const refs = frontierReferences([reached("a", 5, 1000000), reached("b", 5, 280000, edited)]);
     expect(headlineModel(refs)).toMatchObject({ gap: 0, fasterMs: 720000 });
-    const gapText = (slow: number, fast: number): string | null | undefined => { render([reached("a", 5, slow), reached("b", 5, fast, edited)]); return document.querySelector(".wb-fh-gap")?.textContent; };
+    const gapText = (slow: number, fast: number): string | null | undefined => { render([reached("z", 5, slow), reached("b", 5, fast, edited)]); return document.querySelector(".wb-fh-gap")?.textContent; };
     expect(gapText(1000000, 280000)).toBe("Same checkpoint · 12m faster");
     expect(gapText(4000000, 100000)).toBe("Same checkpoint · 1h 5m faster");
     expect(gapText(50000, 5000)).toBe("Same checkpoint · 45s faster");

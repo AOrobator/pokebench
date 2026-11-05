@@ -37,3 +37,12 @@ Round 3 at 654f86ecb, packet c6cd9c93: Claude LGTM, GPT LGTM, fallback BLOCKING 
 
 - Fixed: a wheel or swipe with nothing older to load no longer holds the trace.
 - Noted, not fixed here: `loadOlderHistory` drops `operatorTurnLimit` (predates this diff, display only); a follower's first overflowing page can slide until the next refresh repairs it.
+
+Round 4 at c87495f79, delta only: Claude LGTM, GPT LGTM, fallback LGTM. Round 3 stands for the rest: Claude and GPT LGTM at 654f86ecb. Grok out of Cursor usage until 11/17, standing approval to land on Claude, GPT and fallback.
+
+## Principles self-review
+
+PB1-PB8, PB11, PB12: N/A, display only. PB9, PB10: PASS. PB13: pending post-merge proof.
+
+- [x] Gates
+- [x] Review

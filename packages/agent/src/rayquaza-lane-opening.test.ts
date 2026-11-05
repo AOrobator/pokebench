@@ -5,7 +5,7 @@ import type { FeatureSet } from "./features.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { GuidePosition, OPTIONS_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const ON = preset.features as FeatureSet;
 const steps: readonly GuideStep[] = [
@@ -87,6 +87,64 @@ describe("options from boot", () => {
   it("is the opening of the shipped guide", () => {
     expect(RAYQUAZA_GUIDE_STEPS.slice(0, 3).map((s) => s.after)).toEqual(["RUN_START", "OPTIONS_OPENED", "OPTIONS_SET"]);
     expect(RAYQUAZA_GUIDE_STEPS[1]?.note).toMatch(/TEXT SPEED to FAST.*BATTLE SCENE to OFF.*BATTLE STYLE to SET/);
+  });
+});
+
+describe("missed items", () => {
+  const needy: readonly GuideStep[] = [
+    { after: "RUN_START", map: null, note: "Buy.", needs: ["POTION", "REPEL"] },
+    { after: "PLAYER_NAME_CONFIRMED", map: null, note: "Go." },
+  ];
+  it("logs what was missing when a step passes, and tells the model nothing", () => {
+    const guide = new GuidePosition(needy);
+    guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([{ after: "RUN_START", items: ["REPEL"] }]);
+    expect(guide.takeMisses()).toEqual([]);
+    expect(guide.situationNotes()).toEqual([]);
+  });
+  it("logs a buy step the guide jumps over", () => {
+    const guide = new GuidePosition([{ after: "RUN_START", map: null, note: "Go." }, { after: "MAP:X", map: null, note: "Buy.", needs: ["REPEL"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    guide.observe(field({ resources: { bag: [] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([{ after: "MAP:X", items: ["REPEL"] }]);
+  });
+
+  it("matches the game's item names, which can end in a period", () => {
+    const guide = new GuidePosition([{ after: "RUN_START", map: null, note: "Buy.", needs: ["GUARD SPEC"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    guide.observe(field({ resources: { bag: [{ name: "GUARD SPEC.", quantity: 2 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([]);
+  });
+
+  it("records a miss as its own event, never as a delivered hint", async () => {
+    const hints: string[] = [];
+    const missed: unknown[] = [];
+    let listener: (event: RunEvent) => void = () => undefined;
+    const context = rayquazaGuideContext(ON, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: (body: { text: string }) => { hints.push(body.text); }, recordPurchaseMissed: (body: unknown) => { missed.push(body); } }, (m) => Promise.resolve(m), [{ after: "RUN_START", map: null, note: "Buy.", needs: ["REPEL"] }, { after: "PLAYER_NAME_CONFIRMED", map: null, note: "On." }]);
+    listener(field({ money: 300, resources: { bag: [] } }));
+    listener(name());
+    const out = await context([user("o")]);
+    expect(missed).toEqual([{ step: "RUN_START", items: ["REPEL"], money: 300 }]);
+    expect(hints.some((h) => h.includes("Missed"))).toBe(false);
+    expect(out.some((m) => JSON.stringify(m).includes("REPEL"))).toBe(false);
+  });
+
+  it("logs nothing when everything was bought", () => {
+    const guide = new GuidePosition(needy);
+    guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }, { name: "REPEL", quantity: 2 }] } }));
+    guide.observe(name());
+    expect(guide.takeMisses()).toEqual([]);
+  });
+});
+
+describe("shop note", () => {
+  it("names the clerk inside a shop and nowhere else", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(field({ location: "PETALBURG CITY MART" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([SHOP_NOTE]);
+    guide.observe(field({ location: "PETALBURG CITY" }));
+    expect(guide.situationNotes()).toEqual([]);
   });
 });
 

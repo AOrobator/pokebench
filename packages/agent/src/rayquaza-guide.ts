@@ -9,15 +9,18 @@ import {RAYQUAZA_GUIDE_STEPS,RAYQUAZA_OUTDOOR_MAPS} from "./rayquaza-guide-data.
 import type {RunRecorder} from "./recorder.js";
 
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
-export const BATTLE_EXPLAINER="BATTLE: After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can move first and finish the fight. Before a leader or rival, heal and check your Bag. Decline optional battles if unready: whiting out halves your money.";
+export const BATTLE_EXPLAINER="BATTLE: Run from needless wild battles. After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can finish first. Whiting out halves your money.";
 
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
 export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";
 
 export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, press START, choose OPTION, set TEXT SPEED to FAST, BATTLE SCENE to OFF and BATTLE STYLE to SET, then press B.";
 
+// Run 0952 spent 11 turns activating Petalburg Mart shelves and left without buying.
+export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
+
 type MapId=readonly [number,number];
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly to?:{readonly map:string;readonly id:MapId}}
+export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -50,6 +53,8 @@ export class GuidePosition {
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
  private arrivedOn=-1;
+ private misses:{readonly after:string;readonly items:readonly string[]}[]=[];
+ private gotCount:{readonly step:number;readonly count:number}|null=null;
  private bootStart=false;
  private optionsDone=false;
  private optionsReady=false;
@@ -65,8 +70,9 @@ export class GuidePosition {
    this.map=event.map_id;
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
   }
-  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
-  if(reached>=0)this.advance(event,reached);
+  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id,"position" in event?event.position:null):-1;
+  // A place or tile counts only from the step before it, so an early visit moves nothing.
+  if(reached>=0&&(event.type==="milestone"||reached===this.furthest+1))this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
   // A press that changes a value and leaves in one batch ends with values no state showed.
   if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
@@ -76,6 +82,7 @@ export class GuidePosition {
  // Leaving the menu saves it in every path (option_menu.c), so the last values seen are the saved ones.
  private followOptions(event:GameStateSnapshot&RunEvent):void {
   this.latest=event;
+  this.followItem(event);
   if(!event.started)this.bootStart=true;
   // Past the menus without the options: the new game note still has to reach the Birch screens.
   if(!event.started&&(event.screen==="birch_speech"||event.screen==="naming"))this.reach("OPTIONS_SET",event);
@@ -87,27 +94,48 @@ export class GuidePosition {
   }else if(this.inOptions&&this.optionsReady){this.optionsDone=true;this.reach("OPTIONS_SET",event);}
   this.inOptions=opened;
  }
+ private followItem(event:GameStateSnapshot&RunEvent):void {
+  const step=this.furthest+1,item=this.steps[step]?.got,bag=event.resources?.bag;
+  if(item===undefined||bag==null)return;
+  const count=bag.filter(entry=>entry.name===item).reduce((sum,entry)=>sum+entry.quantity,0);
+  const gained=this.gotCount?.step===step&&count>this.gotCount.count;
+  this.gotCount={step,count};
+  if(gained)this.advance(event,step);
+ }
  private reach(name:string,event:RunEvent):void {
   const index=this.steps.findIndex(step=>step.after===name);
   if(index>=0)this.advance(event,index);
  }
  private advance(event:RunEvent,reached:number):void {
+  const from=this.furthest;
   this.earned.add(reached);
   const atStart=event.type==="milestone"&&event.origin==="present_at_start";
   if(atStart)this.atStart.add(reached);
   else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
   for(let next=this.next(atStart);next!==null;next=this.next(atStart))this.furthest=next;
+  for(let step=from;step<this.furthest;step++)this.noteMisses(step);
  }
+ private noteMisses(from:number):void {
+  const step=this.steps[from],bag=this.latest?.resources?.bag;
+  if(step?.needs===undefined||bag==null)return;
+  const items=step.needs.filter(item=>!bag.some(entry=>entry.name?.replace(/\.$/,"")===item&&entry.quantity>0));
+  if(items.length>0)this.misses.push({after:step.after,items});
+ }
+ // let it fail: a miss is logged for analysis and never told to the model.
+ takeMisses():readonly {readonly after:string;readonly items:readonly string[]}[] {return this.misses.splice(0);}
  private next(atStart:boolean):number|null {
   if(this.earned.has(this.furthest+1))return this.furthest+1;
   if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
  }
- private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}
+ private onMap(id:MapId,position:{readonly x:number;readonly y:number}|null):number {
+  return this.steps.findIndex(step=>(step.enter?.[0]===id[0]&&step.enter[1]===id[1])||(step.at!==undefined&&position!==null&&step.at.id[0]===id[0]&&step.at.id[1]===id[1]&&step.at.x===position.x&&step.at.y===position.y));
+ }
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
   if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
+  if(!this.inBattle&&/\b(MART|HERB SHOP)$/.test(this.latest?.location??""))return [{text:SHOP_NOTE,milestone:"RQ_SHOP"}];
   const to=this.current().to;
   if(to===undefined||this.arrivedOn===this.furthest||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
   const home=mapKey(to.id),here=mapKey(this.map);
@@ -122,7 +150,7 @@ export class GuidePosition {
 }
 
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
-type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">;
+type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">&Partial<Pick<RunRecorder,"recordPurchaseMissed">>;
 
 // rq-milestone-guide-v1: the current step stays the request's final message until the next step, so it
 // is present on map entry and during a stall without separate triggers.
@@ -134,6 +162,7 @@ export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,
  return async messages=>{
   const step=guide.current(),text=`GUIDE: ${step.note}`;
   if(step.after!==recorded){recorder.recordMilestoneHint({text,milestone:step.after});recorded=step.after;}
+  for(const miss of guide.takeMisses())recorder.recordPurchaseMissed?.({step:miss.after,items:[...miss.items],money:guide.latest?.money??null});
   const situation=guide.situationNotes();
   for(const note of situation)if(!told.includes(note.text))recorder.recordMilestoneHint(note);
   told=situation.map(note=>note.text);

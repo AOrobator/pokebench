@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROW = re.compile(r"^\| `?(?P<after>[A-Za-z0-9_:]+)`? \| `?(?P<map>[^`\s]+)`? \| (?P<note>.+?) \| (?P<source>.+?) \|$")
 TO = re.compile(r"\bTO:(\w+)")
+NEEDS = re.compile(r"\bNEEDS:([A-Z_+]+)")
 TOWN_TYPES = {"MAP_TYPE_TOWN", "MAP_TYPE_CITY"}
 OUTDOOR_TYPES = TOWN_TYPES | {"MAP_TYPE_ROUTE", "MAP_TYPE_OCEAN_ROUTE"}
 HEADER = """import type {GuideStep} from "./rayquaza-guide.js";
@@ -42,6 +43,14 @@ def rows(text: str, ids: dict[str, list[int]], types: dict[str, str]) -> list[di
         step: dict[str, object] = {"after": match["after"], "map": None if match["map"] == "-" else match["map"], "note": note}
         if match["after"].startswith("MAP:"):
             step["enter"] = ids[match["after"].removeprefix("MAP:")]
+        if match["after"].startswith("AT:"):
+            _, name, x, y = match["after"].split(":")
+            step["at"] = {"id": ids[name], "x": int(x), "y": int(y)}
+        if match["after"].startswith("GOT:"):
+            step["got"] = match["after"].split(":")[1].replace("_", " ")
+        needs = NEEDS.search(match["source"])
+        if needs:
+            step["needs"] = [item.replace("_", " ") for item in needs[1].split("+")]
         tagged = TO.search(match["source"])
         if tagged:
             if types.get(tagged[1]) not in TOWN_TYPES:

@@ -102,7 +102,8 @@
     "dark-area-flash-reminder-v1",
     "story-route-plan-v1",
     "no-story-foreknowledge-v1",
-    "context-exact-count-v1"
+    "context-exact-count-v1",
+    "town-center-checkpoint-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",
@@ -169,7 +170,6 @@
     "type-gap-team-last-message-v1",
     "instruction-memory-cap-v1",
     "destination-first-navigation-v1",
-    "town-center-checkpoint-v1",
     "rom-identity-v1",
     "supervisor-briefing-bound-v1",
     "compact-map-grid-v1",
@@ -512,7 +512,7 @@
     "instruction-memory-yaml-v1": false,
     "eight-badge-mission-v1": true,
     "discovered-gym-checklist-v1": true,
-    "town-center-checkpoint-v1": true,
+    "town-center-checkpoint-v1": false,
     "player-map-visibility-v2": false,
     "rom-identity-v1": true,
     "rusturf-entry-followup-v1": false,

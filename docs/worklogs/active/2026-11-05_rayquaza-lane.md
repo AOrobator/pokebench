@@ -61,6 +61,51 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review of ac2f7d62e, CHANGES: the pre-fight heal rule must stay in overworld guidance; the Birch screens need the new game note when options were missed; `RQ_` hints must not replace the guide line in recorded replay. RED tests added.
 - Fixes applied: only `Overworld:` is dropped from battle and menu guidance; Birch and naming screens reach `OPTIONS_SET` for display only; `RQ_` hints are skipped in recorded notes.
 - Claude and Codex speedrun audits merged in `docs/curriculum/ki-deviation-audit.md`: 61 rows, 6 intended, 50 unintended, 5 unclear. This is the work list.
+- Fix units through Heat on `claude/rq-front-fixes`. U4: no grind before Rustboro Gym, Water Gun learned mid-gym.
+- Units: U9 Escape Rope from Steven's room; U13 Growl to Mud Shot, Bide declined; U15 always decline the rival; U16 Fallarbor list; U17 second Rock Smash; U21 Herb Shop and Route 109 dock; U8 Repel lines through Heat.
+- U18 and U19: Maxie plan with the Taillow lead and a no-Taillow alternative; Flannery plan with Mud Shot on Torkoal; bike down Jagged Pass.
+- The operator's answers 4:18 PM: heal with items only, before rival and gym leaders; no nicknames; League deposit to Rayquaza alone; buy X items at Rustboro Mart; fight his XP trainers; `town-center-checkpoint-v1` off in this lane. RED test for tile steps.
+- Tile steps: `AT:<Map>:<x>:<y>` rows fire on standing on the tile.
+- Decisions applied through Heat: heal lines cut to items, Center steps at Petalburg and Mauville, XP trainers named, Rustboro Mart step, Route 111 tile step, Teleport rows, `town-center-checkpoint-v1` off, wild rule in the battle note. Run 0952 spent 11 turns on Petalburg Mart shelves and bought nothing; RED test for a shop note.
+- `SHOP_NOTE`: while inside a Mart or the Herb Shop, the model is told to talk to the clerk.
+- Codex fact check at 0ea9ac2f8: a Mart visit before Match Call could jump the guide, and Teleport could skip the Route 111 candy. RED tests: map and tile steps fire only from the step just before them; `GOT:` steps fire on gaining an item.
+- Fixes from the fact check: map and tile steps adjacent only, `GOT:` item steps, Route 111 Teleport after the candy, Rock Tomb row order, Foresight on the right row, Guard Specs first, softer Maxie plan, Flannery plan covers Numel, prep lines moved out of the in-battle note.
+- The operator 4:30 PM: log missed purchases with no catch-up prompt. RED test added. Shelf readout is its own unit on `claude/shop-shelf-hidden`.
+- `NEEDS:` rows log `RQ_MISSED` with the items and money when the step passes. Nothing reaches the model.
+
+## After-Heat deviation fixes (Codex)
+
+- [x] Unit 1: correct Fly legs, post-Seafloor Pacifidlog order and Mach Bike directions (`U5`, `U6`, `U7`, `U32`, `U33`, `U35`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean.
+  - COMMIT: `docs(curriculum): correct Rayquaza route legs` (3d88baf32)
+- [x] Unit 2: add settled Repel, item and party-order instructions (`U8`, `U21`, `U24`, `U25`, `U27`, `U28`, `U31`, `U34`, `U43`–`U45`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Previous unit: 3d88baf32.
+  - COMMIT: `docs(curriculum): add Rayquaza route resources` (ef432a2b9)
+- [x] Unit 3: correct settled Gym and boss plans (`U22`, `U23`, `U26`, `U29`, `U30`, `U34`, `U35`, `U37`, `U38`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed after replacing a prohibited Abra search reference with owned-spare wording; `git diff --check` clean. Previous unit: ef432a2b9.
+  - COMMIT: `docs(curriculum): correct Rayquaza battle plans` (105174cf4)
+- [x] Unit 4: add settled hideout, cavern and Victory Road waypoints (`U27`, `U28`, `U31`, `U36`).
+  - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Victory Road B2F was checked from video frames v2:16:35–2:19:20 against ROM warps. Previous unit: 105174cf4.
+  - COMMIT: `docs(curriculum): add Rayquaza dungeon waypoints` (d0e03f572)
+- [x] Completion audit: 40 changed guide rows, all at most 300 characters, all triggered by registered milestones, and every Source names a KI frame/time, audit ID and ROM. Generated guide remains 119 steps.
+- [x] Resolved policy: item-only pre-fight healing for rivals and Gym Leaders (`C1`); Fortree Center entry sets respawn without healing (`U2`); decline Rayquaza’s nickname (`U41`); deposit to Rayquaza alone (`U40`); buy Mossdeep X items regardless of party (`C5`).
+- GREEN at 73926f790: generator produced 119 steps; focused `rayquaza-guide.test.ts` passed 25/25; `git diff --check` clean. Generic, Center and Elite Four heal directions removed.
+- Front-only handoff: Mudkip nickname, Rustboro X-item purchase and named XP trainers live before Heat (`U10`, `U11`, `C5`) and have no row in this file. Claude owns `town-center-checkpoint-v1` OFF. `U12` targets `BATTLE_EXPLAINER`, outside this guide file.
+- [x] Trigger implementation merged from `claude/rq-front-fixes`; all three candy legs use adjacent `AT` then `GOT` rows, with `TO:MauvilleCity` or `TO:FortreeCity` only after the Bag count rises.
+- [x] Trigger follow-up after `a86675c07`: Petalburg and Mt. Pyre pickups now advance through exact `GOT:RARE_CANDY` rows whose Sources carry `TO:MauvilleCity` and `TO:FortreeCity`. Removed mid-battle healing language; item healing remains only before the Route 119 rival and Gym Leaders.
+- GREEN: generator produced 126 steps; focused `rayquaza-guide.test.ts` passed 28/28; `git diff --check` clean. Added regression coverage for repeated sequential `GOT:RARE_CANDY` triggers and retained milestone uniqueness.
+- Merged Codex's after-Heat units through 73926f790. Candy rows on Route 111, Petalburg and the summit use tile and item steps so Teleport cannot skip them. Fortree has a Teleport row again.
+- [x] Task D corrections, early route: split Brawly entry/exit paths, restore Norman’s Linoone and conditional Slaking plan, correct Route 120 candy tile, defer summit candy spending to `GOT`, attribute Winona’s Tropius moves correctly, qualify Maxie’s Crobat and Declan outcomes.
+- [x] Task D corrections, Mossdeep–Seafloor: state Mossdeep Gym start, split Mind Badge/occupation/Steven/Dive timing, keep Room 9’s approach after its trigger, and restore the post-Kyogre surface and Route 128–129 continuity.
+- [x] Task D corrections, Sky Pillar–Champion: restore Sky Pillar 1F (10,1), distinguish B2F water from the B1F return, make Wallace boosts survival-conditional, and apply the checker’s confirmed-row clarity/source improvements.
+- [x] Task D source audit: every changed guide row remains at most 300 characters and cites KI time/frame evidence, an audit id and ROM; the Weather Institute clarity edit now cites the observed grunt/Shelly interval.
+- Removed the Rustboro Teleport row: he walks that leg (audit C2).
+- Task D recheck: last three rows fixed (Slaking, Tropius, Archie trigger tile). Guide fact-checked end to end.
+- GPT review: a buy step crossed by a jump was not logged. `noteMisses` now covers every step passed.
 - Boot build final gate, correction: the first run failed one stale test in `play-wiring.test.ts`, which still expected the old first guide line; fixed and rerun. Reviews: Claude LGTM on the last delta; GPT LGTM on the last delta, its item 4 (probe core) rebutted with the identical core hash in every scene. Landing.
 - Boot build gate rerun green: 2,552 agent, 989 viewer, 2,930 + 38 Python, floors met, lint and vendor clean. Main advanced by a worklog-only commit after the gate; evidence retained.
 - Boot, options and slim prompt build landed on main; viewer and projector refreshed; live runs kept.
+- Claude review: Guard Spec's ROM name ends in a period, and the viewer labels every milestone_hint as sent to the model. RED tests: name match and a separate guide_purchase_missed event.
+- Fixes: `guide_purchase_missed` event replaces the RQ_MISSED hint, shown in Activity History as not sent to the model; item names match without a trailing period.
+- Guide fixes gate green at b7797dcc5: 2,561 agent, 989 viewer, 2,930 + 38 Python, lint and vendor clean. Claude LGTM; GPT's `tail-run` point rebutted. Added `rayquaza-lane-8h-v2` so run 0952's ledger stays in place.
+- Guide fixes landed on main; viewer and projector refreshed; `just fixed-run check rayquaza-lane-8h-v2` passes.

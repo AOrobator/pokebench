@@ -87,6 +87,13 @@ describe("jumping a lagging feed to the tail", () => {
     expect(behindLive(100, 50, 49)).toBe(true);
     expect(behindLive(100, 50, 50)).toBe(false);
   });
+  it("drops in-flight fields that ended in the skipped span", () => {
+    const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(2, { type: "assistant_delta", turn: 1, thinking: "stale", text: "" });
+    const saved = apply(log);
+    log.add(3, assistant({ turn: 1, thinking: "stale", text: "r" })); log.add(4, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(5, { type: "assistant_delta", turn: 2, thinking: "new", text: "" });
+    const jumped = jumpToTail(saved, log.events.slice(-1));
+    expect(jumped.streaming.thinking).toBe("new"); expect(jumped.requestAt).toBeNull(); expect(jumped.openTools).toEqual({});
+  });
   it("shows the newest events now and keeps what it already knew", () => {
     const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(3, assistant({ turn: 1, thinking: "old", text: "old" }));
     const saved = apply(log);

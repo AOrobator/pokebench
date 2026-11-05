@@ -27,6 +27,8 @@ Round 1 (GPT, 1bd040640, BLOCKING): old snapshot rows rejected by the new parser
 
 Round 1 (Claude, 1bd040640, BLOCKING): in-flight thinking did not render (`turnStartMs`), fixed with a `thinkingDialog` test. Parser finding same as GPT. Interval refresh could drop the last update before a quiet period, fixed with a pending flag. Live probes lost their body, fixed: probes keep the history view.
 
+Round 2 (GPT LGTM at 0e5a594ac; Claude BLOCKING, fallback BLOCKING at b6713c3cc): snapshots with no stored thinking now keep the recorded fallback; `jumpToTail` clears in-flight fields. The fallback reviewer's other findings were already fixed in 0e5a594ac.
+
 Rollout order: `just viewer-main` first, then `just current-main`.
 
 ## Principles self-review

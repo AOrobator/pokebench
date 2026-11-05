@@ -28,8 +28,16 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 
 - RED a13c04330: `test_rotating_gate_regions.py` failed to import `map_regions`; the agent and viewer tests name a switch that was not registered.
 - GREEN: focused env 64 pass (regions, readouts, sections, observation consistency), agent 68 pass (regions, features, play-preset, gate navigation). Viewer panels needs the agent build, so it waits for the gate window.
-- Replay of the 8 probe turns from recorded raw RAM through `rerender`, runs 5f0f and 3332: 8 of 8 give the same area partition and the same gate lines as the prototype. The only difference is three new lines per turn for the gym's ledges (for example D to E, E to F, F to B), which the prototype drew as walls.
+- Replay of the 8 probe turns from recorded raw RAM through `rerender`, runs 5f0f and 3332: 8 of 8 give the same area partition and the same gate facts as the prototype (line order differs). The only difference is three new lines per turn for the gym's ledges (for example D to E, E to F, F to B), which the prototype drew as walls.
 - Gate pass 1: lint pass; `rotating-gate-press.test.ts` pinned the last recorded switch with `.at(-1)`, now pinned by its neighbour.
 - Gate pass 2: `just lint` pass, `just test` pass (agent 2475, viewer 892, env 2928 at 80.23/73.96/73.17 over floor 69, gateway 38 at floor 22 with functions 22.62), no-I/O guards OK, `just verify-vendor` pass.
 
 ## Multi-Model Review Log
+
+Round 1, packet bbb0a9c85..d7858c0b1, diff SHA-256 af6fac89.
+- Principles self-review: zero FAIL rows.
+- Claude CLI (`~/.claude-review`): LGTM, replayed the 8 turns itself; hardening note on `landing`.
+- Fallback reviewer (fresh read-only subagent, Sonnet): LGTM, same note on `landing`.
+- GPT (Codex CLI gpt-5.6-sol): BLOCKING on two items, both accepted. B1: completeness compared gate ids, so a gate with some arms read passed; now the arm count of every gate must match its shape, and the fixtures carry real arm counts (28 on Fortree). B2: `landing` ignored arms; `Sections` now keeps them. Neither occurs on recorded data, and the replay is unchanged.
+- Wiring deletions went red and were restored: readout switch, `landing` arm check, per-gate arm count.
+- Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.

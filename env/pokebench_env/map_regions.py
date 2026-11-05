@@ -12,7 +12,7 @@ from pokebench_env.exit_labels import RomMap, Tile
 from pokebench_env.field_moves import FloodRules
 from pokebench_env.live_map import FullMap, LocalMap
 from pokebench_env.map_observation import MapObservation
-from pokebench_env.map_rotating_elements import PUZZLES
+from pokebench_env.map_rotating_elements import ARM_LAYOUTS, PUZZLES
 from pokebench_env.map_sections import Sections, build_sections
 
 SWITCH = "rotating-gate-regions-v1"
@@ -54,7 +54,10 @@ def gate_region_lines(
         and element.group is not None
         and element.edge is not None
     ]
-    if {group for group, _, _ in arms} != {f"gate:{gate}" for gate in range(len(puzzle[1]))}:
+    expected = {
+        f"gate:{gate}": sum(ARM_LAYOUTS[shape]) for gate, (_, _, shape, _) in enumerate(puzzle[1])
+    }
+    if Counter(group for group, _, _ in arms) != expected:
         return ()
     sections = _sections(shown, frozenset(frozenset({a, b}) for _, a, b in arms), position)
     home = sections.landing(position)

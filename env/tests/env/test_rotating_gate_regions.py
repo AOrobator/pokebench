@@ -8,6 +8,7 @@ from pokebench_env.live_map import FullMap, LocalMap, MapTile
 from pokebench_env.map_observation import build_observation, render_observation
 from pokebench_env.map_observation_types import MapElement
 from pokebench_env.map_regions import HEADER, gate_region_lines
+from pokebench_env.map_rotating_elements import ARM_LAYOUTS, PUZZLES
 from pokebench_env.map_sections import build_sections
 
 REGIONS = "rotating-gate-regions-v1"
@@ -54,10 +55,18 @@ def arm(gate, edge):
     )
 
 
-def observed(shown, arms=None, *, map_id=FORTREE, unavailable=()):
-    named = arms or {}
-    elements = tuple(arm(g, named.get(g, SPARE)) for g in range(8))
-    return build_observation(shown, map_id, (), unavailable, anywhere=elements)
+def gate_arms(map_id, named=None):
+    """Every arm of this puzzle, as the reader gives them; named replaces a gate's first."""
+    found = []
+    for gate, (_, _, shape, _) in enumerate(PUZZLES[map_id][1]):
+        found.append(arm(gate, (named or {}).get(gate, SPARE)))
+        found.extend(arm(gate, SPARE) for _ in range(sum(ARM_LAYOUTS[shape]) - 1))
+    return tuple(found)
+
+
+def observed(shown, arms=None, *, map_id=FORTREE):
+    elements = gate_arms(map_id if map_id in PUZZLES else FORTREE, arms)
+    return build_observation(shown, map_id, (), anywhere=elements)
 
 
 def lines(rows, position, arms=None, **kwargs):
@@ -151,6 +160,11 @@ def test_a_warp_takes_the_area_it_opens_onto_and_nothing_walks_through_it():
     assert lines(["##W##", "#...#"], (1, 1), warps=[(2, 0)])[1] == " 0  # # A # #"
 
 
+def test_a_warp_behind_an_arm_does_not_take_the_area_past_the_arm():
+    rows = ["##W##", "#...#"]
+    assert lines(rows, (1, 1), {4: (2, 0, 2, 1)}, warps=[(2, 0)])[1] == " 0  # # # # #"
+
+
 def test_a_player_standing_on_a_warp_is_in_the_area_it_opens_onto():
     assert lines(["##W##", "#...#"], (2, 0), warps=[(2, 0)])[1:3] == (
         " 0  # # A # #",
@@ -177,6 +191,15 @@ def test_a_gate_without_arms_read_means_no_block(missing):
     assert gate_region_lines(shown, partial, (0, 0)) == ()
 
 
+def test_one_arm_missing_from_a_gate_with_others_read_means_no_block():
+    shown = view(["..."])
+    arms = gate_arms(FORTREE)
+    for index in range(len(arms)):
+        partial = build_observation(shown, FORTREE, (), anywhere=arms[:index] + arms[index + 1 :])
+        assert gate_region_lines(shown, partial, (0, 0)) == ()
+    assert gate_region_lines(shown, observed(shown), (0, 0)) != ()
+
+
 def test_a_gate_mid_turn_has_no_arms_and_means_no_block():
     shown = view(["..."])
     moving = MapElement("rotating_gate", 0, 0, state="transitioning", group="gate:0")
@@ -190,12 +213,12 @@ def test_only_a_gate_map_gets_a_block():
     assert gate_region_lines(shown, observed(shown, map_id=(0, 9)), (0, 0)) == ()
 
 
-def test_the_trick_house_puzzle_needs_its_own_eleven_gates():
+def test_each_puzzle_needs_its_own_gates():
     shown = view(["..."])
-    assert gate_region_lines(shown, observed(shown, map_id=(29, 8)), (0, 0)) == ()
-    elements = tuple(arm(g, SPARE) for g in range(11))
-    every = build_observation(shown, (29, 8), (), anywhere=elements)
-    assert gate_region_lines(shown, every, (0, 0))[1] == " 0  A A A"
+    assert len(gate_arms(FORTREE)) == 28
+    wrong = build_observation(shown, (29, 8), (), anywhere=gate_arms(FORTREE))
+    assert gate_region_lines(shown, wrong, (0, 0)) == ()
+    assert gate_region_lines(shown, observed(shown, map_id=(29, 8)), (0, 0))[1] == " 0  A A A"
 
 
 def test_a_local_view_gets_no_block():

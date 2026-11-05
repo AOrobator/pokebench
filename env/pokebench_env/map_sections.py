@@ -37,6 +37,7 @@ class Sections:
     links: dict[Tile, set[Tile]]
     labels: dict[Tile, str]
     rules: FloodRules | None = None
+    arms: frozenset[frozenset[Tile]] = frozenset()
 
     def section(self, tile: Tile) -> Tile | None:
         return self.regions.get(tile)
@@ -68,6 +69,7 @@ class Sections:
             region = self.section(neighbour)
             if (
                 region is not None
+                and frozenset({tile, neighbour}) not in self.arms
                 and other is not None
                 and crossable(origin, other, leaving, entering, water=False)
             ):
@@ -186,7 +188,7 @@ def build_sections(
     links: dict[Tile, set[Tile]] = {r: set() for r in labels}
     for tile, neighbours in graph.items():
         links[regions[tile]].update(regions[n] for n in neighbours if regions[n] != regions[tile])
-    return Sections(rom, regions, links, labels, rules)
+    return Sections(rom, regions, links, labels, rules, arms)
 
 
 @dataclass(frozen=True)

@@ -23,6 +23,7 @@ Tracked, local HTML documentation. Open an explainer directly; no server or exte
 - [Loop supervisor](loop-guard-supervisor-v1.html)
 - [Navigation evidence memory v1](navigation-evidence-memory-v1.html)
 - [Next-milestone hint](next-milestone-hint-v1.html)
+- [Rayquaza lane guide](rq-milestone-guide-v1.html)
 - [Doubled context window](double-context-window-v1.html)
 - [Fresh retry](fresh-retry-v1.html)
 - [Walkable floor v1](walkable-floor-v1.html)

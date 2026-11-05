@@ -42,4 +42,8 @@ Round 1, packet 165f79568..13ba7e9cb, diff SHA-256 9627c76e8120dba920777990cf14b
 - Claude CLI (`~/.claude-review`): BLOCKING. A direction press in a menu read with no gates stayed pending and could log a refused push that never happened. Accepted.
 - GPT (Codex CLI gpt-5.6-sol): BLOCKING on three items. Refusals need press feedback, which `needs` did not say: accepted, `needs` is now press feedback. A repeated direction in a batch went unlogged: accepted, same one-step rule as `gatePressNote`. A mixed batch that moves nothing proves nothing and stays unlogged. A read with no map left stale gates in the note: accepted.
 
+Round 2, packet 165f79568..0172311b5, diff SHA-256 f7dcc98dcb4dec189b2ecf6fca37d9bde1abc07d743495b14bc66b6daa18633e.
+- Claude CLI: BLOCKING, one finding: the note grows without limit outside the context fitter, against the operator's 2026-10-28 rule. Accepted: the note shows the newest 200 whole lines and says how many are hidden; the recorded log and `lines()` stay whole. Reported to the operator.
+- GPT: BLOCKING on two items. A press that only turned the player to face an arm logged a refused push: accepted, the log requires already facing that way. The first read of a run that starts in the gym said "entered": accepted, it says "first read on".
+
 ## Landing

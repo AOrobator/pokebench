@@ -18,6 +18,8 @@ const START:Readonly<Record<string,readonly number[]>>={"12/1":[1,2,1,1,0,0,0,2]
 const TURNS_HEADER="Which way each gate can turn right now (the game refuses a turn that would swing an arm into a wall):";
 const LOG_HEADER="Gate log for this map, oldest first, recorded from the game:";
 const DIRECTIONS=new Set(["UP","DOWN","LEFT","RIGHT"]);
+// The note rides outside the context fitter, so it must stay bounded (the operator 2026-10-28). About 10k tokens; 08b5 logged 107 lines in 2 hours.
+export const GATE_LOG_LINES=200;
 
 const mapKey=(state:GameStateSnapshot):string|null=>state.map_id===null?null:state.map_id.join("/");
 const point=(tile:Tile):string=>`(${String(tile.x)},${String(tile.y)})`;
@@ -63,10 +65,10 @@ export class GateLog {
   // A read with no gates on the same map is a transition, not a new visit, so its press stays pending.
   if(gates===null||gates==="unread"){if(map!==this.#map){this.#map=map;this.#previous=null;this.#presses=[];}return;}
   const presses=this.#presses;this.#presses=[];
-  const entered=this.#previous===null||this.#map!==map;
+  const entered=this.#previous===null||this.#map!==map,first=this.#map===null;
   this.#map=map;
   const lines=this.#lines.get(map)??[];this.#lines.set(map,lines);
-  if(entered)lines.push(`Turn ${String(state.turn)}: entered ${state.location??"this map"}: ${entryFact(map,gates)}`);
+  if(entered)lines.push(`Turn ${String(state.turn)}: ${first?"first read on":"entered"} ${state.location??"this map"}: ${entryFact(map,gates)}`);
   else if(this.#previous!==null)lines.push(...this.#changes(this.#previous,state,gates,presses));
   this.#previous=state;
  }
@@ -82,13 +84,19 @@ export class GateLog {
   const direction=moves.length===1||(stayed&&moves.every(move=>move===moves[0]))?moves[0]:undefined;
   const turned=[...gates].sort(([a],[b])=>gateOrder(a)-gateOrder(b)).flatMap(([group,gate])=>{const old=was.get(group);return old===undefined||old.orientation===gate.orientation?[]:[turnOf(group,old,gate)];});
   if(turned.length>0)return turned.map(line=>direction!==undefined&&from!==null&&to!==null?`${turn}${direction} from ${point(from)} to ${point(to)}: ${line}`:`${turn}${line} with no single press read`);
-  if(direction===undefined||from===null||!stayed||!walkable(before))return [];
+  // Facing a new way turns the player in place without reaching the gate's collision check.
+  if(direction===undefined||from===null||!stayed||!walkable(before)||before.facing?.toUpperCase()!==direction)return [];
   const refused=armAhead(before,direction,true,true);
   return refused===null?[]:[`${turn}${direction} at ${point(from)}: ${refused}`];
  }
 
  onGateMap():boolean {return this.#latest!==null&&this.#map===mapKey(this.#latest)&&this.#previous!==null;}
  lines():readonly string[] {return this.#map===null?[]:this.#lines.get(this.#map)??[];}
+ /** The newest whole lines, saying how many older ones are not shown. */
+ shown():readonly string[] {
+  const lines=this.lines(),hidden=lines.length-GATE_LOG_LINES;
+  return hidden>0?[`${String(hidden)} older lines not shown.`,...lines.slice(hidden)]:lines;
+ }
  latest():State|null {return this.#latest;}
 }
 
@@ -100,7 +108,7 @@ export function gateLogContext(features:FeatureSet,recorder:Pick<RunRecorder,"su
  return async messages=>{
   const state=log.latest();
   const turns=reasons&&state!==null&&log.onGateMap()?gateTurnLines(state):[];
-  const entries=pushes&&log.onGateMap()?log.lines():[];
+  const entries=pushes&&log.onGateMap()?log.shown():[];
   const note=[...(turns.length===0?[]:[TURNS_HEADER,...turns]),...(entries.length===0?[]:[LOG_HEADER,...entries])].join("\n");
   if(note===""||state===null)return base(messages);
   recorder.recordLedgerContext({text:note,evidence:[state.seq]});

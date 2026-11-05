@@ -8,7 +8,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import {toolSwitches} from "./play-config.js";
 import {contextTools} from "./play-wiring.js";
 import {flagFeatures,normalizeFeatures} from "./play-preset.js";
-import {GateLog,gateLogContext,gateTurnLines} from "./rotating-gate-log.js";
+import {GATE_LOG_LINES,GateLog,gateLogContext,gateTurnLines} from "./rotating-gate-log.js";
 import {GateStepTrail,gatePressNote,gateTurns} from "./rotating-gate-press.js";
 
 const REASONS="rotating-gate-turn-reasons-v1",LOG="rotating-gate-push-log-v1";
@@ -88,7 +88,7 @@ describe("the push log",()=>{
  it("records entry, a turn and a refused push, oldest first",()=>{
   const log=fed(stateEvent(room(1,2,{x:15,y:24}),1,1),stateEvent(room(1,2,{x:1,y:6}),2,2),press("RIGHT",3,3,2),stateEvent(room(0,2,{x:2,y:6}),4,3),stateEvent(room(1,2),5,4),press("DOWN",6,5,5),stateEvent(room(1,2),7,5));
   expect(log.lines()).toEqual([
-   "Turn 1: entered FORTREE CITY GYM: all gates at their starting positions.",
+   "Turn 1: first read on FORTREE CITY GYM: all gates at their starting positions.",
    "Turn 3: RIGHT from (1,6) to (2,6): Gate 3 turned 90 degrees counterclockwise (arms east, south, west -> north, east, south)",
    "Turn 4: Gate 3 turned 90 degrees clockwise (arms north, east, south -> east, south, west) with no single press read",
    "Turn 5: DOWN at (2,5): Gate 3's arm between (2,5) and (2,6) did not turn: turning clockwise would swing an arm into the wall at (1,5)",
@@ -100,7 +100,7 @@ describe("the push log",()=>{
   expect(log.lines()).toHaveLength(3);
  });
  it("names gates away from their start on entry",()=>{
-  expect(fed(stateEvent(room(0,2),1,1)).lines()).toEqual(["Turn 1: entered FORTREE CITY GYM: Gate 3 is not at its starting position."]);
+  expect(fed(stateEvent(room(0,2),1,1)).lines()).toEqual(["Turn 1: first read on FORTREE CITY GYM: Gate 3 is not at its starting position."]);
  });
  it("a free step past no arm logs nothing",()=>{
   const log=fed(stateEvent(room(1,2,{x:3,y:2}),1,1),press("LEFT",2,2,1),stateEvent(room(1,2,{x:2,y:2}),3,2));
@@ -142,6 +142,22 @@ describe("the push log",()=>{
  it("a transition read with no map shows no stale gates",()=>{
   expect(fed(stateEvent(room(1,2),1,1),stateEvent({...room(1,2),map_id:null},2,2)).onGateMap()).toBe(false);
  });
+ it("a press that only turns the player to face an arm is not a push",()=>{
+  const facing={...room(1,2),facing:"up"};
+  expect(fed(stateEvent(facing,1,1),press("DOWN",2,2,1),stateEvent(room(1,2),3,2)).lines()).toHaveLength(1);
+ });
+ it("a real entry after another map says entered, naming moved gates",()=>{
+  expect(fed(stateEvent(city(),1,1),stateEvent(room(0,2),2,2)).lines()).toEqual(["Turn 2: entered FORTREE CITY GYM: Gate 3 is not at its starting position."]);
+ });
+ it("shows the newest whole lines and says how many are hidden",()=>{
+  const events=[stateEvent(room(1,2),1,1)];
+  for(let i=0;i<GATE_LOG_LINES+4;i++)events.push(press("DOWN",2+2*i,2+i,1+2*i),stateEvent(room(1,2),3+2*i,2+i));
+  const log=fed(...events);
+  expect(log.lines()).toHaveLength(GATE_LOG_LINES+5);
+  expect(log.shown()).toHaveLength(GATE_LOG_LINES+1);
+  expect(log.shown()[0]).toBe("5 older lines not shown.");
+  expect(log.shown().at(-1)).toBe(log.lines().at(-1));
+ });
  it("is shown only while on a gate map",()=>{
   expect(fed(stateEvent(room(1,2),1,1),stateEvent(city(),2,2)).onGateMap()).toBe(false);
   expect(fed(stateEvent(room(1,2),1,1)).onGateMap()).toBe(true);
@@ -176,7 +192,7 @@ describe("the pinned note",()=>{
   expect(note).toMatchObject({role:"user",timestamp:7});
   const text=note?.role==="user"&&typeof note.content==="string"?note.content:"";
   expect(text).toContain("Gate 3: counterclockwise free; clockwise blocked");
-  expect(text).toContain("Turn 1: entered FORTREE CITY GYM");
+  expect(text).toContain("Turn 1: first read on FORTREE CITY GYM");
   expect(h.recorded).toEqual([text]);
  });
  it("reasons alone shows the turns without the log",async()=>{

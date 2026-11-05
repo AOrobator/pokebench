@@ -6,7 +6,10 @@ Operator approval: The operator said yes on 2026-11-05 to making frontier checkp
 
 - `checkpointSelection` takes the run's start. A boot start with the variable unset captures every required frontier milestone.
 - `POKEBENCH_CHECKPOINT_FRONTIER=0` is the OFF switch and restores the old no-capture behavior. `1` keeps its meaning. Save-state starts stay opt-in.
-- No model-visible change, so this is a measurement setting and not a registered harness feature (feature-switch skill). Pause evidence from run 5f0f: at most 145 ms a save, about 5.3 s over nearly 8 hours.
+- Pause cost from run 5f0f: at most 145 ms a save, about 5.3 s over nearly 8 hours.
+- Model-visible effect (found by Claude review, verified in the events): a capture that overlaps a tool wait ends that wait early with reason `paused`. In 5f0f, 4 of about 120 saves did this: seq 1588 gave the model "the game is paused, so the battle did not advance", and seq 1070, 1390 and 30908 skipped a settle wait. Run 274b, with no capture, has none. Cause is inferred; pauses are not logged.
+- Newly exposed paths: hand `just run-agent` boot runs, viewer-queue runs (`next-run.ts`), boot serial-comparison arms. `launch.sh` and boot fixed trials already had this. `run_start` does not record capture mode.
+- No registered feature for now: the variable is the switch, `0` is OFF. Operator decision on this effect is required before landing and is recorded below.
 
 ## Progress
 

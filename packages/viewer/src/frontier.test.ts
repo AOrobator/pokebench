@@ -547,6 +547,6 @@ describe("custom lanes stay off the benchmark frontier", () => {
     expect(frontierVersions([resumed]).byRun.has("resumed")).toBe(false);
   });
   it("leaves benchmark runs alone: a switch that is off, a recorded-unknown switch, or an id merely containing edit", () => {
-    for (const run of [benchmark(), fastest("off", { config: config([{ id: "story-route-plan-v1", label: "", on: false }]) }), fastest("unknown", { config: config([{ id: "next-milestone-hint-v1", label: "", on: null }]) }), fastest("credit", { model: "credited-model" }), fastest("none", { model: null, config: null })]) expect(customLane(run)).toBeNull();
+    for (const run of [benchmark(), fastest("off", { config: config([{ id: "story-route-plan-v1", label: "", on: false }]) }), fastest("unknown", { config: config([{ id: "next-milestone-hint-v1", label: "", on: null }]) }), fastest("credit", { model: "credited-model" }), fastest("slash", { model: "vendor/edit/model" }), fastest("under", { model: "qwen_edit_control" }), fastest("none", { model: null, config: null })]) expect(customLane(run)).toBeNull();
   });
 });

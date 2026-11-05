@@ -42,10 +42,10 @@ it("ON sends the run's level inside chat_template_kwargs through the production 
   expect(await sent(on, "low", VLLM_PROVIDER)).toEqual({ model: "m", chat_template_kwargs: { ...kwargs, reasoning_effort: "low" } });
 });
 
-it("never sends an effort with thinking off, or to a body with no template arguments", async () => {
+it("never sends an effort with thinking off, and a body with no template arguments still gets it", async () => {
   expect(await sent(on, "off")).toEqual(body());
   expect(sentEffort(on, "off")).toBeNull();
-  expect(withReasoningEffort({ model: "m" }, "low")).toEqual({ model: "m" });
+  expect(withReasoningEffort({ model: "m" }, "low")).toEqual({ model: "m", chat_template_kwargs: { reasoning_effort: "low" } });
   expect(withReasoningEffort(null, "low")).toBeNull();
 });
 

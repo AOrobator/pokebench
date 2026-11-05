@@ -7,7 +7,9 @@ export function sentEffort(features:Pick<FeatureSet,"reasoning-effort-request-v1
  return features["reasoning-effort-request-v1"]&&thinking!=="off"?thinking:null;
 }
 
+// Every request gets it, so run_start's record of what requests carry holds for any body.
 export function withReasoningEffort(payload:unknown,effort:string):unknown {
- if(typeof payload!=="object"||payload===null||!("chat_template_kwargs" in payload)||typeof payload.chat_template_kwargs!=="object")return payload;
- return {...payload,chat_template_kwargs:{...payload.chat_template_kwargs,reasoning_effort:effort}};
+ if(typeof payload!=="object"||payload===null)return payload;
+ const kwargs="chat_template_kwargs" in payload&&typeof payload.chat_template_kwargs==="object"?payload.chat_template_kwargs:{};
+ return {...payload,chat_template_kwargs:{...kwargs,reasoning_effort:effort}};
 }

@@ -54,4 +54,7 @@ Real data, built viewer on the served 801 runs: best stays 274b, runner-up astra
 
 ## Multi-Model Review Log
 
+Round 2, packet ..7c3fcea2a sha cbcc810c. Fallback subagent: LGTM. Claude: BLOCKING on test gaps only. GPT (gpt-5.6-sol): BLOCKING on a loose edit matcher, a record that could claim an unsent effort on a body without template kwargs, and an unvalidated effortSent. All fixed: matcher is now -edit-, effort is added to every body, validator checks it, tests run run_start through configuration to Run Details and Harness Config.
+Follow-ups, not in this branch: tail.ts prints thinking_level; frontier-v1.json can answer stale until the first re-rank; history.ts ignores effortSent; just test cannot see a missing BROWSER_MODULES entry; stored Roxanne runtime baselines lack the key (they already failed on two older keys).
+
 Round 1, packet f3aa249fb..3bbcc38ab sha 777f6d9c. Claude: BLOCKING on one real bug (Run Details still showed medium); fixed by carrying effortSent on WorkbenchConfig. Thinking-off wording in the EFFORT SENT row also fixed. Other notes are follow-ups. Grok: Cursor usage limit until 11/17. GPT: config default model refused; rerun with gpt-5.6-sol.

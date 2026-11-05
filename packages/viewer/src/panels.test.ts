@@ -1,3 +1,7 @@
+import { configuration } from "./run-config.js";
+import { runDetails } from "./workbench-view.js";
+import { parseWorkbench } from "./workbench-data.js";
+import { run as card } from "../test-support/workbench.js";
 import { servedEffort, thinkingLabel } from "./served-effort.js";
 import {DEFAULT_NEXT_RUN} from "./next-run.js";
 import { describe, expect, it } from "vitest";
@@ -1256,3 +1260,30 @@ it("names what each lane ran at when no effort was sent, and how that is known",
  expect(servedEffort("/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf")).toBe("this lane's template has no effort setting");
  expect(servedEffort("deepseek/deepseek-v4.1-flash")).toBe("server default, not known");
 });
+describe("the recorded effort reaches every run surface",()=>{
+ const sampling=(extra:object):typeof START=>({...START,model:{...START.model,id:"qwen3.8-27b"},sampling:{...START.sampling,...extra}}) as typeof START;
+ const shown=(start:typeof START):{details:string;config:string}=>{
+  const log=new Log();log.add(0,start);
+  return {details:runDetails({...card(),config:configuration(start)},null),config:harnessConfig(view(log))};
+ };
+ it("names a sent level on Run Details and Harness Config",()=>{
+  const {details,config}=shown(sampling({thinking_level:"medium",reasoning_effort_sent:"medium"}));
+  expect(details).toContain("<dd>medium</dd>");expect(config).toContain("<dt>EFFORT SENT</dt><dd>medium</dd>");
+ });
+ it("says what the lane ran at when nothing was sent, recorded or not",()=>{
+  for(const extra of [{thinking_level:"medium"},{thinking_level:"medium",reasoning_effort_sent:null}]){
+   const {details,config}=shown(sampling(extra));
+   expect(details).toContain("<dd>thinking on</dd>");expect(details).not.toContain("<dd>medium</dd>");
+   expect(config).toContain("<dt>EFFORT SENT</dt><dd>none; server ran xhigh (measured)</dd>");
+  }
+ });
+ it("names no server effort when thinking was off",()=>{
+  for(const level of ["off","none"])expect(shown(sampling({thinking_level:level})).config).toContain("<dt>EFFORT SENT</dt><dd>none; thinking off</dd>");
+ });
+});
+it("rejects a malformed sent effort and accepts the valid forms",()=>{
+ const payload=(effortSent:unknown)=>({version:1,at:1,milestones:[],problems:[],runs:[{...card(),config:{...card().config,effortSent}}]});
+ for(const good of ["medium",null])expect(parseWorkbench(payload(good)).runs).toHaveLength(1);
+ expect(()=>parseWorkbench(payload({}))).toThrow();
+});
+

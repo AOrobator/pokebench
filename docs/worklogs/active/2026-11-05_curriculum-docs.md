@@ -26,3 +26,6 @@ The operator 2026-11-05: lane runs stay on the frontier with a help marker, so t
 ## Gates
 
 Prose-only: `git diff --check`, link check, independent review. No application gates.
+- `git diff --check`: clean after `.gitattributes`. Link check: no broken relative links.
+- Review packet base 165f79568, head 321132bdd, sha256 prefix 64a728a93799ef84. GPT (Codex CLI, gpt-5.6-sol): VERDICT: LGTM. Claude (subagent, CLI login expired): VERDICT: LGTM. Grok skipped: Cursor out of usage, per the operator's standing rule.
+- Delta after review: one README sentence and a worklog note (4ddd65a37), the operator's frontier decision.

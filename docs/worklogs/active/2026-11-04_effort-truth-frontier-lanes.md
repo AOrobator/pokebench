@@ -41,6 +41,8 @@ COMMIT: `test: effort reaches the request and custom lanes stay off the frontier
 
 ## Gates
 
+After round-2 fixes: just test pass (agent 2,458, viewer 860, env 2,901, gateway 38), trainer-card 3/3, verify-vendor pass; just lint rerun below. Seam check: deleting effortSent from run-config.ts turned panels.test.ts red (1 failed), restored green.
+
 Final, on 2026-11-04 night NY: just lint pass, just test pass (agent 2,458, viewer 855, env 2,901, gateway 38, floors and no-io-proof pass), just verify-vendor pass, trainer-card check 3/3. A served-module unit test was deleted because importing server.ts trips the no-I/O guard; the trainer-card check covers that failure.
 
 Trainer-card check first failed: custom-lane and served-effort were not in BROWSER_MODULES, and panels imported the server-only run-config. Vitest could not see it; the browser would have failed to load. Fixed; check passes 3/3 with main's card art.

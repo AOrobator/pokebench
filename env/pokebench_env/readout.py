@@ -36,6 +36,8 @@ from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
 from pokebench_env.map_observation import SWITCH as MAP_OBSERVABILITY
 from pokebench_env.map_observation import MapObservation, render_observation
+from pokebench_env.map_regions import SWITCH as GATE_REGIONS
+from pokebench_env.map_regions import gate_region_lines
 from pokebench_env.map_rotating_elements import GATE_RULES, PUZZLES, RULES_SWITCH
 from pokebench_env.map_rules import FEATURE as RULES_FEATURE
 from pokebench_env.map_sections import SectionExit
@@ -220,6 +222,7 @@ SERVER_FEATURES = (
     "rotating-gate-rules-v1",
     "rotating-gate-map-v1",
     "map-code-aliases-v1",
+    GATE_REGIONS,
 )
 
 
@@ -252,7 +255,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
-        "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1",
+        "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
+        "rotating-gate-regions-v1",
     )
     if raw == "":
         return frozenset()
@@ -831,6 +835,9 @@ def format_readout(
                     base_glyph="compact-map-base-glyph-v1" not in off,
                     gate_lines="rotating-gate-map-v1" not in off,
                     one_code="map-code-aliases-v1" not in off,
+                    gate_regions=gate_region_lines(shown, observation, state.position)
+                    if GATE_REGIONS not in off and state.position is not None
+                    else (),
                 )
                 if observation is not None
                 else None,

@@ -453,6 +453,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "map-code-aliases-v1":"rotating-gate-readouts-v1.html",
  "rotating-gate-navigation-v1":"rotating-gate-readouts-v1.html",
  "rotating-gate-press-feedback-v1":"rotating-gate-readouts-v1.html",
+ "rotating-gate-regions-v1":"rotating-gate-regions-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
  "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",

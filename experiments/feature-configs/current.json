@@ -200,7 +200,8 @@
     "rotating-gate-map-v1",
     "map-code-aliases-v1",
     "rotating-gate-navigation-v1",
-    "rotating-gate-press-feedback-v1"
+    "rotating-gate-press-feedback-v1",
+    "rotating-gate-regions-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -531,6 +532,7 @@
     "rotating-gate-map-v1": true,
     "map-code-aliases-v1": true,
     "rotating-gate-navigation-v1": true,
-    "rotating-gate-press-feedback-v1": true
+    "rotating-gate-press-feedback-v1": true,
+    "rotating-gate-regions-v1": true
   }
 }

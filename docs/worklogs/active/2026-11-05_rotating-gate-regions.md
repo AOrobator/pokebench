@@ -14,7 +14,7 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 - Switch `rotating-gate-regions-v1`, server side, needs `rotating-gate-positions-v1`, registry default OFF, onInBoth base true. OFF is byte-identical.
 - Block right after the map key line, only on a gate map with a full map view and every gate's arms read. Any unread gate means no block: a partial block would say two areas connect when they may not.
 - Walkability is `map_sections.build_sections`, the harness's own directed sections, fed the live full map: collision, water, elevation, edge walls, warps and ledges as one-way hops. Live objects are its walls. New optional `arms` argument refuses a step across an arm.
-- Same letter means each tile walks to the other. A one-way step between areas, which the prototype could not show, gets its own factual line.
+- Same letter means each tile walks to the other. A ledge hop between areas, which the prototype drew as a wall, gets its own factual line.
 - A warp tile takes the area its landing resolves to; the player standing on one is in that area.
 - Facts only, no push advice. Header and gate line wording are the probe's.
 
@@ -25,5 +25,9 @@ Models cannot read which tiles a gate cuts off from the map's arm marks. A grid 
 - [ ] M3: gates, reviews, landing
 
 ## Log
+
+- RED a13c04330: `test_rotating_gate_regions.py` failed to import `map_regions`; the agent and viewer tests name a switch that was not registered.
+- GREEN: focused env 64 pass (regions, readouts, sections, observation consistency), agent 68 pass (regions, features, play-preset, gate navigation). Viewer panels needs the agent build, so it waits for the gate window.
+- Replay of the 8 probe turns from recorded raw RAM through `rerender`, runs 5f0f and 3332: 8 of 8 give the same area partition and the same gate lines as the prototype. The only difference is three new lines per turn for the gym's ledges (for example D to E, E to F, F to B), which the prototype drew as walls.
 
 ## Multi-Model Review Log

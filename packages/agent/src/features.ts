@@ -355,6 +355,7 @@ export const SWITCHABLE_FEATURES = [
   "rotating-gate-navigation-v1",
   "reasoning-effort-request-v1",
   "rotating-gate-press-feedback-v1",
+  "rotating-gate-regions-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -831,6 +832,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rotating-gate-navigation-v1", "guidance", "NAVIGATE_TO STOPS AT GATE ARMS", "rotating-gate-positions-v1", "Default off. navigate_to planned straight through gate arms and then reported a vague block. On: an arm's edge is blocked to the planner, so a clear route walks as usual. When only arms stop the route it walks up to the first arm on the route that ignores them, stops before it and names it, for example gate 2's arm between (4,18) and (4,19). It never pushes a gate or plans a push; press is how a gate moves. The tool description is unchanged, to keep gate text out of the system prompt on other maps. Off: gates do not affect the plan."),
   on("reasoning-effort-request-v1", "guidance", "SEND THE REASONING EFFORT", null, "Correctness fix, on by default (the operator 2026-11-04: \"correctness fixes need to be on by default\"). Adds the run's thinking level to every model request as chat_template_kwargs.reasoning_effort, so the served chat template uses it. Until now only thinking on or off reached the server: Qwen3.8's template then defaults to xhigh and adds an instruction to validate assumptions and weigh alternatives, GLM-5.3's defaults to Max, and Qwen3.6's has no effort setting. On Qwen3.8, medium drops that instruction and low replaces it with one asking for brief thinking. GLM-5.3 accepts only low and high, so medium still gives Max there. run_start records what was sent under sampling.reasoning_effort_sent, on or off. Off: requests carry only enable_thinking and preserve_thinking, as they always have, and the server's default effort applies."),
   on("rotating-gate-press-feedback-v1", "guidance", "GATE FEEDBACK ON PRESS", "rotating-gate-positions-v1", "Correctness fix; default off. Run 5f0f misread gates at turns 1961, 1987 and 1997 by comparing eight gate lines itself, and a refused push only read \"blocked or unavailable\". On: on a map with rotating gates, a press with a direction from a free field also says which gate turned, which way and where its arms now point, or that the arm across that step did not turn, or that no gate turned. A walking batch compares every step and reports the steps on its last press line, so two pushes that cancel both show. A raw batch has two reads, so it says it is a net comparison. When a read is missing it says whether a gate turned is not known. Facts only: it gives no cause and names no push. navigate_to results are unchanged. Off: no gate text in press results, byte for byte."),
+  on("rotating-gate-regions-v1", "observation", "ROTATING GATE AREAS", "rotating-gate-positions-v1", "Default off. In a probe on recorded gym turns, models told which tiles they could reach from the arm marks 8 of 63 times and from a lettered area grid 57 of 64 times. On: on a map with rotating gates, a block right after the map key letters each walkable tile by the area it connects to without turning a gate, with the player's area A and everything else #, then one line per gate arm between two areas, and one line per ledge that hops one way between two areas. Walkability is the harness's own section rules on the live map: collision, water, elevation, edge walls, warps, ledge hops and live objects. No block appears unless every gate's arms were read. It never says which push to make. Off: the map shows gates only by their arm marks and gate lines, as before."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -952,6 +954,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "rotating-gate-rules-v1",
   "rotating-gate-map-v1",
   "map-code-aliases-v1",
+  "rotating-gate-regions-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1291,6 +1294,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rotating-gate-navigation-v1"),
     ...when("reasoning-effort-request-v1"),
     ...when("rotating-gate-press-feedback-v1"),
+    ...when("rotating-gate-regions-v1"),
   ];
 }
 

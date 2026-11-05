@@ -96,7 +96,11 @@ class Sections:
 
 
 def build_sections(
-    rom: RomMap, rules: FloodRules | None = None, *, active_warps: bool = False
+    rom: RomMap,
+    rules: FloodRules | None = None,
+    *,
+    active_warps: bool = False,
+    arms: frozenset[frozenset[Tile]] = frozenset(),  # rotating-gate-regions-v1: no step across
 ) -> Sections:
     warps = {
         (x, y)
@@ -126,10 +130,13 @@ def build_sections(
                 continue
             nxt = (x + dx, y + dy)
             other = rom.block(*nxt)
+            if frozenset({(x, y), nxt}) in arms:
+                continue
             if other is not None and other[1] and LEDGES.get(other[3]) == (dx, dy):
+                hop = nxt
                 nxt = (x + 2 * dx, y + 2 * dy)
                 other = rom.block(*nxt)
-                valid = nxt in floor
+                valid = nxt in floor and frozenset({hop, nxt}) not in arms
             else:
                 valid = (
                     other is not None

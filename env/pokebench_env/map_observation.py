@@ -381,6 +381,7 @@ def render_observation(
     base_glyph: bool = False,  # needs compact: the code follows the glyph inside the cell
     gate_lines: bool = False,  # rotating-gate-map-v1: one line per gate, legend for what is drawn
     one_code: bool = False,  # map-code-aliases-v1, needs base_glyph: one letter per element token
+    gate_regions: tuple[str, ...] = (),  # rotating-gate-regions-v1: the block after the key line
 ) -> str:
     cells: dict[tuple[int, int], list[str]] = defaultdict(list)
     vertical: dict[tuple[int, int], str] = {}
@@ -548,6 +549,7 @@ def render_observation(
         "Gate | and - between cells mark edges; * marks a gate junction, not a solid cell. "
         "A + inside a cell remains a base edge wall."
     )
+    lines.extend(gate_regions)
     if legend:
         lines.append(
             "Element legend: "

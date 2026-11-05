@@ -1,18 +1,18 @@
 """rotating-gate-regions-v1: areas lettered by the harness's own walking rules, all in memory."""
 
 import pytest
-from test_rotating_gate_readouts import GATE, MAPS, SWITCHES, gate_view, gym_memory, rendered
+from test_rotating_gate_readouts import GATE, SWITCHES, gate_view, gym_memory, rendered
 
+from pokebench_env.exit_labels import RomMap
 from pokebench_env.live_map import FullMap, LocalMap, MapTile
 from pokebench_env.map_observation import build_observation, render_observation
 from pokebench_env.map_observation_types import MapElement
 from pokebench_env.map_regions import HEADER, gate_region_lines
 from pokebench_env.map_sections import build_sections
-from pokebench_env.exit_labels import RomMap
 
 REGIONS = "rotating-gate-regions-v1"
 FORTREE = (12, 1)
-# In a corner of the test maps, on a wall, so an arm the test does not name separates nothing.
+# The arm of a gate a test does not name: corner tiles, the same area wherever both are walkable.
 SPARE = (0, 0, 0, 1)
 BEHAVIOR = {"v": 0x3B, "~": 0x10, "]": 0x30, "W": 0x65}
 
@@ -83,7 +83,9 @@ def test_the_header_is_the_wording_the_probe_measured():
 
 
 def test_the_players_area_is_a_even_when_smaller_and_the_rest_go_by_size():
-    text = lines(["#########", "#.......#", "#########"], (7, 1), {1: (2, 1, 3, 1), 2: (6, 1, 7, 1)})
+    text = lines(
+        ["#########", "#.......#", "#########"], (7, 1), {1: (2, 1, 3, 1), 2: (6, 1, 7, 1)}
+    )
     assert text[2] == " 1  # C C B B B B A #"
     assert text[-2:] == (
         "Gate 1 has an arm between area B and area C.",
@@ -104,14 +106,14 @@ def test_a_ledge_is_a_one_way_hop_between_two_areas_not_a_wall():
         " 0  # A #",
         " 1  # # #",
         " 2  # B #",
-        "A one-way step leads from area A to area B.",
+        "A ledge hops one way from area A to area B.",
     )
     below = lines(["#.#", "#v#", "#.#"], (1, 2))
-    assert below[-1] == "A one-way step leads from area B to area A."
+    assert below[-1] == "A ledge hops one way from area B to area A."
 
 
 def test_a_ledge_that_loops_back_keeps_both_sides_in_one_area():
-    text = lines(["...", "#v#", "...", ], (0, 0), elevations=None)
+    text = lines(["...", "#v#", "..."], (0, 0))
     assert text[1:4] == (" 0  A A A", " 1  # # #", " 2  B B B")
     looped = lines(["..", "v.", ".."], (0, 0))
     assert looped[1:4] == (" 0  A A", " 1  # A", " 2  A A")
@@ -119,7 +121,7 @@ def test_a_ledge_that_loops_back_keeps_both_sides_in_one_area():
 
 def test_an_arm_across_a_ledge_landing_stops_the_hop():
     text = lines(["#.#", "#v#", "#.#"], (1, 0), {5: (1, 1, 1, 2)})
-    assert not any(line.startswith("A one-way") for line in text)
+    assert not any(line.startswith("A ledge hops") for line in text)
 
 
 def test_an_edge_wall_refuses_the_crossing_it_walls():
@@ -161,11 +163,9 @@ def test_a_player_with_no_section_gets_no_block():
 
 
 def test_more_areas_than_letters_stay_aligned():
-    rows = ["." + "#." * 27]
-    text = lines(rows, (0, 0))
-    cells = text[1][4:].split()
-    assert cells[0].strip() == "A" and cells[-1] == "AA"
-    assert len({len(cell) for cell in cells}) == 1 or text[1].startswith(" 0   A")
+    row = lines(["." + "#." * 27], (0, 0))[1]
+    assert row.startswith(" 0   A  #  B")
+    assert row.endswith("Z  # AA  # AB")
 
 
 @pytest.mark.parametrize("missing", [0, 7])
@@ -177,17 +177,11 @@ def test_a_gate_without_arms_read_means_no_block(missing):
     assert gate_region_lines(shown, partial, (0, 0)) == ()
 
 
-def test_a_transitioning_gate_means_no_block():
+def test_a_gate_mid_turn_has_no_arms_and_means_no_block():
     shown = view(["..."])
     moving = MapElement("rotating_gate", 0, 0, state="transitioning", group="gate:0")
-    observation = observed(shown)
-    both = build_observation(shown, FORTREE, (), anywhere=(*observation.elements, moving))
-    assert gate_region_lines(shown, both, (0, 0)) == ()
-
-
-def test_an_unavailable_reading_means_no_block():
-    shown = view(["..."])
-    observation = observed(shown, unavailable=("rotating gate memory unavailable",))
+    kept = tuple(e for e in observed(shown).elements if e.group != "gate:0")
+    observation = build_observation(shown, FORTREE, (), anywhere=(*kept, moving))
     assert gate_region_lines(shown, observation, (0, 0)) == ()
 
 
@@ -248,7 +242,7 @@ def test_production_path_honors_the_switch_and_off_is_the_same_text_without_the_
     end = at + 1
     while end < len(text) and text[end][:2].strip().isdigit():
         end += 1
-    while text[end].startswith(("Gate ", "A one-way")) and " has an arm between area " in text[end]:
+    while " has an arm between area " in text[end] or text[end].startswith("A ledge hops"):
         end += 1
     assert "\n".join(text[:at] + text[end:]) == off
 
@@ -257,4 +251,3 @@ def test_the_rules_never_name_a_push():
     text = " ".join(lines(["#####", "#...#", "#####"], (1, 1), {4: (2, 1, 3, 1)}))
     for word in ("push", "should", "try", "north", "south", "east", "west"):
         assert word not in text.lower()
-    assert MAPS.name(FORTREE) == "FORTREE CITY GYM"

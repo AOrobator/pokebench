@@ -119,3 +119,11 @@ it("context-token-budget-v1: the production factory builds a budget from the ser
  const event:RunEvent={v:1,run:"r",seq:1,t:"2026-10-20T00:00:00.000-04:00",type:"compaction",turn:3,from_tokens:900,to_tokens:400};
  expect(checkEvent(event)).toEqual(event);
 });
+
+it("ends every request with the current guide step only when rq-milestone-guide-v1 is on",async()=>{
+ const task:AgentMessage={role:"user",content:"observation",timestamp:1};
+ expect(await contextTools(OFF,recorder().api,base).transformContext([task])).toEqual([task]);
+ const r=recorder();
+ const out=await contextTools({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},base).transformContext([task]);
+ expect(out.at(-1)).toMatchObject({role:"user",content:expect.stringMatching(/^GUIDE: Choose NEW GAME/)});
+});

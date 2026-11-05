@@ -28,8 +28,7 @@ export const RAYQUAZA_GUIDE_STEPS:readonly GuideStep[]=[
  {"after": "RUSTBORO_CITY", "map": "RustboroCity", "note": "Train Mudkip to level 10 for Water Gun before the Gym. Rock types take big damage from it."},
  {"after": "RUSTBORO_CITY_GYM", "map": "RustboroCity_Gym", "note": "Beat Josh, Tommy and Marc with Water Gun on the way. Roxanne is at the back."},
  {"after": "ROXANNE_FIRST_INTERACTION", "map": "RustboroCity_Gym", "note": "Use Water Gun. It one-shots both Geodude. Nosepass takes several hits, so heal below half HP."},
- {"after": "STONE_BADGE", "map": "RustboroCity", "note": "Walk east through Rustboro, past about x=23, y=20-24, to trigger a theft scene. Dewford's boat is not available yet: Mr. Briney is away until this story is done."},
- {"after": "ROCK_TOMB_RECEIVED", "map": "Route116", "note": "Go east from Rustboro on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt inside. Catch a Taillow and an Abra on the way if you can."},
+ {"after": "ROCK_TOMB_RECEIVED", "map": "RustboroCity", "note": "Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow and Abra on the way. Mr. Briney's boat is not available until this story is done."},
  {"after": "RUSTURF_AQUA_GRUNT_DEFEATED", "map": "RusturfTunnel", "note": "Take the Devon Goods back to Rustboro and enter the Devon Corporation building."},
  {"after": "DEVON_CORPORATION", "map": null, "note": "Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford."},
  {"after": "POKENAV_RECEIVED", "map": "Route104", "note": "Get to Dewford by boat. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board the boat from the pier."},
@@ -53,6 +52,6 @@ export const RAYQUAZA_GUIDE_STEPS:readonly GuideStep[]=[
  {"after": "MT_CHIMNEY", "map": "MtChimney", "note": "Beat the Team Magma grunt and Tabitha, then Maxie at the machine. Against Maxie, use Guard Spec and X Attack first."},
  {"after": "MT_CHIMNEY_STORY_COMPLETE", "map": "JaggedPass", "note": "Walk south past the Cable Car to Jagged Pass and go down it to Lavaridge Town."},
  {"after": "LAVARIDGE_TOWN", "map": "LavaridgeTown", "note": "Heal at the Pokémon Center, then enter the Gym."},
- {"after": "LAVARIDGE_GYM_ENTERED", "map": "LavaridgeTown_Gym_1F", "note": "Steam vents move you between floors, and some listed warps only receive arrivals. Flannery is at the back. Use the vents toward her and do not retry a warp that does not work."},
+ {"after": "LAVARIDGE_GYM_ENTERED", "map": "LavaridgeTown_Gym_1F", "note": "Each vent swaps floors. Step on these in order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Then walk to Flannery at (13,9). Other listed warps may not work."},
  {"after": "FLANNERY_DEFEATED", "map": null, "note": "You have three badges. Heal, then continue the guide for the next stretch."},
 ];

@@ -46,8 +46,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| STONE_BADGE | RustboroCity | Walk east through Rustboro, past about x=23, y=20-24, to trigger a theft scene. Dewford's boat is not available yet: Mr. Briney is away until this story is done. | ROM, TR 7da5:560 |
-| ROCK_TOMB_RECEIVED | Route116 | Go east from Rustboro on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt inside. Catch a Taillow and an Abra on the way if you can. | KI 11, 12, ROM |
+| ROCK_TOMB_RECEIVED | RustboroCity | Walk east through Rustboro past about x=23, y=20-24 to trigger a theft scene, then go east on Route 116 to Rusturf Tunnel and beat the Team Aqua grunt. Catch Taillow and Abra on the way. Mr. Briney's boat is not available until this story is done. | KI 11, 12, ROM, TR 7da5:560 |
 | RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Take the Devon Goods back to Rustboro and enter the Devon Corporation building. | KI 12, 13 |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | Route104 | Get to Dewford by boat. On Route 104 south, enter Mr. Briney's house by the pier and talk to him inside. You cannot board the boat from the pier. | KI 15, tested 2026-11-05 |
@@ -81,10 +80,10 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | MT_CHIMNEY | MtChimney | Beat the Team Magma grunt and Tabitha, then Maxie at the machine. Against Maxie, use Guard Spec and X Attack first. | KI 24, battle plans |
 | MT_CHIMNEY_STORY_COMPLETE | JaggedPass | Walk south past the Cable Car to Jagged Pass and go down it to Lavaridge Town. | KI 25, WT 05 |
 | LAVARIDGE_TOWN | LavaridgeTown | Heal at the Pokémon Center, then enter the Gym. | KI 25 |
-| LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Steam vents move you between floors, and some listed warps only receive arrivals. Flannery is at the back. Use the vents toward her and do not retry a warp that does not work. CHECK | KI 26, PATH 3, TR ol4h:1670 |
+| LAVARIDGE_GYM_ENTERED | LavaridgeTown_Gym_1F | Each vent swaps floors. Step on these in order: 1F (8,9), B1F (5,14), 1F (0,10) after the ledge at (6,15), B1F (0,6), 1F (2,3), B1F (7,2), 1F (10,6), B1F (12,12) after the ledge at (10,10). Then walk to Flannery at (13,9). Other listed warps may not work. | KI 26, PATH 3, ROM, TR ol4h:1670 |
 | FLANNERY_DEFEATED | - | You have three badges. Heal, then continue the guide for the next stretch. | KI route |
 
 ## Needs
 
 - Every After id must exist in `packages/agent/src/milestones.ts`.
-- `CHECK` count: 2.
+- `CHECK` count: 1.

@@ -1185,6 +1185,15 @@ it("links the native Surf navigation card, default off",async()=>{
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links the rotating-gate regions card to its explainer, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ const id="rotating-gate-regions-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe("rotating-gate-regions-v1.html");
+ expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe("/explainers/rotating-gate-regions-v1.html");
+});
+
 it("links the six rotating-gate cards to one explainer, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);

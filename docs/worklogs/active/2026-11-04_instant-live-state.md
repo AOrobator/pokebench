@@ -29,6 +29,8 @@ Round 1 (Claude, 1bd040640, BLOCKING): in-flight thinking did not render (`turnS
 
 Round 2 (GPT LGTM at 0e5a594ac; Claude BLOCKING, fallback BLOCKING at b6713c3cc): snapshots with no stored thinking now keep the recorded fallback; `jumpToTail` clears in-flight fields. The fallback reviewer's other findings were already fixed in 0e5a594ac.
 
+Round 3 (Claude LGTM, fallback LGTM, GPT BLOCKING at dfd681770): a thought from an earlier turn no longer blocks the recorded fallback, fixed. Tail with deltas but no `turn_start` shows idle: rebutted, same recovery-only window as round 1, cleared by the next turn or the backfill (4.5 s in rehearsal).
+
 Rollout order: `just viewer-main` first, then `just current-main`.
 
 ## Principles self-review

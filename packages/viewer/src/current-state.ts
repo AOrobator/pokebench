@@ -100,7 +100,7 @@ export function parseCurrent(value: unknown): CurrentState {
 }
 export const behindLive=(size:number,offset:number,limit:number):boolean=>size-offset>limit;
 // A lagging feed shows the newest events at once; the skipped span is folded behind it and replaces this state when done.
-// In-flight fields are cleared: whatever was open in the saved state ended somewhere in the skipped span.
+// In-flight fields are cleared: the saved values are stale, and the backfill restores any still open.
 export function jumpToTail(saved:CurrentState,tail:readonly RunEvent[]):CurrentState{
   const first=tail[0];if(first===undefined)return saved;
   const seed:CurrentState={...saved,nextSeq:first.seq,openTools:{},requestAt:null,streaming:{thinking:"",text:""}};

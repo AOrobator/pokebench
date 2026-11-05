@@ -1649,7 +1649,7 @@ export class App {
     this.setHtml("split-times", splitTimes(splitView, this.frontier, recordedSplits, !this.frontierSettled && this.frontier === null));
     this.next.setLive(live ? view : null);
     this.ui("brand").textContent = brand(view);
-    const thinkingView = current?.snapshot != null && !current.snapshot.header.harness_features.includes("probe") && (view.isThinking || view.lastThought !== null) ? view : this.recordedThinking ?? (this.mode === "loading" ? null : view);
+    const thinkingView = current?.snapshot != null && !current.snapshot.header.harness_features.includes("probe") && (view.isThinking || view.lastThought?.turn === view.turn) ? view : this.recordedThinking ?? (this.mode === "loading" ? null : view);
     let dialog = thinkingView === null
       ? { head: "LOADING RECORDED THINKING…", body: '<span class="nodata">waiting for the selected run snapshot</span>' }
       : thinkingDialog(thinkingView, nowMs);

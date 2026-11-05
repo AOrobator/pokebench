@@ -19,8 +19,15 @@ describe("the one source of a run's reached splits", () => {
   });
 
   it("names the frontier milestone after the deepest one reached", () => {
-    expect(nextSplit(new Set())).toBe("NEW_GAME_CREATED");
-    expect(nextSplit(new Set(["NEW_GAME_CREATED"]))).not.toBe("NEW_GAME_CREATED");
+    expect(nextSplit(view(), new Set())).toBe("NEW_GAME_CREATED");
+    expect(nextSplit(view(), new Set(["NEW_GAME_CREATED"]))).not.toBe("NEW_GAME_CREATED");
+    expect(nextSplit(new RunView(), new Set())).toBe("NEW_GAME_CREATED");
+  });
+
+  it("claims no next split for a checkpoint start until it reaches one", () => {
+    const resumed = Object.assign(view(), { start: { ...START, start_state: { kind: "save_state", path: "gym.state", sha1: "a".repeat(40) } } });
+    expect(nextSplit(resumed, new Set())).toBeUndefined();
+    expect(nextSplit(resumed, new Set(["ROXANNE_DEFEATED"]))).toBeDefined();
   });
 
   it("keeps replay on the folded events so rewinding still hides later splits", () => {

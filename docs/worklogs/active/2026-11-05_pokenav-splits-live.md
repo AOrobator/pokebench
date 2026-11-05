@@ -23,3 +23,5 @@ Single milestone. Viewer-only, so no feature switch. No layout, timeline or trai
 - [ ] Land, `just viewer-main`, headless proof
 
 ## Multi-Model Review Log
+
+Round 1, packet 3095abed7..73b0a639c sha 08404330. Claude: LGTM. Fallback subagent: LGTM. GPT (gpt-5.6-sol): BLOCKING on one point: a checkpoint-start run with no split yet showed next new game created. Fixed in nextSplit, which now claims no next until such a run reaches one. Grok lane out of Cursor usage until 11/17.

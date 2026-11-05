@@ -174,7 +174,7 @@ function runSplits(view: RunView, recorded?: BestSplits | null): { name: string;
   const reached = source.map((m, i) => ({ m, i }))
     .sort((a, b) => storyIndex(a.m.name) - storyIndex(b.m.name) || a.i - b.i)
     .map(({ m }) => ({ name: m.name, label: splitLabel(m.name), at: m.at }));
-  const next = nextSplit(new Set(recorded === undefined ? view.milestones.map((m) => m.name) : source.map((m) => m.name)));
+  const next = nextSplit(view, new Set(recorded === undefined ? view.milestones.map((m) => m.name) : source.map((m) => m.name)));
   return next === undefined ? reached : [...reached, { name: next, label: splitLabel(next), at: null }];
 }
 

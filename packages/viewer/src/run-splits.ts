@@ -11,7 +11,9 @@ export function reachedSplits(view: RunView, recorded: BestSplits | undefined): 
   return view.milestones.filter((m) => m.origin !== "present_at_start").map((m) => ({ name: m.name, at: (m.ms - startMs - view.control.pausedBefore(m.ms)) / 1000, derived: m.derived === true }));
 }
 
-export function nextSplit(names: ReadonlySet<string>): string | undefined {
+// A checkpoint start with no split yet has no known position: its start milestones are not in the recorded splits.
+export function nextSplit(view: RunView, names: ReadonlySet<string>): string | undefined {
+  if (names.size === 0 && view.start !== null && view.start.start_state.kind !== "boot") return undefined;
   const deepest = Math.max(-1, ...FRONTIER_MILESTONES.map((m, i) => (names.has(m.id) ? i : -1)));
   return FRONTIER_MILESTONES[deepest + 1]?.id;
 }

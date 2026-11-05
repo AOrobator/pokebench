@@ -72,7 +72,7 @@ describe("current thinking in the checkpoint", () => {
   });
   it("reads checkpoints saved before thinking was stored", () => {
     const log = new Log(); log.add(0, START);
-    const { thought: _thought, streaming: _streaming, ...old } = apply(log);
+    const old: Record<string, unknown> = { ...apply(log) }; delete old["thought"]; delete old["streaming"];
     expect(parseCurrent(JSON.parse(JSON.stringify(old))).thought).toBeNull();
   });
   it("refuses a malformed stored thought", () => {

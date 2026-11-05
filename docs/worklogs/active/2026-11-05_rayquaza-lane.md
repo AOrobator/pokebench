@@ -98,4 +98,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - [x] Task D corrections, early route: split Brawly entry/exit paths, restore Norman’s Linoone and conditional Slaking plan, correct Route 120 candy tile, defer summit candy spending to `GOT`, attribute Winona’s Tropius moves correctly, qualify Maxie’s Crobat and Declan outcomes.
 - [x] Task D corrections, Mossdeep–Seafloor: state Mossdeep Gym start, split Mind Badge/occupation/Steven/Dive timing, keep Room 9’s approach after its trigger, and restore the post-Kyogre surface and Route 128–129 continuity.
 - [x] Task D corrections, Sky Pillar–Champion: restore Sky Pillar 1F (10,1), distinguish B2F water from the B1F return, make Wallace boosts survival-conditional, and apply the checker’s confirmed-row clarity/source improvements.
+- [x] Task D source audit: every changed guide row remains at most 300 characters and cites KI time/frame evidence, an audit id and ROM; the Weather Institute clarity edit now cites the observed grunt/Shelly interval.
 - Removed the Rustboro Teleport row: he walks that leg (audit C2).

@@ -80,7 +80,7 @@ describe("the page pieces", () => {
     expect(raceHeadline(raceOf([mark("A", 30)], frontier(["A", 10]), 40, -1), "r", 40)).toContain("r is 0:00:20 behind the FRONTIER!");
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["A", 10]), 40, -1), "r", 40)).toContain("r is level with the FRONTIER!");
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["B", 10]), 5, -1), "r", 5)).toContain("No shared milestones");
-    expect(raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40)).toContain("no frontier run");
+    expect(raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40)).toContain("no frontier comparison");
     expect(raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40, true)).toContain("Loading the frontier run");
     expect(raceHeadline(raceOf([mark("A", 10)], frontier(["A", 12]), 40, -1), "r", 40)).toContain("past the FRONTIER's last milestone");
   });
@@ -94,6 +94,7 @@ describe("the page pieces", () => {
     const slower = raceList(race, "dn", none);
     expect(slower).toContain("No slower milestones");
     expect(raceList(race, "up", none)).toContain("New game");
+    expect(raceList(raceOf([], null, 1, FRONTIER_MILESTONES.findIndex(m => m.id === "RAIN_BADGE")), "all", none)).toContain("No milestones yet");
   });
   it("shows every badge on the rail and marks what is not reached", () => {
     const html = raceRail(race);

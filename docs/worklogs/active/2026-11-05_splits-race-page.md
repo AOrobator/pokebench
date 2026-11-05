@@ -22,3 +22,5 @@ Single milestone. Viewer presentation plus trainer-page art, so no feature switc
 ## Multi-Model Review Log
 
 Round 1, packet f0b707872..ed6229b44 sha 13e1d25b. Claude, GPT and fallback subagent: BLOCKING, all real. Fixed in one batch: frontier loading no longer reads as no frontier; a loading or empty page clears every pane; ROUTE119-style locations place on the map; the replay graph follows the list; an unknown save and custom lanes do not race; memo keys cover split contents; no badge is current after the last; the map waits for its data.
+
+Round 2, delta ..2fc91a8f9. Claude: LGTM with small notes. GPT: BLOCKING on custom metadata not yet loaded and frontier contents missing from memo keys. Fixed with Claude's notes: the race waits for the run's card row, memo keys hold frontier contents, an unknown save has no graph, the empty list says no milestones. Round 3 runs past the cap because each blocker was a real bug and the operator asked to land.

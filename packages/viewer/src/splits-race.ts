@@ -100,7 +100,7 @@ function bar(gain: number | null, scale: number): string {
 }
 
 export function raceHeadline(race: Race, run: string, now: number, loading = false): string {
-  const lead = !race.compared ? loading ? "Loading the frontier run…" : `${esc(run)}: no frontier run to race yet.` : race.gap === null ? "No shared milestones with the FRONTIER yet." : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the FRONTIER!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the FRONTIER!`;
+  const lead = !race.compared ? loading ? "Loading the frontier run…" : `${esc(run)}: no frontier comparison for this run.` : race.gap === null ? "No shared milestones with the FRONTIER yet." : Math.abs(race.gap) < EVEN_SECONDS ? `${esc(run)} is level with the FRONTIER!` : `${esc(run)} is ${hms(Math.abs(race.gap))} ${race.gap < 0 ? "ahead of" : "behind"} the FRONTIER!`;
   const where = race.frontierEnd !== null && now > race.frontierEnd.at ? `${hms(now)} is past the FRONTIER's last milestone, ${esc(race.frontierEnd.label)} at ${hms(race.frontierEnd.at)}.` : race.frontierAt === null ? "" : `At ${hms(now)} the FRONTIER had reached ${esc(race.frontierAt.label)}.`;
   const pace = race.pace === null ? "" : ` ${race.pace.gain >= 0 ? "Gained" : "Lost"} ${short(race.pace.gain)} over the last ${String(race.pace.count)} milestone${race.pace.count === 1 ? "" : "s"}.`;
   const toPass = race.toPass.length === 0 ? "" : ` Still to pass: ${esc(race.toPass.slice(0, 3).join(", "))}.`;
@@ -134,7 +134,7 @@ export function raceList(race: Race, filter: RaceFilter, open: ReadonlySet<numbe
     const expanded = filter !== "all" || open.has(leg.index), summary = !race.compared ? `${String(leg.rows.length)} splits` : `${String(leg.faster)} faster · ${String(leg.slower)} slower${leg.gap === null ? "" : ` · ${stand(leg.gap)}`}`;
     return [`<section class="race-leg" data-race-section="${String(leg.index)}"><button type="button" class="race-head" data-race-leg="${String(leg.index)}" aria-expanded="${String(expanded)}"><i class="race-badge" style="--badge:${String(leg.index)}"></i><span class="race-title">${expanded ? "▾" : "▸"} ${leg.title.toUpperCase()}${leg.current ? " · NOW" : ""}</span>${race.compared ? bar(leg.gain, legScale) : "<span></span>"}${race.compared ? gainHtml(leg.gain, Math.abs(leg.gain) < EVEN_SECONDS ? "ev" : leg.gain > 0 ? "up" : "dn") : "<span></span>"}<span class="race-count">${summary}</span></button>${expanded ? `<ol>${[...rows].reverse().map(r => rowHtml(r, scale)).join("")}</ol>` : ""}</section>`];
   });
-  return groups.length === 0 ? `<p class="race-sub">No ${filter === "dn" ? "slower" : "faster"} milestones yet.</p>` : groups.join("");
+  return groups.length === 0 ? `<p class="race-sub">No ${filter === "all" ? "" : filter === "dn" ? "slower " : "faster "}milestones yet.</p>` : groups.join("");
 }
 
 export function raceFilters(filter: RaceFilter, race: Race): string {

@@ -108,3 +108,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: Guard Spec's ROM name ends in a period, and the viewer labels every milestone_hint as sent to the model. RED tests: name match and a separate guide_purchase_missed event.
 - Fixes: `guide_purchase_missed` event replaces the RQ_MISSED hint, shown in Activity History as not sent to the model; item names match without a trailing period.
 - Guide fixes gate green at b7797dcc5: 2,561 agent, 989 viewer, 2,930 + 38 Python, lint and vendor clean. Claude LGTM; GPT's `tail-run` point rebutted. Added `rayquaza-lane-8h-v2` so run 0952's ledger stays in place.
+- Guide fixes landed on main; viewer and projector refreshed; `just fixed-run check rayquaza-lane-8h-v2` passes.

@@ -55,3 +55,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - The rehearsal refused JIT v2 beside `context-exact-count-v1`, which can drop a turn that holds JIT guidance. Exact count is off in this lane's recipe and preset; `context-token-budget-v1` and `model-error-recovery-v1` stay on.
 - Hard cap: with exact count off, `context-token-budget-v1` stays on at 251,904 tokens and a test asserts it; `model-error-recovery-v1` lowers a sticky ceiling after any refusal.
 - Rehearsal rehearsal-boot-2 from clean boot: `OPTIONS_OPENED` turn 6, `OPTIONS_SET` turn 10, NEW GAME turn 13. First request 5,543 tokens against 9,407; system prompt 4,015 characters against 21,874.
+- GPT on 5b28ed1a2, CHANGES: switch must stay optional in presets, slim needs the guide on, a batched LEFT+B could fake `OPTIONS_SET`, decision probes rebuilt the unslimmed prompt. RED tests added.

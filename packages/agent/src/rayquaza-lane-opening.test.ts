@@ -40,6 +40,18 @@ describe("options from boot", () => {
     expect(guide.current().after).toBe("OPTIONS_OPENED");
   });
 
+  it("does not trust settings changed in the same press that left the menu", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(options(2, 1, 1));
+    guide.observe({ type: "button_press", buttons: ["LEFT", "B"] } as unknown as RunEvent);
+    guide.observe(state({}));
+    expect(guide.current().after).toBe("OPTIONS_OPENED");
+    guide.observe(options(2, 1, 1));
+    guide.observe({ type: "button_press", buttons: ["B"] } as unknown as RunEvent);
+    guide.observe(state({}));
+    expect(guide.current().after).toBe("OPTIONS_SET");
+  });
+
   it("keeps a START menu note after an early new game, until the settings are made", () => {
     const guide = new GuidePosition(steps);
     guide.observe(state({}));
@@ -83,6 +95,11 @@ describe("rq-slim-prompt-v1", () => {
     const battle = stableJitPrompts(ON, null, "battle").guidance;
     expect(parts(battle, "Trainer battles")).toBe(1);
     expect(parts(battle, "Overworld:")).toBe(0);
+  });
+
+  it("leaves the prompt whole when the guide that restores sections is off", () => {
+    const noGuide = { ...ON, "rq-milestone-guide-v1": false };
+    expect(parts(stableJitPrompts(noGuide, null, "unknown").core, "- learn_move")).toBe(1);
   });
 
   const context = (features = ON) => {

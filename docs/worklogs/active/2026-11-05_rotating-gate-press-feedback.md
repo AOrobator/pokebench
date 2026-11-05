@@ -1,7 +1,7 @@
 # Rotating-gate press feedback
 
 **Started:** 2026-11-05
-**Status:** in progress
+**Status:** reviewed, landing
 **Branch:** `claude/rotating-gate-press-feedback` (from main `2ca2ff475`), worktree `/private/tmp/pb-gate-press`.
 **Approval:** The operator asked for gate feedback on press as a correctness fix, on wherever its switch is on, relayed by the coordinator 2026-11-05.
 
@@ -22,7 +22,7 @@ Run 5f0f misread gate state at turns 1961, 1987 and 1997 by comparing eight gate
 
 - [x] M1: RED tests
 - [x] M2: GREEN, switch wiring, configs, explainer
-- [ ] M3: gates, reviews, landing
+- [x] M3: gates, reviews, landing
 
 ## Log
 
@@ -39,3 +39,9 @@ Round 1, packet 9173ccbe4..519460703, diff SHA-256 f7cd366630a574cac78e499ee739f
 - Fallback reviewer (fresh read-only subagent, Sonnet): LGTM.
 - GPT (Codex CLI gpt-5.6-sol): BLOCKING on two items. B2, no test through the dialogue wrapper: accepted, test added, it also asserts the Requested movement head is gone, which is why the trail rides on the press line. B1, silence when both snapshots lack map_observation: rebutted. Without an observation the agent cannot tell a gate map from any other map, this is the previous behaviour, and it states nothing false. `rotating-gate-positions-v1` needs `map-observability-v1`, so the observation exists wherever the switch is on; 0 of 92 replayed calls were unreadable.
 - Claude CLI default login expired; the lane moves to `CLAUDE_CONFIG_DIR=~/.claude-review`.
+
+Round 2, packet 9173ccbe4..29a4b52be, diff SHA-256 c1de312cc6afdc27260d7b323220ff247bb0a4b17a396cdc2823a50b9b2387c7.
+- Replacing `pressLineOf`'s return failed the new wrapper test; restored.
+- Claude CLI (`~/.claude-review`): LGTM. Follow-ups, not fixed here: "across this batch" could say net for three pushes one way in a raw batch, unreachable with `rejected-movement-prefix-v1` on; a step that changes map is counted in "the other steps" though not read.
+- GPT (Codex CLI gpt-5.6-sol): LGTM.
+- Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.

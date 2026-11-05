@@ -1,7 +1,7 @@
 # Rotating-gate turn reasons and push log
 
 **Started:** 2026-11-05
-**Status:** in progress
+**Status:** landed on local main; live proof comes with the 2-hour DeepSeek run.
 **Branch:** `claude/rotating-gate-turn-reasons` (from main `165f79568`), worktree `/private/tmp/pb-gate-turns`.
 **Approval:** The operator 2026-11-05 12:37 PM: "i want a bigger reply cap for deepseek 32k. we need to say which way a gate can turn and why a push was refused, we also need a log of every gate push." Then, relayed: "all of these switches should be on for the next astra and deepseek runs".
 
@@ -23,7 +23,7 @@ Both switches are agent side, read from the state already recorded: `map_observa
 
 - [x] M1: RED tests
 - [x] M2: GREEN, wiring, configs, explainer
-- [ ] M3: gates, reviews, landing
+- [x] M3: gates, reviews, landing
 
 ## Log
 
@@ -50,5 +50,11 @@ Round 3, packet 165f79568..af227d171, diff SHA-256 5adfee299f3891e8a6a3382ea28e1
 - Fallback reviewer: LGTM.
 - Claude CLI: BLOCKING, one finding: the facing check dropped 9 of 30 real refusals in 08b5, because the 10-frame hold turns the player and then meets the arm. Accepted. This reverses round 2's GPT item: the line says only that the arm did not turn, true either way, so the check is removed.
 - GPT: BLOCKING on three items. Unread first read said "entered": accepted, entry now needs an earlier different map. The feature card said "every": accepted, it states the 200-line limit. Explainer index and card test: accepted.
+
+Round 4, delta af227d171..1477dc2d9, packet 165f79568..1477dc2d9, diff SHA-256 b835cddd0a026d553580b8dbd9919cfb96ef8f5d635dd275937a27c28122b0d8.
+- Claude CLI: LGTM. Fallback reviewer: LGTM. GPT (Codex CLI gpt-5.6-sol): LGTM, replay 34 of 34 and 5 of 5 refusals name a wall.
+- Grok is out until 11/17: Claude, GPT and the fallback reviewer are full approval by the operator's standing rule.
+- Non-blocking: the comment in `rotating-gate-log.ts` says 08b5 logged 107 lines; the replay now gives 134, under the 200 limit. The first replay counts in this log predate the facing fix.
+- Gates at 37c65ac6f (1477dc2d9 plus main's docs-only commits): `just lint`, `just test` (agent 2508, viewer 893, env 2930, gateway 38, floors met, no-I/O proof OK), `just verify-vendor` pass.
 
 ## Landing

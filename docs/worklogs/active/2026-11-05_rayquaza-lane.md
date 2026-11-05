@@ -66,10 +66,15 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 
 - [x] Unit 1: correct Fly legs, post-Seafloor Pacifidlog order and Mach Bike directions (`U5`, `U6`, `U7`, `U32`, `U33`, `U35`).
   - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean.
+  - COMMIT: `docs(curriculum): correct Rayquaza route legs` (3d88baf32)
 - [x] Unit 2: add settled Repel, item and party-order instructions (`U8`, `U21`, `U24`, `U25`, `U27`, `U28`, `U31`, `U34`, `U43`–`U45`).
   - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Previous unit: 3d88baf32.
+  - COMMIT: `docs(curriculum): add Rayquaza route resources` (ef432a2b9)
 - [x] Unit 3: correct settled Gym and boss plans (`U22`, `U23`, `U26`, `U29`, `U30`, `U34`, `U35`, `U37`, `U38`).
   - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed after replacing a prohibited Abra search reference with owned-spare wording; `git diff --check` clean. Previous unit: ef432a2b9.
+  - COMMIT: `docs(curriculum): correct Rayquaza battle plans` (105174cf4)
 - [x] Unit 4: add settled hideout, cavern and Victory Road waypoints (`U27`, `U28`, `U31`, `U36`).
   - GREEN: guide generator produced 119 steps; `rayquaza-guide.test.ts` 25/25 passed; `git diff --check` clean. Victory Road B2F was checked from video frames v2:16:35–2:19:20 against ROM warps. Previous unit: 105174cf4.
+  - COMMIT: `docs(curriculum): add Rayquaza dungeon waypoints` (d0e03f572)
+- [x] Completion audit: 40 changed guide rows, all at most 300 characters, all triggered by registered milestones, and every Source names a KI frame/time, audit ID and ROM. Generated guide remains 119 steps.
 - OPEN, unchanged by operator direction: heal lines (`C1`), nicknames (`U41`), League deposit (`U40`), Rustboro X items (`C5`), XP trainers (`U10`, `U11`) and `town-center-checkpoint-v1` plus dependent Center/Teleport wiring (`U1`–`U3`). No `TO:` tags added.

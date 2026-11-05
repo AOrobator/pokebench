@@ -1,7 +1,7 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
-import {contextBudget,contextTools,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
+import {contextBudget,contextTools,finalGuide,loopSupervisor,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {budgetLimit} from "./context-budget.js";
 import {RunControl,STALL_STOP_MS} from "./run-control.js";
 import {Governor} from "./harness.js";
@@ -120,13 +120,12 @@ it("context-token-budget-v1: the production factory builds a budget from the ser
  expect(checkEvent(event)).toEqual(event);
 });
 
-it("ends every request with the current guide step only when rq-milestone-guide-v1 is on",async()=>{
+it("keeps the guide after anything a wrapped transform appends",async()=>{
  const task:AgentMessage={role:"user",content:"observation",timestamp:1};
- expect(await contextTools(OFF,recorder().api,base).transformContext([task])).toEqual([task]);
+ const autoTalk=(messages:AgentMessage[])=>Promise.resolve([...messages,{role:"user" as const,content:"auto-talk note",timestamp:2}]);
+ expect(await finalGuide(OFF,recorder().api,autoTalk)([task])).toHaveLength(2);
  const r=recorder();
- const out=await contextTools({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},base).transformContext([task]);
- const last=out.at(-1);
- expect(last?.role).toBe("user");
- expect(last?.role==="user"?last.content:null).toEqual(expect.any(String));
- expect(JSON.stringify(last)).toContain("GUIDE: Choose NEW GAME");
+ const out=await finalGuide({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},autoTalk)([task]);
+ expect(out).toHaveLength(3);
+ expect(JSON.stringify(out.at(-1))).toContain("GUIDE: Choose NEW GAME");
 });

@@ -109,6 +109,13 @@ describe("rq-battle-explainer-v1", () => {
     expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
   });
 
+  it("stays out of post-battle evolution, where the game's battle flag is still set", async () => {
+    const r = recorder();
+    const context = rayquazaGuideContext(both, r, inner, steps);
+    r.emit({ type: "state", started: true, in_battle: true, screen: "evolution", active_ui: null, map_id: [0, 0] } as unknown as RunEvent);
+    expect((await context([user("o")])).at(-1)).toMatchObject({ content: "GUIDE: Press right to leave the truck." });
+  });
+
   it("stays out when its own switch is off, and keeps within its size", async () => {
     const r = recorder();
     const context = rayquazaGuideContext({ ...ON, "rq-battle-explainer-v1": false }, r, inner, steps);

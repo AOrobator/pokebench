@@ -245,6 +245,17 @@ describe("Abra notes", () => {
     expect(notes(guide)).toEqual([]);
   });
 
+  it("stops offering Teleport once the player has reached the town on this step", () => {
+    const from = RAYQUAZA_GUIDE_STEPS.findIndex((s) => s.after === "HM_STRENGTH_RECEIVED");
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(from));
+    const mauville = { heal_before_trainers: { last_heal: [0, 2] } };
+    guide.observe(field({ ...mauville, map_id: [0, 26] }));
+    expect(notes(guide)).toHaveLength(1);
+    guide.observe(field({ ...mauville, map_id: [0, 2] }));
+    guide.observe(field({ ...mauville, map_id: [0, 26] }));
+    expect(notes(guide)).toEqual([]);
+  });
+
   it("delivers a note last and records it once while it applies", async () => {
     const recorded: { text: string; milestone: string }[] = [];
     let listener: (event: RunEvent) => void = () => undefined;

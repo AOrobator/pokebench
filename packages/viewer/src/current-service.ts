@@ -7,7 +7,7 @@ import {performance} from "node:perf_hooks";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {RUN_ID_PATTERN} from "@pokebench/agent/events";
-import {emptyCurrent,foldCurrent,type CurrentState} from "./current-state.js";
+import {behindLive,emptyCurrent,foldCurrent,jumpToTail,type CurrentState} from "./current-state.js";
 import {openCurrentStore,type SavedCurrent,type HistoryOffset,type CurrentStoreOptions} from "./current-store.js";
 import {CurrentSourceFile,openCurrentSource,currentRunDirectory,lineCursor,readCurrentLines,prefixSignature,sourceEvidence,SourceBudgetError,type LineCursor,type CurrentLine} from "./current-source.js";
 import {newDigest,parseDigest,updateDigest,finishDigest,checkpointDigest} from "./current-digest.js";
@@ -106,9 +106,16 @@ export class CurrentProjector{
   }finally{file.close();}
  }
  private async fold(job:Job,state:CurrentState,lines:readonly CurrentLine[]):Promise<CurrentState>{let next=state,slice=performance.now();for(const line of lines){if(line.event.run!==job.run)throw new Error("Foreign source run event");next=foldCurrent(next,line.event);if(line.event.type==="run_end"||line.event.type==="operator_control")job.force=true;if(performance.now()-slice>=this.limits.sliceMs){await yieldImmediate();slice=performance.now();}}return next;}
+ private jump(job:Job,source:CurrentSourceFile,signature:string):void{
+  const saved=job.current;if(saved===null||saved.state.end!==null||!job.aux.complete||!behindLive(source.stat.size,job.cursor.offset,this.limits.burstBytes))return;
+  const tail=this.tail(source,job.aux.headerEnd),first=tail[0];if(first===undefined||first.event.seq<=saved.state.seq)return;
+  job.aux.complete=false;job.aux.reconstruct=true;cover(job.aux,tail);job.stage=this.store.stage(saved.state,saved.source,[],JSON.stringify(job.aux));job.rebuild=job.cursor;
+  job.current=this.store.commit(jumpToTail(saved.state,tail.map(line=>line.event)),source.capture(tail.at(-1)?.end??job.cursor.offset,job.generation,signature),indexes(tail),1024,JSON.stringify(job.aux));job.cursor=lineCursor(job.current.source.offset);
+ }
  private async advance(job:Job,source:CurrentSourceFile,reconstruct:boolean):Promise<boolean>{
   const signature=sourceEvidence(source.path),saved=job.current??job.stage;if(saved===null)throw new Error("Missing source checkpoint");
   if(!source.compatible(saved.source)||signature!==saved.source.evidence||(job.stage!==null&&!source.compatible(job.stage.source))){this.store.remove(job.run);this.jobs.delete(job.run);this.initializing.delete(job.run);return true;}
+  this.jump(job,source,signature);
   job.aux.observedAt=this.now();if(job.aux.problem!==null){job.aux.problem=null;job.dirty=true;}this.healthOwner(job);if(job.current?.state.end===null&&this.monotonic()-job.lastCommit>=this.limits.healthMs)job.dirty=true;let progress=false;
   if(job.current!==null&&job.current.state.end===null){
    const batch=readCurrentLines(source,job.cursor,this.limits.chunkBytes,this.limits.records);if(batch.lines.length>0){job.current={...job.current,state:await this.fold(job,job.current.state,batch.lines),source:source.capture(job.cursor.offset,job.generation,signature)};cover(job.aux,batch.lines);job.index.push(...indexes(batch.lines));job.dirty=true;progress=true;}

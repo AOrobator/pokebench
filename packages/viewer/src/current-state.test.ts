@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RunView } from "./model.js";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
-import { currentView, emptyCurrent, foldCurrent, parseCurrent, MAX_OPEN_TOOLS, MAX_CURRENT_MILESTONES } from "./current-state.js";
+import { behindLive, currentView, emptyCurrent, foldCurrent, jumpToTail, parseCurrent, MAX_OPEN_TOOLS, MAX_CURRENT_MILESTONES } from "./current-state.js";
 
 const apply = (log: Log) => log.events.reduce((s, e) => foldCurrent(s, e), emptyCurrent());
 describe("durable current checkpoint", () => {
@@ -54,5 +54,43 @@ describe("durable current checkpoint", () => {
   });
   it("bounds pending tools with an injectable tiny limit",()=>{
     expect(MAX_OPEN_TOOLS).toBe(1024);const l=new Log();l.add(0,START);l.add(1,{type:"tool_call",turn:1,id:"a",name:"state",args:{}});let s=apply(l);const e=l.add(2,{type:"tool_call",turn:1,id:"b",name:"state",args:{}});expect(()=>foldCurrent(s,e,undefined,1)).toThrow(/pending/);s=foldCurrent(s,{...e,type:"tool_result",id:"a",name:"state",text:"ok",is_error:false,duration_ms:1,frames:[]});expect(s.openTools).toEqual({});
+  });
+});
+
+describe("current thinking in the checkpoint", () => {
+  it("restores the last thought after a JSON restart with no history", () => {
+    const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(3, assistant({ turn: 1, thinking: "go north", text: "ok" }));
+    const restored = parseCurrent(JSON.parse(JSON.stringify(apply(log))));
+    expect(currentView(restored).lastThought).toMatchObject({ turn: 1, thinking: "go north", reply: "ok" });
+  });
+  it("restores in-flight thinking, then clears it on the next turn", () => {
+    const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(2, { type: "assistant_delta", turn: 1, thinking: "hmm", text: "" });
+    const open = currentView(parseCurrent(JSON.parse(JSON.stringify(apply(log)))));
+    expect(open.streaming.thinking).toBe("hmm"); expect(open.isThinking).toBe(true);
+    log.add(3, assistant({ turn: 1, thinking: "hmm", text: "ok" })); log.add(1, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 9 } });
+    expect(currentView(apply(log)).streaming.thinking).toBe("");
+  });
+  it("reads checkpoints saved before thinking was stored", () => {
+    const log = new Log(); log.add(0, START);
+    const { thought: _thought, streaming: _streaming, ...old } = apply(log);
+    expect(parseCurrent(JSON.parse(JSON.stringify(old))).thought).toBeNull();
+  });
+  it("refuses a malformed stored thought", () => {
+    const log = new Log(); log.add(0, START);
+    expect(() => parseCurrent({ ...apply(log), thought: { turn: "1" } })).toThrow("Invalid current checkpoint");
+  });
+});
+
+describe("jumping a lagging feed to the tail", () => {
+  it("jumps only when the unread backlog exceeds the limit", () => {
+    expect(behindLive(100, 50, 49)).toBe(true);
+    expect(behindLive(100, 50, 50)).toBe(false);
+  });
+  it("shows the newest events now and keeps what it already knew", () => {
+    const log = new Log(); log.add(0, START); log.add(1, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(3, assistant({ turn: 1, thinking: "old", text: "old" }));
+    const saved = apply(log);
+    for (let turn = 2; turn < 50; turn++) { log.add(1, { type: "turn_start", turn, context: { messages: 1, images: 0, est_tokens: 9 } }); log.add(3, assistant({ turn, thinking: `t${String(turn)}`, text: "r" })); }
+    const jumped = jumpToTail(saved, log.events.slice(-2));
+    expect(jumped.turn).toBe(49); expect(jumped.thought?.thinking).toBe("t49"); expect(jumped.start).toEqual(saved.start);
   });
 });

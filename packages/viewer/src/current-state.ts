@@ -1,5 +1,5 @@
 import type { RunEvent } from "@pokebench/agent/events";
-import { RunView, isRunEvent, type ControlState, type StateEvent } from "./model.js";
+import { RunView, isRunEvent, type ControlState, type StateEvent, type Thought } from "./model.js";
 
 export const MAX_OPEN_TOOLS = 1024;
 export const MAX_CURRENT_MILESTONES = 1024;
@@ -12,6 +12,7 @@ export interface CurrentState {
   start: Start | null; end: End | null;
   state: StateEvent | null; partyState: StateEvent | null; card: RunView["cardState"]; health: RunView["partyHealth"];
   frame: string | null;
+  thought: Thought | null; streaming: { thinking: string; text: string };
   context: { estimated: Reading | null; measured: Reading | null };
   retry: RunView["retry"];
   totals: { input: number; output: number; retries: number; modelErrors: number; toolErrors: number; compactions: number; requests: number; latencyMs: number };
@@ -22,7 +23,7 @@ export interface CurrentState {
   milestones: Extract<RunEvent,{type:"milestone"}>[];
 }
 export function emptyCurrent(): CurrentState {
-  return { version:1, run:"",seq:-1,nextSeq:0,at:0,turn:0,start:null,end:null,state:null,partyState:null,card:null,health:null,frame:null,
+  return { version:1, run:"",seq:-1,nextSeq:0,at:0,turn:0,start:null,end:null,state:null,partyState:null,card:null,health:null,frame:null,thought:null,streaming:{thinking:"",text:""},
     context:{estimated:null,measured:null},retry:null,totals:{input:0,output:0,retries:0,modelErrors:0,toolErrors:0,compactions:0,requests:0,latencyMs:0},
     control:{state:"running",pausedMs:0,pauseAt:null,maxWallMs:null,maxTurns:null,lastExtensionRequest:null,emulatorFrozen:null},openTools:{},requestAt:null,warning:null,milestones:[] };
 }
@@ -37,6 +38,7 @@ export function currentView(s: CurrentState): RunView {
   // A compressed completed pause is equivalent for current elapsed time only.
   if(s.control.pausedMs>0)v.control.pauses.push({startMs:0,endMs:s.control.pausedMs});
   if(s.control.pauseAt!==null)v.control.pauses.push({startMs:s.control.pauseAt,endMs:null});
+  v.lastThought=s.thought;v.streaming=s.streaming;if(s.requestAt!==null)v.thinkingSpans.push({startMs:s.requestAt,endMs:null});
   return v;
 }
 export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNext = 1, toolLimit = MAX_OPEN_TOOLS, milestoneLimit = MAX_CURRENT_MILESTONES): CurrentState {
@@ -46,7 +48,7 @@ export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNe
   const ms=Date.parse(event.t);if(!Number.isFinite(ms))throw new Error("Invalid event time");
   const s=structuredClone(prior),v=currentView(s);v.apply(event);
   s.run=event.run;s.seq=event.seq;s.nextSeq=event.type==="run_start"?continuationNext:event.seq+1;s.at=ms;s.turn=v.turn;s.start=v.start===null?null:{...v.start,system_prompt:""};s.end=v.end;
-  s.state=v.state;s.partyState=v.partyState;s.card=v.cardState;s.health=v.partyHealth;s.frame=v.frame;s.retry=v.retry;
+  s.state=v.state;s.partyState=v.partyState;s.card=v.cardState;s.health=v.partyHealth;s.frame=v.frame;s.retry=v.retry;s.thought=v.lastThought;s.streaming=v.streaming;
   if(ms<prior.at)s.warning="Recorded time moved backwards; current display is not timing validation";
   s.totals.input=v.tokens.input;s.totals.output=v.tokens.output;s.totals.modelErrors=v.modelErrors;s.totals.toolErrors=v.toolErrors;s.totals.compactions=v.compactions;
   s.control={state:v.control.state,pausedMs:v.control.pauses.reduce((n,p)=>n+(p.endMs===null?0:Math.max(0,p.endMs-p.startMs)),0),pauseAt:v.control.pauses.find(p=>p.endMs===null)?.startMs??null,maxWallMs:v.control.maxWallMs,maxTurns:v.control.maxTurns,lastExtensionRequest:v.control.lastExtensionRequest,emulatorFrozen:v.control.emulatorFrozen};
@@ -91,5 +93,14 @@ export function parseCurrent(value: unknown): CurrentState {
   const card=s["card"];if(card!==null&&(!object(card)||!nullableString(card["name"])||!nullableString(card["location"])||!Array.isArray(card["party"])))return fail();
   const health=s["health"];if(health!==null&&(!object(health)||!isRunEvent(health["source"])||health["source"].run!==s["run"]||health["source"].type!=="state"||!("started" in health["source"])||health["source"].seq>s["seq"]||!Array.isArray(health["party"])||!Array.isArray(health["slots"])||!health["slots"].every(integer)))return fail();
   for(const tool of Object.values(tools))if(!object(tool)||!number(tool["at"])||typeof tool["name"]!=="string")return fail();
-  return value as unknown as CurrentState;
+  const thought=s["thought"]??null,streaming=s["streaming"]??{thinking:"",text:""};
+  if(thought!==null&&(!object(thought)||!integer(thought["turn"])||typeof thought["thinking"]!=="string"||typeof thought["reply"]!=="string"||!number(thought["latencyMs"])))return fail();
+  if(!object(streaming)||typeof streaming["thinking"]!=="string"||typeof streaming["text"]!=="string")return fail();
+  return {...value,thought,streaming} as unknown as CurrentState;
+}
+export const behindLive=(size:number,offset:number,limit:number):boolean=>size-offset>limit;
+// A lagging feed shows the newest events at once; the skipped span is folded behind it and replaces this state when done.
+export function jumpToTail(saved:CurrentState,tail:readonly RunEvent[]):CurrentState{
+  const first=tail[0];if(first===undefined)return saved;
+  return tail.reduce((s,event)=>foldCurrent(s,event),{...saved,nextSeq:first.seq});
 }

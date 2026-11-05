@@ -359,6 +359,7 @@ export const SWITCHABLE_FEATURES = [
   "rotating-gate-turn-reasons-v1",
   "rotating-gate-push-log-v1",
   "rq-milestone-guide-v1",
+  "rq-battle-explainer-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -839,6 +840,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rotating-gate-turn-reasons-v1", "guidance", "GATE TURNS AND REFUSALS", "rotating-gate-press-feedback-v1", "Default off. Run 08b5 read \"did not turn\" as a gate that cannot move at all, when only one turning direction was refused. On: on a map with rotating gates a note pinned before each decision says, for each gate, whether clockwise and counterclockwise are free or which wall tile an arm would swing into, and a refused press adds the turn it asked for and that wall. It runs the game's own RotatingGate_CanRotate check over the arms and collision already in the state, and says nothing unless all of it was read. It names no push, no target position and no route. The note is not kept in history. Off: no note, and press says only that the arm did not turn."),
   on("rotating-gate-push-log-v1", "guidance", "GATE PUSH LOG", "rotating-gate-turn-reasons-v1", "Default off. Run 08b5 lost the results of its own pushes when they left the context. On: the same pinned note lists, oldest first, each turn and refused push on the current gate map with its tile, direction and result, and each entry to the map with whether the gates are at their starting positions. It shows the newest 200 lines and says how many older lines it left out. It is built from recorded state and press events, so trimming the context cannot lose it, and it is not kept in history. Off: no log."),
   on("rq-milestone-guide-v1", "guidance", "RAYQUAZA LANE GUIDE", null, "Default off; Rayquaza lane only, never in a benchmark arm. Keeps the current step of the milestone guide as the final message of every request until the next step is earned, so the model has the next goal and how to reach it. Steps come from docs/curriculum. Off: no guide note is sent."),
+  on("rq-battle-explainer-v1", "guidance", "RAYQUAZA LANE BATTLE NOTE", "rq-milestone-guide-v1", "Default off; Rayquaza lane only. While a battle is active, ends each request with one short general battle note drawn from recorded mistakes: models lose on preparation, not move choice. Off: no battle note is sent."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1304,6 +1306,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rotating-gate-turn-reasons-v1"),
     ...when("rotating-gate-push-log-v1"),
     ...when("rq-milestone-guide-v1"),
+    ...when("rq-battle-explainer-v1"),
   ];
 }
 

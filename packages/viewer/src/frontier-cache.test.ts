@@ -48,9 +48,9 @@ describe("frontier cache", () => {
     expect(reads).toBe(1);
   });
 
-  it("answers a checkpoint resume at once: it races no frontier", async () => {
-    const cache = createFrontierCache({ read: () => new Promise(() => undefined), now: () => 0 });
-    expect(await cache.answer("resumed", true)).toEqual({ state: "ready", frontier: null });
+  it("keeps a checkpoint resume off the New Game frontier while nothing is ranked", async () => {
+    const cache = createFrontierCache({ read: () => new Promise(() => undefined), now: () => 0, waitMs: 1 });
+    expect(await cache.answer("resumed", true)).toEqual({ state: "loading", frontier: null });
   });
 
   it("warms at start and survives a failed ranking, reporting it once", async () => {

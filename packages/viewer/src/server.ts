@@ -25,14 +25,13 @@ import { FEATURES } from "@pokebench/agent/features";
 import { CONTROL_ACTIONS, type RunEvent } from "@pokebench/agent/events";
 import type { BaselineStore, RunStore } from "./baseline-store.js";
 import { createCardReader, createCardStore } from "./baseline-store.js";
-import { resumedCheckpoint } from "./frontier.js";
 import { createFrontierCache, type FrontierCache } from "./frontier-cache.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
 import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
-import { cardWorkbench, createWorkbenchLoader, runResume, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
+import { cardWorkbench, createWorkbenchLoader, runFromSave, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
 import { defaultViewerBuild, skewOf, type Skew, type ViewerBuild } from "./build-stamp.js";
 import { FEATURE_EXPLAINERS, STANDING_EXPLAINERS } from "./panels.js";
@@ -625,7 +624,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if (parts.length === 4 && leaf === "frontier") {
       if (!existsSync(dir)) throw new RunsError(`no run ${id}`);
-      sendJson(res, 200, await frontier.answer(id, resumedCheckpoint(runResume(options.runsRoot, id))));
+      sendJson(res, 200, await frontier.answer(id, runFromSave(options.runsRoot, id)));
       return;
     }
     if (parts.length === 4 && leaf === "milestones") {

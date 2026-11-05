@@ -11,9 +11,10 @@ export class GuidePosition {
  private furthest=0;
  constructor(private readonly steps:readonly GuideStep[]) {}
  observe(event:RunEvent):void {
-  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"?this.steps.findIndex(step=>step.enter?.[0]===event.map_id?.[0]&&step.enter?.[1]===event.map_id?.[1]):-1;
+  const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id):-1;
   if(reached>this.furthest)this.furthest=reached;
  }
+ private onMap(id:readonly [number,number]):number {return this.steps.findIndex(step=>step.enter?.[0]===id[0]&&step.enter[1]===id[1]);}
  current():GuideStep {
   const step=this.steps[this.furthest];
   if(step===undefined)throw new Error("guide has no steps");

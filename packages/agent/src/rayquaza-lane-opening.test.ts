@@ -1,13 +1,12 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
-import preset from "../../../experiments/presets/rayquaza-lane-8h.json" with { type: "json" };
-import type { FeatureSet } from "./features.js";
+import { rayquazaLaneFeatures } from "../test-support/rayquaza-lane.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { BRINEY_NOTE, CALL_NOTE, GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
-const ON = preset.features as FeatureSet;
+const ON = rayquazaLaneFeatures();
 const steps: readonly GuideStep[] = [
   { after: "RUN_START", map: null, note: "Choose OPTION." },
   { after: "OPTIONS_OPENED", map: null, note: "Set them." },

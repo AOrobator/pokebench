@@ -127,3 +127,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: BRINEY_NOTE window now ends at Mauville so it covers a Route 110 loss; shop note goes first. Data regenerated.
 - Added rayquaza-lane-8h-v3 definition for the restart.
 - Final gate green at 0a031a02b: 2,585 agent, 991 viewer, 2,965 + 38 Python, lint and vendor clean. Claude LGTM. GPT returned CHANGES once with findings I lost to output truncation, then LGTM on an identical rerun.
+- RED: lane recipe as an overlay on current (the operator: a pointer to control, not a hand copy). Tests pin the resolved recipe against frozen copies of today's current and lane files; agent tests derive the lane from control plus overlay.

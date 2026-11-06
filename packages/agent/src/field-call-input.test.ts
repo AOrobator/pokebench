@@ -2,9 +2,8 @@ import {describe,expect,it} from "vitest";
 import {Type} from "typebox";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import preset from "../../../experiments/presets/current-control-24h-8k.json" with {type:"json"};
-import rayquazaPreset from "../../../experiments/presets/rayquaza-lane-8h.json" with {type:"json"};
 import current from "../../../experiments/feature-configs/current.json" with {type:"json"};
-import rayquaza from "../../../experiments/feature-configs/rayquaza-lane.json" with {type:"json"};
+import {rayquazaLanePreset} from "../test-support/rayquaza-lane.js";
 import {IN_GAME} from "../test-support/events.js";
 import {LEGACY_ALL_ON} from "../test-support/legacy-features.js";
 import type {AutoAdvanceRecorder} from "./dialogue-auto-advance.js";
@@ -79,12 +78,10 @@ describe(FIELD_CALL_ID,()=>{
   expect(parsed.features[FIELD_CALL_ID]).toBe(false);
   expect(flagFeatures({} as Parameters<typeof flagFeatures>[0])[FIELD_CALL_ID]).toBe(false);
  });
- it("is on in both arms of the current and Rayquaza recipes and their plain presets",()=>{
-  for(const recipe of [current,rayquaza]){
-   expect(recipe.onInBoth).toContain(FIELD_CALL_ID);
-   expect((recipe.features as Record<string,boolean>)[FIELD_CALL_ID]).toBe(true);
-  }
-  for(const plain of [preset,rayquazaPreset])expect((plain.features as Record<string,boolean>)[FIELD_CALL_ID]).toBe(true);
+ it("is on in both arms of the current recipe, its plain preset and the Rayquaza lane it reaches",()=>{
+  expect(current.onInBoth).toContain(FIELD_CALL_ID);
+  expect((current.features as Record<string,boolean>)[FIELD_CALL_ID]).toBe(true);
+  for(const plain of [preset,rayquazaLanePreset()])expect((plain.features as Record<string,boolean>)[FIELD_CALL_ID]).toBe(true);
  });
 
  it("decides from the reader's text state alone",()=>{

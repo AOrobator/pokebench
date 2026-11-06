@@ -1,8 +1,7 @@
 import {describe,expect,it} from "vitest";
 import preset from "../../../experiments/presets/current-control-24h-8k.json" with {type:"json"};
-import rayquazaPreset from "../../../experiments/presets/rayquaza-lane-8h.json" with {type:"json"};
 import current from "../../../experiments/feature-configs/current.json" with {type:"json"};
-import rayquaza from "../../../experiments/feature-configs/rayquaza-lane.json" with {type:"json"};
+import {rayquazaLanePreset} from "../test-support/rayquaza-lane.js";
 import {ALL_ON,FEATURES,SERVER_FEATURES,SWITCHABLE_FEATURES,playHarnessFeatures,serverFeatureEnv} from "./features.js";
 import {flagFeatures,parsePlayPreset} from "./play-preset.js";
 
@@ -28,11 +27,9 @@ describe(ID,()=>{
   expect(parsed.features[ID]).toBe(false);
   expect(flagFeatures({} as Parameters<typeof flagFeatures>[0])[ID]).toBe(false);
  });
- it("is on in both arms of the current and Rayquaza recipes and their plain presets",()=>{
-  for(const recipe of [current,rayquaza]){
-   expect(recipe.onInBoth).toContain(ID);
-   expect((recipe.features as Record<string,boolean>)[ID]).toBe(true);
-  }
-  for(const plain of [preset,rayquazaPreset])expect((plain.features as Record<string,boolean>)[ID]).toBe(true);
+ it("is on in both arms of the current recipe, its plain preset and the Rayquaza lane it reaches",()=>{
+  expect(current.onInBoth).toContain(ID);
+  expect((current.features as Record<string,boolean>)[ID]).toBe(true);
+  for(const plain of [preset,rayquazaLanePreset()])expect((plain.features as Record<string,boolean>)[ID]).toBe(true);
  });
 });

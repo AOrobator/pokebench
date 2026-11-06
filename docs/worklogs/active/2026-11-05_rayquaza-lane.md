@@ -145,3 +145,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Fix: a launched preset takes the generated text once features match, so schedule edits apply.
 - Final gate green. Claude's finding fixed as it proposed. GPT's last finding rebutted: launchedRecipeReader runs only for definitions that name a recipe, so complete definitions never reach it; the concurrent-runner race predates this change.
 - Run aeb8 lost to Grovyle three times with 3 X Attacks and 2 X Speeds unused; the guide's no-boost wording blocked them. RED test for a boost-first rival line.
+- Rival line now boosts on Wingull or Slugma before Grovyle.

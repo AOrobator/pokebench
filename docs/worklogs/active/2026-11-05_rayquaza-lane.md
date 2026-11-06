@@ -147,3 +147,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Run aeb8 lost to Grovyle three times with 3 X Attacks and 2 X Speeds unused; the guide's no-boost wording blocked them. RED test for a boost-first rival line.
 - Rival line now boosts on Wingull or Slugma before Grovyle.
 - GPT fact check: Slugma is the boost target, and Absorb heals Grovyle. Wording fixed.
+- Rival line gate green: 2,636 agent, 1,072 viewer, 2,965 + 38 Python, lint and vendor clean. Claude and GPT reviewed; GPT's wording applied.

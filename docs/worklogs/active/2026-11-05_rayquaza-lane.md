@@ -134,3 +134,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - GPT review 1 CHANGES: reasons not enforced as one line by the resolver. Fixed in the schema (non-blank, one line, 120 chars) with tests.
 - GPT review 2 CHANGES: drift report now fails on an unreadable ledger and also searches archived definitions. Ordering by launch time kept: a launch ledger's order is the lane's order, and runs differ only by seconds when concurrent.
 - Merged main at 4d70e007c: the junk filter and field dialogue promotion reach the lane through the pointer, no hand edit.
+- Merge left README conflict markers in 027756d96; resolved to keep both sides.

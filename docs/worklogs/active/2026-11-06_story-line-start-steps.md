@@ -4,5 +4,8 @@ The operator 2026-11-06, "Yes, list them". The Story line and the briefing's don
 
 - [x] RED: tests in `story-line-campaign.test.ts`
 - [x] GREEN: focused suites pass.
-- [x] Replay: end-of-run Story line. ee2a 38 items to 82, 979 characters to 2,027, with knuckle, dynamo, heat and balance badges between route104 cindy and winona. 274b, from boot, has no steps present at the start and is unchanged at 79 items, 1,979 characters. Config and explainer done.
+- [x] Replay: end-of-run Story line through `CampaignSteps`, which does not exercise wiring order (see the review log). ee2a 38 items to 82, 979 characters to 2,027, with knuckle, dynamo, heat and balance badges between route104 cindy and winona. 274b, from boot, has no steps present at the start and is unchanged at 79 items, 1,979 characters. Config and explainer done.
 - [ ] Gates, review, landing
+
+Review round 1. GPT and Claude both BLOCKING on the same bug: present-at-start milestones are recorded in `recorder.start()`, before the tools subscribe, so a real checkpoint run would keep the old line while the briefing listed the steps. Fix: the wrapper asks for milestone replay, only with this switch on, so off stays exact. Checked against the real `RunRecorder`. GPT also: the briefing half needs `story-briefing-native-milestones-v1`, so the feature text now says so. Claude: two pages still said start steps are left out, corrected. First gate run (on 9ecca8d7a) passed but predates this fix.
+

@@ -106,3 +106,15 @@ it("registers story-line-start-steps-v1 with an Off clause, needing the campaign
  const info=featureInfo("story-line-start-steps-v1");
  expect(info.description).toContain(" Off: ");expect(info.needs).toBe("story-line-campaign-flags-v1");
 });
+
+it("start steps on: milestones recorded before the tools were built are replayed to the wrapper",async()=>{
+ const early=milestone("KNUCKLE_BADGE","present_at_start");
+ const [wrapped]=withStoryLineCampaign([tool],{...ALL_ON,"story-line-campaign-flags-v1":true,"story-line-start-steps-v1":true},{subscribe:(fn,replay)=>{if(replay===true)fn(early);}});
+ expect(await textOf(wrapped)).toBe(`${OLD}; knuckle badge`);
+});
+
+it("start steps off: the wrapper does not ask for milestone replay",()=>{
+ const asked:(boolean|undefined)[]=[];
+ withStoryLineCampaign([tool],{...ALL_ON,"story-line-campaign-flags-v1":true,"story-line-start-steps-v1":false},{subscribe:(_fn,replay)=>{asked.push(replay);}});
+ expect(asked).toEqual([false]);
+});

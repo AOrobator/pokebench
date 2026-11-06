@@ -32,10 +32,11 @@ export class CampaignSteps {
 
 const carriesState=(details:unknown):boolean=>typeof details==="object"&&details!==null&&"state" in details;
 
-export function withStoryLineCampaign(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(fn:(event:RunEvent)=>void):void}):AgentTool[] {
+export function withStoryLineCampaign(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(fn:(event:RunEvent)=>void,replayMilestones?:boolean):void}):AgentTool[] {
  if(!features["story-line-campaign-flags-v1"])return [...tools];
  const steps=new CampaignSteps(features["story-line-start-steps-v1"]);
- recorder.subscribe(event=>{steps.observe(event);});
+ // story-line-start-steps-v1: milestones present at the start are recorded before the tools exist, so they are replayed here.
+ recorder.subscribe(event=>{steps.observe(event);},features["story-line-start-steps-v1"]);
  return tools.map(tool=>({...tool,execute:async(id,args,signal,update)=>{
   const result=await tool.execute(id,args,signal,update);
   // Only a game readout's Story line: a model-authored echo in another tool's result is not one.

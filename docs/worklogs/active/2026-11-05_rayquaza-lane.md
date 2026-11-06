@@ -136,3 +136,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Merged main at 4d70e007c: the junk filter and field dialogue promotion reach the lane through the pointer, no hand edit.
 - Merge left README conflict markers in 027756d96; resolved to keep both sides.
 - RED: a launched lane must keep what it launched. Claude review found a runner restart re-resolves the overlay, so a promotion in current marks a correct run invalid and rewrites presets. Tests reproduce the sequence.
+- GREEN: once the ledger has a launch, run and rerun use the launched recipe (resolved-recipe.json, or derived from presets whose bytes match the launch) and presets stay unrewritten. Read-only proof on v3: frozen bits 0 mismatches against aeb8's run_start; live differs by the junk filter only. No file written under the live experiment.

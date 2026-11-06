@@ -20,7 +20,8 @@ import { laneApiKey, runFixed, type FixedHost, type FixedRunOptions, type Servin
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
 import { frozenPlay } from "./frozen-play.js";
-import {fileLaneRunReads,readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
+import {fileLaneRunReads,fileLaunchedRecipeReads,FROZEN_RECIPE_FILE,readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
+import {frozenRecipeToWrite,type LaunchedRecipeReads} from "./fixed-launched-recipe.js";
 import {laneDriftReport,type LaneRunReads} from "./fixed-lane-drift.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
@@ -77,8 +78,8 @@ function loadText(deps: FixedCliDeps, id: string): string {
   return readFileSync(path, "utf8");
 }
 
-function load(deps: FixedCliDeps, id: string): ReturnType<typeof readFixedDefinition> {
-  const loaded = readFixedDefinition(deps.root,id);
+function load(deps: FixedCliDeps, id: string, launched?: LaunchedRecipeReads): ReturnType<typeof readFixedDefinition> {
+  const loaded = readFixedDefinition(deps.root,id,false,launched);
   for (const { start } of loaded.definition.phases) {
     if (start.kind !== "save_state") continue;
     const actual = deps.sha1File(join(deps.root, start.path));
@@ -142,8 +143,14 @@ function requireDefinitionRom(deps: FixedCliDeps, romSha1: string, def: FixedDef
 
 async function run(deps: FixedCliDeps, id: string): Promise<void> {
   const rom = requireRom(deps);
-  const { definition: def, sha256: digest } = load(deps, id);
+  const launched = fileLaunchedRecipeReads(deps.runsRoot, id);
+  const { definition: def, sha256: digest, recipeText } = load(deps, id, launched);
   requireDefinitionRom(deps, rom, def);
+  const frozen = frozenRecipeToWrite(launched, recipeText);
+  if (frozen !== null) {
+    mkdirSync(experimentDir(deps, id), { recursive: true });
+    writeFileSync(join(experimentDir(deps, id), FROZEN_RECIPE_FILE), frozen);
+  }
   const result = await deps.run({ def, definitionSha256: digest, runsRoot: deps.runsRoot, host: deps.host(), stopRequested: deps.stopRequested ?? (() => false), pid: process.pid, dryRun: false });
   deps.out(`${id}: ${result}`);
 }
@@ -189,7 +196,7 @@ async function rerun(argv: readonly string[], deps: FixedCliDeps, id: string): P
   const arm = flag(argv, "--arm"), laneId = flag(argv, "--lane");
   if (!FIXED_ARMS.some((a) => a === arm)) throw new CliError(`--arm must be one of ${FIXED_ARMS.join(", ")}`);
   const rom = requireRom(deps);
-  const { definition: def } = load(deps, id);
+  const { definition: def } = load(deps, id, fileLaunchedRecipeReads(deps.runsRoot, id));
   requireDefinitionRom(deps, rom, def);
   const lane = def.lanes.find((l) => l.id === laneId);
   if (lane === undefined) throw new CliError(`--lane must be one of ${def.lanes.map((l) => l.id).join(", ")}`);

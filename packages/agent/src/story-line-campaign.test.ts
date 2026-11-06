@@ -33,7 +33,7 @@ it("replaces no-completion text, and leaves an unreadable story line and other t
  expect(s.line("no line here")).toBe("no line here");
 });
 
-const tool:AgentTool={name:"observe",label:"o",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:OLD}],details:{}})};
+const tool:AgentTool={name:"observe",label:"o",description:"d",parameters:Type.Object({}),execute:()=>Promise.resolve({content:[{type:"text",text:OLD}],details:{state:{}}})};
 function wired(features:FeatureSet){
  const listeners:((e:RunEvent)=>void)[]=[];
  const tools=withStoryLineCampaign([tool],features,{subscribe:fn=>{listeners.push(fn);}});
@@ -52,6 +52,14 @@ it("on: the production wrapper rewrites the Story line in the result",async()=>{
  const {tools,emit}=wired({...ALL_ON,"story-line-campaign-flags-v1":true});
  emit(milestone("FEATHER_BADGE"));
  expect(await textOf(tools[0])).toBe(`${OLD}; feather badge`);
+});
+
+it("on: a tool result with no game state is left alone, even if its text looks like a Story line",async()=>{
+ const echo:AgentTool={...tool,name:"remember_destination",execute:()=>Promise.resolve({content:[{type:"text",text:"go north\nStory: no completion confirmed"}],details:{}})};
+ const listeners:((e:RunEvent)=>void)[]=[];
+ const [wrapped]=withStoryLineCampaign([echo],{...ALL_ON,"story-line-campaign-flags-v1":true},{subscribe:fn=>{listeners.push(fn);}});
+ for(const l of listeners)l(milestone("FEATHER_BADGE"));
+ expect(await textOf(wrapped)).toBe("go north\nStory: no completion confirmed");
 });
 
 it("registers the switch with an Off clause",()=>{

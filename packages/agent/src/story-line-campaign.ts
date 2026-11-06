@@ -28,12 +28,16 @@ export class CampaignSteps {
  }
 }
 
+const carriesState=(details:unknown):boolean=>typeof details==="object"&&details!==null&&"state" in details;
+
 export function withStoryLineCampaign(tools:readonly AgentTool[],features:FeatureSet,recorder:{subscribe(fn:(event:RunEvent)=>void):void}):AgentTool[] {
  if(!features["story-line-campaign-flags-v1"])return [...tools];
  const steps=new CampaignSteps();
  recorder.subscribe(event=>{steps.observe(event);});
  return tools.map(tool=>({...tool,execute:async(id,args,signal,update)=>{
   const result=await tool.execute(id,args,signal,update);
+  // Only a game readout's Story line: a model-authored echo in another tool's result is not one.
+  if(!carriesState(result.details))return result;
   return {...result,content:result.content.map(part=>part.type==="text"?{...part,text:steps.line(part.text)}:part)};
  }}));
 }

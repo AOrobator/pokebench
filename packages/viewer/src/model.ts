@@ -10,6 +10,7 @@ import { eventMs, hms, num } from "./format.js";
 export const RETIRED_VISIBILITY = {id:"player-map-visibility-v1",label:"PLAYER MAP VISIBILITY V1 (RETIRED)",description:"Historical screen-limited visibility, removed after a connected-map identity bug. Recorded settings and replay remain available; this behavior cannot be enabled or reconstructed by the current harness."} as const;
 
 const HELD_DROUGHT = "Not sent (drought-battle-heal-hold-v1): ";
+const HELD_FIRST_VISIT = "Not sent (first-visit-cycle-credit-v1): ";
 const FACTUAL_DROUGHT = "Not sent (drought-progress-facts-v1): ";
 const SUPPRESSED_DROUGHT = "Not sent (milestone-drought-suppression-v1): ";
 
@@ -427,7 +428,7 @@ export class RunView {
       case "loop_guard":
         // same-target-no-progress-v1 stays off the closed timeline (operator decision 2026-10-16), and so do the drought
         // briefings drought-battle-heal-hold-v1 held (Activity History and the inspector only).
-        if (event.kind !== "same_target_no_progress" && !event.message.startsWith(HELD_DROUGHT) && !(event.kind === "milestone_drought" && "mode" in event && event.mode === "diagnostic" && event.phase === "would_warn" && (event.message.startsWith(SUPPRESSED_DROUGHT) || event.message.startsWith(FACTUAL_DROUGHT)))) this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
+        if (event.kind !== "same_target_no_progress" && !event.message.startsWith(HELD_DROUGHT) && !event.message.startsWith(HELD_FIRST_VISIT) && !(event.kind === "milestone_drought" && "mode" in event && event.mode === "diagnostic" && event.phase === "would_warn" && (event.message.startsWith(SUPPRESSED_DROUGHT) || event.message.startsWith(FACTUAL_DROUGHT)))) this.errors.push({ms,kind:"loop",label:this.loopLabel(event)});
         break;
       case "text_only_supervisor":
         this.errors.push({ ms, kind: "loop", label: `Text-only supervisor ${String(event.note)}/${String(event.limit)} · turn ${String(event.turn)}: ${event.text}` });

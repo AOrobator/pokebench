@@ -73,3 +73,36 @@ it("on: the supervisor briefing lists each step once when the Story line already
  b.observe(checkEvent({v:1,run:"r",t:"2026-11-05T12:00:00.000-05:00",turn:2,seq:++seq,type:"tool_result",id:"x",name:"observe",is_error:false,duration_ms:1,text:`${OLD}; feather badge`,frames:[]}));
  expect(b.stallText({kind:"interface_dwell",name:"menu",calls:30},30).match(/feather badge/g)).toHaveLength(1);
 });
+
+// story-line-start-steps-v1: steps the save already held when the run started.
+it("start steps off: steps present at the start stay out, as today",()=>{
+ const s=new CampaignSteps();s.observe(milestone("KNUCKLE_BADGE","present_at_start"));
+ expect(s.line(OLD)).toBe(OLD);
+});
+it("start steps on: steps present at the start are listed first, in order, then the run's own",()=>{
+ const s=new CampaignSteps(true);
+ s.observe(milestone("KNUCKLE_BADGE","present_at_start"));s.observe(milestone("DYNAMO_BADGE","present_at_start"));s.observe(milestone("FEATHER_BADGE"));
+ expect(s.line(OLD)).toBe(`${OLD}; knuckle badge; dynamo badge; feather badge`);
+});
+it("start steps on: a step of another kind or an optional one is still left out",()=>{
+ const s=new CampaignSteps(true);s.observe(milestone("ROUTE_121","present_at_start","navigation"));
+ expect(s.line(OLD)).toBe(OLD);
+});
+const briefed=(start:boolean)=>{
+ const b=new SupervisorBriefing({...ALL_ON,"story-briefing-native-milestones-v1":true,"story-line-campaign-flags-v1":true,"story-line-start-steps-v1":start,"story-state-v1":true,"loop-guard-supervisor-v1":true});
+ b.observe(milestone("KNUCKLE_BADGE","present_at_start"));
+ return b.stallText({kind:"interface_dwell",name:"menu",calls:30},30);
+};
+it("start steps: the briefing's done list carries them only with the switch on",()=>{
+ expect(briefed(true)).toContain("knuckle badge");
+ expect(briefed(false)).not.toContain("knuckle badge");
+});
+it("start steps on: the production wrapper lists them",async()=>{
+ const {tools,emit}=wired({...ALL_ON,"story-line-campaign-flags-v1":true,"story-line-start-steps-v1":true});
+ emit(milestone("KNUCKLE_BADGE","present_at_start"));
+ expect(await textOf(tools[0])).toBe(`${OLD}; knuckle badge`);
+});
+it("registers story-line-start-steps-v1 with an Off clause, needing the campaign steps switch",()=>{
+ const info=featureInfo("story-line-start-steps-v1");
+ expect(info.description).toContain(" Off: ");expect(info.needs).toBe("story-line-campaign-flags-v1");
+});

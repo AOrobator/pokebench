@@ -151,3 +151,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - aeb8 used a Repel on Route 116 before the grass (T302), so it met no Taillow. RED test: catch before any Repel; Route 110 fallback and level target.
 - Rows: Taillow before Repel with a stop after 10 encounters; Wingull fallback marked as a deviation; level 26 without boosts. Route 104 Repel stays: 100 steps, spent long before Route 116.
 - Claude review: no weakening (a KO wastes the encounter), Wingull only if met, level 26 as an aim, not a gate.
+- Catch rows gate green. Claude's findings applied as proposed; GPT LGTM on facts.

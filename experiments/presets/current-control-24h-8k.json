@@ -345,6 +345,7 @@
     "first-visit-cycle-credit-v1": true,
     "unnamed-place-story-line-v1": true,
     "story-line-campaign-flags-v1": true,
-    "junk-filter-leader-lines-v1": true
+    "junk-filter-leader-lines-v1": true,
+    "story-line-start-steps-v1": true
   }
 }

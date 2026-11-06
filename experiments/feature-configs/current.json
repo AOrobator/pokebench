@@ -211,7 +211,8 @@
     "first-visit-cycle-credit-v1",
     "unnamed-place-story-line-v1",
     "story-line-campaign-flags-v1",
-    "junk-filter-leader-lines-v1"
+    "junk-filter-leader-lines-v1",
+    "story-line-start-steps-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -556,6 +557,7 @@
     "first-visit-cycle-credit-v1": true,
     "unnamed-place-story-line-v1": true,
     "story-line-campaign-flags-v1": true,
-    "junk-filter-leader-lines-v1": true
+    "junk-filter-leader-lines-v1": true,
+    "story-line-start-steps-v1": true
   }
 }

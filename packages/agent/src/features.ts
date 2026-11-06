@@ -367,6 +367,7 @@ export const SWITCHABLE_FEATURES = [
   "unnamed-place-story-line-v1",
   "story-line-campaign-flags-v1",
   "junk-filter-leader-lines-v1",
+  "story-line-start-steps-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -855,6 +856,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("unnamed-place-story-line-v1", "guidance", "UNNAMED PLACE STORY LINE", "harness-trust-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). Run ee2a heard \"We're to move out to MT. PYRE!\" from unnamed Aqua grunts at turn 146, and only story characters could set the Story goal, so the line never reached it. On: a field line from any speaker that names a place in the game's map table becomes the Story goal when it is the newest, quoted whole and labelled with the sprite kind the game shows, or as no speaker shown. Signs, battle text, trainer challenges, PokéNav registrations and calls, the junk filter's service, berry and flavor lines and lines naming only the map they were heard on are skipped. Off: only story characters set the Story goal."),
   on("story-line-campaign-flags-v1", "observation", "STORY LINE CAMPAIGN STEPS", "story-state-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The readout's Story line stops at the server's early flags, such as route104 cindy defeated, for the whole run, while the supervisor briefing lists later game-confirmed steps. On: the Story line also lists every campaign step the game confirmed in this run, in order, whole. Off: the Story line lists the server's flags only."),
   on("junk-filter-leader-lines-v1", "guard", "JUNK FILTER KEEPS LEADER LINES", "instruction-memory-junk-filter-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The junk filter's trainer rule drops a gym leader's lines, as replaying run ee2a with the filter on showed for WINONA's turn-60 speech, even though the cap owner deliberately keeps them until the badge checkpoints. On: the junk filter's trainer rule spares a gym leader's line until that badge is earned; the size cap still applies. Off: the trainer rule drops it like any trainer's line."),
+  on("story-line-start-steps-v1", "observation", "STORY LINE START STEPS", "story-line-campaign-flags-v1", "Default off; on in both arms of the current recipe (the operator 2026-11-06). A run started from a checkpoint already holds steps the save's flags record, such as Knuckle through Balance badges in run ee2a, and the Story line and the briefing's done list skipped them. On: both also list the campaign steps recorded as present at the start, before the run's own, whole. They do not count as this run's progress. Off: only steps confirmed during the run are listed."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1330,6 +1332,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("unnamed-place-story-line-v1"),
     ...when("story-line-campaign-flags-v1"),
     ...when("junk-filter-leader-lines-v1"),
+    ...when("story-line-start-steps-v1"),
   ];
 }
 

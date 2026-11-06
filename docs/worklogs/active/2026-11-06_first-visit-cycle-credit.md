@@ -55,3 +55,6 @@ Replay with the same method (recorded events, every note accepted):
 - ee2a's tenth note, turn 592, was still held when the run ended.
 
 Review, round 1 on 74a5046a9. GPT: LGTM, no findings. Claude: BLOCKING on a test gap and doc claims, no model-facing bug. Fix: restored rebuilt-pair coverage through a milestone, and corrected "when only" and "never erased" wording, the stale Spec bullet and the overreaching probe sentence. Follow-ups, not in this change: a note due at release that stops being due before it is sent gets no second row (its hold row stays; explainer narrowed); the T372 probe arm points against the hold, for the next probe.
+
+Round 2 on delta 74a5046a9..d1a00ff2f: Claude LGTM, GPT (Codex CLI, gpt-5.6-sol) LGTM. Gates on 74a5046a9: `just test` passed with 2,595 agent, 993 viewer, 2,965 env and 38 gateway tests, floors and `just no-io-proof`; lint and `just verify-vendor` clean. After it, only one test, the feature description text and docs changed; focused suites and eslint pass on d1a00ff2f.
+

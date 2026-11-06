@@ -5,7 +5,7 @@ import type { FeatureSet } from "./features.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { CALL_NOTE, GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { BRINEY_NOTE, CALL_NOTE, GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const ON = preset.features as FeatureSet;
 const steps: readonly GuideStep[] = [
@@ -157,6 +157,24 @@ it("shows the call note over the options note while a call is open", () => {
   expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
   guide.observe(field());
   expect(guide.situationNotes().map((n) => n.text)).toEqual([OPTIONS_NOTE]);
+});
+
+describe("Briney note", () => {
+  const route: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "a" }, { after: "DEWFORD_TOWN", map: null, note: "b" }, { after: "SLATEPORT_CITY", map: null, note: "c" }];
+  const town = (name: string): RunEvent => ({ type: "milestone", name, origin: "observed", kind: "story" }) as unknown as RunEvent;
+  it("points back to his house only on the west side between Dewford and Slateport", () => {
+    const guide = new GuidePosition(route);
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes()).toEqual([]);
+    guide.observe(town("DEWFORD_TOWN"));
+    guide.observe(field({ location: "DEWFORD TOWN" }));
+    expect(guide.situationNotes()).toEqual([]);
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([BRINEY_NOTE]);
+    guide.observe(town("SLATEPORT_CITY"));
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes()).toEqual([]);
+  });
 });
 
 describe("shop note", () => {

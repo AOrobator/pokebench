@@ -480,3 +480,15 @@ it("another first entry restarts the 10-call hold and the held cycle note is sti
  expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
  expect(held(r)).toHaveLength(1);
 });
+
+it("a cycle rebuilt after a milestone during the hold is a new note: the old one is recorded as no longer due",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ expect(held(r)).toHaveLength(1);
+ r.milestone("ROUTE_101","observed");
+ for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...HOUSE_2F,position:{x:7,y:1}}:{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
+ expect(held(r)).toHaveLength(2);
+ stay(r,3);
+ expect(held(r).filter(g=>g.message.includes("no longer due"))).toHaveLength(1);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+});

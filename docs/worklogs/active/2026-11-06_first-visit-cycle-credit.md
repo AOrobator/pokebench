@@ -4,7 +4,7 @@ The operator 2026-11-06: "first-visit-cycle-credit-v1, i want this on in both ar
 
 ## Spec
 
-- A map this run has never been on, entered: map-pair counts reset, so the entry cannot complete a cycle.
+- Revised below: the first version also reset the map-pair counts on a first entry. That is gone.
 - `map_cycle` and `milestone_drought` notes are held for the next 10 tool results, each recorded once as a `would_warn` diagnostic naming the map.
 - When the hold ends, a note still due is sent under the normal rules; one no longer due is recorded, never dropped silently.
 - Another first entry restarts the hold. Interface dwell, text-only, battle and other guards are unchanged. No model-facing wording changes.
@@ -52,3 +52,6 @@ Replay with the same method (recorded events, every note accepted):
 
 - ee2a: map_cycle 10 off, 9 on. Off: turns 100, 199, 286, 370, 375, 392, 433, 481, 497, 592. On: 100, 199, 286, 370, 392, 393, 440, 481, 497. Turn 370 fires on time: the last first entry was at turn 350. All map_cycle and drought notes: 39 off, 34 on.
 - 274b: 98 notes off, 88 on, with 6 held notes no longer due.
+- ee2a's tenth note, turn 592, was still held when the run ended.
+
+Review, round 1 on 74a5046a9. GPT: LGTM, no findings. Claude: BLOCKING on a test gap and doc claims, no model-facing bug. Fix: restored rebuilt-pair coverage through a milestone, and corrected "when only" and "never erased" wording, the stale Spec bullet and the overreaching probe sentence. Follow-ups, not in this change: a note due at release that stops being due before it is sent gets no second row (its hold row stays; explainer narrowed); the T372 probe arm points against the hold, for the next probe.

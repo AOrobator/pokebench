@@ -37,6 +37,8 @@ const sign=new Pages([source.keep_sign.text]),rock=new Pages(source.rock_smash.m
 const flavor=new Pages(labels.filter(l=>l.category==="FLAVOR").map(l=>l.text));
 const protectedPages=new Pages(labels.filter(l=>l.category!=="FLAVOR").map(l=>l.text));
 const anyLabel=new Pages(labels.map(l=>l.text));
+// unnamed-place-story-line-v1: whole game pages the filter treats as noise wherever they are heard.
+export const junkPage=(text:string,player?:string):boolean=>service.has(text,player)||berry.has(text)||flavor.has(text);
 const normalized=(s:string)=>s.toUpperCase().replace(/[^A-Z0-9]/g,"");
 function onMap(page:CapRow,name:string):boolean {
  const id=maps[name];if(id===undefined)return false;

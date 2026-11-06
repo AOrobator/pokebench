@@ -343,6 +343,7 @@
     "field-call-input-v1": true,
     "instruction-memory-junk-filter-v1": true,
     "first-visit-cycle-credit-v1": true,
+    "unnamed-place-story-line-v1": true,
     "story-line-campaign-flags-v1": true
   }
 }

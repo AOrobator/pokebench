@@ -293,7 +293,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (features["move-learn-tool-v1"]) prompt += `\n\n${features["move-learn-offer-identity-v1"]?GUARDED_LEARN_MOVE_SECTION:LEARN_MOVE_SECTION}`;
   if (show("overworld") && features["screen-center-player-v1"]) prompt += `\n\n${SCREEN_CENTER_SECTION}`;
   // Order the game-evidence sources after the main controls.
-  if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
+  if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true, features["unnamed-place-story-line-v1"])}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
   if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
   if(features["instruction-goal-ledger-v1"]){

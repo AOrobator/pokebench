@@ -395,6 +395,7 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Recovery note off the battle screen](recovery-note-field-only-v1.html): the open navigation-recovery note is not sent with battle requests and returns on the field; default OFF, needs navigation-recovery-v1.
 
 - [Shop shelves off the list](shop-shelf-hidden-v1.html): shop shelf tiles and signs with no script leave the interaction list and `interaction_targets`; shelves stay solid and every scripted target and hidden item stays listed.
+- [Unnamed place story line](unnamed-place-story-line-v1.html): a place-naming line from any speaker can become the Story goal, labelled only with what the game shows.
 - [Story line campaign steps](story-line-campaign-flags-v1.html): the Story line lists every campaign step the game confirmed, not only the early flags.
 - [First visit cycle credit](first-visit-cycle-credit-v1.html): a first entry to a map holds map-cycle and drought notes for 10 calls, with every held note recorded.
 - [Field call input](field-call-input-v1.html): a field call page that waits for A reads input ready, with the printer states from the source, the auto-advance decision and the raw-RAM replay of runs 7442 and 5f0f.

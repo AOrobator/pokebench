@@ -9,7 +9,7 @@ Run 2026-11-05T17-17-57_rayquaza-lane-qwen_7442 (read-only, live) sat on Dad's s
 - [x] Decide whether PokéNav call auto-advance covers the field call.
 - [x] Explainer linked from the feature card.
 - [x] Replay 7442's stall turns and 5f0f's turns 319-323 from raw RAM.
-- [ ] Read-only GPT review of the merge-base diff.
+- [x] Read-only GPT review of the merge-base diff.
 
 Not landing here. Focused tests, tsc and eslint only; full suites wait for a coordinator CPU window.
 
@@ -35,7 +35,8 @@ With ready true, inner dialogue auto-advance now stops with `menu` on a call ins
 
 - RED: `test(readout): RED for field-call-input-v1`. Python collection error on the missing names; 16 of 17 agent tests failed.
 - GREEN: `feat(readout): field call text box waiting for A behind field-call-input-v1` (129db1f96).
-- Explainer and replay: `docs(explainer): field-call-input-v1 with the raw-RAM replay`.
+- Explainer and replay: `docs(explainer): field-call-input-v1 with the raw-RAM replay` (338b06155).
+- Review record: `docs(worklog): GPT review of field-call-input-v1`.
 
 ## Replay
 
@@ -81,3 +82,11 @@ A whole call is 10 presses, inside the 50-press cap. 5f0f took about 25 seconds 
 - Viewer `panels.test.ts`: 159 passed under the no-I/O setup, with a scratch config aliasing the agent package to source, because this worktree has no agent build. tsc and eslint clean.
 - `just pages-check` on the explainer prints nothing.
 - Full suites not run; they need a coordinator CPU window.
+
+## Review
+
+Read-only GPT review of the merge-base diff, bf8cd7244 to 338b06155, base64 font elided: no findings, `VERDICT: LGTM`. This is one lane, not the landing gate.
+
+## Not proven
+
+No live emulator call has run with the switch on: the replay reads recorded memory and decides, it does not press. Whether a press result lands between frames as the fake assumes is covered only by the checked-press path shared with PokéNav calls. No measured comparison.

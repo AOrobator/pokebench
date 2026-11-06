@@ -52,4 +52,3 @@ Replay with the same method (recorded events, every note accepted):
 
 - ee2a: map_cycle 10 off, 9 on. Off: turns 100, 199, 286, 370, 375, 392, 433, 481, 497, 592. On: 100, 199, 286, 370, 392, 393, 440, 481, 497. Turn 370 fires on time: the last first entry was at turn 350. All map_cycle and drought notes: 39 off, 34 on.
 - 274b: 98 notes off, 88 on, with 6 held notes no longer due.
-

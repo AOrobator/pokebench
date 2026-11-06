@@ -352,7 +352,6 @@ it("sends no open-milestone note with the switch off",()=>{
 const CREDIT:FeatureSet={...ON,"first-visit-cycle-credit-v1":true};
 const PLAIN_CLOCK={"drought-battle-heal-hold-v1":false,"drought-progress-facts-v1":false,"turn-drought-clock-v1":false} as const;
 const CAVE={location:"CAVE",map_id:[2,0]};
-const CLIFF={location:"CLIFF",map_id:[2,1]};
 const held=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("Not sent (first-visit-cycle-credit-v1):"));
 const sent=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("SUPERVISOR:"));
 // Up and down between the first-entered map and the one before it, four moves: a cycle is due on the fourth.

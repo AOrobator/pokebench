@@ -12,11 +12,12 @@ export function readFeatureRecipe(root:string,id:string,read:(path:string)=>stri
  return resolveFeatureRecipe(raw(id),raw);
 }
 export function fileLaneRunReads(root:string,runsRoot:string):LaneRunReads {
- const fixed=join(root,"experiments/fixed");
+ const dirs=[join(root,"experiments/fixed"),join(root,"experiments/archive/fixed")];
+ const names=(dir:string):string[]=>existsSync(dir)?readdirSync(dir).filter(name=>name.endsWith(".json")).map(name=>name.slice(0,-".json".length)):[];
  return {
   recipeText:id=>readFileSync(join(root,"experiments/feature-configs",`${id}.json`),"utf8"),
-  definitionIds:()=>readdirSync(fixed).filter(name=>name.endsWith(".json")).map(name=>name.slice(0,-".json".length)),
-  definitionText:id=>readFileSync(join(fixed,`${id}.json`),"utf8"),
+  definitionIds:()=>[...new Set(dirs.flatMap(names))],
+  definitionText:id=>readFileSync(dirs.map(dir=>join(dir,`${id}.json`)).find(existsSync)??join(dirs[0]??"",`${id}.json`),"utf8"),
   ledgerText:id=>{const path=join(runsRoot,"experiments",id,"trials.jsonl");return existsSync(path)?readFileSync(path,"utf8"):null;},
   runStartLine:run=>{
    const path=join(runsRoot,run,"events.jsonl");

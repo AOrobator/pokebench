@@ -27,6 +27,9 @@ describe("lastLaneRun",()=>{
    expect(out?.run).toBe("old");
   }
  });
+ it("fails on an unreadable ledger rather than comparing with an older run",()=>{
+  expect(()=>lastLaneRun("rayquaza-lane",reads({ledgerText:id=>id==="lane-v2"?"{torn":null}))).toThrow("lane-v2 ledger:");
+ });
  it("is null when the recipe has no recorded run",()=>{
   expect(lastLaneRun("rayquaza-lane",reads({ledgerText:()=>null}))).toBeNull();
  });

@@ -3,7 +3,7 @@ import {Type} from "typebox";
 import {Value} from "typebox/value";
 import {parsePlayPreset,presetFeatures} from "@pokebench/agent/play-preset";
 import {featuresSha256} from "@pokebench/agent/run-evaluation";
-import {armPreset,isFeatureOverlay,type FixedArm,type FixedDefinition} from "./fixed-design.js";
+import {armPreset,FixedDesignError,isFeatureOverlay,type FixedArm,type FixedDefinition} from "./fixed-design.js";
 import {parseFixedLedger,type FixedLaunchEntry} from "./fixed-ledger.js";
 
 type Features=Readonly<Record<string,boolean>>;
@@ -31,7 +31,9 @@ export function lastLaneRun(recipeId:string,reads:LaneRunReads):RecordedLaneRun|
  for(const experiment of reads.definitionIds()){
   const source=json(reads.definitionText(experiment));
   if(!Value.Check(SourceRecipe,source)||source.featureRecipe!==recipeId)continue;
-  for(const entry of parseFixedLedger(reads.ledgerText(experiment)??"").entries)if(entry.kind==="launch")launches.push({experiment,entry});
+  const {entries,problems}=parseFixedLedger(reads.ledgerText(experiment)??"");
+  if(problems.length>0)throw new FixedDesignError(`${experiment} ledger:${problems[0]??""}`);
+  for(const entry of entries)if(entry.kind==="launch")launches.push({experiment,entry});
  }
  launches.sort((a,b)=>b.entry.at.localeCompare(a.entry.at));
  for(const {experiment,entry} of launches){

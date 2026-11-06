@@ -82,6 +82,13 @@ it("on: a page from a PokéNav call is not a lead, however its speaker is shown"
  expect(goal(s)).toBeNull();
 });
 
+it("on: a two-trainer challenge, split over pages, is not a lead",()=>{
+ const s=story(true),id="d";
+ s.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:526,tool_call_id:id,pages:[{...PAGE,text:"MT. PYRE… Will your POKéMON sleep?",speaker:"HEX_MANIAC",speaker_source:"faced_sprite",map_id:[0,36],state_seq:1},{...PAGE,text:"HEX MANIAC KINDRA and\nCOLLECTOR ED",speaker:null,speaker_source:null,map_id:[0,36],state_seq:2},{...PAGE,text:"want to battle!",speaker:null,speaker_source:null,map_id:[0,36],state_seq:3}]}));
+ s.observe(event({type:"tool_result",turn:526,id,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
+ expect(goal(s)).toBeNull();
+});
+
 it("on: battle text is no one's line",()=>{
  const s=story(true);
  const id="b";

@@ -150,7 +150,7 @@ function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
 }
 
 const REGISTERED=/^Registered .* in the POKéNAV\.$|Beep!/;
-const TRAINER_BATTLE=/would like to battle!$/;
+const TRAINER_BATTLE=/(?:would like|want) to battle!$/;
 // What the game shows of who spoke: the sprite faced, else the sprite kinds on screen. Never a guessed name.
 function unnamedLabel(page:Page):string {
  if(page.speaker!==null)return page.speaker_source==="faced_sprite"?`${page.speaker} sprite`:page.speaker;

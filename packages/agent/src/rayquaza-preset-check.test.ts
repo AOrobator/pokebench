@@ -1,11 +1,11 @@
 import { expect, it } from "vitest";
-import preset from "../../../experiments/presets/rayquaza-lane-8h.json" with { type: "json" };
+import { rayquazaLanePreset } from "../test-support/rayquaza-lane.js";
 import { contextBudget } from "./play-wiring.js";
 import { parsePlayPreset } from "./play-preset.js";
 
-it("the Rayquaza preset is valid and keeps the lane's switches", () => {
-  const parsed = parsePlayPreset(preset);
-  expect(parsed.id).toBe("rayquaza-lane-8h");
+it("the Rayquaza lane derived from control and its overlay is valid and keeps the lane's switches", () => {
+  const parsed = parsePlayPreset(rayquazaLanePreset());
+  expect(parsed.id).toBe("rayquaza-lane-8h-v3");
   expect(parsed.limits.maxWallMs).toBe(8 * 3600 * 1000);
   if (parsed.version !== 2) throw new Error("version");
   expect(parsed.features["rq-milestone-guide-v1"]).toBe(true);
@@ -21,7 +21,7 @@ it("the Rayquaza preset is valid and keeps the lane's switches", () => {
 });
 
 it("keeps a hard context cap in the lane without the exact count", () => {
-  const parsed = parsePlayPreset(preset);
+  const parsed = parsePlayPreset(rayquazaLanePreset());
   if (parsed.version !== 2) throw new Error("version");
   const fit = contextBudget(parsed.features, { contextWindow: 262_144 }, 8192, { compaction: () => undefined });
   expect(fit.exact).toBeUndefined();

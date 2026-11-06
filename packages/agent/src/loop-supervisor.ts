@@ -1,3 +1,4 @@
+import {campaignStep} from "./story-line-campaign.js";
 import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
 import {sectionWarp,sectionConnection} from "./exit-section-labels.js";
 import {DialogueLog,roomKey,roomOf,type DialogueEntry,speakerLabel} from "./dialogue-log.js";
@@ -166,6 +167,8 @@ export class SupervisorBriefing {
    this.objective?.observe(event);this.route?.observe(event);
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
+    // story-line-start-steps-v1: a step the save already held is listed as done, and is not this run's progress.
+    if(this.features["story-line-start-steps-v1"]&&this.features["story-briefing-native-milestones-v1"]&&event.origin==="present_at_start"){const label=campaignStep(event,true);if(label!==null&&!this.extendedDone.includes(label))this.extendedDone.push(label);}
     if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"){this.progress={turn:event.turn,name:event.name};this.path.clear();this.entered.clear();}
     if(this.features["story-briefing-native-milestones-v1"]&&event.origin==="observed"&&event.kind==="story"&&!OPTIONAL_PROGRESS_NAMES.has(event.name)){
      this.pendingStory={name:event.name,turn:event.turn,evidence:Math.max(...(event.evidence??[event.seq]))};
@@ -455,7 +458,10 @@ export class SupervisorBriefing {
  }
  private done():string {
   if(!this.features["story-state-v1"])return "not available (story flags are off)";
-  if(this.features["story-briefing-native-milestones-v1"]&&this.extendedDone.length>0)return `${this.story===null?"":`${this.story}; `}${this.extendedDone.join("; ")}`;
+  // story-line-campaign-flags-v1: the Story line already carries these steps, so the briefing does not list them twice.
+  const listed=this.features["story-line-campaign-flags-v1"]?(this.story??"").split("; "):[];
+  const extended=this.extendedDone.filter(step=>!listed.includes(step));
+  if(this.features["story-briefing-native-milestones-v1"]&&extended.length>0)return `${this.story===null?"":`${this.story}; `}${extended.join("; ")}`;
   return this.story??"not recorded";
  }
  private where():string {

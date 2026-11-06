@@ -16,6 +16,10 @@
       "types": "./src/play-preset.ts",
       "default": "./dist/play-preset.js"
     },
+    "./run-evaluation": {
+      "types": "./src/run-evaluation.ts",
+      "default": "./dist/run-evaluation.js"
+    },
     "./run-control": {
       "types": "./src/run-control.ts",
       "default": "./dist/run-control.js"

@@ -1,6 +1,6 @@
 import {checkpointResearchTask,type CheckpointResearchNote} from "./checkpoint-research-note.js";
 import {destinationFirstPrompt} from "./destination-first.js";
-import {POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
+import {FIELD_CALL_ID,FIELD_CALL_NOTE,POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
@@ -229,6 +229,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   const show = (...scenes: PromptScene[]): boolean => !jit || scenes.some(value => value === scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
   if(features["pokenav-call-auto-advance-v1"])prompt+=`\n\n${POKENAV_CALL_NOTE}`;
+  if(features[FIELD_CALL_ID])prompt+=`\n\n${FIELD_CALL_NOTE}`;
   if (jit && features["contextual-interface-docs-v1"]) prompt = prompt.replace(CONTEXTUAL_CONTROLS, contextualFor(scene));
   if (jit && !show("overworld", "menu")) prompt = prompt.replace(/\n\nDialogue: [^\n]*/, "");
   if (show("overworld") && features["bounded-navigation-v1"] && features["full-map-navigation-v1"]) prompt += `\n\n- navigate_to: supply x, y and the current map_id from the Navigation map_id readout. Walks to a coordinate on the current map using A* over the whole current map shown in the readout, one ordinary button at a time, re-planning before every press. The route never crosses a warp unless it is the destination. Choose the destination from observed evidence. This tool does not pick story objectives, press A, surf or solve ledges. It stops on blocked or unexpected movement, locks, map changes, or when the route stops getting shorter. Inspect its returned state; reaching a directional-exit tile may still require its indicated button. ${NAVIGATE_RULES}`;
@@ -292,7 +293,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (features["move-learn-tool-v1"]) prompt += `\n\n${features["move-learn-offer-identity-v1"]?GUARDED_LEARN_MOVE_SECTION:LEARN_MOVE_SECTION}`;
   if (show("overworld") && features["screen-center-player-v1"]) prompt += `\n\n${SCREEN_CENTER_SECTION}`;
   // Order the game-evidence sources after the main controls.
-  if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true)}`;
+  if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true, features["unnamed-place-story-line-v1"])}`;
   if (show("overworld", "menu") && features["menu-item-guidance-v1"]) prompt += "\n\nMenu input: Inspect the highlighted option before A. Use the current menu controls, not the visual separator between option names. After opening or changing a screen, inspect its selection and readiness before confirming; if input is not ready, observe again. A failed direction does not change what A will choose.";
   if (features["rejected-movement-stride-v1"] && features["navigation-tool-use-guard-v1"] && !features["rejected-movement-prefix-v1"]) prompt += "\n\n- press: direction-only field batches execute one checked straight plain-floor prefix of the directions you requested (at most eight tiles). Stops before bends, grass, objects, warps, script coordinates, elevation changes or unknown geometry; drops the remaining directions and returns the screen and requested/submitted/dropped inputs. A terminal native receipt reports actual completed tiles. Inspect it before continuing. Single direction presses remain available.";
   if(features["instruction-goal-ledger-v1"]){

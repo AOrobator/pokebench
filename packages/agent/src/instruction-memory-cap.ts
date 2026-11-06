@@ -59,7 +59,8 @@ const word=(w:string,text:string,edge="A-Z0-9")=>new RegExp(`(?<![${edge}])${esc
 const oneLine=(pages:readonly CapRow[])=>pages.map(p=>p[2].replaceAll("\n"," ")).join(" ");
 
 export class InstructionMemoryCap {
- constructor(private readonly junk=false,private readonly wholeGame=false){}
+ private readonly earned=new Set<string>();
+ constructor(private readonly junk=false,private readonly wholeGame=false,private readonly leaderLines=false){}
 
  private run:string|null=null;
  private state:State|null=null;
@@ -75,6 +76,7 @@ export class InstructionMemoryCap {
   if(event.type==="tool_result"){if(!event.is_error&&OBSERVATION_TOOLS.has(event.name))this.readout=event.text;return;}
   if(event.type!=="state"||!("started" in event))return;
   this.state=event;
+  for(const badge of event.badges)this.earned.add(badge.toUpperCase());
   if(event.location!==null)this.visited.add(event.location);
   const map=key(event.map_id),trainers=event.heal_before_trainers?.trainers??[];
   for(const t of trainers)this.defeated.set(`${String(map)}#${String(t.trainer_id)}`,t.defeated);
@@ -125,6 +127,12 @@ export class InstructionMemoryCap {
    if(e.pages.every(p=>c.scope.some(s=>key(s.map_id)===key(p[4])&&s.speakers.includes(p[0]))))return `checkpoint ${c.id}: ${c.closes_after.join(", ")} (turn ${String(by)})`;
   }
   return null;
+ }
+ // junk-filter-leader-lines-v1: the junk filter keeps a gym leader's line until that badge is earned. Battle states can report no
+ // badges, so earned badges are latched.
+ private leaderUnbeaten(p:CapRow):boolean {
+  const badge=p[0]===null?undefined:LEADER_BADGE[p[0]];
+  return this.leaderLines&&badge!==undefined&&!this.earned.has(badge);
  }
  private pageDone(p:CapRow):readonly [string,boolean]|null {
   const player=escape(this.player());
@@ -192,7 +200,7 @@ export class InstructionMemoryCap {
    for(const row of rows){
     if(row.step==="anchor"||row.step==="done")continue;
     const rule=junkRule(row.e,{player:this.player(),hasLead:this.named(row.e,met).length>0,rockSmashReceived:hm,receipt,
-     facedTrainer:p=>{const hit=p[5]===null?undefined:this.faced.get(p[5]);return p[1]==="faced_sprite"&&hit!==undefined&&hit.trainer.startsWith(`${String(key(p[4]))}#`);},
+     facedTrainer:p=>{const hit=p[5]===null?undefined:this.faced.get(p[5]);return p[1]==="faced_sprite"&&hit!==undefined&&hit.trainer.startsWith(`${String(key(p[4]))}#`)&&!this.leaderUnbeaten(p);},
      storySprite:p=>p[0]!==null&&(canonicalStoryCharacterName(p[0])!==null||p[0] in LEADER_BADGE)});
     if(rule!==null){row.step="junk";row.rule=rule;row.fact=`pret junk rule ${rule}: every non-receipt page qualifies`;}
    }

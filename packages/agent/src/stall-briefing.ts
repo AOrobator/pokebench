@@ -26,6 +26,10 @@ export const STALL_DROUGHT_ACTIONS=30;
 // open-milestone-stall-v1: actions between briefings while the last GYM LEADER battle this run is still a loss.
 export const OPEN_MILESTONE_ACTIONS=30;
 
+// first-visit-cycle-credit-v1: tool results after a first entry that map-cycle and drought briefings wait.
+export const FIRST_VISIT_HOLD_CALLS=10;
+const FIRST_VISIT_NOT_SENT="Not sent (first-visit-cycle-credit-v1):";
+
 type Member=State["party"][number];
 // Game words only: species, level and the EXP the readout printed for it.
 function partyFacts(party:readonly Member[]):string {
@@ -45,6 +49,10 @@ interface Dwell {readonly key:string;readonly name:string;readonly firstSeq:numb
 
 // lastSeq: the state event of this pair's own latest move (its note's evidence); consecutive: no other pair's move came between.
 interface Pair {readonly from:string;readonly to:string;moves:number;briefed:number;lastSeq:number;consecutive:boolean}
+// entering: the call that made the first entry has not returned, and its own result is not one of the held calls.
+interface FirstVisit {readonly name:string;calls:number;entering:boolean}
+// owner: the pair or drought clock this note counted, so a later cycle or clock at the same level is a different note.
+interface HeldNote {readonly kind:"map_cycle"|"milestone_drought";readonly owner:Pair|number;readonly level:number;readonly what:string;readonly due:()=>boolean}
 
 // stall-briefing-v1: watches for stalls the loop guard cannot see and hands the loop guard a supervisor note.
 // Map changes and milestones since the last new milestone; checked after each tool result, so the facts are current.
@@ -78,6 +86,11 @@ export class StallBriefing {
  private dwell:Dwell|null=null;
  // map-cycle-recovery-v1: the guard's map-cycle window this briefing last counted map pairs in.
  private cycleWindow=0;
+ // first-visit-cycle-credit-v1: every map this run has been on, the hold in force and the notes it kept back.
+ private readonly visited=new Set<string>();
+ private firstVisit:FirstVisit|null=null;
+ private heldNotes:HeldNote[]=[];
+ private droughtClock=0;
  constructor(
   private readonly features:FeatureSet,
   private readonly active:()=>number,
@@ -114,7 +127,7 @@ export class StallBriefing {
   this.holding=now;
  }
  // turn-drought-clock-v1: the result of the action that made the progress is not counted (stateSinceResult).
- private restart(seq:number):void {this.progressAt=this.active();this.actions=0;this.skip=this.stateSinceResult;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
+ private restart(seq:number):void {this.droughtClock++;this.progressAt=this.active();this.actions=0;this.skip=this.stateSinceResult;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
  // turn-drought-clock-v1 counts actions; positive-supervisor-v1 keeps its retired wall-clock schedule.
  private turnClock():boolean {return this.features["turn-drought-clock-v1"]&&!this.features["positive-supervisor-v1"];}
  // turn-drought-clock-v1: progress the game shows besides a story milestone: a party member's level going up (same
@@ -209,6 +222,9 @@ export class StallBriefing {
    this.settleHold(event.seq);
    if(!event.started||event.location===null||event.map_id===null)return;
    const key=roomKey(event),name=roomOf(event,this.features);
+   const first=this.features["first-visit-cycle-credit-v1"]&&this.room!==null&&!this.visited.has(key);
+   if(this.features["first-visit-cycle-credit-v1"])this.visited.add(key);
+   if(first)this.firstVisit={name,calls:0,entering:true};
    if(this.room!==null&&this.room.key!==key){
     const id=[this.room.key,key].sort().join("\n");
     const pair=this.pairs.get(id)??{from:this.room.name,to:name,moves:0,briefed:0,lastSeq:event.seq,consecutive:true};
@@ -231,8 +247,30 @@ export class StallBriefing {
     else if(this.dwell?.key===ui.key)this.dwell.calls++;
     else this.dwell={key:ui.key,name:ui.name,firstSeq:this.last.seq,calls:0,briefed:0};
    }
+   this.countFirstVisit(event.seq);
    this.check(event.seq);
   }
+ }
+
+ private countFirstVisit(seq:number):void {
+  const hold=this.firstVisit;
+  if(hold===null)return;
+  if(hold.entering){hold.entering=false;return;}
+  if(++hold.calls<=FIRST_VISIT_HOLD_CALLS)return;
+  this.firstVisit=null;
+  for(const note of this.heldNotes)if(!note.due())this.recordHeld(note.kind,`${FIRST_VISIT_NOT_SENT} the held note is no longer due: ${note.what}.`,[seq]);
+  this.heldNotes=[];
+ }
+ private recordHeld(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void {
+  (kind==="map_cycle"?this.suppressed:this.heldDrought)?.(text,evidence);
+ }
+ private holdForFirstVisit(hold:FirstVisit,note:HeldNote,evidence:readonly number[]):void {
+  if(this.heldNotes.some(n=>n.kind===note.kind&&n.owner===note.owner&&n.level===note.level))return;
+  this.heldNotes.push(note);
+  this.recordHeld(note.kind,`${FIRST_VISIT_NOT_SENT} ${note.what}, but ${hold.name} was entered for the first time this run.`,evidence);
+ }
+ private droughtLevel():number {
+  return this.turnClock()?Math.floor(this.actions/STALL_DROUGHT_ACTIONS):Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
  }
 
  private check(seq:number):void {
@@ -245,12 +283,16 @@ export class StallBriefing {
    if(this.pairs.size>0)this.suppressed?.(`Map-cycle history retired (progress-aware-cycles-v1): ${cycleHold.reason}.`,[cycleHold.evidence[0]??seq,seq]);
    this.pairs.clear();
   }
-  for(const pair of this.pairs.values()){
+  for(const [pairId,pair] of this.pairs){
    const level=Math.floor(pair.moves/(2*STALL_ROUND_TRIPS));
    if(level<=pair.briefed)continue;
    if(retired){
     this.retiredNote?.("map_cycle",`You have walked between ${pair.from} and ${pair.to} ${String(Math.floor(pair.moves/2))} times with no new story milestone.`,[pair.lastSeq,seq]);
     pair.briefed=level;continue;
+   }
+   if(this.firstVisit!==null){
+    this.holdForFirstVisit(this.firstVisit,{kind:"map_cycle",owner:pair,level,what:`walked between ${pair.from} and ${pair.to} ${String(Math.floor(pair.moves/2))} times`,due:()=>this.pairs.get(pairId)===pair&&level>pair.briefed},[pair.lastSeq,seq]);
+    continue;
    }
    const hold=this.gate?.holds()??null;
    if(hold!==null){this.gate?.held("map_cycle",level,[pair.from,pair.to].join("\n"),hold);return;}
@@ -277,7 +319,7 @@ export class StallBriefing {
   }
   // turn-drought-clock-v1: the level counts actions, and the briefing is sent even with milestone-drought-suppression-v1.
   const turns=this.turnClock();
-  const level=turns?Math.floor(this.actions/STALL_DROUGHT_ACTIONS):Math.floor((this.active()-this.progressAt)/STALL_DROUGHT_MS);
+  const level=this.droughtLevel();
   if(level<=this.droughts)return;
   const from=turns?this.clockSeq:this.progressSeq;
   if(retired||!turns&&this.features["milestone-drought-suppression-v1"]){
@@ -292,6 +334,12 @@ export class StallBriefing {
     const what=this.features["drought-progress-facts-v1"]&&holding==="battle"?`the active drought clock reached ${turns?`${String(level*STALL_DROUGHT_ACTIONS)} actions`:`${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`}`:turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
     this.heldDrought?.(`Not sent (${this.features["drought-progress-facts-v1"]&&holding==="battle"?"drought-progress-facts-v1":"drought-battle-heal-hold-v1"}): ${what}, but ${why}.`,[from??seq,seq]);
    }
+   return;
+  }
+  if(this.firstVisit!==null){
+   const what=turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
+   const clock=this.droughtClock;
+   this.holdForFirstVisit(this.firstVisit,{kind:"milestone_drought",owner:clock,level,what,due:()=>clock===this.droughtClock&&this.droughtLevel()>this.droughts},[from??seq,seq]);
    return;
   }
   const hold=this.gate?.holds()??null;

@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { armFeatureBits, armPreset, definitionProblems, FIXED_ARMS, phaseOf, type FixedArm, type FixedDefinition, type FixedLane, type FixedStart } from "./fixed-design.js";
 import { fileLines, type LogLines } from "./run-log.js";
+import { presetToUse } from "./fixed-launched-recipe.js";
 import { appendLedger, classifyTrial, laneBackoff, nextFor, progress, queueState, readLedger, type FixedLedgerEntry, type FixedOutcome, type Progress, type QueueSlot } from "./fixed-ledger.js";
 import { writeFixedStatus, type FixedLaneStatus, type FixedStatus } from "./fixed-status.js";
 import { LeaseHeldError, leaseHolder, leasePool, nameLeaseRun, takeLease } from "./lease.js";
@@ -147,10 +148,13 @@ class Runner {
     mkdirSync(join(this.dir, "presets"), { recursive: true });
     mkdirSync(join(this.dir, "endpoints"), { recursive: true });
     mkdirSync(join(this.dir, "logs"), { recursive: true });
+    const launched = this.ledger().some((e) => e.kind === "launch");
     for (const phase of this.o.def.phases) {
       for (const arm of FIXED_ARMS) {
-        const text = `${JSON.stringify(armPreset(this.o.def, phase.id, arm), null, 1)}\n`;
-        writeFileSync(this.presetPath(phase.id, arm), text);
+        const path = this.presetPath(phase.id, arm);
+        const generated = `${JSON.stringify(armPreset(this.o.def, phase.id, arm), null, 1)}\n`;
+        const { text, write } = presetToUse(launched, existsSync(path) ? readFileSync(path, "utf8") : null, generated);
+        if (write) writeFileSync(path, text);
         this.presetShas.set(`${phase.id}-${arm}`, sha256(text));
       }
     }

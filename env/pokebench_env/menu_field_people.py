@@ -28,6 +28,11 @@ MATCH_CALL = 0x081960E1
 STORIES = 0x0859F048  # 36 entries, stride 16, title pointer +4
 PRINTERS = 0x020201B0  # stride 0x24, active +0x1B
 SE_PLAYERS = (0x030075F0, 0x03007630)  # MusicPlayerInfo.status +4
+FIELD_CALL_SWITCH = "field-call-input-v1"
+CALL_ELLIPSIS = 0x0860EF70  # sText_PokenavCallEllipsis in US ROM f3ae0881
+CALL_ELLIPSIS_SIZE = 8
+CALL_PAGE_CONTROLS = "text box waiting for A; A or B shows the next page"
+CALL_END_CONTROLS = "text box waiting for A; A or B ends the call"
 
 
 def _native_name(raw: bytes, language: int) -> str:
@@ -92,7 +97,63 @@ def _daycare_labels(read: ReadMemory, details: dict[str, MenuValue]) -> list[str
     return options
 
 
-def read_field_people_menu(read: ReadMemory, callback: int) -> "ActiveUi | None":
+def _field_call_input(
+    read: ReadMemory, state: int, window: int, details: dict[str, MenuValue], fading: bool
+) -> "ActiveUi":
+    """field-call-input-v1, from 731ad5bf src/match_call.c and src/text.c.
+
+    MatchCall_PrintIntro (state 4) and MatchCall_PrintMessage (state 5) both run the printer of
+    tWindowId every frame. At `\\p`, `\\l` or a pause-until-press the printer stays active in
+    RENDER_STATE_WAIT, CLEAR or SCROLL_START until JOY_NEW(A_BUTTON | B_BUTTON), with no
+    IsSEPlaying check, unless gTextFlags.autoScroll is set. State 4 prints
+    sText_PokenavCallEllipsis ("………………\\p") from ROM, so that page also needs a press; gStringVar4
+    is not its text, and for a random call it is not filled until the page is dismissed. Only
+    once the printer is inactive does state 5 take A or B, and that needs !IsSEPlaying.
+    """
+    from pokebench_env.birch_pages import INTRO_NOT_READY, TEXT_FLAGS, WAITING, page_text
+    from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE, ActiveUi
+
+    text_state, value = "unavailable", None
+    if state in (4, 5):
+        printer = read(PRINTERS + 0x24 * window, 0x24)
+        active, render = printer[0x1B], printer[0x1C]
+        if active not in (0, 1) or render > 6:
+            raise ValueError("invalid field Match Call text printer")
+        current = int.from_bytes(printer[:4], "little")
+        base, size = (
+            (CALL_ELLIPSIS, CALL_ELLIPSIS_SIZE) if state == 4 else (STRING_VAR4, STRING_VAR4_SIZE)
+        )
+        owned = printer[4] == window and base <= current <= base + size
+        paused = bool(active) and render in WAITING and not read(TEXT_FLAGS, 1)[0] & 4
+        details["text_state"] = render
+        details["text_printing"] = bool(active) and not paused
+        if owned and active and not paused:
+            text_state = "printing"
+        elif owned and not fading and paused:
+            text_state = "waiting"
+        elif owned and not fading and not active and state == 5 and not details["sound_playing"]:
+            text_state = "finished"
+        if text_state in ("waiting", "finished"):
+            value = page_text(read(base, size), current - base) or None
+    details["call_text_state"] = text_state
+    accepts = text_state in ("waiting", "finished")
+    return ActiveUi(
+        "field_match_call_message" if accepts or state == 5 else "field_match_call_transition",
+        "CONTINUE" if accepts else None,
+        accepts,
+        CALL_PAGE_CONTROLS
+        if text_state == "waiting"
+        else CALL_END_CONTROLS
+        if text_state == "finished"
+        else INTRO_NOT_READY,
+        value=value,
+        details=details,
+    )
+
+
+def read_field_people_menu(
+    read: ReadMemory, callback: int, *, call_input: bool = False
+) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, decode_message
 
     if callback not in FIELD_CALLBACKS:
@@ -254,7 +315,10 @@ def read_field_people_menu(read: ReadMemory, callback: int) -> "ActiveUi | None"
                     ready = not printing and not sound
                     selected = "CONTINUE" if ready else None
             phase += "_message" if data[0] == 5 else "_transition"
-        ready = ready and not bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
+        fading = bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
+        if function == MATCH_CALL and call_input:
+            return _field_call_input(read, data[0], data[2], details, fading)
+        ready = ready and not fading
         return ActiveUi(
             phase,
             selected,

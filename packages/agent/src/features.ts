@@ -362,6 +362,12 @@ export const SWITCHABLE_FEATURES = [
   "rq-battle-explainer-v1",
   "rq-slim-prompt-v1",
   "shop-shelf-hidden-v1",
+  "field-call-input-v1",
+  "first-visit-cycle-credit-v1",
+  "unnamed-place-story-line-v1",
+  "story-line-campaign-flags-v1",
+  "junk-filter-leader-lines-v1",
+  "story-line-start-steps-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -845,6 +851,12 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rq-battle-explainer-v1", "guidance", "RAYQUAZA LANE BATTLE NOTE", "rq-milestone-guide-v1", "Default off; Rayquaza lane only. While a battle is active, ends each request with one short general battle note drawn from recorded mistakes: models lose on preparation, not move choice. Off: no battle note is sent."),
   on("rq-slim-prompt-v1", "guidance", "RAYQUAZA LANE SLIM PROMPT", "just-in-time-prompt-v2", "Default off; Rayquaza lane only. Takes the PokéNav, learn_move, choose_evolution and Surf sections out of the standing prompt and sends each whole, just before the guide line, only while its trigger holds. Battle rules stay in battle guidance. Off: JIT v2 prompts unchanged."),
   on("shop-shelf-hidden-v1", "observation", "NO SHOP SHELF TARGETS", null, "Default off; on in both arms of the current and Rayquaza recipes (the operator 2026-11-05: listing decorative shelves as things to interact with is misleading). Run 2026-11-05T15-37-57_rayquaza-lane-qwen_0952 spent 11 turns activating them in PETALBURG CITY MART, whose readout listed 16 shelf lines. Behavior MB_SHOP_SHELF only prints one flavor line, so its tiles leave the map interaction list and the state's interaction_targets, and navigate_to_target no longer accepts them. The same goes for a sign with no script: the two in the ROM sit outside their maps in METEOR FALLS. Shelves stay impassable and the map, collision and grids are untouched. Pressing A at a shelf still shows the game's text. Every target with a script of its own and every hidden item stays listed. Off: every shelf and scriptless sign is listed as before, byte for byte."),
+  on("field-call-input-v1", "observation", "FIELD CALL INPUT", null, "Default off; on in both arms of the current and Rayquaza recipes as a correctness fix. A POKéNAV call that rings on the field (Dad on Mr. Briney's boat, or a random Match Call) prints through the text printer of its own window. At each page end the printer stays active but writes nothing and waits for A or B (src/text.c RENDER_STATE_WAIT, CLEAR, SCROLL_START; src/match_call.c MatchCall_PrintIntro and MatchCall_PrintMessage, including the first page of dots). Run 2026-11-05T17-17-57_rayquaza-lane-qwen_7442 read that as input not ready; text printing: YES and waited 35 turns. With this switch on, a page wait reads Interface: field_match_call_message; input ready; selected CONTINUE; value <the page on screen>; text box waiting for A; A or B shows the next page, and text printing: NO. The last page with the printer done and no sound playing reads the same with A or B ends the call. A printer really writing a character, auto-scroll, a fade or a text cursor outside the call text stays input not ready. The harness then presses A through the verified call and returns its text, with the limits of POKéNAV call auto-advance (50 presses, 90 seconds, 10 seconds of waiting per step), and stops if the map, the caller or the interface changes, or a battle starts. It adds one sentence to the tool descriptions and the system prompt. Works with pokenav-call-auto-advance-v1 on or off. Off: the Interface line reads field_match_call_message or field_match_call_transition, input not ready, \"Directions select; A confirms; B closes or declines\", text printing: YES at every page wait, and the model must press A itself."),
+  on("first-visit-cycle-credit-v1", "guard", "FIRST VISIT CYCLE CREDIT", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). Entering a map this run has never been on holds map-cycle and milestone-drought briefings for the next 10 tool results; map-pair counts keep counting. Each held note is recorded as a diagnostic naming the map. When the hold ends a note that is still due is sent under the normal rules, and one no longer due is recorded. Another first entry restarts the hold. Interface-dwell, text-only and battle guards are unchanged, and the model-facing wording is unchanged. Run ee2a's turn-370 map_cycle note was followed at turn 372 by leaving MT PYRE EXTERIOR, first entered at turn 371, with the summit warp untaken. Audit of DeepSeek runs: after a note the model left a map with never-taken exits 10.6% of the time, against 7.8% without a note, and 12.2% after a map_cycle note. An exploratory probe (runs/probes/supervisor-wording-20261106) found the turn-370 note helped the turn-371 decision, so an earlier version's pair reset, which removed that note, was dropped. Off: no note is held for a first entry."),
+  on("unnamed-place-story-line-v1", "guidance", "UNNAMED PLACE STORY LINE", "harness-trust-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). Run ee2a heard \"We're to move out to MT. PYRE!\" from unnamed Aqua grunts at turn 146, and only story characters could set the Story goal, so the line never reached it. On: a field line from any speaker that names a place in the game's map table becomes the Story goal when it is the newest, quoted whole and labelled with the sprite kind the game shows, or as no speaker shown. Signs, battle text, trainer challenges, PokéNav registrations and calls, the junk filter's service, berry and flavor lines and lines naming only the map they were heard on are skipped. Off: only story characters set the Story goal."),
+  on("story-line-campaign-flags-v1", "observation", "STORY LINE CAMPAIGN STEPS", "story-state-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The readout's Story line stops at the server's early flags, such as route104 cindy defeated, for the whole run, while the supervisor briefing lists later game-confirmed steps. On: the Story line also lists every campaign step the game confirmed in this run, in order, whole. Off: the Story line lists the server's flags only."),
+  on("junk-filter-leader-lines-v1", "guard", "JUNK FILTER KEEPS LEADER LINES", "instruction-memory-junk-filter-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The junk filter's trainer rule drops a gym leader's lines, as replaying run ee2a with the filter on showed for WINONA's turn-60 speech, even though the cap owner deliberately keeps them until the badge checkpoints. On: the junk filter's trainer rule spares a gym leader's line until that badge is earned; the size cap still applies. Off: the trainer rule drops it like any trainer's line."),
+  on("story-line-start-steps-v1", "observation", "STORY LINE START STEPS", "story-line-campaign-flags-v1", "Default off; on in both arms of the current recipe (the operator 2026-11-06). A run started from a checkpoint already holds steps the save's flags record, such as Knuckle through Balance badges in run ee2a, and the Story line and the briefing's done list skipped them. On: the Story line lists the campaign steps recorded as present at the start, before the run's own, whole, and so does the briefing's done list when story-briefing-native-milestones-v1 is on. They do not count as this run's progress. Off: only steps confirmed during the run are listed."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -968,6 +980,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "map-code-aliases-v1",
   "rotating-gate-regions-v1",
   "shop-shelf-hidden-v1",
+  "field-call-input-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1314,6 +1327,12 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rq-battle-explainer-v1"),
     ...when("rq-slim-prompt-v1"),
     ...when("shop-shelf-hidden-v1"),
+    ...when("field-call-input-v1"),
+    ...when("first-visit-cycle-credit-v1"),
+    ...when("unnamed-place-story-line-v1"),
+    ...when("story-line-campaign-flags-v1"),
+    ...when("junk-filter-leader-lines-v1"),
+    ...when("story-line-start-steps-v1"),
   ];
 }
 

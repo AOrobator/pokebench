@@ -7,10 +7,12 @@ import type {AutoAdvanceRecorder,DialoguePage} from "./dialogue-auto-advance.js"
 
 export const POKENAV_CALL_ID="pokenav-call-auto-advance-v1";
 export const POKENAV_CALL_NOTE="PokéNav calls advance automatically: the harness advances verified call text and returns it. During the game's forced tutorial it makes the required call to the sole registered contact and exits; ordinary contact selection remains yours. Unknown states stop automation.";
+export const FIELD_CALL_ID="field-call-input-v1";
+export const FIELD_CALL_NOTE="A call that rings while you are on the field advances automatically too: the harness presses A through the verified call text and returns it. Unknown states stop automation.";
 export const POKENAV_CALL_LIMITS={presses:50,callMs:90_000,waitMs:10_000,pollMs:100} as const;
 type Result=AgentToolResult<unknown>;
 type Episode=Omit<BodyOf<"dialogue_auto_advance">,"type"|"turn">;
-type Decision={kind:"press";button:Button;key:string}|{kind:"wait"}|{kind:"stop";reason:string};
+export type Decision={kind:"press";button:Button;key:string}|{kind:"wait"}|{kind:"stop";reason:string};
 export interface PokenavCallPorts {
  readonly state:StateSource;
  readonly recorder:AutoAdvanceRecorder;
@@ -27,29 +29,48 @@ const stateOf=(result:Result):GameStateSnapshot=>{
 };
 const nativeNav=(s:GameStateSnapshot)=>s.screen==="pokenav"&&s.active_ui?.diagnostic==null&&s.active_ui?.details?.["callback2"]==="0x081C7401";
 const forcedMenu=(s:GameStateSnapshot)=>s.screen==="overworld"&&s.map_id?.[0]===0&&s.map_id[1]===3&&s.active_ui?.phase==="field_multichoice"&&s.active_ui.diagnostic==null&&s.active_ui.details?.["menu_id"]===86;
+const fieldCall=(s:GameStateSnapshot)=>s.screen==="overworld"&&(s.active_ui?.phase==="field_match_call_message"||s.active_ui?.phase==="field_match_call_transition");
+const fieldCaller=(s:GameStateSnapshot)=>JSON.stringify([s.active_ui?.details?.["trainer_id"],s.active_ui?.details?.["triggered_from_script"]]);
+// The same printer wait as a call inside the PokéNav: the reader's call_text_state says whether A or B is taken (menu_field_people.py).
+export function fieldCallDecision(s:GameStateSnapshot):Decision{
+ const ui=s.active_ui,d=ui?.details,phase=d?.["call_text_state"];
+ if(phase==="waiting"||phase==="finished")return {kind:"press",button:"A",key:JSON.stringify([s.map_id,ui?.phase,ui?.selected,ui?.value,d?.["callback2"],d?.["owner_task"],d?.["call_state"],phase])};
+ if(phase==="printing"||phase==="unavailable")return {kind:"wait"};
+ return {kind:"stop",reason:"call printer is unverified"};
+}
 class Changed extends Error {}
 
 export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:FeatureSet,ports:PokenavCallPorts):AgentTool[]{
- if(!features[POKENAV_CALL_ID])return [...tools];
+ const nav=features[POKENAV_CALL_ID],field=features[FIELD_CALL_ID];
+ if(!nav&&!field)return [...tools];
  if(ports.press===undefined||ports.observe===undefined||!isCheckedPress(ports.press))throw new Error("PokéNav call auto-advance requires checked ordinary press");
+ const note=[...(nav?[POKENAV_CALL_NOTE]:[]),...(field?[FIELD_CALL_NOTE]:[])].join(" ");
  const press:CheckedPressTool=ports.press,observe=ports.observe;
  const clock=ports.clock??{now:()=>Date.now(),sleep:(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms))};
  const limits=ports.limits??POKENAV_CALL_LIMITS;
  const supported=new Set<Episode["tool"]>(["observe","press","navigate_to","navigate_to_target","explore_map","select_menu_option"]);
- return tools.map(tool=>!supported.has(tool.name as Episode["tool"])?tool:{...tool,description:`${tool.description} ${POKENAV_CALL_NOTE}`,execute:async(id,args,signal,update)=>{
+ return tools.map(tool=>!supported.has(tool.name as Episode["tool"])?tool:{...tool,description:`${tool.description} ${note}`,execute:async(id,args,signal,update)=>{
   let result:Result=await tool.execute(id,args,signal,update);
   const original=result;
   const initialDetails=result.details;
   if(typeof initialDetails!=="object"||initialDetails===null||!("state"in initialDetails)||initialDetails.state==null)return result;
   let state=stateOf(result);
-  const initiallyForced=forcedMenu(state)||(nativeNav(state)&&(state.active_ui?.details?.["pokenav_mode"]===1||state.active_ui?.details?.["pokenav_mode"]===2));
-  if(!initiallyForced&&!(nativeNav(state)&&state.active_ui?.phase==="pokenav_match_call_call"))return result;
+  const initiallyForced=nav&&(forcedMenu(state)||(nativeNav(state)&&(state.active_ui?.details?.["pokenav_mode"]===1||state.active_ui?.details?.["pokenav_mode"]===2)));
+  const fieldEpisode=field&&fieldCall(state);
+  if(!fieldEpisode&&!initiallyForced&&!(nav&&nativeNav(state)&&state.active_ui?.phase==="pokenav_match_call_call"))return result;
   const began=clock.now(),map=JSON.stringify(state.map_id),buttons:Button[]=[],pages:DialoguePage[]=[];
   let pending:Button|null=null;
   let tutorial=initiallyForced,contact:string|null=null,waitingSince=clock.now(),reason:string,stop:Episode["stop"]="menu";
   const decide=(s:GameStateSnapshot):Decision=>{
    const ui=s.active_ui,d=ui?.details;
    if(JSON.stringify(s.map_id)!==map||s.in_battle||ui?.diagnostic!=null)return {kind:"stop",reason:"map, battle or interface ownership changed"};
+   if(fieldEpisode){
+    if(!fieldCall(s))return {kind:"stop",reason:"call ended"};
+    const identity=fieldCaller(s);
+    if(contact!==null&&identity!==contact)return {kind:"stop",reason:"call recipient changed"};
+    contact=identity;
+    return fieldCallDecision(s);
+   }
    const action=(button:Button):Decision=>({kind:"press",button,key:JSON.stringify([s.map_id,ui?.phase,ui?.selected,d?.["callback2"],d?.["input_callback"],d?.["menu_id"],d?.["owner_task"],d?.["pokenav_menu_index"],d?.["header_id"],d?.["is_special_trainer"]])});
    if(tutorial&&forcedMenu(s)){
     const options=d?.["options"],index=d?.["selected_index"];
@@ -97,7 +118,7 @@ export function withPokenavCallAutoAdvance(tools:readonly AgentTool[],features:F
    if(decision.kind==="stop"){reason=decision.reason;break;}
    if(clock.now()-began>=limits.callMs){stop="time_cap";reason="PokéNav automatic input time cap";break;}
    const ui=state.active_ui,d=ui?.details,message=d?.["message"];
-   if(ui?.phase==="pokenav_match_call_call"&&typeof message==="string"&&message!==""&&!pages.some(p=>p.text===message)){
+   if((ui?.phase==="pokenav_match_call_call"||(fieldEpisode&&ui?.phase==="field_match_call_message"))&&typeof message==="string"&&message!==""&&!pages.some(p=>p.text===message)){
     const recorded=ports.recorder.recordState(state),name=d?.["trainer_name"];
     pages.push({state_seq:recorded.seq,map:state.location,map_id:state.map_id,position:state.position,speaker:typeof name==="string"&&message.startsWith(`${name}:`)?name:null,speaker_source:typeof name==="string"&&message.startsWith(`${name}:`)?"name_prefix":null,text:message});
    }

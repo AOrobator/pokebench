@@ -31,7 +31,7 @@ export class ObservedInstructions {
  // current-map-display-name-v1: a page's map named as the readout's Location line named it (map_display), when recorded.
  // instruction-memory-cap-v1 (cap): rule A′ over the episodes either form keeps, after instruction-memory-dedup-v1's
  // merge; see instruction-memory-cap.ts.
- constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false,junk=false,wholeGame=false,private readonly yaml=false,private readonly sceneLabels=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap(junk,wholeGame):null;}
+ constructor(private readonly allField=false,trim=false,private readonly displayNames=false,cap=false,junk=false,wholeGame=false,private readonly yaml=false,private readonly sceneLabels=false,leaderLines=false){this.policy=trim?new MilestoneMemory():null;this.cap=cap?new InstructionMemoryCap(junk,wholeGame,leaderLines):null;}
 
  private mapName(page:Dialogue["pages"][number]):string|null {return this.displayNames?page.map_display??page.map:page.map;}
  archive():readonly InstructionEpisode[]{return [...this.episodes.values()];}
@@ -170,7 +170,7 @@ export class ObservedInstructions {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 export function observedInstructions(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe"|"recordLedgerContext">,transform:Transform):Transform {
  if(!features["observed-instructions-v1"])return transform;
- const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"],features["instruction-memory-junk-filter-v1"],features["story-checkpoints-whole-game-v1"],features["instruction-memory-yaml-v1"],features["authored-scene-labels-v1"]);
+ const memory=new ObservedInstructions(features["observed-field-dialogue-v1"],features["milestone-instruction-memory-v1"],features["current-map-display-name-v1"],features["instruction-memory-cap-v1"],features["instruction-memory-junk-filter-v1"],features["story-checkpoints-whole-game-v1"],features["instruction-memory-yaml-v1"],features["authored-scene-labels-v1"],features["junk-filter-leader-lines-v1"]);
 
  const places=features["delivered-place-evidence-v1"]?new ObservedInstructions(true,true,false,false,false,false,false,features["authored-scene-labels-v1"]):null;
  recorder.subscribe(event=>{memory.observe(event);places?.observe(event);});

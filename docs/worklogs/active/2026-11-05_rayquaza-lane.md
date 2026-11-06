@@ -113,3 +113,34 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Task D buy check: all stock and first items confirmed; X Specials moved ahead of Super Repels so the Space Center plan holds at about ₽12,000.
 - Claude review: the second Repel is needed for Route 116, and Max Repels go before Hyper Potions because later rows rely on them. Both fixed.
 - Buy lines gate green: 2,565 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. Claude's two findings applied as it proposed; GPT LGTM. Guide data only.
+- Run 7442 stalled 30+ turns on Dad's boat call, waiting for text that only advances on A. RED test for a lane call note.
+- CALL_NOTE added. The PokéNav section is not triggered on field calls: it says the harness advances calls, which is false there unless the correctness unit extends auto-advance.
+- Claude review: OPTIONS_NOTE hid CALL_NOTE during a call; CALL now goes first. Replay of 7442 shows the note on 35 of 35 in-call turns; one batched press of eight As cleared the call at turn 474.
+- Call note gate green: 2,567 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. GPT LGTM; Claude's finding fixed with a test.
+- Rival line from 7442's loss, conditional on the party: no boost on Grovyle, Flying partner if present, else a neutral move.
+- Front rows made conditional or foe-based per the operator: starter, Taillow, Rock Tomb, X items, Rival, Maxie, Flannery.
+- Route 110 row trimmed to fit 300 characters; data regenerated.
+- Audit: no stranding point; a whiteout returns Briney to his cottage, and 7442 failed to talk to him. RED test for a Briney note between Dewford and Slateport.
+- Slateport Center step and BRINEY_NOTE added.
+- After-Heat rows made conditional or foe-based per the operator: party members, levels, moves as known, items if held; Rayquaza fights no longer assume the catch; one no-Fly line at Feather Badge; data regenerated (126 steps).
+- GPT fact check on the after-Heat rewrite: Surf and Dive learners, Rain Dance, two battlers for Tate and Liza, Waterfall fallback. Fixed.
+- Claude review: BRINEY_NOTE window now ends at Mauville so it covers a Route 110 loss; shop note goes first. Data regenerated.
+- Added rayquaza-lane-8h-v3 definition for the restart.
+- Final gate green at 0a031a02b: 2,585 agent, 991 viewer, 2,965 + 38 Python, lint and vendor clean. Claude LGTM. GPT returned CHANGES once with findings I lost to output truncation, then LGTM on an identical rerun.
+- RED: lane recipe as an overlay on current (the operator: a pointer to control, not a hand copy). Tests pin the resolved recipe against frozen copies of today's current and lane files; agent tests derive the lane from control plus overlay.
+- GREEN: rayquaza-lane.json is an overlay on current with a one-line reason per exception; preset deleted; recipes resolve when read and the hash covers the resolved recipe. 21+ overlay tests, tsc and eslint clean. Hash of lane definitions changes once (onInBoth order); membership equal.
+- RED: run_start records a resolved-features hash; fixed-run check prints switches changed since a lane's last recorded run, through injected reads. Confirmed evaluation.features already holds the full resolved list (354 keys on run aeb8); no hash existed.
+- GREEN: evaluation.features_sha256 in run_start (recording only, no switch); fixed-run check lists switches changed since the lane's last recorded run. Real check on v1, v2, v3: exit 0, resolved bundle hash 4f5ba9e2 equals the hash of what run aeb8 recorded from the hand copy, no switches changed.
+- GPT review 1 CHANGES: reasons not enforced as one line by the resolver. Fixed in the schema (non-blank, one line, 120 chars) with tests.
+- GPT review 2 CHANGES: drift report now fails on an unreadable ledger and also searches archived definitions. Ordering by launch time kept: a launch ledger's order is the lane's order, and runs differ only by seconds when concurrent.
+- Merged main at 4d70e007c: the junk filter and field dialogue promotion reach the lane through the pointer, no hand edit.
+- Merge left README conflict markers in 027756d96; resolved to keep both sides.
+- RED: a launched lane must keep what it launched. Claude review found a runner restart re-resolves the overlay, so a promotion in current marks a correct run invalid and rewrites presets. Tests reproduce the sequence.
+- GREEN: once the ledger has a launch, run and rerun use the launched recipe (resolved-recipe.json, or derived from presets whose bytes match the launch) and presets stay unrewritten. Read-only proof on v3: frozen bits 0 mismatches against aeb8's run_start; live differs by the junk filter only. No file written under the live experiment.
+- RED: GPT delta review: derivation must read each preset once and keep the definition's ROM.
+- GREEN: derivation reads each preset once and keeps the definition's ROM. controlBase stays live for derived recipes: nothing recorded it and no trial reads it.
+- RED: GPT delta review: a kept preset must match the launched recipe before anything launches.
+- GREEN: prepare fails before launch if a kept preset's features differ from the launched recipe; schedule fields may still change.
+- Claude re-review: a schedule edit after launch was ignored by kept presets. RED test added.
+- Fix: a launched preset takes the generated text once features match, so schedule edits apply.
+- Final gate green. Claude's finding fixed as it proposed. GPT's last finding rebutted: launchedRecipeReader runs only for definitions that name a recipe, so complete definitions never reach it; the concurrent-runner race predates this change.

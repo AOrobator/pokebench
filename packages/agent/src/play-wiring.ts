@@ -62,6 +62,7 @@ import {withCitedDestination,type CitationRecorder} from "./cited-destination.js
 import {withUntakenExits} from "./untaken-exits.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
 import {withStalePlanFact} from "./stale-plan-fact.js";
+import {withStoryLineCampaign} from "./story-line-campaign.js";
 import {withNoExitHere} from "./no-exit-here.js";
 import {withResultFacts} from "./result-facts.js";
 import type {RunRecorder} from "./recorder.js";
@@ -146,7 +147,7 @@ export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"sub
  const retired=features["positive-supervisor-v1"]||features["milestone-drought-suppression-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (${features["positive-supervisor-v1"]?"positive-supervisor-v1":"milestone-drought-suppression-v1"}): ${text}`,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null;
  const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});},
   // drought-battle-heal-hold-v1: a held drought briefing stays in the record as a diagnostic (Activity History).
-  features["drought-battle-heal-hold-v1"]||features["drought-progress-facts-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
+  features["drought-battle-heal-hold-v1"]||features["drought-progress-facts-v1"]||features["first-visit-cycle-credit-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
  recorder.subscribe(event=>{stall.observe(event);},false,false,true);
  return stall;
 }
@@ -217,7 +218,7 @@ function storyBattleHealGate(arm:HealArm,state:StateSource,recorder:GateRecorder
 }
 // The harness-trust-v1 options the switches select; decision probes re-derive the header with the same options.
 export function trustOptions(features:FeatureSet):TrustOptions {
- return {surfNavigation:features["surf-navigation-v1"],supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"],selfNamed:features["self-named-speaker-v1"],retireReached:features["retire-reached-story-line-v1"]};
+ return {unnamedPlaces:features["unnamed-place-story-line-v1"],surfNavigation:features["surf-navigation-v1"],supervisor:!features["instruction-goal-ledger-v1"],semanticTargets:features["semantic-navigation-v2"],battleAction:features["harness-trust-v2"],goalOnce:features["input-cuts-v1"],retireLab:features["stale-story-goal-v1"],stageBound:features["stale-story-goal-v2"],nativeTasks:features["native-task-goal-retirement-v1"],omitEmptyGoal:features["stale-story-goal-v2"],scriptedGuidance:features["scripted-place-guidance-v1"],reachableGoal:features["reachable-story-guidance-v1"],exitSections:features["exit-labels-v3"],activity:features["unfinished-activity-v1"],playerName:features["story-goal-player-name-v1"],gymEvidence:features["gym-evidence-v1"],deliveredPlaces:features["delivered-place-evidence-v1"],untalkedPeople:features["untalked-people-header-v1"],buildings:features["away-note-buildings-v1"],selfNamed:features["self-named-speaker-v1"],retireReached:features["retire-reached-story-line-v1"]};
 }
 export function playGameTools(base:readonly AgentTool[],features:FeatureSet,state:StateSource,recorder:AutoAdvanceRecorder&WarningRecorder&IdCardRecorder&TrustRecorder&Pick<CitationRecorder,"destinationCitation">&Pick<ActivityRecorder,"unfinishedActivity">&SightRecorder&GateRecorder&HealFirstRecorder&DarkAreaFlashRecorder,gate?:NavigationPorts["gate"],extra:readonly AgentTool[]=[],training?:TrainingBlock,instructionGoals?:GoalTools):AgentTool[]{
  const terrain=features["visited-terrain-navigation-v1"]&&!features["full-map-navigation-v1"]?new VisitedTerrain(features["map-observability-v1"]):null;
@@ -233,7 +234,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const progress=withDarkAreaFlashReminder(withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(pokenav,features,recorder),features,state),features,recorder),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);
  const cited=withCitedDestination(visible,features["cited-destination-v1"],recorder,{fullMap:features["full-map-navigation-v1"],exitReach:features["exit-reachability-v1"],silenceMiss:features["input-cuts-v1"],factualMiss:features["gym-evidence-v1"],structuredEvidence:features["citation-evidence-v1"]});
- return [...withDestinationFirst(withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state,features["scene-journal-safe-capture-v1"]),names),features)];
+ return withStoryLineCampaign([...withDestinationFirst(withShownCast(withSceneJournal(withInstructionGoalReview(withInterfaceGuidance(withMenuItemGuidance(withStalePlanFact(withHealFirst(withStarterDecision(withHarnessTrust(cited,features["harness-trust-v1"],recorder,state,trustOptions(features)),features),features["story-battle-heal-first-v1"]&&!features["coherent-healing-feedback-v1"],recorder,state,features["factual-healing-guidance-v1"],names),features,recorder),features["menu-item-guidance-v1"]),features["interface-guidance-v1"],recorder),instructionGoals??null),features["cutscene-journal-v1"],state,features["scene-journal-safe-capture-v1"]),names),features)],features,recorder);
 }
 
 

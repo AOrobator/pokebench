@@ -1,13 +1,12 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
-import preset from "../../../experiments/presets/rayquaza-lane-8h.json" with { type: "json" };
-import type { FeatureSet } from "./features.js";
+import { rayquazaLaneFeatures } from "../test-support/rayquaza-lane.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { BRINEY_NOTE, CALL_NOTE, GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
-const ON = preset.features as FeatureSet;
+const ON = rayquazaLaneFeatures();
 const steps: readonly GuideStep[] = [
   { after: "RUN_START", map: null, note: "Choose OPTION." },
   { after: "OPTIONS_OPENED", map: null, note: "Set them." },
@@ -135,6 +134,47 @@ describe("missed items", () => {
     guide.observe(field({ resources: { bag: [{ name: "POTION", quantity: 5 }, { name: "REPEL", quantity: 2 }] } }));
     guide.observe(name());
     expect(guide.takeMisses()).toEqual([]);
+  });
+});
+
+describe("call note", () => {
+  it("says how to clear a field Match Call while one is open, and not otherwise", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(field({ active_ui: { phase: "field_match_call_message" } }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+    guide.observe(field({ active_ui: { phase: "field_match_call_transition" } }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+    guide.observe(field());
+    expect(guide.situationNotes()).toEqual([]);
+  });
+});
+
+it("shows the call note over the options note while a call is open", () => {
+  const guide = new GuidePosition(steps);
+  guide.observe(state({}));
+  guide.observe(field({ active_ui: { phase: "field_match_call_message" } }));
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+  guide.observe(field());
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([OPTIONS_NOTE]);
+});
+
+describe("Briney note", () => {
+  const route: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "a" }, { after: "DEWFORD_TOWN", map: null, note: "b" }, { after: "MAUVILLE_CITY", map: null, note: "c" }];
+  const town = (name: string): RunEvent => ({ type: "milestone", name, origin: "observed", kind: "story" }) as unknown as RunEvent;
+  it("points back to his house only on the west side between Dewford and Mauville", () => {
+    const guide = new GuidePosition(route);
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes()).toEqual([]);
+    guide.observe(town("DEWFORD_TOWN"));
+    guide.observe(field({ location: "DEWFORD TOWN" }));
+    expect(guide.situationNotes()).toEqual([]);
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([BRINEY_NOTE]);
+    guide.observe(field({ location: "PETALBURG CITY MART" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([SHOP_NOTE]);
+    guide.observe(town("MAUVILLE_CITY"));
+    guide.observe(field({ location: "ROUTE104" }));
+    expect(guide.situationNotes()).toEqual([]);
   });
 });
 

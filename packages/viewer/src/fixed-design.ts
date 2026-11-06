@@ -82,11 +82,37 @@ const protocolShape=Type.Omit(Type.Object(draftShape,closed),["controlBase","swi
 const protocolBase=Type.Omit(draftShape.base,["features"]).properties;
 const FeatureSourceSchema=Type.Object({...protocolShape,base:Type.Object(protocolBase,closed),featureRecipe:Name,seed:Type.Optional(Type.String({pattern:"^[0-9a-f]{16}$"})),plan:Type.Optional(Type.Array(SlotSchema))},closed);
 export type FeatureRecipe=Static<typeof FeatureRecipeSchema>;
+// A lane names its base and its differences, each with its reason, so a change to the base reaches the lane unedited.
+const FeatureReasons=Type.Record(Type.String(),Type.String({pattern:"^\\S[^\\r\\n]{0,119}$"}));
+export const FeatureOverlaySchema=Type.Object({version:Type.Literal(1),id:Name,base:Name,on:FeatureReasons,off:FeatureReasons},closed);
+export type FeatureOverlay=Static<typeof FeatureOverlaySchema>;
+const namesBase=(value:unknown):boolean=>typeof value==="object"&&value!==null&&"base" in value;
+export const isFeatureOverlay=(text:string):boolean=>namesBase(JSON.parse(text));
+function applyFeatureOverlay(overlay:FeatureOverlay,base:FeatureRecipe):FeatureRecipe {
+ const on=Object.keys(overlay.on),off=Object.keys(overlay.off);
+ const known=new Set([...Object.keys(base.features),...base.switches,...base.offInBoth,...base.onInBoth]);
+ for(const id of [...on,...off])if(!known.has(id))throw new FixedDesignError(`feature recipe ${overlay.id}: base ${overlay.base} does not know switch ${id}`);
+ for(const id of on)if(off.includes(id))throw new FixedDesignError(`feature recipe ${overlay.id}: switch ${id} is listed both on and off`);
+ const kept=(list:readonly string[]):string[]=>list.filter(id=>!on.includes(id)&&!off.includes(id));
+ const set=(ids:readonly string[],value:boolean):Record<string,boolean>=>Object.fromEntries(ids.map(id=>[id,value]));
+ return {...base,id:overlay.id,switches:kept(base.switches),offInBoth:[...kept(base.offInBoth),...off],onInBoth:[...kept(base.onInBoth),...on],features:{...base.features,...set(on,true),...set(off,false)}};
+}
+// A complete recipe keeps its own bytes, so its recorded hashes hold; an overlay becomes the complete recipe it stands for.
+export function resolveFeatureRecipe(text:string,readRecipe:(id:string)=>string):string {
+ const overlay:unknown=JSON.parse(text);
+ if(!namesBase(overlay))return text;
+ if(!Value.Check(FeatureOverlaySchema,overlay))throw new FixedDesignError("invalid feature recipe overlay");
+ const base:unknown=JSON.parse(readRecipe(overlay.base));
+ if(namesBase(base))throw new FixedDesignError(`feature recipe ${overlay.id}: base ${overlay.base} is itself an overlay`);
+ if(!Value.Check(FeatureRecipeSchema,base))throw new FixedDesignError("invalid feature recipe");
+ if(base.id!==overlay.base)throw new FixedDesignError(`feature recipe ${overlay.id}: base ${overlay.base} has identity ${base.id}`);
+ return JSON.stringify(applyFeatureOverlay(overlay,base));
+}
 export function materializeFixedSource(value:unknown,readRecipe?:(id:string)=>string):unknown {
  if(typeof value!=="object"||value===null||!("featureRecipe" in value))return value;
  if(!Value.Check(FeatureSourceSchema,value))throw new FixedDesignError("invalid feature-referenced protocol; keep all feature settings in its recipe");
  if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${value.featureRecipe} requires a source loader`);
- const recipe:unknown=JSON.parse(readRecipe(value.featureRecipe));
+ const recipe:unknown=JSON.parse(resolveFeatureRecipe(readRecipe(value.featureRecipe),readRecipe));
  if(!Value.Check(FeatureRecipeSchema,recipe))throw new FixedDesignError("invalid feature recipe");
  const {featureRecipe,...protocol}=value;
  if(recipe.id!==featureRecipe)throw new FixedDesignError("feature recipe identity differs from its reference");
@@ -184,7 +210,7 @@ export function phaseOf(def: Pick<FixedDefinition, "phases">, id: string): Fixed
   return phase;
 }
 
-export function armFeatures(def: Pick<FixedDefinition, "base" | "switches">, arm: FixedArm): Record<string, boolean> {
+export function armFeatures(def: Pick<FixedDefinition, "switches"> & { readonly base: Pick<FixedDefinition["base"], "features"> }, arm: FixedArm): Record<string, boolean> {
   return { ...def.base.features, ...Object.fromEntries(def.switches.map((s) => [s, arm === "bundle"])) };
 }
 
@@ -325,7 +351,7 @@ export function parseFixedDefinition(text: string, readRecipe?:(id:string)=>stri
     throw new FixedDesignError(`not JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
   const recipeSource:{text:string|null}={text:null};
-  value=materializeFixedSource(value,id=>{if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${id} requires a source loader`);recipeSource.text=readRecipe(id);return recipeSource.text;});
+  value=materializeFixedSource(value,id=>{if(readRecipe===undefined)throw new FixedDesignError(`feature recipe ${id} requires a source loader`);recipeSource.text=resolveFeatureRecipe(readRecipe(id),readRecipe);return recipeSource.text;});
   if (!Value.Check(FixedDefinitionSchema, value)) {
     const [first] = Value.Errors(FixedDefinitionSchema, value);
     throw new FixedDesignError(`not a fixed-run definition: ${first?.instancePath ?? ""} ${first?.message ?? "schema mismatch"}`);

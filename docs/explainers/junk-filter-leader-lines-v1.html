@@ -103,21 +103,21 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>Junk filter leader lines</h1>
-<p><code>junk-filter-leader-lines-v1</code> keeps a gym leader's lines in instruction memory until that leader's badge is earned.</p>
+<p><code>junk-filter-leader-lines-v1</code> stops the junk filter dropping a gym leader's lines until that leader's badge is earned. The size cap still applies.</p>
 
 <h2>Why it exists</h2>
-<div class="card"><p>The junk filter's trainer rule dropped a faced trainer's lines, and gym leaders are trainers. So WINONA's speech at turn 60 of run ee2a went, even though the memory cap deliberately keeps leader lines until the badge.</p></div>
+<div class="card"><p>The junk filter's trainer rule dropped a faced trainer's lines, and gym leaders are trainers. So replaying run ee2a with the filter on dropped WINONA's turn-60 speech, even though the memory cap deliberately keeps leader lines until the badge.</p></div>
 
 <h2>What decides it</h2>
 <figure class="fig">
 <svg viewBox="0 0 760 150" role="img" aria-label="A faced trainer's line is kept if the trainer is a gym leader whose badge is not earned">
 <rect x="20" y="45" width="170" height="60" rx="8" fill="#e3eaf3" stroke="#345779"/><text x="105" y="80" text-anchor="middle">Faced trainer's line</text>
 <rect x="240" y="45" width="230" height="60" rx="8" fill="#fff3c9" stroke="#b08a1e"/><text x="355" y="72" text-anchor="middle">Gym leader,</text><text x="355" y="90" text-anchor="middle">badge not earned?</text>
-<rect x="540" y="15" width="190" height="50" rx="8" fill="#e0f2e6" stroke="#2f7d4f"/><text x="635" y="45" text-anchor="middle">Yes: stays in memory</text>
+<rect x="540" y="15" width="190" height="50" rx="8" fill="#e0f2e6" stroke="#2f7d4f"/><text x="635" y="45" text-anchor="middle">Yes: not dropped as junk</text>
 <rect x="540" y="85" width="190" height="50" rx="8" fill="#f6dede" stroke="#a33a3a"/><text x="635" y="115" text-anchor="middle">No: trainer rule applies</text>
 <path d="M190 75H240M470 65L540 40M470 85L540 110" stroke="#5a6b80" fill="none"/>
 </svg>
-<figcaption>Once the badge is earned, the leader's line goes like any other trainer's.</figcaption>
+<figcaption>Once the badge is earned, the trainer rule applies again. Earned badges are latched, because battle states can report none. Tate and Liza's printed intro pages never reached this rule.</figcaption>
 </figure>
 
 <h2>Off</h2>

@@ -59,6 +59,7 @@ const word=(w:string,text:string,edge="A-Z0-9")=>new RegExp(`(?<![${edge}])${esc
 const oneLine=(pages:readonly CapRow[])=>pages.map(p=>p[2].replaceAll("\n"," ")).join(" ");
 
 export class InstructionMemoryCap {
+ private readonly earned=new Set<string>();
  constructor(private readonly junk=false,private readonly wholeGame=false,private readonly leaderLines=false){}
 
  private run:string|null=null;
@@ -75,6 +76,7 @@ export class InstructionMemoryCap {
   if(event.type==="tool_result"){if(!event.is_error&&OBSERVATION_TOOLS.has(event.name))this.readout=event.text;return;}
   if(event.type!=="state"||!("started" in event))return;
   this.state=event;
+  for(const badge of event.badges??[])this.earned.add(badge.toUpperCase());
   if(event.location!==null)this.visited.add(event.location);
   const map=key(event.map_id),trainers=event.heal_before_trainers?.trainers??[];
   for(const t of trainers)this.defeated.set(`${String(map)}#${String(t.trainer_id)}`,t.defeated);
@@ -126,10 +128,11 @@ export class InstructionMemoryCap {
   }
   return null;
  }
- // junk-filter-leader-lines-v1: a gym leader's line stays until that badge is earned.
+ // junk-filter-leader-lines-v1: the junk filter keeps a gym leader's line until that badge is earned. Battle states can report no
+ // badges, so earned badges are latched.
  private leaderUnbeaten(p:CapRow):boolean {
   const badge=p[0]===null?undefined:LEADER_BADGE[p[0]];
-  return this.leaderLines&&badge!==undefined&&!(this.state?.badges??[]).includes(badge);
+  return this.leaderLines&&badge!==undefined&&!this.earned.has(badge);
  }
  private pageDone(p:CapRow):readonly [string,boolean]|null {
   const player=escape(this.player());

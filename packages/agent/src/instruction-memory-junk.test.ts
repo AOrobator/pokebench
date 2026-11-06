@@ -163,11 +163,17 @@ it("junk-filter-leader-lines-v1 on: the line stays until that badge is earned",(
 it("junk-filter-leader-lines-v1 on: a leader's line with the badge earned goes as before",()=>{
  expect(leaderCap(leaderEvents(["FEATHER"]),true).decisions[0]).toMatchObject({step:"junk",rule:"R5",kept:false});
 });
+it("junk-filter-leader-lines-v1 on: an older run's title-case badge name counts as earned",()=>{
+ expect(leaderCap(leaderEvents(["Feather"]),true).decisions[0]).toMatchObject({step:"junk",rule:"R5",kept:false});
+});
+it("junk-filter-leader-lines-v1 on: a battle state that reports no badges does not bring a beaten leader's line back",()=>{
+ expect(leaderCap([...leaderEvents(["FEATHER"]),state({seq:8,badges:[],map_id:null,location:null})],true).decisions[0]).toMatchObject({step:"junk",rule:"R5",kept:false});
+});
 it("junk-filter-leader-lines-v1 on: an ordinary trainer's line is still R5",()=>{
  const native=state({seq:7,heal_before_trainers:{trainers:[{local_id:1,x:5,y:4,trainer_id:603,defeated:false,sprite_kind:"LASS",graphics_id:20,loaded:true}],move_power:[],last_heal:null,home:null,mom_heals:false}});
  const cap=new InstructionMemoryCap(true,false,true);cap.observe(native);
  expect(cap.select([ep(10,[page("Head north after our battle.",{speaker:"LASS",seq:7})])],render,16000).decisions[0]).toMatchObject({step:"junk",rule:"R5",kept:false});
 });
-it("the production factory passes junk-filter-leader-lines-v1 through",()=>{
+it("registers junk-filter-leader-lines-v1 with an Off clause",()=>{
  expect(featureInfo("junk-filter-leader-lines-v1").description).toContain(" Off: ");
 });

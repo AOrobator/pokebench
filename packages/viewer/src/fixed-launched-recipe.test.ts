@@ -4,7 +4,7 @@ import current from "../../../experiments/feature-configs/current.json" with {ty
 import overlay from "../../../experiments/feature-configs/rayquaza-lane.json" with {type:"json"};
 import v3 from "../../../experiments/fixed/rayquaza-lane-8h-v3.json" with {type:"json"};
 import launchedCurrent from "../test-support/recipes-frozen/current-36826cea3.json" with {type:"json"};
-import {armFeatureBits,armPreset,parseFixedDefinition,resolveFeatureRecipe,type FixedArm,type FixedDefinition} from "./fixed-design.js";
+import {armFeatureBits,armPreset,FixedDesignError,parseFixedDefinition,resolveFeatureRecipe,type FixedArm,type FixedDefinition} from "./fixed-design.js";
 import {classifyTrial} from "./fixed-ledger.js";
 import {frozenRecipeToWrite,launchedRecipeReader,presetToUse,type LaunchedRecipeReads} from "./fixed-launched-recipe.js";
 
@@ -118,13 +118,21 @@ describe("what a real start writes",()=>{
 });
 
 describe("presetToUse",()=>{
- it("keeps a launched experiment's preset bytes",()=>{
-  expect(presetToUse(true,"launched","generated")).toEqual({text:"launched",write:false});
+ const preset=(features:Record<string,boolean>,maxWallMs=1):string=>JSON.stringify({id:"p",limits:{maxWallMs},features});
+ const kept=preset({a:true,b:false}),generated=preset({b:false,a:true},2);
+ it("keeps a launched experiment's preset bytes while its features match the recipe",()=>{
+  expect(presetToUse(true,kept,generated)).toEqual({text:kept,write:false});
+ });
+ it("fails before any launch when a kept preset no longer matches the launched recipe",()=>{
+  const run=()=>presetToUse(true,preset({a:false,b:false}),generated);
+  expect(run).toThrow(FixedDesignError);
+  expect(run).toThrow("differs from the launched recipe");
+  expect(()=>presetToUse(true,"not json",generated)).toThrow(FixedDesignError);
  });
  it("writes a preset a launched experiment does not have yet",()=>{
-  expect(presetToUse(true,null,"generated")).toEqual({text:"generated",write:true});
+  expect(presetToUse(true,null,generated)).toEqual({text:generated,write:true});
  });
  it("regenerates before any launch",()=>{
-  expect(presetToUse(false,"old","generated")).toEqual({text:"generated",write:true});
+  expect(presetToUse(false,"old",generated)).toEqual({text:generated,write:true});
  });
 });

@@ -153,7 +153,7 @@ const REGISTERED=/^Registered .* in the POKéNAV\.$|Beep!/;
 const TRAINER_BATTLE=/would like to battle!$/;
 // What the game shows of who spoke: the sprite faced, else the sprite kinds on screen. Never a guessed name.
 function unnamedLabel(page:Page):string {
- if(page.speaker!==null)return `${page.speaker} sprite`;
+ if(page.speaker!==null)return page.speaker_source==="faced_sprite"?`${page.speaker} sprite`:page.speaker;
  const kinds=[...new Set((page.on_screen??[]).flatMap(o=>o.sprite_kind===null?[]:[o.sprite_kind]))];
  return kinds.length===0?"no speaker shown":`no speaker shown; on screen: ${kinds.join(", ")}`;
 }
@@ -191,7 +191,7 @@ export class StoryDestinations {
    return;
   }
   if(event.type==="dialogue_auto_advance"){
-   const lines=this.storyLines(event.turn,event.pages,event.seq);
+   const lines=this.storyLines(event.turn,event.pages,event.seq,event.pokenav_buttons!==undefined);
    this.pending.set(event.tool_call_id,lines);
    return;
   }
@@ -223,7 +223,7 @@ export class StoryDestinations {
  }
  // Every field page a story character speaks in one call, with its "lives" clause; battle text is no one's line.
  // Story characters named on earlier pages of the call (any speaker) are who "He/She lives" can mean.
- private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number):StoryLine[] {
+ private storyLines(turn:number,pages:readonly Page[],dialogueEvent:number,pokenavCall=false):StoryLine[] {
   const out:StoryLine[]=[];const before:string[]=[];
   const tasks=this.taskCompletion?.tasks(pages);
   const makeLine=(page:Page,line:StoryLine):StoryLine=>{
@@ -254,7 +254,7 @@ export class StoryDestinations {
     out.push(makeLine(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
    }else if(this.deliveredPlaces&&speaker===null&&namedIn(text).length>0&&placePhrases(text,null,NAMES).length>0){
     out.push(makeLine(page,{turn,speaker:"unnamed speaker",text,lives:null,deliveredPlace:{dialogue_event:dialogueEvent,result_event:null,state_event:page.state_seq,map:page.map,map_id:page.map_id,speaker:page.speaker,speaker_source:page.speaker_source,exact_text:page.text,map_display:page.map_display??null}}));
-   }else if(this.unnamedPlaces&&speaker===null&&page.speaker_source!=="faced_target"&&!challenge&&!REGISTERED.test(text)&&!junkPage(page.text)){
+   }else if(this.unnamedPlaces&&speaker===null&&page.speaker_source!=="faced_target"&&!pokenavCall&&!challenge&&!REGISTERED.test(text)&&!junkPage(page.text)){
     out.push(makeLine(page,{turn,speaker:unnamedLabel(page),text,lives:null,heardOn:page.map_id}));
    }else if(speaker!==null){
     const m=LIVES.exec(text);

@@ -69,6 +69,19 @@ it("on: a trainer's challenge and a PokéNav call are not leads",()=>{
  expect(goal(s)).toBeNull();
 });
 
+it("on: a printed name prefix keeps the name as printed, without calling it a sprite",()=>{
+ const s=story(true);
+ heard(s,20,"REPORTER: Meet me in MT. PYRE.","REPORTER","name_prefix");
+ expect(line(s)).toContain("(REPORTER, turn 20)");
+});
+
+it("on: a page from a PokéNav call is not a lead, however its speaker is shown",()=>{
+ const s=story(true),id="n";
+ s.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:30,tool_call_id:id,pokenav_buttons:["A"],pages:[{...PAGE,text:"JESSICA: See you at MT. PYRE.",speaker:"JESSICA",speaker_source:"name_prefix",map_id:[0,36],state_seq:1}]}));
+ s.observe(event({type:"tool_result",turn:30,id,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
+ expect(goal(s)).toBeNull();
+});
+
 it("on: battle text is no one's line",()=>{
  const s=story(true);
  const id="b";

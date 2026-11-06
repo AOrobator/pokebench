@@ -43,7 +43,7 @@ export function readFixedDefinition(root:string,id:string,allowArchive=false,lau
  const text=readFileSync(path,"utf8");
  let featureRecipe:{readonly id:string;readonly sha256:string}|null=null,recipeText:string|null=null;
  const live=(recipeId:string):string=>readFeatureRecipe(root,recipeId);
- const read=launched===undefined?live:launchedRecipeReader(launched,live);
+ const read=launched===undefined?live:launchedRecipeReader(launched,live,text);
  const parsed=parseFixedDefinition(text,recipeId=>{
   const recipe=read(recipeId);
   featureRecipe={id:recipeId,sha256:createHash("sha256").update(recipe).digest("hex")};recipeText=recipe;return recipe;

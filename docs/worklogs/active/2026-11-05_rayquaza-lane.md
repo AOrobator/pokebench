@@ -138,3 +138,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - RED: a launched lane must keep what it launched. Claude review found a runner restart re-resolves the overlay, so a promotion in current marks a correct run invalid and rewrites presets. Tests reproduce the sequence.
 - GREEN: once the ledger has a launch, run and rerun use the launched recipe (resolved-recipe.json, or derived from presets whose bytes match the launch) and presets stay unrewritten. Read-only proof on v3: frozen bits 0 mismatches against aeb8's run_start; live differs by the junk filter only. No file written under the live experiment.
 - RED: GPT delta review: derivation must read each preset once and keep the definition's ROM.
+- GREEN: derivation reads each preset once and keeps the definition's ROM. controlBase stays live for derived recipes: nothing recorded it and no trial reads it.

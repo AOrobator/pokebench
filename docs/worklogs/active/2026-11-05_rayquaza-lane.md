@@ -113,3 +113,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Task D buy check: all stock and first items confirmed; X Specials moved ahead of Super Repels so the Space Center plan holds at about ₽12,000.
 - Claude review: the second Repel is needed for Route 116, and Max Repels go before Hyper Potions because later rows rely on them. Both fixed.
 - Buy lines gate green: 2,565 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. Claude's two findings applied as it proposed; GPT LGTM. Guide data only.
+- Run 7442 stalled 30+ turns on Dad's boat call, waiting for text that only advances on A. RED test for a lane call note.

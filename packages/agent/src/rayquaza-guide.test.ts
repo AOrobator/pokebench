@@ -189,8 +189,8 @@ describe("the shipped guide", () => {
     expect(note).toMatch(/X Attack and X Speed against Slugma/);
     expect(note).toMatch(/if you have them/);
     expect(note).toMatch(/Absorb hits Marshtomp x4/);
-    expect(note).toMatch(/reach level 26/);
-    expect(note).toMatch(/Catch a Wingull here for Fly/);
+    expect(note).toMatch(/aim for level 26/);
+    expect(note).toMatch(/Catch a Wingull if met; don't hunt/);
     expect(note).not.toMatch(/Taillow/);
   });
 

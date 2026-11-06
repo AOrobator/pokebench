@@ -20,7 +20,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 |---|---|---|---|
 | `PETALBURG_GYM_ENTERED` | `PetalburgCity_Gym` | Take Randall’s Speed, Parker’s Confusion and Jody’s Strength rooms. Use bag items before Norman. On Spinda: X Attack×3 and X Speed if you have them, then Strength; decline Take Down. Mud Shot Vigoroth; Strength Linoone. Rock Smash Slaking, then Mud Shot as safe; moves as known. Watch for Counter. | KI v1:02:06–1:06:50, U23, C1, ROM |
 | `BALANCE_BADGE` | `PetalburgCity_WallysHouse` | Finish Norman’s dialogue for Facade, then get HM03 Surf from Wally’s father in the house beside the Gym. | KI 32, WT 06 |
-| `HM_SURF_RECEIVED` | `PetalburgCity` | Teach Surf to your starter, over Water Gun if known. In Petalburg, Surf across the pond and step ashore at (11,28). | KI v1:08:01–1:08:10, audit U1, ROM |
+| `HM_SURF_RECEIVED` | `PetalburgCity` | Teach Surf to a Pokémon that can learn it, over Water Gun if known. In Petalburg, Surf across the pond and step ashore at (11,28). | KI v1:08:01–1:08:10, audit U1, ROM |
 | `AT:PetalburgCity:11:28` | `PetalburgCity` | Face south and press A for a hidden Rare Candy. | KI v1:08:10, ROM, audit U1 |
 | `GOT:RARE_CANDY` | `Route118` | Return to Mauville and Surf east across Route 118. Finish Steven’s east-bank scene, use Repel if you have one and continue north to Route 119. | KI v1:08:18–1:08:59, U8, U24, ROM, audit U1, TO:MauvilleCity |
 | `ROUTE_119` | `Route119` | With Repel active if you have one, bike north on the trainer-skipping path and use the short Surf crossing to reach the Weather Institute. Fight the Aqua grunts inside and go upstairs to Shelly. | KI v1:08:59–1:11:37, U8, U24, ROM |
@@ -33,7 +33,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `ROUTE_120` | `Route120` | Talk to Steven on the bridge, run from the revealed Kecleon and receive the Devon Scope. Continue toward Route 121. | KI v1:15:40–1:15:50, U43, ROM |
-| `DEVON_SCOPE_RECEIVED` | `Route120` | Before Route 121, Surf across the pond, step ashore at (1,86), face west and press A for the hidden candy at (0,86). Marshtomp evolves at Lv36: use candies if they reach it. With Castform, give your starter its Mystic Water and teach Shock Wave over Rain Dance if held. Teach Fly to any able Pokémon. | KI v1:16:26–1:18:02, U25, U44, ROM |
+| `DEVON_SCOPE_RECEIVED` | `Route120` | Before Route 121, Surf across the pond, step ashore at (1,86), face west and press A for the hidden candy at (0,86). Marshtomp evolves at Lv36: use candies if they reach it. With Castform, take its Mystic Water for your starter; if it knows Rain Dance, teach Shock Wave over it. Teach Fly to any able Pokémon. | KI v1:16:26–1:18:02, U25, U44, ROM |
 | `ROUTE_121` | `Route121` | Use Super Repel if you have one. Cross one tile into Lilycove, then turn back to the Route 122 water entrance and Surf to Mt. Pyre. Finish any Rare Candy, Mystic Water, Fly and Shock Wave setup first. | KI v1:16:39–1:18:24, U8, U25, ROM |
 | `MT_PYRE` | `MtPyre_Exterior` | Keep Super Repel active if you have one. Take the side exit from Mt. Pyre’s first floor, climb the outside path and defeat the Aqua grunts on the way to the summit. | KI v1:18:24–1:19:57, U8, ROM |
 | `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep two healthy Pokémon ready, if you have them, for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. | KI 38, WT 08 |
@@ -62,12 +62,12 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy in this order as funds allow, regardless of party: two Revives, 11 X Attacks, 11 Max Repels, 11 Hyper Potions. Use any Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza; prepare a second battler if you have one. | KI v1:41:57, U8, C1, C5, ROM |
-| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | From (6,35): U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use any spares as fodder; Surf with your starter. | KI v1:42:15–1:47:51, U29, C1, ROM |
+| `MOSSDEEP_CITY` | `MossdeepCity_Mart` | Buy in this order as funds allow, regardless of party: two Revives, 11 X Attacks, 11 Max Repels, 11 Hyper Potions. Use any Max Repels for the remaining water, caves and Victory Road. Use bag items before Tate and Liza. You need two Pokémon able to fight to battle them. | KI v1:41:57, U8, C1, C5, ROM |
+| `MOSSDEEP_GYM_ENTERED` | `MossdeepCity_Gym` | From (6,35): U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U. Use items before the leaders. Use any spares as fodder; Surf with your Surf user. | KI v1:42:15–1:47:51, U29, C1, ROM |
 | `MIND_BADGE` | `MossdeepCity_SpaceCenter_1F` | Go to the Space Center. | KI v1:48:35, U30, C1, ROM |
 | `SPACE_CENTER_OCCUPATION_ENTERED` | `MossdeepCity_SpaceCenter_2F` | Clear encountered downstairs grunts and the upstairs three-grunt chain, then join Steven against Maxie and Tabitha. Lead your Surf user, use Guard Spec then X Special if you have them, and Surf Mightyena, Camerupt, Crobat and Golbat. Watch Camerupt’s Amnesia. | KI v1:48:35–1:54:20, U30, C1, ROM |
 | `SPACE_CENTER_STORY_COMPLETE` | `MossdeepCity_StevensHouse` | Visit Steven at his house and receive HM08 Dive. | KI v1:54:20–1:55:07, U30, ROM |
-| `HM_DIVE_RECEIVED` | `Route128` | Teach Dive to your Surf user now, over Mud Shot if known, retaining Surf, Strength and Rock Smash. Use Max Repel if you have one and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the submarine cave and surface inside. | KI v1:55:07–1:56:15, U8, U31, ROM |
+| `HM_DIVE_RECEIVED` | `Route128` | Teach Dive to a Pokémon that can learn it now, over Mud Shot if known, retaining Surf, Strength and Rock Smash. Use Max Repel if you have one and Surf south from Mossdeep through Routes 127–128. Dive in the dark water, find the submarine cave and surface inside. | KI v1:55:07–1:56:15, U8, U31, ROM |
 | `SEAFLOOR_CAVERN` | `SeafloorCavern_Room1` | Max Repel if you have one. Waypoints: 1 (5,17→6,2), 2 (10,7→6,1), 6 (11,21→4,1 via the north current), 3 (4,15→8,1), 8 (5,12→5,2). Use Strength and Rock Smash; re-enter to reset a blocked puzzle. | KI v1:56:15–1:57:40, U31, ROM |
 | `SEAFLOOR_ARCHIE_CHAMBER` | `SeafloorCavern_Room9` | In Room 9, walk from (5,4) to (17,42) to trigger Archie. Surf Mightyena. Against Crobat, use X Speed if you have it and need it, then Surf; Surf Sharpedo. Finish the Red Orb scene after the battle. | KI v1:57:40–1:59:15, U31, C1, ROM |
 
@@ -88,7 +88,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Deliberately drop to B1F to exit, then Fly to Mossdeep. If you have Rayquaza, teach it Aerial Ace over ExtremeSpeed and Waterfall over Rest, as held, keeping Fly and Outrage. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
+| `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Deliberately drop to B1F to exit, then Fly to Mossdeep. If you have Rayquaza, teach it Aerial Ace over ExtremeSpeed and Waterfall over Rest, as known, keeping Fly and Outrage; otherwise teach Waterfall to an able Pokémon. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
 | `EVER_GRANDE_LANDING` | `EverGrandeCity` | Enter Victory Road directly without visiting the Pokémon Center. Keep your Surf, Strength and Rock Smash users for the field moves. | KI v2:14:00, C1, U40, ROM |
 | `VICTORY_ROAD` | `VictoryRoad_1F` | Beat Wally near the entrance. As known, use Aerial Ace on Altaria, Waterfall on Delcatty and Magneton, and Outrage on Roselia and Gardevoir if safe. | KI 55, KI battle plans |
 | `VICTORY_ROAD_WALLY_DEFEATED` | `VictoryRoad_1F` | Max Repel if you have one. From Wally’s spot go U7 R2 U2 R4, fight Hope on the way, then descend to B1F. Keep the field moves available and save battle PP. | KI v2:14:50–2:15:55, U8, U36, ROM |

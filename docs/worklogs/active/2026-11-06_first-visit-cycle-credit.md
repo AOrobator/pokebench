@@ -26,8 +26,14 @@ The pair reset does most of the work. A run exploring new maps gets far fewer cy
 - [x] RED tests in `stall-briefing.test.ts`: 4 failing, 24 passing
 - [x] GREEN in `stall-briefing.ts`, wiring, viewer timeline exclusion: 30 stall-briefing tests, 161 viewer focused tests. Mutations: removing the drought wiring failed the drought test, removing the timeline exclusion failed the viewer test; both restored.
 - [x] Explainer, recipe, preset, README
-- [ ] Gates, review, landing
+- [x] Gates, review, landing
 
 ## Review log
 
 - Round 1 GPT (Codex CLI, gpt-5.6-sol) on 76f71140b: BLOCKING, one finding. Fix: held-note keys merged a later drought or rebuilt pair with an earlier note at the same level, so one could go unrecorded. Held notes are now tied to the pair or drought clock they counted. Two tests added; 32 stall-briefing tests pass.
+- Round 1 Claude (subagent), read through 7d1597848: LGTM on 7d1597848; it found the same key bug at 76f71140b. Fix: README and explainer said the switch only changes when notes fire, but the pair reset removes them; corrected. Follow-ups, not in this change: `loop-recovery.ts` counts held rows as interventions; `milestone-stall-stop-v1` (off in both configs) sends around the hold; `map-cycle-recovery-v1` (off) can clear a held pair on the result that ends a hold, with no record.
+
+## Gates on 7d1597848
+
+`just test` passed: 2,596 agent, 993 viewer, 2,965 env and 38 gateway tests, every coverage floor and `just no-io-proof`. Lint clean, each step run, with env mypy on the main venv because the worktree venv has no mGBA binding. `just verify-vendor` clean. Explainer `just pages-check` clean.
+

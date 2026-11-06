@@ -103,7 +103,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>First visit cycle credit</h1>
-<p><code>first-visit-cycle-credit-v1</code> stops stall notes from telling a model to give up on a place it has only just found. It changes when two notes fire. It does not change what they say.</p>
+<p><code>first-visit-cycle-credit-v1</code> stops stall notes from telling a model to give up on a place it has only just found. It changes whether and when two notes fire, and removes many cycle notes outright: replaying ee2a, map_cycle notes fall from 10 to 2. It does not change what they say.</p>
 
 <h2>Why it exists</h2>
 <div class="card">
@@ -141,7 +141,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>What you see in the viewer</h2>
 <div class="card">
-<p>Each held note appears once in Activity History and the raw inspector as <code>Not sent (first-visit-cycle-credit-v1)</code>, naming the first-visited map. A note that stopped being due says so. Nothing is added to the timeline.</p>
+<p>Each held note appears in Activity History and the raw inspector as <code>Not sent (first-visit-cycle-credit-v1)</code>, naming the first-visited map. A note that stopped being due gets a second row saying so. Nothing is added to the timeline.</p>
 </div>
 
 <h2>Off</h2>

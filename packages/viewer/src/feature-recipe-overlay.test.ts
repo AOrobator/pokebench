@@ -88,6 +88,9 @@ describe("resolveFeatureRecipe",()=>{
  it.each([
   ["an unexpected field",{...lane([],[]),features:{}},small,"invalid feature recipe overlay"],
   ["a switch with no reason",{...lane([],[]),on:{"treat-a":""}},small,"invalid feature recipe overlay"],
+  ["a blank reason",{...lane([],[]),on:{"treat-a":"  "}},small,"invalid feature recipe overlay"],
+  ["a two-line reason",{...lane([],[]),off:{"treat-a":"one\ntwo"}},small,"invalid feature recipe overlay"],
+  ["an overlong reason",{...lane([],[]),on:{"treat-a":"x".repeat(121)}},small,"invalid feature recipe overlay"],
   ["a bare switch list",{...lane([],[]),on:["treat-a"]},small,"invalid feature recipe overlay"],
   ["a traversing base id",{...lane([],[]),base:"../outside"},small,"invalid feature recipe overlay"],
   ["an invalid base",lane([],[]),{id:"current"},"invalid feature recipe"],

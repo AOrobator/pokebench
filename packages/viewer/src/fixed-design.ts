@@ -83,7 +83,7 @@ const protocolBase=Type.Omit(draftShape.base,["features"]).properties;
 const FeatureSourceSchema=Type.Object({...protocolShape,base:Type.Object(protocolBase,closed),featureRecipe:Name,seed:Type.Optional(Type.String({pattern:"^[0-9a-f]{16}$"})),plan:Type.Optional(Type.Array(SlotSchema))},closed);
 export type FeatureRecipe=Static<typeof FeatureRecipeSchema>;
 // A lane names its base and its differences, each with its reason, so a change to the base reaches the lane unedited.
-const FeatureReasons=Type.Record(Type.String(),Type.String({minLength:1}));
+const FeatureReasons=Type.Record(Type.String(),Type.String({pattern:"^\\S[^\\r\\n]{0,119}$"}));
 export const FeatureOverlaySchema=Type.Object({version:Type.Literal(1),id:Name,base:Name,on:FeatureReasons,off:FeatureReasons},closed);
 export type FeatureOverlay=Static<typeof FeatureOverlaySchema>;
 const namesBase=(value:unknown):boolean=>typeof value==="object"&&value!==null&&"base" in value;

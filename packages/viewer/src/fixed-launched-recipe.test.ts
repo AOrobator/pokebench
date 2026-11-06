@@ -42,7 +42,7 @@ describe("a launched lane keeps what it launched",()=>{
   ["derived from the launch's presets",():LaunchedRecipeReads=>reads()],
   ["read from the stored recipe",():LaunchedRecipeReads=>reads({frozenText:()=>recipes(launchedCurrent)("rayquaza-lane"),presetText:()=>null})],
  ])("stays valid after control promotes a switch and the runner reloads: %s",(_name,make)=>{
-  const reloaded=parseFixedDefinition(source,launchedRecipeReader(make(),recipes(current))).definition;
+  const reloaded=parseFixedDefinition(source,launchedRecipeReader(make(),recipes(current),source)).definition;
   expect(armFeatureBits(reloaded,"bundle")[JUNK]??false).toBe(false);
   const outcome=classifyTrial(runLog(),expectation(reloaded),0);
   expect(outcome.reason).not.toContain("does not match the plan");
@@ -50,23 +50,35 @@ describe("a launched lane keeps what it launched",()=>{
   for(const arm of ["bundle","control"] as const)expect(armPreset(reloaded,"cook",arm).features).toEqual(armPreset(atLaunch,"cook",arm).features);
  });
  it("rewrites no byte of a preset derived from itself",()=>{
-  const reloaded=parseFixedDefinition(source,launchedRecipeReader(reads(),recipes(current))).definition;
+  const reloaded=parseFixedDefinition(source,launchedRecipeReader(reads(),recipes(current),source)).definition;
   for(const arm of ["bundle","control"] as const)expect(presetText(reloaded,arm)).toBe(presetText(atLaunch,arm));
+ });
+ it("keeps the definition's ROM when the base's ROM has moved on",()=>{
+  const moved={...current,romSha1:"0".repeat(40)};
+  const out=parseFixedDefinition(source,launchedRecipeReader(reads(),recipes(moved),source)).definition;
+  expect(out.romSha1).toBe(v3.romSha1);
+ });
+ it("validates and derives from one read of each preset",()=>{
+  const seen:string[]=[];
+  const counted=reads();
+  const presets=(name:string):string|null=>{seen.push(name);return counted.presetText(name);};
+  parseFixedDefinition(source,launchedRecipeReader({...counted,presetText:presets},recipes(current),source));
+  expect(seen.sort()).toEqual(["cook-bundle.json","cook-control.json"]);
  });
  it("a fresh experiment resolves live",()=>{
   for(const ledgerText of [():string|null=>null,():string=>""]){
-   const out=parseFixedDefinition(source,launchedRecipeReader(reads({ledgerText}),recipes(current))).definition;
+   const out=parseFixedDefinition(source,launchedRecipeReader(reads({ledgerText}),recipes(current),source)).definition;
    expect(armFeatureBits(out,"bundle")[JUNK]).toBe(true);
   }
  });
  it("ignores a stored recipe left by a runner that never launched",()=>{
-  const out=parseFixedDefinition(source,launchedRecipeReader(reads({ledgerText:()=>null,frozenText:()=>recipes(launchedCurrent)("rayquaza-lane")}),recipes(current))).definition;
+  const out=parseFixedDefinition(source,launchedRecipeReader(reads({ledgerText:()=>null,frozenText:()=>recipes(launchedCurrent)("rayquaza-lane")}),recipes(current),source)).definition;
   expect(armFeatureBits(out,"bundle")[JUNK]).toBe(true);
  });
 });
 
 describe("deriving from presets fails closed",()=>{
- const reload=(over:Partial<LaunchedRecipeReads>):unknown=>parseFixedDefinition(source,launchedRecipeReader(reads(over),recipes(current)));
+ const reload=(over:Partial<LaunchedRecipeReads>):unknown=>parseFixedDefinition(source,launchedRecipeReader(reads(over),recipes(current),source));
  it("when a preset is missing",()=>{
   expect(()=>reload({presetText:name=>name==="cook-bundle.json"?presetText(atLaunch,"bundle"):null})).toThrow("cook-control.json");
  });

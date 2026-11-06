@@ -20,11 +20,18 @@ const resolved=(lane:unknown,base:unknown):FeatureRecipe=>JSON.parse(resolveFeat
 const sorted=(list:readonly string[]):string[]=>[...list].sort();
 const small={version:1,id:"current",romSha1:"a".repeat(40),controlBase:{path:"p.json",presetId:"p",sha256:"b".repeat(64)},
  switches:["treat-a","treat-b"],offInBoth:["off-a"],onInBoth:["on-a"],features:{"treat-a":false,"treat-b":false,"off-a":false,"on-a":true,"plain":false}};
-const lane=(on:readonly string[],off:readonly string[]):object=>({version:1,id:"lane",base:"current",on,off});
+const because=(ids:readonly string[]):Record<string,string>=>Object.fromEntries(ids.map(id=>[id,"a reason"]));
+const lane=(on:readonly string[],off:readonly string[]):object=>({version:1,id:"lane",base:"current",on:because(on),off:because(off)});
 
 describe("the Rayquaza lane overlay",()=>{
  it("is a small overlay naming the lane's differences from current",()=>{
-  expect(overlay).toEqual({version:1,id:"rayquaza-lane",base:"current",on:LANE_ON,off:LANE_OFF});
+  expect(Object.keys(overlay)).toEqual(["version","id","base","on","off"]);
+  expect(overlay.base).toBe("current");
+  expect(Object.keys(overlay.on)).toEqual(LANE_ON);
+  expect(Object.keys(overlay.off)).toEqual(LANE_OFF);
+ });
+ it("gives every exception a one-line reason",()=>{
+  for(const reason of [...Object.values(overlay.on),...Object.values(overlay.off)])expect(reason).toMatch(/^[^\n]{10,100}$/);
  });
  it("resolves to the hand-kept recipe on every feature, list member and bundle arm",()=>{
   const out=resolved(overlay,frozenCurrent);
@@ -80,7 +87,8 @@ describe("resolveFeatureRecipe",()=>{
  });
  it.each([
   ["an unexpected field",{...lane([],[]),features:{}},small,"invalid feature recipe overlay"],
-  ["a repeated switch",lane(["treat-a","treat-a"],[]),small,"invalid feature recipe overlay"],
+  ["a switch with no reason",{...lane([],[]),on:{"treat-a":""}},small,"invalid feature recipe overlay"],
+  ["a bare switch list",{...lane([],[]),on:["treat-a"]},small,"invalid feature recipe overlay"],
   ["a traversing base id",{...lane([],[]),base:"../outside"},small,"invalid feature recipe overlay"],
   ["an invalid base",lane([],[]),{id:"current"},"invalid feature recipe"],
   ["a base with another identity",lane([],[]),{...small,id:"other"},"base current has identity other"],
@@ -90,10 +98,9 @@ describe("resolveFeatureRecipe",()=>{
 });
 
 describe("reading an overlay",()=>{
- const definitions=[v3];
  const files=(base:unknown)=>reader({"rayquaza-lane":overlay,current:base});
  it("materializes through a raw reader",()=>{
-  const out=materializeFixedSource(definitions[0],files(current)) as {switches:string[];onInBoth:string[]};
+  const out=materializeFixedSource(v3,files(current)) as {switches:string[];onInBoth:string[]};
   expect(out.switches).not.toContain("story-route-plan-v1");
   expect(out.onInBoth).toContain("rq-milestone-guide-v1");
  });
@@ -105,7 +112,9 @@ describe("reading an overlay",()=>{
   const before=parseFixedDefinition(source,files(current));
   const expected=resolveFeatureRecipe(JSON.stringify(overlay),files(current));
   expect(before.sha256).toBe(createHash("sha256").update(JSON.stringify([source,expected])).digest("hex"));
-  const changed={...current,features:{...current.features,"current-question-focus-v1":true}};
+  const promoted="supplies-v1";
+  expect(current.switches).toContain(promoted);
+  const changed={...current,switches:current.switches.filter(id=>id!==promoted),onInBoth:[...current.onInBoth,promoted],features:{...current.features,[promoted]:true}};
   expect(parseFixedDefinition(source,files(changed)).sha256).not.toBe(before.sha256);
  });
  it("readFeatureRecipe returns the resolved text through its injected reader",()=>{

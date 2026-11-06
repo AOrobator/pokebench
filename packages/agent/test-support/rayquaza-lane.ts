@@ -5,7 +5,7 @@ import definition from "../../../experiments/fixed/rayquaza-lane-8h-v3.json" wit
 import type {FeatureSet} from "../src/features.js";
 
 const all=(ids:readonly string[],value:boolean):Record<string,boolean>=>Object.fromEntries(ids.map(id=>[id,value]));
-export const rayquazaLaneFeatures=():FeatureSet=>({...current.features,...all(current.switches,true),...all(overlay.on,true),...all(overlay.off,false)}) as FeatureSet;
+export const rayquazaLaneFeatures=():FeatureSet=>({...current.features,...all(current.switches,true),...all(Object.keys(overlay.on),true),...all(Object.keys(overlay.off),false)}) as FeatureSet;
 export function rayquazaLanePreset(){
  const [phase]=definition.phases;
  if(phase===undefined)throw new Error("the lane definition has no phase");

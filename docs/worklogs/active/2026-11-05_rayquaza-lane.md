@@ -122,3 +122,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Route 110 row trimmed to fit 300 characters; data regenerated.
 - Audit: no stranding point; a whiteout returns Briney to his cottage, and 7442 failed to talk to him. RED test for a Briney note between Dewford and Slateport.
 - Slateport Center step and BRINEY_NOTE added.
+- After-Heat rows made conditional or foe-based per the operator: party members, levels, moves as known, items if held; Rayquaza fights no longer assume the catch; one no-Fly line at Feather Badge; data regenerated (126 steps).

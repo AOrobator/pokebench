@@ -455,7 +455,10 @@ export class SupervisorBriefing {
  }
  private done():string {
   if(!this.features["story-state-v1"])return "not available (story flags are off)";
-  if(this.features["story-briefing-native-milestones-v1"]&&this.extendedDone.length>0)return `${this.story===null?"":`${this.story}; `}${this.extendedDone.join("; ")}`;
+  // story-line-campaign-flags-v1: the Story line already carries these steps, so the briefing does not list them twice.
+  const listed=this.features["story-line-campaign-flags-v1"]?(this.story??"").split("; "):[];
+  const extended=this.extendedDone.filter(step=>!listed.includes(step));
+  if(this.features["story-briefing-native-milestones-v1"]&&extended.length>0)return `${this.story===null?"":`${this.story}; `}${extended.join("; ")}`;
   return this.story??"not recorded";
  }
  private where():string {

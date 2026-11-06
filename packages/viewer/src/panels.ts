@@ -458,6 +458,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "shop-shelf-hidden-v1":"shop-shelf-hidden-v1.html",
  "field-call-input-v1":"field-call-input-v1.html",
  "first-visit-cycle-credit-v1":"first-visit-cycle-credit-v1.html",
+ "story-line-campaign-flags-v1":"story-line-campaign-flags-v1.html",
  "rotating-gate-turn-reasons-v1":"rotating-gate-turns-log-v1.html",
  "rotating-gate-push-log-v1":"rotating-gate-turns-log-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",

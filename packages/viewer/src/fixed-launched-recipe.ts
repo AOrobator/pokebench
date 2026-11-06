@@ -60,6 +60,14 @@ export function frozenRecipeToWrite(reads:LaunchedRecipeReads,recipeText:string|
  if(recipeText===null||(launches(reads).length>0&&reads.frozenText()!==null))return null;
  return recipeText;
 }
+function featureKey(text:string):string|null {
+ let value:unknown;
+ try{value=JSON.parse(text);}catch{return null;}
+ return Value.Check(PresetFeatures,value)?JSON.stringify(Object.entries(value.features).sort(([a],[b])=>a<b?-1:a>b?1:0)):null;
+}
+// Features only: a definition's schedule may still change after launch, its recipe may not.
 export function presetToUse(launched:boolean,existing:string|null,generated:string):{readonly text:string;readonly write:boolean} {
- return launched&&existing!==null?{text:existing,write:false}:{text:generated,write:true};
+ if(!launched||existing===null)return {text:generated,write:true};
+ if(featureKey(existing)!==featureKey(generated))throw new FixedDesignError("a kept preset differs from the launched recipe; restore it before resuming");
+ return {text:existing,write:false};
 }

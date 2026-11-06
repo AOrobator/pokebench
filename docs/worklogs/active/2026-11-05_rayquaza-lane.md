@@ -140,3 +140,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - RED: GPT delta review: derivation must read each preset once and keep the definition's ROM.
 - GREEN: derivation reads each preset once and keeps the definition's ROM. controlBase stays live for derived recipes: nothing recorded it and no trial reads it.
 - RED: GPT delta review: a kept preset must match the launched recipe before anything launches.
+- GREEN: prepare fails before launch if a kept preset's features differ from the launched recipe; schedule fields may still change.

@@ -121,3 +121,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Front rows made conditional or foe-based per the operator: starter, Taillow, Rock Tomb, X items, Rival, Maxie, Flannery.
 - Route 110 row trimmed to fit 300 characters; data regenerated.
 - Audit: no stranding point; a whiteout returns Briney to his cottage, and 7442 failed to talk to him. RED test for a Briney note between Dewford and Slateport.
+- Slateport Center step and BRINEY_NOTE added.

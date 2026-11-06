@@ -58,7 +58,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 | GRANITE_CAVE | GraniteCave_1F | Steven is in the cave, not in Dewford. On 1F, first take the Escape Rope ball at (17,7) from (18,7), facing west. Route: 1F (17,11), B1F (28,21), B2F (29,13), back up B1F, 1F (35,3), then the door at (5,10). You do not need Flash. | KI 16, TR 429f:684 |
 | STEVEN_REGISTERED | DewfordTown | Use the Escape Rope from your Bag to leave the cave, or walk out without one. Then talk to Mr. Briney at the Dewford dock, about (12,9). Sail to Slateport. | KI 17, ROM, TR 0517:2830 |
 | ROUTE_109_BEACH_REACHED | Route109 | Get the Soft Sand from the kids on the beach and give it to your starter. Then go north to Slateport City. | KI 17, ROM, fact check |
-| SLATEPORT_CITY | SlateportCity | Visit Stern's shipyard, then the Oceanic Museum. Captain Stern is upstairs in the museum. | KI 17, TR d41e:4130, fact check |
+| SLATEPORT_CITY | SlateportCity | Step into the Pokémon Center and straight back out, which sets your respawn here. Visit Stern's shipyard, then the Oceanic Museum. Captain Stern is upstairs in the museum. | KI 17, TR d41e:4130, fact check |
 | OCEANIC_MUSEUM_ENTERED | - | Pay the ₽50 fee, go upstairs and talk to Captain Stern. Beat both Team Aqua grunts and finish the dialogue to hand over the Devon Goods. When offered, teach Mud Shot over Growl. | KI 17, fact check |
 | DEVON_GOODS_DELIVERED | Route110 | Teach TM39 Rock Tomb in place of Tackle now if you still have it. Then go north out of Slateport onto Route 110 and stay on the walking path, not the Cycling Road. Mauville is at the north end. | KI 18, TR 5f0f:760 |
 

@@ -15,6 +15,6 @@ The entering call's own result does not count as one of the 10.
 ## Milestone 1
 
 - [x] RED tests in `stall-briefing.test.ts`: 4 failing, 24 passing
-- [ ] GREEN in `stall-briefing.ts`, wiring, viewer timeline exclusion
-- [ ] Explainer, recipe, preset, README
+- [x] GREEN in `stall-briefing.ts`, wiring, viewer timeline exclusion: 30 stall-briefing tests, 161 viewer focused tests. Mutations: removing the drought wiring failed the drought test, removing the timeline exclusion failed the viewer test; both restored.
+- [x] Explainer, recipe, preset, README
 - [ ] Gates, review, landing

@@ -2,7 +2,7 @@ import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it} from "vitest";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
-import {STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
+import {INTERFACE_DWELL_CALLS,STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {featureInfo,type FeatureSet} from "./features.js";
 import {checkEvent,parseEvent,type RunEvent} from "./events.js";
@@ -361,7 +361,8 @@ function firstVisitThenCycle(r:ReturnType<typeof rig>):void {
  r.press(["UP"],{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
  for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...HOUSE_2F,position:{x:7,y:1}}:{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
 }
-const stay=(r:ReturnType<typeof rig>,n:number,place=TOWN):void=>{for(let i=0;i<n;i++)r.press(["A"],{...place,position:{x:1,y:1}});};
+let steps=0;
+const stay=(r:ReturnType<typeof rig>,n:number,place=TOWN):void=>{for(let i=0;i<n;i++){steps++;r.press([steps%2===0?"LEFT":"RIGHT"],{...place,position:{x:steps,y:1}});}};
 
 it("first-visit-cycle-credit-v1 off: the same walk sends its cycle note at once, with no hold recorded",()=>{
  const r=rig(ON);
@@ -415,7 +416,7 @@ it("another first entry restarts the 10-call hold",()=>{
  r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
  stay(r,9,CAVE);
  r.press(["UP"],{...CLIFF,position:{x:1,y:1}},10_000,[LOADING]);
- stay(r,10,CLIFF);
+ stay(r,11,CLIFF);
  expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
  expect(held(r).at(-1)?.message).toContain("no longer due");
 });
@@ -440,4 +441,26 @@ it("the map a run starts on and maps it returns to start no hold",()=>{
  r.press(["UP"],{...HOUSE_1F,position:{x:1,y:1}},STALL_DROUGHT_MS);
  expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
  expect(held(r)).toEqual([]);
+});
+
+it("a first entry during a hold keeps a due note back for 10 more calls",()=>{
+ const r=rig({...CREDIT,...PLAIN_CLOCK});
+ r.state(HOUSE_1F);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},STALL_DROUGHT_MS,[LOADING]);
+ stay(r,8);
+ r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ stay(r,10,CAVE);
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toEqual([]);
+ stay(r,1,CAVE);
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
+});
+
+it("the hold does not touch interface dwell briefings",()=>{
+ const r=rig(CREDIT);
+ r.state(HOUSE_1F);
+ for(let i=0;i<INTERFACE_DWELL_CALLS-2;i++)r.press([i%2===0?"LEFT":"RIGHT"],{...HOUSE_1F,screen:"naming",position:{x:1,y:1}});
+ expect(sent(r)).toEqual([]);
+ r.press(["UP"],{...TOWN,screen:"naming",position:{x:1,y:1}},10_000,[LOADING]);
+ for(let i=0;i<3;i++)r.press([i%2===0?"LEFT":"RIGHT"],{...TOWN,screen:"naming",position:{x:1,y:1}});
+ expect(sent(r).filter(g=>g.kind==="interface_dwell")).toHaveLength(1);
 });

@@ -146,7 +146,7 @@ export function stallBriefing(features:FeatureSet,recorder:Pick<RunRecorder,"sub
  const retired=features["positive-supervisor-v1"]||features["milestone-drought-suppression-v1"]?(kind:"map_cycle"|"milestone_drought",text:string,evidence:readonly number[]):void=>{recorder.recordLoopGuard({kind,message:`Not sent (${features["positive-supervisor-v1"]?"positive-supervisor-v1":"milestone-drought-suppression-v1"}): ${text}`,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null;
  const stall=new StallBriefing(features,()=>elapsed()-control.pausedMs(),detector,(kind,calls)=>briefing.stallText(kind,calls),gate,retired,(message,evidence)=>{recorder.recordLoopGuard({kind:"map_cycle",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});},
   // drought-battle-heal-hold-v1: a held drought briefing stays in the record as a diagnostic (Activity History).
-  features["drought-battle-heal-hold-v1"]||features["drought-progress-facts-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
+  features["drought-battle-heal-hold-v1"]||features["drought-progress-facts-v1"]||features["first-visit-cycle-credit-v1"]?(message,evidence)=>{recorder.recordLoopGuard({kind:"milestone_drought",message,calls:0,evidence:loopEvidence(evidence),mode:"diagnostic",phase:"would_warn"});}:null);
  recorder.subscribe(event=>{stall.observe(event);},false,false,true);
  return stall;
 }

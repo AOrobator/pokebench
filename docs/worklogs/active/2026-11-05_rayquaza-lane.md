@@ -143,3 +143,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - GREEN: prepare fails before launch if a kept preset's features differ from the launched recipe; schedule fields may still change.
 - Claude re-review: a schedule edit after launch was ignored by kept presets. RED test added.
 - Fix: a launched preset takes the generated text once features match, so schedule edits apply.
+- Final gate green. Claude's finding fixed as it proposed. GPT's last finding rebutted: launchedRecipeReader runs only for definitions that name a recipe, so complete definitions never reach it; the concurrent-runner race predates this change.

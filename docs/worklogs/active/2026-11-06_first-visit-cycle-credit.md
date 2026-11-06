@@ -12,6 +12,15 @@ The operator 2026-11-06: "first-visit-cycle-credit-v1, i want this on in both ar
 
 The entering call's own result does not count as one of the 10.
 
+## Replay of recorded runs
+
+Recorded events through `StallBriefing` with the switch off and on, every note accepted (the fixed recording, so an approximation of what a run with the switch would do).
+
+- ee2a: 39 map_cycle and drought notes off, 27 on. map_cycle falls from 10 (turns 100, 199, 286, 370, 375, 392, 433, 481, 497, 592) to 2 (474, 481). The turn-370 note does not fire on: Mt. Pyre's upper floors were first entries, so the pair counts reset on the way down.
+- 274b: 98 notes off, 68 on, with 5 held notes no longer due.
+
+The pair reset does most of the work. A run exploring new maps gets far fewer cycle notes, not just later ones.
+
 ## Milestone 1
 
 - [x] RED tests in `stall-briefing.test.ts`: 4 failing, 24 passing

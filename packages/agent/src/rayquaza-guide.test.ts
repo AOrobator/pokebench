@@ -178,6 +178,14 @@ describe("rayquazaGuideContext", () => {
 });
 
 describe("the shipped guide", () => {
+  it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
+    const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
+    expect(note).toMatch(/X Attack and X Speed on Wingull or Slugma/);
+    expect(note).toMatch(/if you have them/);
+    expect(note).toMatch(/Absorb hits Marshtomp x4 and heals it/);
+    expect(note).not.toMatch(/Taillow/);
+  });
+
   it("names only real milestones, uses each milestone once, and keeps short notes", () => {
     const names = new Set(MILESTONES.map((m) => m.name));
     const after = RAYQUAZA_GUIDE_STEPS.map((step) => step.after);

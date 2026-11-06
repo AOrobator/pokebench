@@ -210,7 +210,8 @@
     "instruction-memory-junk-filter-v1",
     "first-visit-cycle-credit-v1",
     "unnamed-place-story-line-v1",
-    "story-line-campaign-flags-v1"
+    "story-line-campaign-flags-v1",
+    "junk-filter-leader-lines-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -554,6 +555,7 @@
     "instruction-memory-junk-filter-v1": true,
     "first-visit-cycle-credit-v1": true,
     "unnamed-place-story-line-v1": true,
-    "story-line-campaign-flags-v1": true
+    "story-line-campaign-flags-v1": true,
+    "junk-filter-leader-lines-v1": true
   }
 }

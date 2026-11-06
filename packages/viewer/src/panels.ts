@@ -460,6 +460,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "first-visit-cycle-credit-v1":"first-visit-cycle-credit-v1.html",
  "unnamed-place-story-line-v1":"unnamed-place-story-line-v1.html",
  "story-line-campaign-flags-v1":"story-line-campaign-flags-v1.html",
+ "junk-filter-leader-lines-v1":"junk-filter-leader-lines-v1.html",
  "rotating-gate-turn-reasons-v1":"rotating-gate-turns-log-v1.html",
  "rotating-gate-push-log-v1":"rotating-gate-turns-log-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",

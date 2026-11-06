@@ -39,6 +39,7 @@ from pokebench_env.map_observation import MapObservation
 from pokebench_env.map_rotating_elements import POSITIONS_SWITCH as GATE_POSITIONS
 from pokebench_env.map_terrain_elements import DEEP_SOUTH_WARP_LABEL, deep_south_warp_entrances
 from pokebench_env.mart_stock import SWITCH as MART_STOCK
+from pokebench_env.menu_field_people import FIELD_CALL_SWITCH
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import EARLY_SWITCH as MOVE_EARLY
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
@@ -142,6 +143,7 @@ def read_state(
         bag_pocket_truth_enabled="bag-pocket-truth-v1" not in off,
         pokenav_short_list_enabled="pokenav-short-list-v1" not in off,
         pokenav_call_advance_enabled="pokenav-call-auto-advance-v1" not in off,
+        field_call_input_enabled=FIELD_CALL_SWITCH not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON, "move-learn-type-matchup-v1"}

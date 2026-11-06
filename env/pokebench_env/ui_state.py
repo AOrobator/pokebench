@@ -372,6 +372,7 @@ def read_active_ui(
     battle_move_learn_input: bool = False,
     pokenav_short_list: bool = False,
     pokenav_call_advance: bool = False,
+    field_call_input: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -478,7 +479,7 @@ def read_active_ui(
     wireless_ui = read_wireless_ui(read, screen.callback2)
     if wireless_ui is not None:
         return wireless_ui
-    field_people_ui = read_field_people_menu(read, screen.callback2)
+    field_people_ui = read_field_people_menu(read, screen.callback2, call_input=field_call_input)
     if field_people_ui is not None:
         return field_people_ui
     apprentice_ui = read_apprentice_ui(read, screen.callback2)

@@ -45,6 +45,7 @@ from pokebench_env.mart_stock import SWITCH as MART_STOCK
 from pokebench_env.mart_stock import stock_lines
 from pokebench_env.mauville_puzzle import SWITCH as MAUVILLE_PUZZLE
 from pokebench_env.mauville_puzzle import puzzle_view, switch_name
+from pokebench_env.menu_field_people import FIELD_CALL_SWITCH
 from pokebench_env.move_learn import COMPARISON_SWITCH as MOVE_COMPARISON
 from pokebench_env.move_learn import QUESTION_SWITCH as MOVE_QUESTION
 from pokebench_env.move_learn import comparison_lines, question_line
@@ -224,6 +225,7 @@ SERVER_FEATURES = (
     "map-code-aliases-v1",
     GATE_REGIONS,
     SHOP_SHELF_SWITCH,
+    FIELD_CALL_SWITCH,
 )
 
 
@@ -257,7 +259,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
-        "rotating-gate-regions-v1,shop-shelf-hidden-v1",
+        "rotating-gate-regions-v1,shop-shelf-hidden-v1,field-call-input-v1",
     )
     if raw == "":
         return frozenset()

@@ -208,7 +208,8 @@
     "rq-slim-prompt-v1",
     "just-in-time-prompt-v2",
     "jit-guide-reuse-v1",
-    "shop-shelf-hidden-v1"
+    "shop-shelf-hidden-v1",
+    "field-call-input-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -547,6 +548,7 @@
     "rq-battle-explainer-v1": true,
     "coherent-battle-observation-v1": true,
     "rq-slim-prompt-v1": true,
-    "shop-shelf-hidden-v1": true
+    "shop-shelf-hidden-v1": true,
+    "field-call-input-v1": true
   }
 }

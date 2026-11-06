@@ -107,5 +107,5 @@ def test_the_map_data_does_not_change():
 
 
 def test_switch_is_a_default_off_server_switch():
-    assert SERVER_FEATURES[-1] == SHOP_SHELF_SWITCH == "shop-shelf-hidden-v1"
+    assert SHOP_SHELF_SWITCH == "shop-shelf-hidden-v1" and SHOP_SHELF_SWITCH in SERVER_FEATURES
     assert SHOP_SHELF_SWITCH in features_off_from_env({})

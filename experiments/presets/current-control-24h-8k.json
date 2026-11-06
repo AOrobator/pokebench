@@ -339,6 +339,7 @@
     "rotating-gate-turn-reasons-v1": true,
     "rotating-gate-push-log-v1": true,
     "coherent-battle-observation-v1": true,
-    "shop-shelf-hidden-v1": true
+    "shop-shelf-hidden-v1": true,
+    "field-call-input-v1": true
   }
 }

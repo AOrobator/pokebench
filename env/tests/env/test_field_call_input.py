@@ -76,7 +76,7 @@ def test_off_keeps_the_page_wait_as_input_not_ready():
 def test_on_a_page_wait_is_ready_and_names_the_page(state):
     ui = on(page(call(), state=state))
     assert (ui.phase, ui.selected, ui.ready) == ("field_match_call_message", "CONTINUE", True)
-    assert ui.value == "HELLO\nTHERE"
+    assert ui.value == "HELLO THERE"
     assert ui.details["call_text_state"] == "waiting"
     assert ui.details["text_printing"] is False
     assert ui.controls == "text box waiting for A; A or B shows the next page"
@@ -212,9 +212,10 @@ def view(switches):
 def test_production_path_honors_the_switch():
     default = features_off_from_env({})
     assert FIELD_CALL_SWITCH in default
-    assert SERVER_FEATURES[-1] == FIELD_CALL_SWITCH == "field-call-input-v1"
-    off_text, off_state = view(default)
-    on_text, on_state = view(default - {FIELD_CALL_SWITCH})
+    assert FIELD_CALL_SWITCH == "field-call-input-v1" and FIELD_CALL_SWITCH in SERVER_FEATURES
+    base = default - {"expanded-menu-battle-information-v1"}
+    off_text, off_state = view(base)
+    on_text, on_state = view(base - {FIELD_CALL_SWITCH})
     assert off_state.active_ui is not None and off_state.active_ui.ready is False
     assert "Interface: field_match_call_message; input not ready" in off_text
     assert "text printing: YES" in off_text

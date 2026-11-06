@@ -362,6 +362,7 @@ export const SWITCHABLE_FEATURES = [
   "rq-battle-explainer-v1",
   "rq-slim-prompt-v1",
   "shop-shelf-hidden-v1",
+  "field-call-input-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -845,6 +846,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rq-battle-explainer-v1", "guidance", "RAYQUAZA LANE BATTLE NOTE", "rq-milestone-guide-v1", "Default off; Rayquaza lane only. While a battle is active, ends each request with one short general battle note drawn from recorded mistakes: models lose on preparation, not move choice. Off: no battle note is sent."),
   on("rq-slim-prompt-v1", "guidance", "RAYQUAZA LANE SLIM PROMPT", "just-in-time-prompt-v2", "Default off; Rayquaza lane only. Takes the PokéNav, learn_move, choose_evolution and Surf sections out of the standing prompt and sends each whole, just before the guide line, only while its trigger holds. Battle rules stay in battle guidance. Off: JIT v2 prompts unchanged."),
   on("shop-shelf-hidden-v1", "observation", "NO SHOP SHELF TARGETS", null, "Default off; on in both arms of the current and Rayquaza recipes (the operator 2026-11-05: listing decorative shelves as things to interact with is misleading). Run 2026-11-05T15-37-57_rayquaza-lane-qwen_0952 spent 11 turns activating them in PETALBURG CITY MART, whose readout listed 16 shelf lines. Behavior MB_SHOP_SHELF only prints one flavor line, so its tiles leave the map interaction list and the state's interaction_targets, and navigate_to_target no longer accepts them. The same goes for a sign with no script: the two in the ROM sit outside their maps in METEOR FALLS. Shelves stay impassable and the map, collision and grids are untouched. Pressing A at a shelf still shows the game's text. Every target with a script of its own and every hidden item stays listed. Off: every shelf and scriptless sign is listed as before, byte for byte."),
+  on("field-call-input-v1", "observation", "FIELD CALL INPUT", null, "Default off; on in both arms of the current and Rayquaza recipes as a correctness fix. A POKéNAV call that rings on the field (Dad on Mr. Briney's boat, or a random Match Call) prints through the text printer of its own window. At each page end the printer stays active but writes nothing and waits for A or B (src/text.c RENDER_STATE_WAIT, CLEAR, SCROLL_START; src/match_call.c MatchCall_PrintIntro and MatchCall_PrintMessage, including the first page of dots). Run 2026-11-05T17-17-57_rayquaza-lane-qwen_7442 read that as input not ready; text printing: YES and waited 35 turns. With this switch on, a page wait reads Interface: field_match_call_message; input ready; selected CONTINUE; value <the page on screen>; text box waiting for A; A or B shows the next page, and text printing: NO. The last page with the printer done and no sound playing reads the same with A or B ends the call. A printer really writing a character, auto-scroll, a fade or a text cursor outside the call text stays input not ready. The harness then presses A through the verified call and returns its text, with the limits of POKéNAV call auto-advance (50 presses, 90 seconds, 10 seconds of waiting per step), and stops if the map, the caller or the interface changes, or a battle starts. It adds one sentence to the tool descriptions and the system prompt. Works with pokenav-call-auto-advance-v1 on or off. Off: the Interface line reads field_match_call_message or field_match_call_transition, input not ready, \"Directions select; A confirms; B closes or declines\", text printing: YES at every page wait, and the model must press A itself."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -968,6 +970,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "map-code-aliases-v1",
   "rotating-gate-regions-v1",
   "shop-shelf-hidden-v1",
+  "field-call-input-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1314,6 +1317,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rq-battle-explainer-v1"),
     ...when("rq-slim-prompt-v1"),
     ...when("shop-shelf-hidden-v1"),
+    ...when("field-call-input-v1"),
   ];
 }
 

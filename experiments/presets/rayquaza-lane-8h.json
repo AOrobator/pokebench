@@ -340,7 +340,8 @@
     "rq-milestone-guide-v1": true,
     "rq-battle-explainer-v1": true,
     "rq-slim-prompt-v1": true,
-    "shop-shelf-hidden-v1": true
+    "shop-shelf-hidden-v1": true,
+    "field-call-input-v1": true
   },
   "limits": {
     "maxTurns": 20000,

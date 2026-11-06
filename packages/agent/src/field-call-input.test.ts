@@ -22,7 +22,7 @@ const ON:FeatureSet={...OFF,[FIELD_CALL_ID]:true};
 const details=(call_state:number,call_text_state:string,more:Record<string,string|number|boolean>={})=>({owner_task:2,call_state,trainer_id:0,triggered_from_script:true,call_text_state,...more});
 const ui=(phase:string,ready:boolean,d:Record<string,string|number|boolean>,value?:string)=>({phase,selected:ready?"CONTINUE":null,ready,controls:"c",diagnostic:null,details:d,...(value===undefined?{}:{value})});
 const MESSAGE="Hello!\nIt's Dad.";
-const screen=(active_ui:GameStateSnapshot["active_ui"]):GameStateSnapshot=>({...IN_GAME,active_ui});
+const screen=(active_ui:NonNullable<GameStateSnapshot["active_ui"]>|null):GameStateSnapshot=>({...IN_GAME,active_ui});
 const printing=(call=5)=>screen(ui(call===5?"field_match_call_message":"field_match_call_transition",false,details(call,"printing",call===5?{message:MESSAGE}:{})));
 const page=(value:string,call=5)=>screen(ui("field_match_call_message",true,details(call,"waiting",call===5?{message:MESSAGE}:{}),value));
 const finished=screen(ui("field_match_call_message",true,details(5,"finished",{message:MESSAGE}),"It's Dad."));
@@ -60,7 +60,7 @@ const textOf=(r:AgentToolResult<unknown>)=>r.content.flatMap(p=>p.type==="text"?
 
 describe(FIELD_CALL_ID,()=>{
  it("is a server switch with no dependency, appended after the last switch",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(FIELD_CALL_ID);
+  expect(SWITCHABLE_FEATURES.indexOf(FIELD_CALL_ID)).toBe(SWITCHABLE_FEATURES.indexOf("shop-shelf-hidden-v1")+1);
   expect(SERVER_FEATURES).toContain(FIELD_CALL_ID);
   const feature=FEATURES.find(f=>f.id===FIELD_CALL_ID);
   expect(feature?.needs).toBeNull();
@@ -69,7 +69,7 @@ describe(FIELD_CALL_ID,()=>{
  it("reaches the server only when on",()=>{
   expect(serverFeatureEnv(ALL_ON).POKEBENCH_FEATURES_OFF.split(",")).not.toContain(FIELD_CALL_ID);
   expect(serverFeatureEnv({...ALL_ON,[FIELD_CALL_ID]:false}).POKEBENCH_FEATURES_OFF.split(",")).toContain(FIELD_CALL_ID);
-  expect(playHarnessFeatures(ALL_ON,"play").at(-1)).toBe(FIELD_CALL_ID);
+  expect(playHarnessFeatures(ALL_ON,"play")).toContain(FIELD_CALL_ID);
   expect(playHarnessFeatures({...ALL_ON,[FIELD_CALL_ID]:false},"play")).not.toContain(FIELD_CALL_ID);
  });
  it("defaults off when a preset or flag set omits it",()=>{
@@ -144,8 +144,7 @@ describe(FIELD_CALL_ID,()=>{
   const battle=new FakeCall([page("Hi"),{...page("Hi"),in_battle:true}]);
   await wire(battle).tool("observe").execute("c",{});
   expect(battle.buttons).toEqual(["A"]);
-  const broken=page("Hi");
-  const error=new FakeCall([page("Hi"),{...broken,active_ui:{...broken.active_ui,diagnostic:"harness bug: x"} as GameStateSnapshot["active_ui"]}]);
+  const error=new FakeCall([page("Hi"),screen({...ui("field_match_call_message",true,details(5,"waiting"),"Hi"),diagnostic:"harness bug: x"})]);
   await wire(error).tool("observe").execute("c",{});
   expect(error.buttons).toEqual(["A"]);
   const other=screen(ui("field_match_call_message",true,details(5,"waiting",{trainer_id:9}),"Hi"));
@@ -164,7 +163,7 @@ describe(FIELD_CALL_ID,()=>{
  });
 
  it("hands the field back after the call: a message that follows is not pressed",async()=>{
-  const dialog={...free,world_context:{...free.world_context,dialogue:"Registered DAD"}} as GameStateSnapshot;
+  const dialog:GameStateSnapshot={...free,world_context:{objects:[],triggers:[],dialogue:"Registered DAD"}};
   const game=new FakeCall([finished,closing(7),dialog]);const {tool}=wire(game);
   await tool("observe").execute("c",{});
   expect(game.buttons).toEqual(["A"]);
@@ -197,13 +196,22 @@ describe(FIELD_CALL_ID,()=>{
  });
 
  it("the production factory honors the switch",async()=>{
-  const build=(features:FeatureSet,game:FakeCall)=>{
-   const {tools,rec}=wire(new FakeCall([free]),{...features,[POKENAV_CALL_ID]:false,[FIELD_CALL_ID]:false});
+  const base:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"field-dialogue-phase-v1":true};
+  const build=(on:boolean,game:FakeCall)=>{
+   const features={...base,[FIELD_CALL_ID]:on};
+   const {tools,rec}=wire(game,{...base,[POKENAV_CALL_ID]:false,[FIELD_CALL_ID]:false});
    const api={...rec.api,lowHpTrainerWarning:()=>undefined,peopleIdCard:()=>undefined} as unknown as Parameters<typeof playGameTools>[3];
    return playGameTools(tools,features,{read:()=>Promise.resolve(game.state())},api);
   };
   const press=(tools:readonly AgentTool[])=>tools.find(t=>t.name==="press");
-  expect(press(build(ON,DAD()))?.description).toContain(FIELD_CALL_NOTE);
-  expect(press(build(OFF,DAD()))?.description).not.toContain(FIELD_CALL_NOTE);
+  const call=()=>new FakeCall([page("……",4),page("Hello!"),finished,free]);
+  const game=call();
+  const out=await press(build(true,game))?.execute("c",{buttons:[]});
+  expect(game.buttons).toEqual(["A","A","A"]);
+  expect(out?.content.flatMap(p=>p.type==="text"?[p.text]:[]).join("\n")).toContain("stopped: call ended");
+  const left=call();
+  expect(press(build(false,left))?.description).not.toContain(FIELD_CALL_NOTE);
+  await press(build(false,left))?.execute("c",{buttons:[]});
+  expect(left.buttons).toEqual([]);
  });
 });

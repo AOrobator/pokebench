@@ -120,8 +120,11 @@ describe("what a real start writes",()=>{
 describe("presetToUse",()=>{
  const preset=(features:Record<string,boolean>,maxWallMs=1):string=>JSON.stringify({id:"p",limits:{maxWallMs},features});
  const kept=preset({a:true,b:false}),generated=preset({b:false,a:true},2);
- it("keeps a launched experiment's preset bytes while its features match the recipe",()=>{
-  expect(presetToUse(true,kept,generated)).toEqual({text:kept,write:false});
+ it("keeps a launched experiment's preset bytes when nothing changed",()=>{
+  expect(presetToUse(true,kept,kept)).toEqual({text:kept,write:false});
+ });
+ it("takes a schedule edit after launch, so the trial plays what the runner expects",()=>{
+  expect(presetToUse(true,kept,generated)).toEqual({text:generated,write:true});
  });
  it("fails before any launch when a kept preset no longer matches the launched recipe",()=>{
   const run=()=>presetToUse(true,preset({a:false,b:false}),generated);

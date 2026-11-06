@@ -7,8 +7,8 @@ Run 2026-11-05T17-17-57_rayquaza-lane-qwen_7442 (read-only, live) sat on Dad's s
 - [x] RED tests for the reader, state wiring, registry and field call advance.
 - [x] GREEN: `field-call-input-v1`, default off, OFF byte-identical, on in both arms of the current and Rayquaza recipes and true in both plain presets.
 - [x] Decide whether PokéNav call auto-advance covers the field call.
-- [ ] Explainer linked from the feature card.
-- [ ] Replay 7442's stall turns and 5f0f's turns 319-323 from raw RAM.
+- [x] Explainer linked from the feature card.
+- [x] Replay 7442's stall turns and 5f0f's turns 319-323 from raw RAM.
 - [ ] Read-only GPT review of the merge-base diff.
 
 Not landing here. Focused tests, tsc and eslint only; full suites wait for a coordinator CPU window.
@@ -34,7 +34,43 @@ With ready true, inner dialogue auto-advance now stops with `menu` on a call ins
 ## Commits
 
 - RED: `test(readout): RED for field-call-input-v1`. Python collection error on the missing names; 16 of 17 agent tests failed.
-- GREEN: `feat(readout): field call text box waiting for A behind field-call-input-v1`.
+- GREEN: `feat(readout): field call text box waiting for A behind field-call-input-v1` (129db1f96).
+- Explainer and replay: `docs(explainer): field-call-input-v1 with the raw-RAM replay`.
+
+## Replay
+
+Read-only, from raw RAM with the ROM, through production `read_state` and `render` with each run's own switches from `run_start`, field-call switch off and on, then `fieldCallDecision` on the ON state. A scratch script; nothing was written to either run. Nothing was pressed: this is recorded memory, not a live emulator.
+
+OFF identity: the OFF reader equals the recorded `active_ui` on all 234 + 243 archives in the windows, details included.
+
+7442 (raw 8429-8570, turns 439-474, 142 archives): 136 press, 6 wait. 133 of the 136 recorded input not ready.
+
+| Raw | Call state | Printer active, state | ON readout | Decision |
+|---|---|---|---|---|
+| 8429-8475 | 4 | 1, 2 | ready, value `………………` | press A |
+| 8476-8480 | 5 | 1, 2 | ready, `… … … Beep!` | press A |
+| 8481-8487 | 5 | 1, 2 | ready, `DAD: Oh, A?` | press A |
+| 8488-8496 | 5 | 1, 3 | ready, `… … … Where are you now?` | press A |
+| 8497-8513 | 5 | 1, 2 | ready, `Where are you now? It sounds windy wherever you are.` | press A |
+| 8514-8515 | 5 | 1, 0 | not ready, printing | wait |
+| 8516-8532 | 5 | 1, 3 | ready, `I just heard from DEVON's MR. STONE about your POKéNAV, so I decided` | press A |
+| 8533-8545 | 5 | 1, 2 | ready, `about your POKéNAV, so I decided to give you a call.` | press A |
+| 8546-8547 | 5 | 1, 0 | not ready, printing | wait |
+| 8548-8554 | 5 | 1, 2 | ready, `It sounds like you're doing fine, so that's fine with me.` | press A |
+| 8555-8565 | 5 | 1, 2 | ready, `You take care now.` | press A |
+| 8566-8568 | 5 | 0, 0 | ready, finished, `… … … Click!` | press A |
+| 8569-8570 | 7 | 0, 0 | not ready, unavailable | wait |
+
+5f0f (raw 11422-11524, turns 319-323, 103 archives): 69 press, 34 wait. The same ten pages in the same order. Its batched A presses caught the printer writing between every page: the 34 waits are call states 3, 4 and 5 with printer state 0, and none reads ready. 66 of the 69 presses recorded input not ready; the last 3 are the finished page, ready in both.
+
+First sample of each, OFF then ON:
+
+```
+Interface: field_match_call_transition; input not ready; Directions select; A confirms; B closes or declines
+Interface: field_match_call_message; input ready; selected CONTINUE; value ………………; text box waiting for A; A or B shows the next page
+```
+
+A whole call is 10 presses, inside the 50-press cap. 5f0f took about 25 seconds of wall clock from dots to Click!, inside the 90-second cap.
 
 ## Checks
 
@@ -42,4 +78,6 @@ With ready true, inner dialogue auto-advance now stops with `menu` on a call ins
 - Agent focused: `field-call-input.test.ts` (17), `shop-shelf-hidden-switch.test.ts`, `features.test.ts`, `play-preset.test.ts`, `live-human.test.ts` pass. tsc and eslint clean.
 - Wiring mutation: replacing `field_call_input=field_call_input_enabled` with False in `read_game_state` turned `test_production_path_honors_the_switch` red; restored.
 - `shop-shelf-hidden-v1` tests pinned that switch as the last one; they now pin membership, as the feature-switch skill asks.
+- Viewer `panels.test.ts`: 159 passed under the no-I/O setup, with a scratch config aliasing the agent package to source, because this worktree has no agent build. tsc and eslint clean.
+- `just pages-check` on the explainer prints nothing.
 - Full suites not run; they need a coordinator CPU window.

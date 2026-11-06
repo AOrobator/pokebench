@@ -107,6 +107,14 @@ describe("steady scroll", () => {
     expect(readPlace(box, null).key).toBe("box");
   });
 
+  it("holds nothing when the pane runs past the bottom of the screen and its first row is out of sight", () => {
+    const box = pane([["below", 900]]);
+    box.getBoundingClientRect = () => ({ top: 600, bottom: 1200 }) as DOMRect;
+    box.scrollTop = 10;
+    expect(window.innerHeight).toBeLessThan(890);
+    expect(readPlace(box, null).key).toBeNull();
+  });
+
   it("stays put when the row being read is gone", () => {
     const box = pane([["a", 100], ["b", 150]]);
     box.scrollTop = 20;

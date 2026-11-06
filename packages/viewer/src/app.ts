@@ -700,7 +700,7 @@ export class App {
         const first=this.currentApplied===null,limit=this.view.operatorTurnLimit,display=this.current.display();if(display!==null){display.operatorTurnLimit=limit;this.view=this.shown=display;this.currentApplied=snapshot;this.mode="live";this.headReady=true;}
         if(first){if(this.needsWorkbenchEnrichment())void this.loadWorkbench();void this.loadFrontier(snapshot.id);void this.deps.fetchJson(`/api/runs/${encodeURIComponent(snapshot.id)}/budget`).then(value=>{if(this.runId!==snapshot.id||this.current?.state.snapshot?.generation!==snapshot.generation||typeof value!=="object"||value===null||!("max_turns" in value)||typeof value.max_turns!=="number"||!Number.isSafeInteger(value.max_turns)||value.max_turns<=0)return;this.view.operatorTurnLimit=value.max_turns;this.render();}).catch(()=>{});}
         else if(!snapshot.complete)void this.loadWorkbench();
-      }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";}
+      }else if(snapshot===null&&this.currentApplied!==null){this.resetSelection(state.selected,this.following);this.mode=state.indexing?"loading":"idle";if(!state.runs.some(run=>run.id===state.selected))this.racePainted=null;}
       if(state.history!==this.currentHistoryEvents){
         const previous=this.currentHistoryEvents;this.currentHistoryEvents=state.history;if(state.history.length<previous.length)this.olderPages=OLDER_PAGES;const history=new RunView();if(snapshot!==null){history.start=snapshot.header;history.startMs=Date.parse(snapshot.header.t);}for(const event of state.history)history.apply(event);this.currentHistory=history;
         const appended=previous.every((event,index)=>state.history[index]===event);if(!appended){this.trace=this.newTrace();this.traceVersions.delete(this.ui("trace"));this.traced=0;this.traceKey=this.sideKey="";}
@@ -1178,8 +1178,7 @@ export class App {
     const source = tableSplits(this.mode, recorded), panes = ["race-rail", "race-gains", "race-losses", "race-filters", "race-list", "race-map", "race-plot"];
     if (source === null || view.startMs === null) {
       // A refresh of the run on screen keeps the last page: blanking it would throw the reader back to the top.
-      // "idle" means the run is gone, so its race must not stay up looking current.
-      if (this.runId !== null && this.racePainted === this.runId && this.mode !== "idle") return;
+      if (this.runId !== null && this.racePainted === this.runId) return;
       draw("race-head", `<p class="race-sub">${this.runId === null ? "No run selected." : "Loading recorded splits…"}</p>`);
       for (const pane of panes) draw(pane, "");
       return;

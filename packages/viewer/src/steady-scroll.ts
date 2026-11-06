@@ -6,11 +6,11 @@ export interface Place { readonly key: string | null; readonly top: number; read
 const rows = (pane: HTMLElement): HTMLElement[] => [...pane.querySelectorAll<HTMLElement>("[data-keep]")];
 
 export function readPlace(pane: HTMLElement, active: Element | null): Place {
-  const frame = pane.getBoundingClientRect(), edge = Math.max(frame.top, 0);
+  const frame = pane.getBoundingClientRect(), edge = Math.max(frame.top, 0), fold = Math.min(frame.bottom, pane.ownerDocument.defaultView?.innerHeight ?? frame.bottom);
   // A reader at the top stays there as content grows, and a row below the fold is not being read.
   const seen = pane.scrollTop <= 0 ? [] : rows(pane).filter(item => {
     const box = item.getBoundingClientRect();
-    return box.height > 0 && box.bottom > edge && box.top < frame.bottom && item.querySelector("[data-keep]") === null;
+    return box.height > 0 && box.bottom > edge && box.top < fold && item.querySelector("[data-keep]") === null;
   });
   // A list row outranks a box above it: the list is what grows, so holding the box would let the rows move.
   const row = seen.find(item => item.dataset.keepBox === undefined) ?? seen[0];

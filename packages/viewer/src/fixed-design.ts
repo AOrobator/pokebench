@@ -87,6 +87,7 @@ const FeatureReasons=Type.Record(Type.String(),Type.String({minLength:1}));
 export const FeatureOverlaySchema=Type.Object({version:Type.Literal(1),id:Name,base:Name,on:FeatureReasons,off:FeatureReasons},closed);
 export type FeatureOverlay=Static<typeof FeatureOverlaySchema>;
 const namesBase=(value:unknown):boolean=>typeof value==="object"&&value!==null&&"base" in value;
+export const isFeatureOverlay=(text:string):boolean=>namesBase(JSON.parse(text));
 function applyFeatureOverlay(overlay:FeatureOverlay,base:FeatureRecipe):FeatureRecipe {
  const on=Object.keys(overlay.on),off=Object.keys(overlay.off);
  const known=new Set([...Object.keys(base.features),...base.switches,...base.offInBoth,...base.onInBoth]);

@@ -20,7 +20,8 @@ import { laneApiKey, runFixed, type FixedHost, type FixedRunOptions, type Servin
 import { fixedStatusPath, parseFixedStatus } from "./fixed-status.js";
 import { fixedTreeDir, fixedTreeLiveJs, prepareFixedTree, type FixedTreeDeps } from "./fixed-tree.js";
 import { frozenPlay } from "./frozen-play.js";
-import {readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
+import {fileLaneRunReads,readFixedDefinition,readFeatureRecipe} from "./fixed-definition.js";
+import {laneDriftReport,type LaneRunReads} from "./fixed-lane-drift.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
 
@@ -39,11 +40,12 @@ export interface FixedCliDeps {
   readonly stopRequested?: () => boolean;
   // Everything an experiment checkout needs; supplied by the entrypoint, absent in partial harnesses.
   readonly hostDeps?: () => FixedHostDeps;
+  readonly laneRuns?: LaneRunReads;
 }
 
 const USAGE = [
   "usage: fixed-run plan <id> [--seed <16 hex>]   freeze the seeded plan into experiments/fixed/<id>.json",
-  "       fixed-run check <id>                     validate the definition and every phase's start save",
+  "       fixed-run check <id>                     validate the definition and every phase's start save; a lane recipe also lists switches changed since its last recorded run",
   "       fixed-run run <id>                       run the experiment (both lanes)",
   "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
   "       fixed-run rerun <id> --arm <control|bundle> --lane <lane> [--phase <phase>]  one unpaired, exploratory trial on one lane at the experiment's pin, as <id>-solo-<arm>-<lane>-<n>",
@@ -111,7 +113,7 @@ function plan(argv: readonly string[], deps: FixedCliDeps, id: string): void {
 }
 
 function check(deps: FixedCliDeps, id: string): void {
-  const { definition: def, sha256: digest } = load(deps, id);
+  const { definition: def, sha256: digest, featureRecipe } = load(deps, id);
   deps.out(`${def.id}: ${def.title}`);
   deps.out(`seed ${def.seed}, ${String(def.plan.length)} planned trials, definition sha256 ${digest}`);
   for (const phase of def.phases) {
@@ -123,6 +125,7 @@ function check(deps: FixedCliDeps, id: string): void {
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
   deps.out(`reply token caps: control ${String(def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
+  if (deps.laneRuns !== undefined) for (const line of laneDriftReport(def, featureRecipe?.id ?? null, deps.laneRuns)) deps.out(line);
 }
 
 // Every trial inherits the runner's environment, so a runner without the ROM would only produce invalid trials.
@@ -449,6 +452,7 @@ if (import.meta.main) {
     run: runFixed, host: () => productionFixedHost({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
     hostDeps: () => ({ root, runsRoot, git, fetchFn: fetch, node: process.execPath, env: process.env, log }),
     stopRequested: () => stop,
+    laneRuns: fileLaneRunReads(root, runsRoot),
   }).then((code) => { process.exitCode = code; }, (error: unknown) => {
     console.error(`fixed-run: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;

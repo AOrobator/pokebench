@@ -90,3 +90,4 @@ Read-only GPT review of the merge-base diff, bf8cd7244 to 338b06155, base64 font
 ## Not proven
 
 No live emulator call has run with the switch on: the replay reads recorded memory and decides, it does not press. Whether a press result lands between frames as the fake assumes is covered only by the checked-press path shared with PokéNav calls. No measured comparison.
+- Gate green: 2,584 agent, 991 viewer, 2,965 + 38 Python, lint and vendor clean. Claude and GPT LGTM.

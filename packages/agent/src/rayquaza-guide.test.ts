@@ -180,9 +180,9 @@ describe("rayquazaGuideContext", () => {
 describe("the shipped guide", () => {
   it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
-    expect(note).toMatch(/X Attack and X Speed on Wingull or Slugma/);
+    expect(note).toMatch(/X Attack and X Speed against Slugma/);
     expect(note).toMatch(/if you have them/);
-    expect(note).toMatch(/Absorb hits Marshtomp x4 and heals it/);
+    expect(note).toMatch(/Absorb hits Marshtomp x4 and heals Grovyle/);
     expect(note).not.toMatch(/Taillow/);
   });
 

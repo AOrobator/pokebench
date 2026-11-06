@@ -14,6 +14,8 @@ The entering call's own result does not count as one of the 10.
 
 ## Replay of recorded runs
 
+Superseded by the revision below: these numbers are the version with the pair reset.
+
 Recorded events through `StallBriefing` with the switch off and on, every note accepted (the fixed recording, so an approximation of what a run with the switch would do).
 
 - ee2a: 39 map_cycle and drought notes off, 27 on. map_cycle falls from 10 (turns 100, 199, 286, 370, 375, 392, 433, 481, 497, 592) to 2 (474, 481). The turn-370 note does not fire on: Mt. Pyre's upper floors were first entries, so the pair counts reset on the way down.
@@ -44,4 +46,10 @@ Round 2 GPT (Codex CLI, gpt-5.6-sol) on cumulative delta 76f71140b..d662e30eb: L
 The operator 2026-11-06 picked option 1 after the wording probe showed the note helps at ee2a T371 and T372 (16 vs 8, 10 vs 2 of 16). A first entry no longer resets the pair counts. The hold stays. Landed fb7237d27 is the version being revised.
 
 - [x] RED on `claude/first-visit-delay`: three pair-reset tests deleted, two added; 2 failing, 29 passing
+- [x] GREEN: the reset removed; 31 stall-briefing tests pass.
+
+Replay with the same method (recorded events, every note accepted):
+
+- ee2a: map_cycle 10 off, 9 on. Off: turns 100, 199, 286, 370, 375, 392, 433, 481, 497, 592. On: 100, 199, 286, 370, 392, 393, 440, 481, 497. Turn 370 fires on time: the last first entry was at turn 350. All map_cycle and drought notes: 39 off, 34 on.
+- 274b: 98 notes off, 88 on, with 6 held notes no longer due.
 

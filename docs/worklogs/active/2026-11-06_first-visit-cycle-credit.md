@@ -27,3 +27,7 @@ The pair reset does most of the work. A run exploring new maps gets far fewer cy
 - [x] GREEN in `stall-briefing.ts`, wiring, viewer timeline exclusion: 30 stall-briefing tests, 161 viewer focused tests. Mutations: removing the drought wiring failed the drought test, removing the timeline exclusion failed the viewer test; both restored.
 - [x] Explainer, recipe, preset, README
 - [ ] Gates, review, landing
+
+## Review log
+
+- Round 1 GPT (Codex CLI, gpt-5.6-sol) on 76f71140b: BLOCKING, one finding. Fix: held-note keys merged a later drought or rebuilt pair with an earlier note at the same level, so one could go unrecorded. Held notes are now tied to the pair or drought clock they counted. Two tests added; 32 stall-briefing tests pass.

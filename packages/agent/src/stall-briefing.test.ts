@@ -464,3 +464,30 @@ it("the hold does not touch interface dwell briefings",()=>{
  for(let i=0;i<3;i++)r.press([i%2===0?"LEFT":"RIGHT"],{...TOWN,screen:"naming",position:{x:1,y:1}});
  expect(sent(r).filter(g=>g.kind==="interface_dwell")).toHaveLength(1);
 });
+
+it("a drought that restarts during the hold is a new note: the old one is recorded as no longer due",()=>{
+ const r=rig({...CREDIT,...PLAIN_CLOCK});
+ r.state(HOUSE_1F);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},STALL_DROUGHT_MS,[LOADING]);
+ r.press(["LEFT"],{...TOWN,position:{x:2,y:1}});
+ expect(held(r)).toHaveLength(1);
+ r.milestone("ROUTE_101","observed");
+ r.press(["RIGHT"],{...TOWN,position:{x:3,y:1}},STALL_DROUGHT_MS);
+ expect(held(r)).toHaveLength(2);
+ stay(r,9);
+ expect(held(r).filter(g=>g.message.includes("no longer due"))).toHaveLength(1);
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
+});
+
+it("a cycle rebuilt after a second first entry is held under the new map, and the old one is recorded as no longer due",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ expect(held(r)).toHaveLength(1);
+ r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...TOWN,position:{x:1,y:1}}:{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ expect(held(r)).toHaveLength(2);
+ expect(held(r)[1]?.message).toContain("CAVE (map 2/0)");
+ stay(r,8,CAVE);
+ expect(held(r).filter(g=>g.message.includes("no longer due"))).toHaveLength(1);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+});

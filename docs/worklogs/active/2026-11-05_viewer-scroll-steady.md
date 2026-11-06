@@ -60,3 +60,4 @@ Round 2 on e45ad1a53, delta from dfd1be8fc. Claude under `~/.claude-review`: BLO
 Fallback reviewer round 2: LGTM. Round 3 on the delta e45ad1a53..8f0b3f5a6: Claude LGTM, GPT via Codex LGTM. Cursor Grok is out of usage until 11/17, so the fallback reviewer stands in under the operator's standing rule.
 FOLLOW-UP from reviewers, not in this branch: a store epoch change can briefly blank the race; a viewport under about 560px with pane scrollTop 0 is held as "at the top".
 Final gates on 5e4bd2d9f, main bf8cd7244 merged in: `pnpm -r lint` passes; `just test` passes with agent 2565, viewer 1007, env 2936, gateway 38, no-I/O proof OK. Waiting for the operator's go under the round cap.
+The operator's go (2026-11-06 2:52 PM New York): "go". Merged main into the branch (017436d95): 74 commits, none touching this branch's viewer files, CLAUDE.md or viewer-e2e, so reviews and gates stand; focused tests 65 passed and viewer tsc passes on the merged head.

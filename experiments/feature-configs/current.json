@@ -208,7 +208,8 @@
     "field-call-input-v1",
     "observed-field-dialogue-v1",
     "instruction-memory-junk-filter-v1",
-    "first-visit-cycle-credit-v1"
+    "first-visit-cycle-credit-v1",
+    "unnamed-place-story-line-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -550,6 +551,7 @@
     "shop-shelf-hidden-v1": true,
     "field-call-input-v1": true,
     "instruction-memory-junk-filter-v1": true,
-    "first-visit-cycle-credit-v1": true
+    "first-visit-cycle-credit-v1": true,
+    "unnamed-place-story-line-v1": true
   }
 }

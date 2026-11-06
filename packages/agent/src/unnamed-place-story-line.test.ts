@@ -61,6 +61,14 @@ it("on: signs, PokéNav registrations, lines with no known place and lines namin
  expect(goal(s)).toBeNull();
 });
 
+it("on: a trainer's challenge and a PokéNav call are not leads",()=>{
+ const s=story(true),id="t";
+ s.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:7,tool_call_id:id,pages:[{...PAGE,text:"MT. PYRE… Will your POKéMON sleep?",speaker:"HEX_MANIAC",speaker_source:"faced_sprite",map_id:[0,36],state_seq:1},{...PAGE,text:"HEX MANIAC LEAH\nwould like to battle!",speaker:null,speaker_source:null,map_id:[0,36],state_seq:2}]}));
+ s.observe(event({type:"tool_result",turn:7,id,name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
+ heard(s,8,"… … … Beep! ROXANNE: Come to MT. PYRE.");
+ expect(goal(s)).toBeNull();
+});
+
 it("on: battle text is no one's line",()=>{
  const s=story(true);
  const id="b";

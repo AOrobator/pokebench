@@ -17,11 +17,11 @@ import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./sema
 export const TRUST_HEADER="Read from game memory, always true:";
 
 // The trust order, appended last to the system prompt. With game-evidence-priority-v1 it ranks that section's evidence.
-export function trustSection(gameEvidence:boolean,supervisor:boolean):string {
+export function trustSection(gameEvidence:boolean,supervisor:boolean,unnamedPlaces=false):string {
  const lead=gameEvidence?"Trust order (this puts \"Game evidence first\" in order): when sources disagree, believe them in this order.":"Trust order: when sources disagree, believe them in this order.";
  return [
   lead,
-  "1. The latest thing a story character told you. Each result starts with it as the Story goal line, read from game memory, with the place it names.",
+  unnamedPlaces?"1. The latest line the game showed that names a place. Each result starts with it as the Story goal line, read from game memory, with who said it as far as the game shows and the place it names.":"1. The latest thing a story character told you. Each result starts with it as the Story goal line, read from game memory, with the place it names.",
   "2. The other facts read from game memory in the result: where you are, who is on this map, the exits and the map.",
   "3. Never your memory of Pokémon games, guides or walkthroughs. When it disagrees with 1 or 2, it is wrong about this game.",
   ...(supervisor?["A SUPERVISOR note under the header says when your last two moves took you farther from the place the Story goal line names."]:[]),
@@ -247,7 +247,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
+export interface TrustOptions {readonly unnamedPlaces?:boolean;readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -255,7 +255,7 @@ export class HarnessTrust {
  private readonly walk:WalkAway;
  // untalked-people-header-v1: who on this map has not been talked to since the latest story milestone.
  private readonly people:PeopleLedger|null;
- constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true,options.buildings===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true,options.nativeTasks===true,options.selfNamed===true,options.retireReached===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
+ constructor(private readonly options:TrustOptions) {this.walk=new WalkAway(options.reachableGoal===true,options.buildings===true);this.story=new StoryDestinations(options.scriptedGuidance===true,options.activity===true,options.playerName===true,options.gymEvidence===true,options.deliveredPlaces===true,options.nativeTasks===true,options.selfNamed===true,options.retireReached===true,options.unnamedPlaces===true);this.people=options.untalkedPeople===true?new PeopleLedger(true):null;}
  observe(event:RunEvent):void {this.story.observe(event);this.people?.observe(event);}
  lines(text:string,state:GameStateSnapshot,callId:string,places:readonly Place[]|Error,own=false,seen=text):{readonly header:string;readonly away:StoryGoalAwayFacts|null} {
   const anyLine=this.story.latest(callId,null,state.name)!==null;

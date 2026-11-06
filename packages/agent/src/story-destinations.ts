@@ -15,6 +15,7 @@ import type {RunRecorder} from "./recorder.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
 import {STORY_CHARACTERS,canonicalStoryCharacterName,storyCharacter} from "./script-line-presence.js";
 import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
+import {junkPage} from "./instruction-memory-junk.js";
 import {semanticWalk} from "./semantic-targets.js";
 
 const closed={additionalProperties:false};
@@ -97,6 +98,8 @@ export interface StoryLine {
  readonly scriptedPlaces?:readonly {readonly quote:string;readonly resolution:string}[];
  readonly birchLabStage?:number;
  readonly task?:GoalTask;
+ // unnamed-place-story-line-v1: the map this line from no story character was heard on.
+ readonly heardOn?:MapId|null;
  readonly deliveredPlace?:{readonly dialogue_event:number;readonly result_event:number|null;readonly state_event:number|null;readonly map:string|null;readonly map_id:MapId|null;readonly speaker:string|null;readonly speaker_source:string|null;readonly exact_text:string;readonly map_display:string|null};
 }
 
@@ -146,6 +149,15 @@ function storyStep(event:Extract<RunEvent,{type:"milestone"}>):boolean {
  return (event.kind==="story"||extended)&&event.origin==="observed"&&!BATTLE_WIN.test(event.name)&&!OPTIONAL_PROGRESS_NAMES.has(event.name)&&(extended||!MEASUREMENT_ONLY_MILESTONES.has(event.name));
 }
 
+const REGISTERED=/^Registered .* in the POKéNAV\.$|Beep!/;
+const TRAINER_BATTLE=/would like to battle!$/;
+// What the game shows of who spoke: the sprite faced, else the sprite kinds on screen. Never a guessed name.
+function unnamedLabel(page:Page):string {
+ if(page.speaker!==null)return `${page.speaker} sprite`;
+ const kinds=[...new Set((page.on_screen??[]).flatMap(o=>o.sprite_kind===null?[]:[o.sprite_kind]))];
+ return kinds.length===0?"no speaker shown":`no speaker shown; on screen: ${kinds.join(", ")}`;
+}
+
 export class StoryDestinations {
  private readonly lines:StoryLine[]=[];
  private readonly pending=new Map<string,StoryLine[]>();
@@ -163,7 +175,7 @@ export class StoryDestinations {
  private readonly steps:{readonly turn:number;readonly seq:number;readonly name:string}[]=[];
  // retire-reached-story-line-v1: the recorded event (the page's state, else its dialogue event) each story line was shown at.
  private readonly shownAt=new WeakMap<StoryLine,number>();
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false,private readonly unnamedPlaces=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
   if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,seq:event.seq,name:event.name});return;}
   if(event.type==="state"&&"started" in event){
@@ -226,6 +238,8 @@ export class StoryDestinations {
   const forcedGym=this.scriptedGuidance&&pages.some(page=>gymBoy(page)&&page.map_id?.[0]===0&&page.map_id[1]===0&&plain(page).startsWith("Hiya! Are you maybe… A rookie TRAINER?"))&&pages.some(page=>gymBoy(page)&&plain(page)==="This is the GYM's sign. Look for it whenever you're looking for a GYM.");
   // self-named-speaker-v1: sprite kinds and printed names this conversation has heard introduce themselves.
   const sprites=new Map<string,string>(),named=new Set<string>();
+  // unnamed-place-story-line-v1: a trainer's challenge is a taunt, not a lead.
+  const challenge=pages.some(p=>TRAINER_BATTLE.test(plain(p)));
   for(const page of pages){
    if(page.battle_message_id!==undefined||page.battle_turn!==undefined)continue;
    if(this.selfNamed&&page.speaker!==null){
@@ -240,6 +254,8 @@ export class StoryDestinations {
     out.push(makeLine(page,{turn,speaker:"PETALBURG GYM BOY",text,lives:null,scriptedPlaces:[{quote:"PETALBURG CITY's GYM",resolution:"PETALBURG CITY GYM"}]}));
    }else if(this.deliveredPlaces&&speaker===null&&namedIn(text).length>0&&placePhrases(text,null,NAMES).length>0){
     out.push(makeLine(page,{turn,speaker:"unnamed speaker",text,lives:null,deliveredPlace:{dialogue_event:dialogueEvent,result_event:null,state_event:page.state_seq,map:page.map,map_id:page.map_id,speaker:page.speaker,speaker_source:page.speaker_source,exact_text:page.text,map_display:page.map_display??null}}));
+   }else if(this.unnamedPlaces&&speaker===null&&page.speaker_source!=="faced_target"&&!challenge&&!REGISTERED.test(text)&&!junkPage(page.text)){
+    out.push(makeLine(page,{turn,speaker:unnamedLabel(page),text,lives:null,heardOn:page.map_id}));
    }else if(speaker!==null){
     const m=LIVES.exec(text);
     let lives:Lives|null=null;
@@ -276,6 +292,9 @@ export class StoryDestinations {
   let line:StoryLine|null=null,resolved:Resolved[]=[];
   for(const candidate of this.candidates(callId,heads,player)){
    const r=this.resolveLine(candidate,here,player,places,heads);
+   // unnamed-place-story-line-v1: only a map the game knows, and not the map the line was heard on, makes this a goal.
+   const heardOn=candidate.heardOn;
+   if(heardOn!==undefined&&!r.some(x=>x.target!==null&&(heardOn===null||!same(x.target.map_id,heardOn))))continue;
    if(line===null){line=candidate;resolved=r;}
    if(!this.activity||r.some(x=>x.target!==null)){line=candidate;resolved=r;break;}
   }
@@ -478,7 +497,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"],features["unnamed-place-story-line-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

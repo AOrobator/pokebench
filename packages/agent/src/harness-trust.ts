@@ -36,11 +36,12 @@ const same=(a:MapId,b:MapId)=>a[0]===b[0]&&a[1]===b[1];
 const mapLabel=(name:string,id:MapId)=>`${name} (map ${String(id[0])}/${String(id[1])})`;
 const at=(p:{readonly x:number;readonly y:number})=>`(${String(p.x)},${String(p.y)})`;
 
-export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean,state?:GameStateSnapshot,semantic=false,sections=false):string {
+export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLine:boolean,state?:GameStateSnapshot,semantic=false,sections=false,noOpen=false):string {
  if(places instanceof Error)return anyLine?`Story goal: not known; the game's map table could not be read (${places.message}).`:"Story goal: no story character has named a place yet in this run.";
  if(goal===null)return "Story goal: no story character has named a place yet in this run.";
- if(goal.done===true)return staleGoalLine(goal.line,goal.doneReason);
- if(goal.reached!==undefined)return reachedText(goal.line,goal.reached);
+ // no-open-story-goal-v1: says outright that no goal is open; the evidence line stays for its readers.
+ if(goal.done===true)return noOpen?`Story goal: none open (latest line done: ${goal.doneReason??"its step is complete"}).\n${staleGoalLine(goal.line,goal.doneReason)}`:staleGoalLine(goal.line,goal.doneReason);
+ if(goal.reached!==undefined)return noOpen?`Story goal: none open (latest line reached).\n${reachedText(goal.line,goal.reached)}`:reachedText(goal.line,goal.reached);
  const {line,resolved}=goal;
  const source=placeEvidenceSource(line);
  if(source!==null)return `Historical named place evidence: ${source} ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
@@ -247,7 +248,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly unnamedPlaces?:boolean;readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
+export interface TrustOptions {readonly noOpenGoal?:boolean;readonly unnamedPlaces?:boolean;readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -264,8 +265,8 @@ export class HarnessTrust {
   const exits=places instanceof Error?null:exitsLine(state,places,this.options.semanticTargets===true,this.options.exitSections===true,this.options.surfNavigation===true);
   const untalked=this.people?.untalkedLine(state,text,callId)??null;
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
-  const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true);
-  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true,this.options.exitSections===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits]),...(untalked===null?[]:[untalked])].join("\n");
+  const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true&&this.options.noOpenGoal!==true);
+  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true,this.options.exitSections===true,this.options.noOpenGoal===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits]),...(untalked===null?[]:[untalked])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true||goal?.reached!==undefined||goal?.line.deliveredPlace!==undefined?null:goal,places,own):null;
   return {header,away};
  }

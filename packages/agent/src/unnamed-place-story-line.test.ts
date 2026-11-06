@@ -102,7 +102,7 @@ it("registers the switch off by default, needing story destinations' owner",()=>
 });
 
 // no-open-story-goal-v1: a reached or done goal says plainly that no story goal is open.
-const reachedGoal=(s:StoryDestinations)=>{const g=s.goal([24,15],null,"none",PLACES);if(g===null)throw new Error("no goal");return g;};
+const reachedGoal=(s:StoryDestinations)=>{const g=s.goal([24,15],null,"none",PLACES),target=PLACES[0];if(g===null||target===undefined)throw new Error("no goal");return {...g,reached:[{target,turn:277,entered:true}]};};
 const heardThenArrived=()=>{const s=new StoryDestinations(false,true,false,false,false,false,false,false,true);heard(s,272,"The RED ORB preserved at MT. PYRE…",null,null,[24,22]);return s;};
 it("no open goal off: a reached line prints as it does today",()=>{
  const line=goalLine(reachedGoal(heardThenArrived()),PLACES,true);

@@ -399,5 +399,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Story line campaign steps](story-line-campaign-flags-v1.html): the Story line lists every campaign step the game confirmed during the run, not only the early flags.
 - [Junk filter leader lines](junk-filter-leader-lines-v1.html): the junk filter spares a gym leader's lines until that badge is earned.
 - [Story line start steps](story-line-start-steps-v1.html): a checkpoint run also lists the campaign steps its save already held.
+- [No open story goal](no-open-story-goal-v1.html): the readout says plainly when no story goal is open.
 - [First visit cycle credit](first-visit-cycle-credit-v1.html): a first entry to a map holds map-cycle and drought notes for 10 calls, with every held note recorded.
 - [Field call input](field-call-input-v1.html): a field call page that waits for A reads input ready, with the printer states from the source, the auto-advance decision and the raw-RAM replay of runs 7442 and 5f0f.

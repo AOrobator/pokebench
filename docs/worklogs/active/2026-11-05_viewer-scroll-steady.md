@@ -19,7 +19,7 @@ Headless reproduction on live 8790, six client-side injected `/api/cards` splits
 - [x] Race rows and controls carry `data-keep` and `data-focus`; renderRace redraws through the helper.
 - [x] A same-run refresh never blanks a painted race or resets its filter and folds.
 - [x] Repo skill for auto-updating UI, linked from CLAUDE.md.
-- [ ] Browser proof, gates, review, landing, viewer refresh, live proof.
+- [x] Browser proof, gates, review, landing, viewer refresh, live proof.
 
 ## Log
 
@@ -61,3 +61,9 @@ Fallback reviewer round 2: LGTM. Round 3 on the delta e45ad1a53..8f0b3f5a6: Clau
 FOLLOW-UP from reviewers, not in this branch: a store epoch change can briefly blank the race; a viewport under about 560px with pane scrollTop 0 is held as "at the top".
 Final gates on 5e4bd2d9f, main bf8cd7244 merged in: `pnpm -r lint` passes; `just test` passes with agent 2565, viewer 1007, env 2936, gateway 38, no-I/O proof OK. Waiting for the operator's go under the round cap.
 The operator's go (2026-11-06 2:52 PM New York): "go". Merged main into the branch (017436d95): 74 commits, none touching this branch's viewer files, CLAUDE.md or viewer-e2e, so reviews and gates stand; focused tests 65 passed and viewer tsc passes on the merged head.
+
+## Landed
+
+main fast-forwarded to 008d09bec. `just test` on main passes: agent 2635, viewer 1072, env 2965, gateway 38, no-I/O proof OK.
+`just viewer-main` restarted 8790 at 008d09bec; both live gameplay processes kept their PIDs and start times. The served page has `data-keep-box` and `/app/steady-scroll.js` returns 200 on 8790 and over Tailscale.
+Live headless proof on run aeb8, six injected splits, reader mid-list: tracked row moved 0px Chromium desktop, 1px Chromium phone, 0px WebKit desktop, 0px WebKit phone. First open stayed at scrollTop 0 for 22s. A rail jump click still scrolled in all four. Zero page errors; desktop and phone screenshots inspected. The operator's own tab needs a reload to load the new code.

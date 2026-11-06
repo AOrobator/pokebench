@@ -100,3 +100,27 @@ it("on: battle text is no one's line",()=>{
 it("registers the switch off by default, needing story destinations' owner",()=>{
  expect(featureInfo("unnamed-place-story-line-v1").description).toContain(" Off: ");
 });
+
+// no-open-story-goal-v1: a reached or done goal says plainly that no story goal is open.
+const reachedGoal=(s:StoryDestinations)=>{const g=s.goal([24,15],null,"none",PLACES);if(g===null)throw new Error("no goal");return g;};
+const heardThenArrived=()=>{const s=new StoryDestinations(false,true,false,false,false,false,false,false,true);heard(s,272,"The RED ORB preserved at MT. PYRE…",null,null,[24,22]);return s;};
+it("no open goal off: a reached line prints as it does today",()=>{
+ const line=goalLine(reachedGoal(heardThenArrived()),PLACES,true);
+ expect(line.startsWith("Story line heard (")).toBe(true);
+});
+it("no open goal on: a reached line says plainly that none is open and keeps its evidence line",()=>{
+ const line=goalLine(reachedGoal(heardThenArrived()),PLACES,true,undefined,false,false,true);
+ expect(line.split("\n")[0]).toBe("Story goal: none open (latest line reached).");
+ expect(line.split("\n")[1]?.startsWith("Story line heard (")).toBe(true);
+});
+it("no open goal on: a done line says so with its reason",()=>{
+ const g={...reachedGoal(heardThenArrived()),done:true,doneReason:"Pokédex received"};
+ expect(goalLine(g,PLACES,true,undefined,false,false,true)).toContain("Story goal: none open (latest line done: Pokédex received)");
+});
+it("no open goal on: an open goal is unchanged",()=>{
+ const s=story(true);heard(s,146,"We're to move out to MT. PYRE!");
+ expect(goalLine(goal(s),PLACES,true,undefined,false,false,true)).toBe(goalLine(goal(s),PLACES,true));
+});
+it("registers no-open-story-goal-v1 with an Off clause",()=>{
+ expect(featureInfo("no-open-story-goal-v1").description).toContain(" Off: ");
+});

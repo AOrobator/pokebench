@@ -19,6 +19,9 @@ export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, pr
 // Run 0952 spent 11 turns activating Petalburg Mart shelves and left without buying.
 export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
 
+// Run 7442 waited 30+ turns on Dad's boat call; run 5f0f cleared it in about four with batched A presses.
+export const CALL_NOTE="CALL: This call will not finish by itself. Press A several times in one press to advance it.";
+
 type MapId=readonly [number,number];
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
@@ -134,6 +137,7 @@ export class GuidePosition {
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
+  if(this.latest?.active_ui?.phase.startsWith("field_match_call")===true)return [{text:CALL_NOTE,milestone:"RQ_CALL"}];
   if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
   if(!this.inBattle&&/\b(MART|HERB SHOP)$/.test(this.latest?.location??""))return [{text:SHOP_NOTE,milestone:"RQ_SHOP"}];
   const to=this.current().to;

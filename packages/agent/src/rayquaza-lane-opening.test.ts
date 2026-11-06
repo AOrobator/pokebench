@@ -5,7 +5,7 @@ import type { FeatureSet } from "./features.js";
 import type { RunEvent } from "./events.js";
 import { stableJitPrompts } from "./play-config.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { CALL_NOTE, GuidePosition, OPTIONS_NOTE, SHOP_NOTE, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const ON = preset.features as FeatureSet;
 const steps: readonly GuideStep[] = [
@@ -136,6 +136,27 @@ describe("missed items", () => {
     guide.observe(name());
     expect(guide.takeMisses()).toEqual([]);
   });
+});
+
+describe("call note", () => {
+  it("says how to clear a field Match Call while one is open, and not otherwise", () => {
+    const guide = new GuidePosition(steps);
+    guide.observe(field({ active_ui: { phase: "field_match_call_message" } }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+    guide.observe(field({ active_ui: { phase: "field_match_call_transition" } }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+    guide.observe(field());
+    expect(guide.situationNotes()).toEqual([]);
+  });
+});
+
+it("shows the call note over the options note while a call is open", () => {
+  const guide = new GuidePosition(steps);
+  guide.observe(state({}));
+  guide.observe(field({ active_ui: { phase: "field_match_call_message" } }));
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+  guide.observe(field());
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([OPTIONS_NOTE]);
 });
 
 describe("shop note", () => {

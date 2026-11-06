@@ -35,3 +35,5 @@ Frozen packet 36826cea3..35a1c59ce, diff SHA-256 60ebdd5e…7695.
 - Claude (subagent): LGTM, no behavior bugs. It reproduced 6,579 and 10,504 characters. Fix: two doc errors in this file and the README, corrected here; the packet principles row PB7 cited the wrong evidence and was corrected (the block text and evidence refs are what is recorded).
 - Grok: skipped, out until 11/17.
 - Follow-up, not in this change: `features.ts:684` and the field dialogue explainer still say "bundle treatment only"; the control arm's memory header attributes junk-filter drops to the size cap; the junk filter's R5 has no gym-leader exemption (WINONA's turn-60 speech drops).
+
+Delta 35a1c59ce..54dbe3013 is prose only (the two doc corrections and this log). GPT and Claude both returned LGTM on it. Main did not move, so the gates on 35a1c59ce stand: the config they tested is byte-identical in the landed head.

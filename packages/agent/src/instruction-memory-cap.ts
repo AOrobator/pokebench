@@ -76,7 +76,7 @@ export class InstructionMemoryCap {
   if(event.type==="tool_result"){if(!event.is_error&&OBSERVATION_TOOLS.has(event.name))this.readout=event.text;return;}
   if(event.type!=="state"||!("started" in event))return;
   this.state=event;
-  for(const badge of event.badges??[])this.earned.add(badge.toUpperCase());
+  for(const badge of event.badges)this.earned.add(badge.toUpperCase());
   if(event.location!==null)this.visited.add(event.location);
   const map=key(event.map_id),trainers=event.heal_before_trainers?.trainers??[];
   for(const t of trainers)this.defeated.set(`${String(map)}#${String(t.trainer_id)}`,t.defeated);

@@ -103,12 +103,17 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>First visit cycle credit</h1>
-<p><code>first-visit-cycle-credit-v1</code> stops stall notes from telling a model to give up on a place it has only just found. It changes whether and when two notes fire, and removes many cycle notes outright: replaying ee2a, map_cycle notes fall from 10 to 2. It does not change what they say.</p>
+<p><code>first-visit-cycle-credit-v1</code> stops stall notes from telling a model to give up on a place it has only just found. It holds two notes for 10 calls after a first entry, then sends those still due. It does not change what they say.</p>
 
 <h2>Why it exists</h2>
 <div class="card">
-<p>In run ee2a the map_cycle note fired on MT PYRE 1F at turn 370. The model took the untried warp at turn 371 and reached MT PYRE EXTERIOR for the first time. At turn 372, with the summit warp untaken, it walked straight back out. The stall framing was still driving it on a map it had never searched.</p>
+<p>In run ee2a the map_cycle note fired on MT PYRE 1F at turn 370. The model took the untried warp at turn 371 and reached MT PYRE EXTERIOR for the first time. At turn 372, with the summit warp untaken, it walked straight back out. It left a map it had never searched.</p>
 <p>An audit of DeepSeek runs found the same pattern. After a note, the model left a map with never-taken exits 10.6% of the time, against 7.8% with no note. After a map_cycle note it was 12.2%.</p>
+</div>
+
+<h2>Delay, not erase</h2>
+<div class="card">
+<p>The first version also reset the map-pair counts on a first entry. That removed most cycle notes: replaying ee2a, map_cycle notes fell from 10 to 2, and the turn-370 note did not fire. An exploratory probe then found that note helped the next decision: 16 of 16 good choices with it, 8 of 16 without, at turn 371. So the counts now keep counting. Replaying ee2a, there are 9 map_cycle notes and the turn-370 note fires on time, because the last first entry was more than 10 calls earlier. The tenth was still held when the run ended. Some drought notes are not sent because they stop being due during a hold: all notes fall from 39 to 34.</p>
 </div>
 
 <h2>What happens on a first entry</h2>
@@ -116,7 +121,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <svg viewBox="0 0 760 210" role="img" aria-label="Timeline of ten held calls after a first entry, then normal delivery">
 <rect x="20" y="70" width="110" height="56" rx="8" fill="#e3eaf3" stroke="#345779"/>
 <text x="75" y="94" text-anchor="middle">First entry</text>
-<text x="75" y="112" text-anchor="middle" class="small">pair counts reset</text>
+<text x="75" y="112" text-anchor="middle" class="small">pair counts keep counting</text>
 <rect x="150" y="70" width="400" height="56" rx="8" fill="#fff3c9" stroke="#b08a1e"/>
 <text x="350" y="94" text-anchor="middle">Next 10 tool results: hold</text>
 <text x="350" y="112" text-anchor="middle" class="small">map_cycle and milestone_drought recorded as would_warn, not sent</text>
@@ -141,11 +146,11 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>What you see in the viewer</h2>
 <div class="card">
-<p>Each held note appears in Activity History and the raw inspector as <code>Not sent (first-visit-cycle-credit-v1)</code>, naming the first-visited map. A note that stopped being due gets a second row saying so. Nothing is added to the timeline.</p>
+<p>Each held note appears in Activity History and the raw inspector as <code>Not sent (first-visit-cycle-credit-v1)</code>, naming the first-visited map. A note that stopped being due when the hold ended gets a second row saying so. Nothing is added to the timeline.</p>
 </div>
 
 <h2>Off</h2>
-<div class="card"><p>Map pairs count every move and no note is held for a first entry, exactly as before.</p></div>
+<div class="card"><p>No note is held for a first entry, exactly as before.</p></div>
 </main>
 </body>
 </html>

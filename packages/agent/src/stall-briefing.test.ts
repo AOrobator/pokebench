@@ -352,7 +352,6 @@ it("sends no open-milestone note with the switch off",()=>{
 const CREDIT:FeatureSet={...ON,"first-visit-cycle-credit-v1":true};
 const PLAIN_CLOCK={"drought-battle-heal-hold-v1":false,"drought-progress-facts-v1":false,"turn-drought-clock-v1":false} as const;
 const CAVE={location:"CAVE",map_id:[2,0]};
-const CLIFF={location:"CLIFF",map_id:[2,1]};
 const held=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("Not sent (first-visit-cycle-credit-v1):"));
 const sent=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("SUPERVISOR:"));
 // Up and down between the first-entered map and the one before it, four moves: a cycle is due on the fourth.
@@ -369,16 +368,6 @@ it("first-visit-cycle-credit-v1 off: the same walk sends its cycle note at once,
  firstVisitThenCycle(r);
  expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
  expect(held(r)).toEqual([]);
-});
-
-it("first entry to a map clears the pair counts, so it cannot complete a cycle",()=>{
- const r=rig(CREDIT);
- stairs(r,3);
- r.press(["UP"],{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
- r.press(["DOWN"],{...HOUSE_2F,position:{x:7,y:1}},10_000,[LOADING]);
- stay(r,11,HOUSE_2F);
- r.press(["DOWN"],{...HOUSE_1F,position:{x:8,y:2}},10_000,[LOADING]);
- expect(r.guards().filter(g=>g.kind==="map_cycle")).toEqual([]);
 });
 
 it("holds a due cycle note for 10 calls after a first entry, records it once naming the map, then delivers it",()=>{
@@ -407,18 +396,6 @@ it("a held cycle note that stopped being due is recorded, not sent and not dropp
  expect(held(r)).toHaveLength(2);
  expect(held(r)[1]?.message).toContain("no longer due");
  expect(held(r)[1]).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
-});
-
-it("another first entry restarts the 10-call hold",()=>{
- const r=rig(CREDIT);
- firstVisitThenCycle(r);
- stay(r,5);
- r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
- stay(r,9,CAVE);
- r.press(["UP"],{...CLIFF,position:{x:1,y:1}},10_000,[LOADING]);
- stay(r,11,CLIFF);
- expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
- expect(held(r).at(-1)?.message).toContain("no longer due");
 });
 
 it("holds a due drought note during the hold and delivers it after, still due",()=>{
@@ -479,15 +456,39 @@ it("a drought that restarts during the hold is a new note: the old one is record
  expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
 });
 
-it("a cycle rebuilt after a second first entry is held under the new map, and the old one is recorded as no longer due",()=>{
+it("a first entry keeps the map-pair counts, so a cycle under way is delayed and not erased",()=>{
+ const r=rig(CREDIT);
+ stairs(r,3);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
+ r.press(["DOWN"],{...HOUSE_2F,position:{x:7,y:1}},10_000,[LOADING]);
+ r.press(["DOWN"],{...HOUSE_1F,position:{x:8,y:2}},10_000,[LOADING]);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ expect(held(r)).toHaveLength(1);
+ expect(held(r)[0]?.message).toContain("TOWN (map 0/9)");
+ stay(r,9,HOUSE_1F);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+});
+
+it("another first entry restarts the 10-call hold and the held cycle note is still sent after it",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ stay(r,5);
+ r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ stay(r,10,CAVE);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ stay(r,1,CAVE);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+ expect(held(r)).toHaveLength(1);
+});
+
+it("a cycle rebuilt after a milestone during the hold is a new note: the old one is recorded as no longer due",()=>{
  const r=rig(CREDIT);
  firstVisitThenCycle(r);
  expect(held(r)).toHaveLength(1);
- r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
- for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...TOWN,position:{x:1,y:1}}:{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ r.milestone("ROUTE_101","observed");
+ for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...HOUSE_2F,position:{x:7,y:1}}:{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
  expect(held(r)).toHaveLength(2);
- expect(held(r)[1]?.message).toContain("CAVE (map 2/0)");
- stay(r,8,CAVE);
+ stay(r,3);
  expect(held(r).filter(g=>g.message.includes("no longer due"))).toHaveLength(1);
  expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
 });

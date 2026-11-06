@@ -224,8 +224,8 @@ export class StallBriefing {
    const key=roomKey(event),name=roomOf(event,this.features);
    const first=this.features["first-visit-cycle-credit-v1"]&&this.room!==null&&!this.visited.has(key);
    if(this.features["first-visit-cycle-credit-v1"])this.visited.add(key);
-   if(first){this.pairs.clear();this.firstVisit={name,calls:0,entering:true};}
-   else if(this.room!==null&&this.room.key!==key){
+   if(first)this.firstVisit={name,calls:0,entering:true};
+   if(this.room!==null&&this.room.key!==key){
     const id=[this.room.key,key].sort().join("\n");
     const pair=this.pairs.get(id)??{from:this.room.name,to:name,moves:0,briefed:0,lastSeq:event.seq,consecutive:true};
     for(const [other,p] of this.pairs)if(other!==id)p.consecutive=false;

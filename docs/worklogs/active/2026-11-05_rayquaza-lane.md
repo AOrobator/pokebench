@@ -115,3 +115,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Buy lines gate green: 2,565 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. Claude's two findings applied as it proposed; GPT LGTM. Guide data only.
 - Run 7442 stalled 30+ turns on Dad's boat call, waiting for text that only advances on A. RED test for a lane call note.
 - CALL_NOTE added. The PokéNav section is not triggered on field calls: it says the harness advances calls, which is false there unless the correctness unit extends auto-advance.
+- Claude review: OPTIONS_NOTE hid CALL_NOTE during a call; CALL now goes first. Replay of 7442 shows the note on 35 of 35 in-call turns; one batched press of eight As cleared the call at turn 474.

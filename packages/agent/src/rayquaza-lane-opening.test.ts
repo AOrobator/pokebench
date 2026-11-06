@@ -150,6 +150,15 @@ describe("call note", () => {
   });
 });
 
+it("shows the call note over the options note while a call is open", () => {
+  const guide = new GuidePosition(steps);
+  guide.observe(state({}));
+  guide.observe(field({ active_ui: { phase: "field_match_call_message" } }));
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([CALL_NOTE]);
+  guide.observe(field());
+  expect(guide.situationNotes().map((n) => n.text)).toEqual([OPTIONS_NOTE]);
+});
+
 describe("shop note", () => {
   it("names the clerk inside a shop and nowhere else", () => {
     const guide = new GuidePosition(steps);

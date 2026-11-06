@@ -137,8 +137,8 @@ export class GuidePosition {
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
-  if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
   if(this.latest?.active_ui?.phase.startsWith("field_match_call")===true)return [{text:CALL_NOTE,milestone:"RQ_CALL"}];
+  if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
   if(!this.inBattle&&/\b(MART|HERB SHOP)$/.test(this.latest?.location??""))return [{text:SHOP_NOTE,milestone:"RQ_SHOP"}];
   const to=this.current().to;
   if(to===undefined||this.arrivedOn===this.furthest||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];

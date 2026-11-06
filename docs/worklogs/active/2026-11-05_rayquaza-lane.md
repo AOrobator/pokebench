@@ -119,3 +119,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Call note gate green: 2,567 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. GPT LGTM; Claude's finding fixed with a test.
 - Rival line from 7442's loss, conditional on the party: no boost on Grovyle, Flying partner if present, else a neutral move.
 - Front rows made conditional or foe-based per the operator: starter, Taillow, Rock Tomb, X items, Rival, Maxie, Flannery.
+- Route 110 row trimmed to fit 300 characters; data regenerated.

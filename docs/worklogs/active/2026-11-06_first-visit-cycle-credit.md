@@ -38,3 +38,10 @@ The pair reset does most of the work. A run exploring new maps gets far fewer cy
 `just test` passed: 2,596 agent, 993 viewer, 2,965 env and 38 gateway tests, every coverage floor and `just no-io-proof`. Lint clean, each step run, with env mypy on the main venv because the worktree venv has no mGBA binding. `just verify-vendor` clean. Explainer `just pages-check` clean.
 
 Round 2 GPT (Codex CLI, gpt-5.6-sol) on cumulative delta 76f71140b..d662e30eb: LGTM, finding closed. Grok out until 11/17. Main did not move, so the gates on 7d1597848 stand: only prose changed after it.
+
+## Revision: delay, do not erase
+
+The operator 2026-11-06 picked option 1 after the wording probe showed the note helps at ee2a T371 and T372 (16 vs 8, 10 vs 2 of 16). A first entry no longer resets the pair counts. The hold stays. Landed fb7237d27 is the version being revised.
+
+- [x] RED on `claude/first-visit-delay`: three pair-reset tests deleted, two added; 2 failing, 29 passing
+

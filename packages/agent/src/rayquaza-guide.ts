@@ -142,9 +142,9 @@ export class GuidePosition {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
   if(this.latest?.active_ui?.phase.startsWith("field_match_call")===true)return [{text:CALL_NOTE,milestone:"RQ_CALL"}];
   if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
-  const after=(name:string):number=>this.steps.findIndex(step=>step.after===name);
-  if(!this.inBattle&&after("DEWFORD_TOWN")>=0&&this.furthest>=after("DEWFORD_TOWN")&&this.furthest<after("SLATEPORT_CITY")&&/^(ROUTE104|PETALBURG|RUSTBORO)/.test(this.latest?.location??""))return [{text:BRINEY_NOTE,milestone:"RQ_BRINEY"}];
   if(!this.inBattle&&/\b(MART|HERB SHOP)$/.test(this.latest?.location??""))return [{text:SHOP_NOTE,milestone:"RQ_SHOP"}];
+  const after=(name:string):number=>this.steps.findIndex(step=>step.after===name);
+  if(!this.inBattle&&after("DEWFORD_TOWN")>=0&&this.furthest>=after("DEWFORD_TOWN")&&this.furthest<after("MAUVILLE_CITY")&&/^(ROUTE104|PETALBURG|RUSTBORO)/.test(this.latest?.location??""))return [{text:BRINEY_NOTE,milestone:"RQ_BRINEY"}];
   const to=this.current().to;
   if(to===undefined||this.arrivedOn===this.furthest||this.inBattle||!this.teleportReady||this.map===null||this.lastHeal===null)return [];
   const home=mapKey(to.id),here=mapKey(this.map);

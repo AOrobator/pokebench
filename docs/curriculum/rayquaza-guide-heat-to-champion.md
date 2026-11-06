@@ -33,7 +33,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | After | Map | Note | Source |
 |---|---|---|---|
 | `ROUTE_120` | `Route120` | Talk to Steven on the bridge, run from the revealed Kecleon and receive the Devon Scope. Continue toward Route 121. | KI v1:15:40–1:15:50, U43, ROM |
-| `DEVON_SCOPE_RECEIVED` | `Route120` | Before Route 121, Surf across the pond, step ashore at (1,86), face west and press A for the hidden candy at (0,86). Marshtomp evolves at Lv36: use candies if they reach it. With Castform, take its Mystic Water for your starter; if it knows Rain Dance, teach Shock Wave over it. Teach Fly to any able Pokémon. | KI v1:16:26–1:18:02, U25, U44, ROM |
+| `DEVON_SCOPE_RECEIVED` | `Route120` | Before Route 121, Surf across the pond, step ashore at (1,86), face west and press A for a hidden candy. Marshtomp evolves at Lv36: use candies if they reach it. With Castform, give its Mystic Water to your starter and teach Shock Wave over Rain Dance if known. Teach Fly to an able Pokémon. | KI v1:16:26–1:18:02, U25, U44, ROM |
 | `ROUTE_121` | `Route121` | Use Super Repel if you have one. Cross one tile into Lilycove, then turn back to the Route 122 water entrance and Surf to Mt. Pyre. Finish any Rare Candy, Mystic Water, Fly and Shock Wave setup first. | KI v1:16:39–1:18:24, U8, U25, ROM |
 | `MT_PYRE` | `MtPyre_Exterior` | Keep Super Repel active if you have one. Take the side exit from Mt. Pyre’s first floor, climb the outside path and defeat the Aqua grunts on the way to the summit. | KI v1:18:24–1:19:57, U8, ROM |
 | `MT_PYRE_SUMMIT` | `MtPyre_Summit` | Keep two healthy Pokémon ready, if you have them, for the summit double battle. Talk to the elders after Aqua leaves to get the Magma Emblem. | KI 38, WT 08 |

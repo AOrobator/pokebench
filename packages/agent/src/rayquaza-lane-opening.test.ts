@@ -160,9 +160,9 @@ it("shows the call note over the options note while a call is open", () => {
 });
 
 describe("Briney note", () => {
-  const route: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "a" }, { after: "DEWFORD_TOWN", map: null, note: "b" }, { after: "SLATEPORT_CITY", map: null, note: "c" }];
+  const route: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "a" }, { after: "DEWFORD_TOWN", map: null, note: "b" }, { after: "MAUVILLE_CITY", map: null, note: "c" }];
   const town = (name: string): RunEvent => ({ type: "milestone", name, origin: "observed", kind: "story" }) as unknown as RunEvent;
-  it("points back to his house only on the west side between Dewford and Slateport", () => {
+  it("points back to his house only on the west side between Dewford and Mauville", () => {
     const guide = new GuidePosition(route);
     guide.observe(field({ location: "ROUTE104" }));
     expect(guide.situationNotes()).toEqual([]);
@@ -171,7 +171,9 @@ describe("Briney note", () => {
     expect(guide.situationNotes()).toEqual([]);
     guide.observe(field({ location: "ROUTE104" }));
     expect(guide.situationNotes().map((n) => n.text)).toEqual([BRINEY_NOTE]);
-    guide.observe(town("SLATEPORT_CITY"));
+    guide.observe(field({ location: "PETALBURG CITY MART" }));
+    expect(guide.situationNotes().map((n) => n.text)).toEqual([SHOP_NOTE]);
+    guide.observe(town("MAUVILLE_CITY"));
     guide.observe(field({ location: "ROUTE104" }));
     expect(guide.situationNotes()).toEqual([]);
   });

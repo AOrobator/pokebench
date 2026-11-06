@@ -347,3 +347,97 @@ it("sends no open-milestone note with the switch off",()=>{
  walk(r,60,now);
  expect(r.guards().filter(g=>g.kind==="open_milestone")).toEqual([]);
 });
+
+// first-visit-cycle-credit-v1. Shape of ee2a: a cycle note fired on the way to the first entry of MT PYRE EXTERIOR.
+const CREDIT:FeatureSet={...ON,"first-visit-cycle-credit-v1":true};
+const PLAIN_CLOCK={"drought-battle-heal-hold-v1":false,"drought-progress-facts-v1":false,"turn-drought-clock-v1":false} as const;
+const CAVE={location:"CAVE",map_id:[2,0]};
+const CLIFF={location:"CLIFF",map_id:[2,1]};
+const held=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("Not sent (first-visit-cycle-credit-v1):"));
+const sent=(r:ReturnType<typeof rig>)=>r.guards().filter(g=>g.message.startsWith("SUPERVISOR:"));
+// Up and down between the first-entered map and the one before it, four moves: a cycle is due on the fourth.
+function firstVisitThenCycle(r:ReturnType<typeof rig>):void {
+ stairs(r,3);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
+ for(let i=0;i<4;i++)r.press(["DOWN"],i%2===0?{...HOUSE_2F,position:{x:7,y:1}}:{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
+}
+const stay=(r:ReturnType<typeof rig>,n:number,place=TOWN):void=>{for(let i=0;i<n;i++)r.press(["A"],{...place,position:{x:1,y:1}});};
+
+it("first-visit-cycle-credit-v1 off: the same walk sends its cycle note at once, with no hold recorded",()=>{
+ const r=rig(ON);
+ firstVisitThenCycle(r);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+ expect(held(r)).toEqual([]);
+});
+
+it("first entry to a map clears the pair counts, so it cannot complete a cycle",()=>{
+ const r=rig(CREDIT);
+ stairs(r,3);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},10_000,[LOADING]);
+ r.press(["DOWN"],{...HOUSE_2F,position:{x:7,y:1}},10_000,[LOADING]);
+ stay(r,11,HOUSE_2F);
+ r.press(["DOWN"],{...HOUSE_1F,position:{x:8,y:2}},10_000,[LOADING]);
+ expect(r.guards().filter(g=>g.kind==="map_cycle")).toEqual([]);
+});
+
+it("holds a due cycle note for 10 calls after a first entry, records it once naming the map, then delivers it",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ const [note]=held(r);
+ expect(note).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
+ expect(note?.message).toContain("TOWN (map 0/9)");
+ expect(()=>parseEvent(JSON.stringify(note))).not.toThrow();
+ stay(r,5);
+ expect(held(r)).toHaveLength(1);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ stay(r,1);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ stay(r,1);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+});
+
+it("a held cycle note that stopped being due is recorded, not sent and not dropped silently",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ r.milestone("ROUTE_101","observed");
+ stay(r,7);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ expect(held(r)).toHaveLength(2);
+ expect(held(r)[1]?.message).toContain("no longer due");
+ expect(held(r)[1]).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
+});
+
+it("another first entry restarts the 10-call hold",()=>{
+ const r=rig(CREDIT);
+ firstVisitThenCycle(r);
+ stay(r,5);
+ r.press(["UP"],{...CAVE,position:{x:1,y:1}},10_000,[LOADING]);
+ stay(r,9,CAVE);
+ r.press(["UP"],{...CLIFF,position:{x:1,y:1}},10_000,[LOADING]);
+ stay(r,10,CLIFF);
+ expect(sent(r).filter(g=>g.kind==="map_cycle")).toEqual([]);
+ expect(held(r).at(-1)?.message).toContain("no longer due");
+});
+
+it("holds a due drought note during the hold and delivers it after, still due",()=>{
+ const r=rig({...CREDIT,...PLAIN_CLOCK});
+ r.state(HOUSE_1F);
+ r.press(["UP"],{...TOWN,position:{x:1,y:1}},STALL_DROUGHT_MS,[LOADING]);
+ r.press(["A"],{...TOWN,position:{x:1,y:1}});
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toEqual([]);
+ const [note]=held(r);
+ expect(note).toMatchObject({kind:"milestone_drought",mode:"diagnostic",phase:"would_warn"});
+ expect(note?.message).toContain("TOWN (map 0/9)");
+ stay(r,10);
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
+ expect(held(r)).toHaveLength(1);
+});
+
+it("the map a run starts on and maps it returns to start no hold",()=>{
+ const r=rig({...CREDIT,...PLAIN_CLOCK});
+ r.state(HOUSE_1F);
+ r.press(["UP"],{...HOUSE_1F,position:{x:1,y:1}},STALL_DROUGHT_MS);
+ expect(sent(r).filter(g=>g.kind==="milestone_drought")).toHaveLength(1);
+ expect(held(r)).toEqual([]);
+});

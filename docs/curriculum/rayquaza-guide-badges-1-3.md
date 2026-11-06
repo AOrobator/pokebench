@@ -66,7 +66,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROUTE_110 | Route110 | At (8,76), trigger Isabel and Kaleb. At (36,67), face east and press A for a hidden Full Heal. Rival is north: use Potions first. Rock Tomb hits Wingull and Slugma x2; Grovyle's Absorb hits Marshtomp x4. Use X Attack and X Speed when safe. Decline Foresight. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868 |
+| ROUTE_110 | Route110 | At (8,76), trigger Isabel and Kaleb. At (36,67), face east and press A for a hidden Full Heal. Rival is north: use Potions first. Rock Tomb hits Wingull and Slugma x2. Grovyle's Absorb hits Marshtomp x4: never boost on it; use a Flying partner if you have one, else a neutral move. Decline Foresight. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868, 7442:663-669 |
 | ROUTE_110_RIVAL_DEFEATED | Route110 | Beat Alyssa at (10,39) and Edward at (3,39). Take the Elixir ball at (6,38) from (5,38), facing east, then continue north to Mauville City. | KI 18, ROM, OCR 0:36:39, audit U11 |
 | MAUVILLE_CITY | MauvilleCity | Get HM06 Rock Smash from the scientist in the house with the door at (32,14). | KI 19, ROM, WT 03, fact check |
 | HM_ROCK_SMASH_RECEIVED | MauvilleCity | Get the Mach Bike from the shop east of the Pokémon Center. Teach Rock Smash in place of Rock Tomb, or Tackle if you still have it. Bike east on Route 118, beat Youngster Deandre at (7,7), then heal at the Mauville Pokémon Center. Beat Wally outside the Gym, then enter. | KI 19, WT 03, fact check, ROM, OCR 0:38:49, 0:39:45, audit U2, U10 |

@@ -117,3 +117,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - CALL_NOTE added. The PokéNav section is not triggered on field calls: it says the harness advances calls, which is false there unless the correctness unit extends auto-advance.
 - Claude review: OPTIONS_NOTE hid CALL_NOTE during a call; CALL now goes first. Replay of 7442 shows the note on 35 of 35 in-call turns; one batched press of eight As cleared the call at turn 474.
 - Call note gate green: 2,567 agent, 990 viewer, 2,936 + 38 Python, lint and vendor clean. GPT LGTM; Claude's finding fixed with a test.
+- Rival line from 7442's loss, conditional on the party: no boost on Grovyle, Flying partner if present, else a neutral move.

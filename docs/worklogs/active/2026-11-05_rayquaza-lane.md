@@ -148,3 +148,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Rival line now boosts on Wingull or Slugma before Grovyle.
 - GPT fact check: Slugma is the boost target, and Absorb heals Grovyle. Wording fixed.
 - Rival line gate green: 2,636 agent, 1,072 viewer, 2,965 + 38 Python, lint and vendor clean. Claude and GPT reviewed; GPT's wording applied.
+- aeb8 used a Repel on Route 116 before the grass (T302), so it met no Taillow. RED test: catch before any Repel; Route 110 fallback and level target.

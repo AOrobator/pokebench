@@ -178,11 +178,19 @@ describe("rayquazaGuideContext", () => {
 });
 
 describe("the shipped guide", () => {
+  it("catches Taillow before any Repel on Route 116", () => {
+    const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
+    expect(note.indexOf("catch Taillow")).toBeGreaterThan(note.indexOf("No Repel yet"));
+    expect(note.indexOf("Then a Repel")).toBeGreaterThan(note.indexOf("catch Taillow"));
+  });
+
   it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
     expect(note).toMatch(/X Attack and X Speed against Slugma/);
     expect(note).toMatch(/if you have them/);
-    expect(note).toMatch(/Absorb hits Marshtomp x4 and heals Grovyle/);
+    expect(note).toMatch(/Absorb hits Marshtomp x4/);
+    expect(note).toMatch(/reach level 26/);
+    expect(note).toMatch(/Catch a Wingull here for Fly/);
     expect(note).not.toMatch(/Taillow/);
   });
 

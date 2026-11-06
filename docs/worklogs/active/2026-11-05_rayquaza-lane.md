@@ -133,3 +133,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - GREEN: evaluation.features_sha256 in run_start (recording only, no switch); fixed-run check lists switches changed since the lane's last recorded run. Real check on v1, v2, v3: exit 0, resolved bundle hash 4f5ba9e2 equals the hash of what run aeb8 recorded from the hand copy, no switches changed.
 - GPT review 1 CHANGES: reasons not enforced as one line by the resolver. Fixed in the schema (non-blank, one line, 120 chars) with tests.
 - GPT review 2 CHANGES: drift report now fails on an unreadable ledger and also searches archived definitions. Ordering by launch time kept: a launch ledger's order is the lane's order, and runs differ only by seconds when concurrent.
+- Merged main at 4d70e007c: the junk filter and field dialogue promotion reach the lane through the pointer, no hand edit.

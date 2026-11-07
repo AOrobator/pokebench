@@ -237,6 +237,12 @@ describe("the Sootopolis Gym ice rows", () => {
     guide.observe(tile(13, 6));
     expect(guide.current().after).toBe(row(13, 6));
   });
+  it("say how to reach (8,20) after a fall and after a door or loss", () => {
+    for (const [x, y] of LANDINGS.slice(0, 4)) {
+      const { note } = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === row(x, y)) ?? { note: "" };
+      expect(note).toContain("Fall: B1F ladder (11,22), L3 U2. Door or loss: (8,25), U5. Now from (8,20):");
+    }
+  });
   it("leave the badge inside REACH", () => {
     expect(span("SOOTOPOLIS_GYM_ENTERED", "RAIN_BADGE")).toBeLessThanOrEqual(REACH);
     const guide = gym();

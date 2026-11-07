@@ -85,7 +85,8 @@ export function withoutObstacles(state:GameStateSnapshot,tiles:readonly {readonl
 }
 
 // navigate_to's note when a rock or tree the party can clear is what stops the route: the nearest one whose clearing alone
-// lets the planner reach the goal, else the nearest one if clearing them all does. `plans` is the walker's own planner.
+// lets the planner reach the goal, else the nearest one every route passes when clearing them all does. `plans` is the
+// walker's own planner, which already treats obstacles the party cannot clear as walls.
 export function blockerNote(state:GameStateSnapshot,plans:(state:GameStateSnapshot)=>boolean,semantic:boolean):string|null {
  const here=state.position;
  const found=clearableObstacles(state);
@@ -93,7 +94,10 @@ export function blockerNote(state:GameStateSnapshot,plans:(state:GameStateSnapsh
  const at=(o:(typeof found)[number])=>o.tiles[0]??{x:0,y:0};
  const near=[...found].sort((a,b)=>Math.abs(at(a).x-here.x)+Math.abs(at(a).y-here.y)-(Math.abs(at(b).x-here.x)+Math.abs(at(b).y-here.y))||at(a).y-at(b).y||at(a).x-at(b).x);
  const alone=near.find(o=>plans(withoutObstacles(state,[at(o)])));
- const pick=alone??(plans(withoutObstacles(state,near.map(at)))?near[0]:undefined);
+ // Otherwise only one every route passes once the others are cleared: with them all cleared a route exists, and without
+ // clearing it there is none. Parallel ways that each need other rocks name nothing.
+ const needed=alone===undefined&&plans(withoutObstacles(state,near.map(at)))?near.find(o=>!plans(withoutObstacles(state,near.filter(other=>other!==o).map(at)))):undefined;
+ const pick=alone??needed;
  if(pick===undefined)return null;
  const tile=at(pick);
  return `${pick.name} object ${String(pick.local_id)} at (${String(tile.x)},${String(tile.y)}) stands in the way: ${clearInstruction(pick.gate,pick.local_id,semantic)}`;

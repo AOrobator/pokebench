@@ -934,8 +934,8 @@ class FieldObstacles(Generic[K]):
         """field-obstacle-respawn-v1: rocks and trees the party can clear that cut exits off.
 
         The flood ignores people and objects, so an open rock or tree is walkable to it; survey
-        again with them closed, and name those standing in every way on foot to an exit that the
-        flood reaches on foot. Clearing one of a group may be enough; the next readout says.
+        again with them closed, and name them for an exit the flood reaches on foot when they are
+        that exit's whole blocker set. Clearing one of a group may be enough; the next readout says.
         """
         if self.flood is None:
             return []
@@ -971,9 +971,10 @@ class FieldObstacles(Generic[K]):
             if k in foot_connections
         ]
         for ids, exit_name in named:
-            mine = tuple(sorted(i for i in ids if i in clear))
-            if mine:
-                cuts.setdefault(mine, []).append(exit_name)
+            # Only when the clearable ones are that exit's whole blocker set: a way past any other
+            # obstacle (a boulder the party cannot move, say) means they are not every way there.
+            if ids and all(i in clear for i in ids):
+                cuts.setdefault(tuple(sorted(ids)), []).append(exit_name)
         lines = []
         for ids, exits in cuts.items():
             what = " or ".join(clear[i][0] for i in ids)

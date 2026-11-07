@@ -52,7 +52,8 @@ Coordinator brief 2026-11-07 for the operator ("whats stopping us from generatin
 - [x] RED
 - [x] GREEN: 43 focused tests under the no-I/O guard
 - [x] Rehearsal: real Qwen and Kokoro tailing a replayed 37ca log at one turn per 4 s: 58 backlog turns dropped, 14 lines kept pace, exit 0 on run_end, nothing written beside the fake events.jsonl
-- [ ] Review, landing
+- [x] Gates on a9f440d1e: lint (mypy through main's venv; this worktree has no mgba binding), 2,684 agent, 1,200 viewer, 3,048 env, 38 gateway, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM
 
 ### Piece 5: Broadcast link in the viewer
 Coordinator brief: no link existed. Top bar and each run's view open /broadcast?run=<run>.
@@ -97,6 +98,8 @@ Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passin
 Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude and fallback LGTM before it. Post-main `just test`: 2,684 agent, 1,200 viewer, 3,032 env, 38 gateway.
 
 Piece 4, round 1 on 724bd5a1d (sha 7e359be9): fallback LGTM, GPT BLOCKING, Claude CLI default login expired (retried with ~/.claude-review). Fixed: a failed last save exited with success and lost the line (now retried, and a repeat failure stops loudly); turns recovered on a restart were appended after later ones (sorted by time). Rebutted: a follower started before the run log exists fails at once, which is the right answer.
+
+Piece 4, round 2 on a9f440d1e: Claude and fallback LGTM; GPT BLOCKING only on a wav write failure exiting 0 after a logged skip. Rebutted (incomplete commentary is the designed outcome; the brief says skip and carry on); GPT re-judged with the rebuttal: LGTM.
 
 ## Boy Scout Log
 

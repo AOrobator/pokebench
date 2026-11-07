@@ -2,6 +2,7 @@ import { PAGE_SPRITE_PATH } from "./trainer-page.js";
 import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
+import { BADGE_FILES } from "./broadcast-view.js";
 import { commentaryWav, createBroadcastStore, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
@@ -573,6 +574,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if (head === "sprites" && second === "bag" && BAG_SPRITE_PATH.test(parts.slice(2).join("/"))) {
     const path = parts.slice(2).join("/");
     sendFile(res, join(options.runsRoot, "sprites", "bag-v1", ...path.split("/")), path.endsWith(".json") ? "application/json; charset=utf-8" : "image/png");
+    return;
+  }
+  if (head === "sprites" && second === "badges" && parts.length === 3 && BADGE_FILES.includes(parts[2] ?? "")) {
+    sendFile(res, join(options.runsRoot, "sprites", "rom-badges", parts[2] ?? ""), "image/png", req);
     return;
   }
   if (head === "sprites" && SPRITE_PATH.test(parts.slice(1).join("/"))) {

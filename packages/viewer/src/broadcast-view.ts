@@ -73,10 +73,15 @@ export function partyHtml(party: readonly BroadcastMon[]): string {
   return `<div class="${party.length > 3 ? "mons two" : "mons"}">${mons}</div>`;
 }
 
-export function badgesHtml(earned: readonly string[]): string {
+// Sprites from the ROM, in the gitignored runs/sprites/rom-badges/. The game's Trainer Card draws every badge in grey.
+export const BADGE_FILES: readonly string[] = BADGES.map(([name], index) => `badge-${String(index + 1)}-${name.toLowerCase()}.png`);
+export const BADGE_URLS: readonly string[] = BADGE_FILES.map(file => `/sprites/badges/${file}`);
+
+export function badgesHtml(earned: readonly string[], sprites = false): string {
   const next = BADGES.find(([name]) => !earned.includes(name))?.[0];
-  return BADGES.map(([name, color]) => {
+  return BADGES.map(([name, color], index) => {
     const state = earned.includes(name) ? "bdg got" : name === next ? "bdg live" : "bdg";
+    if (sprites) return `<div class="${state} spr"><img src="${BADGE_URLS[index] ?? ""}" alt="${name}"></div>`;
     return `<div class="${state}" style="--c:${color}"><span>${name.charAt(0)}</span></div>`;
   }).join("");
 }

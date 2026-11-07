@@ -42,3 +42,5 @@ html.transparent .gbox{background:transparent}
 .lane>.mstar{color:#ffd447;font-size:22px;top:auto;bottom:-4px;transform:translate(-50%,0);z-index:2}
 .sound{position:absolute;left:60px;top:110px;z-index:2;padding:14px 20px;background:#0b1a2c;color:#ffd447;border:4px solid #ffd447;border-radius:10px;font:14px PX;cursor:pointer}
 .sound[hidden]{display:none}
+.bdg.spr{border:0;border-radius:0;background:none}.bdg.spr img{width:32px;height:32px;image-rendering:pixelated}
+.bdg.spr:not(.got) img{filter:brightness(0) invert(1);opacity:.16}.bdg.spr.live img{filter:none;opacity:.5}.bdg.spr.live{outline:2px dashed #ffd447;outline-offset:1px}

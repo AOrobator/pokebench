@@ -79,6 +79,7 @@ mountBroadcast(document, {
   laneWidth: lane => lane.offsetWidth,
   openFrames: frameSocket,
   speak: speaker(),
+  badgeSprites: urls => Promise.all(urls.map(url => { const image = new Image(); image.src = url; return image.decode(); })).then(() => true, () => false),
   frameUrl: data => {
     if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
     return URL.createObjectURL(new Blob([data], { type: "image/png" }));

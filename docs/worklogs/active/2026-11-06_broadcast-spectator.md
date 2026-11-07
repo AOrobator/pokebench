@@ -74,7 +74,7 @@ Follow mode only: new captions as they arrive, wavs queued one at a time, lines 
 ### Piece 7: real badge sprites on /broadcast
 The operator 2026-11-07: "the broadcast view needs to use the actual sprites of the gym badges". The game's Trainer Card draws every badge grey (ROM palette at 0x56f4ec, one palette for all; the image-gen thread matched all 760 opaque pixels in a real game), so the files are grey. Read from the gitignored runs/sprites/rom-badges/, never in git; discs stay as the fallback when any file is missing.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 132 focused tests; 1920x1080 headless screenshot of a0b4 at t=4700 viewed: five earned full, Feather dimmed with an outline, two faint, pixels crisp at 2x; with no sprite files the same build drew eight discs and no errors.
 - [ ] Review, landing
 
 ## Closing the Loop

@@ -2,7 +2,7 @@
 // (default: follow), ?transparent=1 leaves the game and background out for compositing, ?voice=0 keeps a live page silent.
 import { parseBroadcast, type BroadcastResponse, type CommentaryLine } from "./broadcast-feed.js";
 import { BroadcastTimeline, clockText, thinkingTail, type BroadcastView } from "./broadcast-timeline.js";
-import { actionHtml, badgesHtml, laneHtml, laneMarks, modelTitle, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
+import { BADGE_URLS, actionHtml, badgesHtml, laneHtml, laneMarks, modelTitle, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
 import { BroadcastVoice, liveCaption } from "./broadcast-voice.js";
 import { esc } from "./format.js";
 
@@ -29,6 +29,7 @@ export interface BroadcastDeps {
   readonly openFrames?: (path: string) => FrameSocket;
   readonly frameUrl?: (data: unknown) => string;
   readonly speak?: Speaker;
+  readonly badgeSprites?: (urls: readonly string[]) => Promise<boolean>;
 }
 export interface BroadcastPage { setTime(t: number): Promise<void> }
 
@@ -78,6 +79,8 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     const seen = cursor === 0 && lines.length === 0 ? "" : `&lines=${String(lines.length)}`;
     return parseBroadcast(await deps.fetchJson(`${base}/broadcast?after=${String(cursor)}${seen}`));
   };
+  // Known before the first paint, so a rendered moment never catches the discs.
+  const sprites = await deps.badgeSprites?.(BADGE_URLS) ?? false;
   const first = await fetchFeed();
   const started = Date.parse(first.header.started);
   const { speak } = deps;
@@ -132,7 +135,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     paint(part("think"), thinkingHtml(thinkingTail(view.think?.text ?? "")));
     paint(part("action"), view.action === null ? "" : actionHtml(view.action));
     paint(part("party"), partyHtml(view.party));
-    paint(part("badges"), badgesHtml(view.badges));
+    paint(part("badges"), badgesHtml(view.badges, sprites));
     write(part("cost"), view.cost === null ? "—" : `$${view.cost.toFixed(2)}`);
     const live = moment === null && !ended;
     const caption = (live ? liveCaption(lines, voice.current, t) : null) ?? view.caption;

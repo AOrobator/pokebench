@@ -22,3 +22,5 @@ COMMIT: `feat(agent): the drought note counts turns, and only story milestones r
 COMMIT: `test(agent): unused parameter in the drought test` (dbb8d6fd9). Gates found 3 campaign-progress tests that set every switch on and expect the wall clock; they now pin this switch off. GPT: a due note held through a battle restarts the clock when it ends. Kept: that is today's hold rule and the replay includes it; the description now says so. Replay on the built code (section 7 of the analysis): both off matches the recorded notes; badge only removes 23 wrong map-cycle notes and loses 0 real stalls; drought only cuts notes 165 to 56, removes 30 wrong, keeps 18 of 29 stalls covered; both on cover 24 of 29.
 
 Claude (subagent) LGTM on 7133e1c1a; its wording note applied to both READMEs and the explainer.
+
+Gates on 7133e1c1a: `just test` 2,927 agent, 1,237 viewer, 3,051 env, 38 gateway; lint clean. GPT round 2 flagged the explainer label, already fixed in bd49d4d63.

@@ -144,9 +144,9 @@ export class RunControl {
 
   applyBatch(requests: readonly ControlRequest[]): void {
     for (const [index, request] of requests.entries()) {
-      // Budget extensions do not interrupt a pause/resume pair in one poll.
-      const nextControl = this.inCall && request.action === "pause"
-        ? requests.slice(index + 1).find(next => !isExtension(next.action))
+      // Cancel a same-poll hold unless a stop or abort comes before the resume.
+      const nextControl = this.inCall && this.current === "running" && request.action === "pause"
+        ? requests.slice(index + 1).find(({ action }) => action === "resume" || action === "stop" || action === "abort")
         : undefined;
       const cancelled = nextControl?.action === "resume";
       this.applyRequest(request, cancelled);

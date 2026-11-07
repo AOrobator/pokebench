@@ -544,3 +544,12 @@ it("records how long freeze confirmation took after an in-flight pause began", a
   await Promise.resolve();
   expect(records.at(-1)).toMatchObject({ during_call: true, freeze_wait_ms: 250 });
 });
+
+it("coalesces a same-poll provider pause and resume across a duplicate pause", async () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.applyBatch([req(1, "pause"), req(2, "pause"), req(3, "resume")]);
+  await h.control.callEnded();
+  expect(h.control.state).toBe("running");
+  expect(h.frozen).toEqual([]);
+});

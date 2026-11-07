@@ -51,3 +51,8 @@ Afterward, 141 focused agent and 238 focused viewer tests passed. The
 viewer tests used branch source imports because the branch build is
 pending the shared CPU window. The combined gates and served Harness
 Config click remain pending.
+
+A duplicate pause within the same poll now also leaves a completed
+hold cancelled. A stop or abort before the resume still takes effect.
+The duplicate-pause regression failed before the correction and the
+focused agent count is now 142.

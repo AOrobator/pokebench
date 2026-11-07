@@ -50,7 +50,8 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 ### Piece 4: `just broadcast-commentary --follow`
 Coordinator brief 2026-11-07 for the operator ("whats stopping us from generating these live?"). Follower tails a live run read-only, writes each finished thought's wav then its line, skips a turn on any model or voice failure, drops turns more than 2 behind the newest, exits on run_end or after 30 minutes of silence.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 43 focused tests under the no-I/O guard
+- [x] Rehearsal: real Qwen and Kokoro tailing a replayed 37ca log at one turn per 4 s: 58 backlog turns dropped, 14 lines kept pace, exit 0 on run_end, nothing written beside the fake events.jsonl
 - [ ] Review, landing
 
 ### Piece 5: Broadcast link in the viewer

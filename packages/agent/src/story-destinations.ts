@@ -309,8 +309,7 @@ export class StoryDestinations {
    // Recorded order (event seq), not turns: an arrival and a story step can share a turn.
    const shown=this.shownAt.get(line);
    const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here,shown)?.at.seq);
-   // story-line-done-on-event-v1: a line heard at the place has no later arrival; it counts from when it was heard.
-   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??(this.doneOnEvent?shown??Infinity:Infinity)));
+   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??Infinity));
    // story-line-done-on-event-v1: reaching a place is not its business done. A story event after the arrival is, there or after the player left.
    const step=this.steps.find(s=>s.seq>last&&(!this.doneOnEvent||s.event));
    if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
@@ -332,6 +331,12 @@ export class StoryDestinations {
  // The first entry since the line was said; only when there is none and the player is in it now, the current visit.
  // retire-reached-story-line-v1 passes the line's shown-at event, so "since the line" is by recorded order, not turn.
  private arrival(line:StoryLine,map:MapId,here:MapId,shown?:number):{readonly at:{readonly turn:number;readonly seq:number};readonly entered:boolean}|undefined {
+  // story-line-done-on-event-v1: a line heard at the place counts from when it was heard, wherever the player is now.
+  if(this.doneOnEvent){
+   const heard=shown??this.shownAt.get(line);
+   const there=this.arrivals.findLast(a=>heard===undefined?a.turn<=line.turn:a.seq<=heard);
+   if(there!==undefined&&same(there.map,map))return {at:there,entered:false};
+  }
   const entered=this.arrivals.find(a=>(shown===undefined?a.turn>=line.turn:a.seq>shown)&&same(a.map,map));
   if(entered!==undefined)return {at:entered,entered:true};
   // Retirement (shown known) needs an entry after the line; being there when it was said is not one.

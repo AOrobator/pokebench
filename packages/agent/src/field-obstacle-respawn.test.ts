@@ -6,6 +6,7 @@ import {describe,expect,it} from "vitest";
 import type {AgentTool,AgentToolResult} from "@mariozechner/pi-agent-core";
 import fixture from "../test-support/field-obstacle-respawn-6056.json" with {type:"json"};
 import current from "../../../experiments/feature-configs/current.json" with {type:"json"};
+import preset from "../../../experiments/presets/current-control-24h-8k.json" with {type:"json"};
 import {rayquazaLaneFeatures} from "../test-support/rayquaza-lane.js";
 import {serverOff,serverOffWith} from "../test-support/server-features.js";
 import {checkEvent,type RunEvent} from "./events.js";
@@ -14,7 +15,7 @@ import {BACK,ObstacleRespawn,blockerNote,clearInstruction,respawnLine} from "./f
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {withNavigation} from "./navigation.js";
 import {PeopleLedger,withPeopleLedger} from "./people-ledger.js";
-import {flagFeatures,normalizeFeatures} from "./play-preset.js";
+import {flagFeatures,parsePlayPreset} from "./play-preset.js";
 import {observeTool,pressTool} from "./game-tools.js";
 
 const ID="field-obstacle-respawn-v1";
@@ -57,7 +58,7 @@ function ledgerLines(on:boolean,events:readonly RunEvent[]=HISTORY,s:GameStateSn
 
 describe(`${ID}: registry`,()=>{
  it("is the last switch, an observation switch that needs field-move-gates-v1, with an Off clause",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(372);
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("drought-hold-screens-v1")+1);
   const info=FEATURES.find(f=>f.id===ID);
   expect(info?.needs).toBe("field-move-gates-v1");
   expect(featureInfo(ID).description).toContain(" Off: ");
@@ -69,8 +70,11 @@ describe(`${ID}: registry`,()=>{
   expect(serverOff({...ALL_ON,[ID]:false})).toEqual(serverOffWith(ALL_ON,{off:[ID]}));
  });
  it("defaults off when a preset or flag set omits it, and is on in both arms of current",()=>{
-  const {[ID]:_omitted,...rest}=ALL_ON;
-  expect(normalizeFeatures(rest)[ID]).toBe(false);
+  const omitted=Object.fromEntries(Object.entries(preset.features).filter(([id])=>id!==ID));
+  const parsed=parsePlayPreset({...preset,features:omitted});
+  if(parsed.version!==2)throw new Error("version");
+  expect(parsed.features[ID]).toBe(false);
+  expect((preset.features as Record<string,boolean>)[ID]).toBe(true);
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})[ID]).toBe(false);
   expect(current.onInBoth).toContain(ID);
   expect((current.features as Record<string,boolean>)[ID]).toBe(true);
@@ -90,7 +94,8 @@ describe(`${ID}: which obstacles are back`,()=>{
  it("a battle on the same map is no reload, and a state without field_obstacles says nothing",()=>{
   const tracker=new ObstacleRespawn();
   tracker.observe(rocks([15,16]));tracker.observe(rocks([15]));
-  tracker.observe({...rocks([15]),in_battle:true,field_obstacles:null});tracker.observe({map_id:null,field_obstacles:null});
+  const battle:Pick<GameStateSnapshot,"map_id"|"field_obstacles">={map_id:[0,26]};
+  tracker.observe(battle);tracker.observe({map_id:null});
   expect(tracker.respawned(rocks([15]),16)).toBeNull();
  });
  it("smashing it again on this visit ends it",()=>{
@@ -172,7 +177,7 @@ describe(`${ID}: production wiring of the people list`,()=>{
  it("withPeopleLedger reads the switch from the FeatureSet",async()=>{
   const run=async(on:boolean):Promise<string>=>{
    const listeners:((e:RunEvent)=>void)[]=[];
-   const observe:AgentTool={name:"observe",label:"observe",description:"",parameters:{type:"object",properties:{}} as AgentTool["parameters"],execute:()=>Promise.resolve({content:[{type:"text",text:READOUT}],details:{state:STATE}})};
+   const observe:AgentTool={name:"observe",label:"observe",description:"",parameters:{type:"object",properties:{}},execute:()=>Promise.resolve({content:[{type:"text",text:READOUT}],details:{state:STATE}})};
    const [tool]=withPeopleLedger([observe],{...lane(on),"people-ledger-v1":true},{subscribe:f=>{listeners.push(f);}});
    for(const e of HISTORY)for(const f of listeners)f(e);
    const out=await tool?.execute("c1089",{});

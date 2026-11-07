@@ -11,6 +11,7 @@ import {COUNTER} from "./tile-rules.js";
 import {semanticWalk} from "./semantic-targets.js";
 import {EXTENDED_PROGRESS_NAMES} from "./story-progress.js";
 import {MEASUREMENT_ONLY_MILESTONES} from "./milestones.js";
+import {FIELD_OBSTACLE_RESPAWN,ObstacleRespawn,respawnLine} from "./field-obstacle-respawn.js";
 
 type Snapshot=Pick<GameStateSnapshot,"map_id"|"position"|"facing"|"interaction_targets"|"navigation_grid">;
 export interface MapObject {readonly key:string;readonly local_id:number;readonly sprite:string|null;readonly x:number;readonly y:number;readonly elevation:number}
@@ -101,10 +102,11 @@ export class PeopleLedger {
  // The latest story milestone the game observed, as the stall gate counts them (untalked-people-header-v1).
  private chapter=-1;
  // untalked-people-header-v1 also counts a harness auto-talk, which has no tool result of its own (the stall gate's rule).
- constructor(private readonly countAutoTalk=false){}
+ // field-obstacle-respawn-v1: with a tracker, a cleared rock, tree or boulder that is back says so instead of when it was talked to.
+ constructor(private readonly countAutoTalk=false,private readonly respawn:{readonly tracker:ObstacleRespawn;readonly semantic:boolean}|null=null){}
  observe(event:RunEvent):void {
   this.turn=Math.max(this.turn,event.turn);
-  if(event.type==="state"&&"started" in event){const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
+  if(event.type==="state"&&"started" in event){this.respawn?.tracker.observe(event);const object=facedObject(event);if(object!==null)this.faced.set(event.seq,object.key);return;}
   if(event.type==="milestone"){
    if(event.kind==="story"&&!EXTENDED_PROGRESS_NAMES.has(event.name))this.story.push(event.seq);
    if(event.kind==="story"&&event.origin!=="present_at_start"&&!MEASUREMENT_ONLY_MILESTONES.has(event.name))this.chapter=event.seq;
@@ -143,7 +145,8 @@ export class PeopleLedger {
    const sprite=o.sprite??"unknown";
    const name=characters?.placed.get(`${String(o.x)},${String(o.y)}`);
    const talk=this.last(o.key,callId);
-   return `- object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${talk===undefined?"not talked to this run":this.since(talk)}`;
+   const back=this.respawn===null?null:respawnLine(this.respawn.tracker,state,o.local_id,this.respawn.semantic);
+   return `- object ${String(o.local_id)}, ${name===undefined?`sprite ${sprite}`:`${name} (sprite ${sprite})`}, at (${String(o.x)},${String(o.y)}): ${back??(talk===undefined?"not talked to this run":this.since(talk))}`;
   });
   const header=state.map_visibility==null?PEOPLE_HEADER:"People and objects currently visible (a sprite kind is a graphic, not a name):";
   const out=lines.length===0?[`${header} none`]:[header,...lines];
@@ -196,7 +199,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withPeopleLedger(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">):AgentTool[] {
  if(!features["people-ledger-v1"])return [...tools];
- const ledger=new PeopleLedger();recorder.subscribe(event=>{ledger.observe(event);});
+ const ledger=new PeopleLedger(false,features[FIELD_OBSTACLE_RESPAWN]?{tracker:new ObstacleRespawn(),semantic:features["semantic-navigation-v2"]}:null);recorder.subscribe(event=>{ledger.observe(event);});
  const annotate=<T>(id:string,result:AgentToolResult<T>):AgentToolResult<T>=>{
   const state=stateOf(result.details);
   if(state===null)return result;

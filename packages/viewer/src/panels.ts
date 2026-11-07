@@ -472,6 +472,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "badge-resets-cycles-v1":"badge-resets-cycles-v1.html",
  "drought-turns-only-v1":"drought-turns-only-v1.html",
  "drought-hold-screens-v1":"drought-hold-screens-v1.html",
+ "field-obstacle-respawn-v1":"field-obstacle-respawn-v1.html",
  "rotating-gate-turn-reasons-v1":"rotating-gate-turns-log-v1.html",
  "rotating-gate-push-log-v1":"rotating-gate-turns-log-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",

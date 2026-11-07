@@ -29,6 +29,8 @@ from pokebench_env.exit_presentation import SWITCH as AVAILABLE_EXITS
 from pokebench_env.exit_presentation import split_exits
 from pokebench_env.exit_reach import SWITCH as EXIT_REACH
 from pokebench_env.exit_reach import ExitReach
+from pokebench_env.field_moves import HEADER as FIELD_HEADER
+from pokebench_env.field_moves import RESPAWN_SWITCH as OBSTACLE_RESPAWN
 from pokebench_env.field_moves import SWITCH as FIELD_MOVES
 from pokebench_env.field_moves import FieldObstacles
 from pokebench_env.game_state import GameState
@@ -226,6 +228,7 @@ SERVER_FEATURES = (
     GATE_REGIONS,
     SHOP_SHELF_SWITCH,
     FIELD_CALL_SWITCH,
+    OBSTACLE_RESPAWN,
 )
 
 
@@ -259,7 +262,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
-        "rotating-gate-regions-v1,shop-shelf-hidden-v1,field-call-input-v1",
+        "rotating-gate-regions-v1,shop-shelf-hidden-v1,field-call-input-v1,"
+        "field-obstacle-respawn-v1",
     )
     if raw == "":
         return frozenset()
@@ -1009,7 +1013,13 @@ def format_readout(
         lines.append("Unavailable from here: " + "; ".join(unavailable))
 
     if field is not None:
-        lines.extend(field.lines(warp_name, connection_name))
+        field_lines = field.lines(warp_name, connection_name)
+        if OBSTACLE_RESPAWN not in off:
+            clearable = field.clearable_lines(warp_name, connection_name, semantic=semantic)
+            field_lines += (
+                [FIELD_HEADER, *clearable] if clearable and not field_lines else clearable
+            )
+        lines.extend(field_lines)
 
     def distinct(t: InteractionTarget) -> bool:
         # semantic-navigation-v2: the tool tells these apart by kind and tile only.

@@ -31,6 +31,8 @@ from pokebench_env.topology import SURFABLE
 from pokebench_env.world_context import GRAPHICS
 
 SWITCH = "field-move-gates-v1"
+# field-obstacle-respawn-v1: a rock or tree the party can clear that stands in every way to an exit.
+RESPAWN_SWITCH = "field-obstacle-respawn-v1"
 MOVE_SURF = 57
 SURFING = 1 << 3
 MACH_BIKE = 1 << 1
@@ -818,12 +820,42 @@ class Group:
 HEADER = "Field obstacles on this map (from the map's own object list and its tiles):"
 
 
+# field-obstacle-respawn-v1: the question each one asks when the party can clear it
+# (data/scripts/field_move_scripts.inc Text_WantToSmash and Text_WantToCut).
+ASKS = {
+    "rock_smash": "This rock appears to be breakable. Would you like to use ROCK SMASH?",
+    "cut": "This tree looks like it can be CUT down! Would you like to CUT it?",
+}
+VERBS = {"rock_smash": "ROCK SMASH", "cut": "CUT"}
+
+
+def clear_instruction(gate: str, local_id: int, *, semantic: bool) -> str:
+    """The agent's field-obstacle-respawn.ts clearInstruction for a rock or tree, word for word."""
+    reach = (
+        f'navigate_to_target target {{"kind":"object","local_id":{local_id}}}'
+        if semantic
+        else "face it and press A"
+    )
+    return f"{VERBS[gate]} it: {reach}, answer YES"
+
+
+@dataclass(frozen=True)
+class Flood(Generic[K]):
+    """The flood inputs field_obstacles was surveyed from (field-obstacle-respawn-v1)."""
+
+    tiles: Tiles
+    start: Tile
+    warps: tuple[Tile, ...]
+    connections: Mapping[K, Edges]
+
+
 @dataclass(frozen=True)
 class FieldObstacles(Generic[K]):
     gates: MapGates
     survey: Survey[K]
     width: int
     height: int
+    flood: Flood[K] | None = None
 
     def json(self) -> dict[str, object]:
         def entry(i: int, o: Obstacle) -> dict[str, object]:
@@ -891,6 +923,70 @@ class FieldObstacles(Generic[K]):
         if not groups:
             return []
         return [HEADER, *(g.line() for g in groups)]
+
+    def clearable_lines(
+        self,
+        warp_name: Callable[[Tile], str],
+        connection_name: Callable[[K], str],
+        *,
+        semantic: bool,
+    ) -> list[str]:
+        """field-obstacle-respawn-v1: rocks and trees the party can clear that cut exits off.
+
+        The flood ignores people and objects, so an open rock or tree is walkable to it; survey
+        again with them closed, and name those standing in every way on foot to an exit that the
+        flood reaches on foot. Clearing one of a group may be enough; the next readout says.
+        """
+        if self.flood is None:
+            return []
+        # Obstacle index -> (what, the game's question, how to clear it, local id).
+        clear: dict[int, tuple[str, str, str, int]] = {}
+        for i, o in enumerate(self.gates.obstacles):
+            if o.local_id is None or o.gate not in VERBS or len(o.tiles) != 1:
+                continue
+            if self.gates.state(o) is not True:
+                continue
+            (x, y), lid = o.tiles[0], o.local_id
+            how = clear_instruction(o.gate, lid, semantic=semantic)
+            clear[i] = (f"{o.name} object {lid} at ({x},{y})", ASKS[o.gate], how, lid)
+        if not clear:
+            return []
+        caps = Capabilities(tuple((g, False if g in VERBS else v) for g, v in self.gates.caps.open))
+        f = self.flood
+        strict = survey(
+            f.tiles,
+            f.start,
+            MapGates(caps, self.gates.obstacles),
+            warps=f.warps,
+            connections=f.connections,
+        )
+        foot_warps = {w for w, how in self.survey.gated.warps if how == FOOT}
+        foot_connections = {k for k, how in self.survey.gated.connections if how == FOOT}
+        cuts: dict[tuple[int, ...], list[str]] = {}
+        named = [
+            (ids, warp_name(w)) for w, ids in strict.warp_blocks.items() if w in foot_warps
+        ] + [
+            (ids, connection_name(k))
+            for k, ids in strict.connection_blocks.items()
+            if k in foot_connections
+        ]
+        for ids, exit_name in named:
+            mine = tuple(sorted(i for i in ids if i in clear))
+            if mine:
+                cuts.setdefault(mine, []).append(exit_name)
+        lines = []
+        for ids, exits in cuts.items():
+            what = " or ".join(clear[i][0] for i in ids)
+            said = " and ".join(f'"{a}"' for a in sorted({clear[i][1] for i in ids}))
+            how = "; ".join(
+                clear[i][2] if len(ids) == 1 else f"for object {clear[i][3]}, {clear[i][2]}"
+                for i in ids
+            )
+            lines.append(
+                f"- every way on foot to {_join(exits, 'and')} passes {what}: the game asks"
+                f" {said}; {how}"
+            )
+        return lines
 
     def _passes(self, ids: Iterable[int]) -> str:
         named: dict[str, list[Tile]] = {}

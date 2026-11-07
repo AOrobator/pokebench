@@ -26,6 +26,7 @@ from pokebench_env.exit_labels import ExitLabels, destination_name, read_exit_la
 from pokebench_env.exit_reach import ExitReach, build_exit_reach
 from pokebench_env.field_moves import (
     FieldObstacles,
+    Flood,
     MapGates,
     capabilities,
     map_gates,
@@ -907,7 +908,13 @@ def read_game_state(
         else None,
         field_obstacles=None
         if gates is None or found is None or flood is None
-        else FieldObstacles(gates, found, flood.width, flood.height),
+        else FieldObstacles(
+            gates,
+            found,
+            flood.width,
+            flood.height,
+            Flood(flood.tiles, flood.start, flood.warps, flood.connections),
+        ),
         respawn=read_respawn(read, save1, map_id, maps, respawn_links.get(read, maps))
         if respawn_links is not None and screen.kind == "overworld" and not in_battle
         else None,

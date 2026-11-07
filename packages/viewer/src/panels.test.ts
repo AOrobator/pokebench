@@ -590,6 +590,10 @@ it("links the battle details v2 card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["route-summary-v1"]).toBe("route-summary-v1.html");
 });
 
+it("links the cleared obstacles card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["field-obstacle-respawn-v1"]).toBe("field-obstacle-respawn-v1.html");
+});
+
 it("documents recall_dialogue and links the dialogue log explainer",()=>{
  const log=new Log();log.add(0,{...START,tools:["observe","press","recall_dialogue"]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log));

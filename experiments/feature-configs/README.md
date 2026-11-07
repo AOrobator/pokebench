@@ -100,3 +100,5 @@ Badge resets cycles (the operator 2026-11-07, "this is a correctness fix so it g
 Drought counts turns only (the operator 2026-11-07, "this is a correctness issue"): `drought-turns-only-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. The drought note counts 30 actions; level-ups, wins and heals do not restart it, while a story milestone or the end of a battle or heal hold that kept a note back still does.
 
 Drought holds on battle screens (the operator 2026-11-07, "yes"): `drought-hold-screens-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`.
+
+Cleared obstacles come back (correctness fix, both arms): `field-obstacle-respawn-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. A rock or tree the player cleared is back after the map reloads; the people list, navigate_to and the field obstacles block say so and how to clear it. Run 6056 lost 45 minutes on Route 111's rocks after a whiteout.

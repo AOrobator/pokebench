@@ -14,6 +14,7 @@
   },
   "features": {
     "drought-hold-screens-v1": true,
+    "field-obstacle-respawn-v1": true,
     "drought-turns-only-v1": true,
     "badge-resets-cycles-v1": true,
     "screenshot-button-baseline-v1": false,

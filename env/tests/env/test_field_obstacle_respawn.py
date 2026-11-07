@@ -6,6 +6,7 @@ every map load). The party could smash them, so field-move-gates-v1 left them op
 readout's field obstacles named only the sandstorm, a tree and slopes. The model blamed the sand.
 """
 
+import struct
 from dataclasses import replace
 
 from pokebench_env.exit_reach import build_exit_reach
@@ -20,10 +21,14 @@ from pokebench_env.field_moves import (
     clear_instruction,
     survey,
 )
+from pokebench_env.game_state import MapNames
+from pokebench_env.live_map import OBJECT_EVENTS
 from pokebench_env.readout import SERVER_FEATURES, features_off_from_env, format_readout
+from pokebench_env.rerender import read_state
 from pokebench_env.surf_gate import ConnectionKey, FloodInputs
 from tests.env import route111_6056 as r111
-from tests.env.test_feature_switches import map_state
+from tests.env.test_feature_switches import map_memory, map_state
+from tests.env.test_game_state import SB1
 
 ROCK_ASK = "This rock appears to be breakable. Would you like to use ROCK SMASH?"
 TREE_ASK = "This tree looks like it can be CUT down! Would you like to CUT it?"
@@ -160,3 +165,19 @@ def test_a_lone_clearable_line_brings_its_own_header() -> None:
     assert HEADER not in format_readout(state, frozenset({RESPAWN_SWITCH})).split("\n")
     line = next(x for x in on if x.startswith("- every way on foot to "))
     assert on[on.index(line) - 1] == HEADER
+
+
+def test_the_game_state_reader_keeps_the_flood_it_surveyed() -> None:
+    # test_map_observation_wiring's sandstorm map: ROUTE 111, the player at (11,60).
+    memory = map_memory()
+    memory.put(SB1, struct.pack("<hh", 11, 60) + bytes([0, 26]))
+    memory.put(OBJECT_EVENTS + 9, bytes([26, 0]))
+    memory.put(OBJECT_EVENTS + 0x10, struct.pack("<hh", 18, 67))
+    memory.put(0x02001000, struct.pack("<IIIIII", 24, 112, 0, 0, 0x02003000, 0x02004000))
+    memory.put(0x03005DC0, struct.pack("<III", 39, 126, 0x02005000))
+    memory.put(0x02005000, bytes(39 * 126 * 2))
+    off = features_off_from_env({}) - {"field-move-gates-v1", "exit-reachability-v1"}
+    state = read_state(memory.read, MapNames({(0, 26): "ROUTE111"}), active_ui=False, off=off)
+    found = state.field_obstacles
+    assert found is not None and found.flood is not None
+    assert found.flood.start == (11, 60) and found.flood.start in found.flood.tiles

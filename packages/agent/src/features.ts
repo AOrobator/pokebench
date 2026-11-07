@@ -382,6 +382,7 @@ export const SWITCHABLE_FEATURES = [
   "badge-resets-cycles-v1",
   "drought-turns-only-v1",
   "drought-hold-screens-v1",
+  "field-obstacle-respawn-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -885,6 +886,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("badge-resets-cycles-v1", "guidance", "BADGE RESETS CYCLES", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The map-pair count behind You are stalling. You have walked between A and B was cleared only by early-game milestones, so run 37ca was told it was stalling 12 turns after the Heat Badge, on trips made long before it. On: a newly observed badge or gym completion starts that count over. Off: later-game milestones leave that count alone."),
   on("drought-turns-only-v1", "guard", "DROUGHT COUNTS TURNS ONLY", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The drought note ran on a 5-minute wall clock, about 11 DeepSeek turns, and 41 of 165 notes in five DeepSeek runs were false; turn-drought-clock-v1 credits level-ups, wins and heals and stays silent through long gym stalls. On: the drought clock counts 30 actions and a level-up, trainer win or heal no longer restarts it; a story milestone does, and so does the end of a battle or heal trip that held back a due note, as before. The note no longer lists those credits. Off: the clock is as configured by turn-drought-clock-v1."),
   on("drought-hold-screens-v1", "guard", "DROUGHT HOLDS ON BATTLE SCREENS", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). Run 37ca got the drought note on the evolution screen right after beating Flannery. On: while an evolution or move screen that a battle handed control to is up, a due drought note is held, like one due during the battle itself. Off: the note can be sent on those screens."),
+  on("field-obstacle-respawn-v1", "observation", "CLEARED OBSTACLES COME BACK", "field-move-gates-v1", "Default off; on in both arms of the current recipe as a correctness fix. A BREAKABLE_ROCK or CUTTABLE_TREE the player cleared is back after the map reloads, a whiteout included, and a pushed STRENGTH boulder is back where it started with STRENGTH off (pokeemerald ClearTempFieldEventData clears the temp flags that hide them on every map load). Run 6056 smashed Route 111's rocks at turns 993-995, whited out at 1068 and spent 45 minutes failing to go north: the people list said the rocks were last talked to on turn 993 and navigate_to said only that no path existed. On: the people list says a cleared rock, tree or boulder the party can clear is back since you left the map and how to clear it (ROCK SMASH it or CUT it: navigate_to_target that object, answer YES; STRENGTH: use it again, answer YES, then walk into it); when navigate_to finds no route and clearing a rock or tree the party can clear would let it reach the goal, it names the nearest such one the same way; and the readout's field obstacles block names a rock or tree the party can clear that stands in every way on foot to an exit. Off: the people list says when the object was last talked to, navigate_to says only that no path exists, and the field obstacles block names only the obstacles the party cannot clear."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1009,6 +1011,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "rotating-gate-regions-v1",
   "shop-shelf-hidden-v1",
   "field-call-input-v1",
+  "field-obstacle-respawn-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1375,6 +1378,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("badge-resets-cycles-v1"),
     ...when("drought-turns-only-v1"),
     ...when("drought-hold-screens-v1"),
+    ...when("field-obstacle-respawn-v1"),
   ];
 }
 

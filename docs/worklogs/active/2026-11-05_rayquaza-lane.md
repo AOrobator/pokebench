@@ -154,21 +154,12 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Catch rows gate green. Claude's findings applied as proposed; GPT LGTM on facts.
 - rayquaza-lane-24h: same pointer recipe as v3, 24-hour cap; The operator 2026-11-06 10:30 PM. Run aeb8 ended on budget at turn 913 with Dynamo, past the rival at T784.
 
-<<<<<<< HEAD
 ### 2026-11-06: rq-old-rival-line-v1 (for the Route 110 trials; coordinator-relayed prep)
 
 - Switch swaps the rival tactics on the ROUTE_110 row for aeb8's line. OFF is today's guide; default off, lane-only.
 - COMMIT: `test(guide): rival line switch swaps only the Route 110 tactics` (41c28af82), RED: the ON case failed. Agent 95, viewer 77 focused tests pass after the fix.
 - COMMIT: `feat(guide): rq-old-rival-line-v1 restores run aeb8's Route 110 rival tactics` (cb5a4192f). Wiring-removal check: the ON test is the RED above.
 - Landed rq-old-rival-line-v1 (f021b62cf): Claude and GPT lanes LGTM on the frozen diff, Grok skipped; just test and just lint exit 0 (env 3005 passed); memory free 96%. Default off, so no lane or live run changes. Coordinator relayed the go.
-=======
-### 2026-11-06: Route 110 rival trial design (design only, no launch)
-
-- Overview: `docs/experiments/route110-rival-trials.html`. Screen tier, 8 per arm, 20 minute cap, 13.3 GPU-hours from a near-fight save. Budget and N await the operator.
-- Near-fight save built on CPU: aeb8's ROUTE_110 save replayed to frame 1063791, Route 110 (35,61), EWRAM matched at 51 of 51 checks, SHA-1 `f6a0d23c49a946e99c36db3d3e97fc4120fe690f`, at `runs/route110-rival/near-fight/`. Not yet loaded through the real server.
-- Correction: aeb8's winning rival fight used no items. Its only X Attack in those fights was turn 746, in a loss.
-- Left before launch: rival-line switch, two definitions, a Qwen3.6 context limit, server load and fake-model rehearsal.
->>>>>>> c771384fd (docs(experiments): Route 110 rival trial design)
 
 ### 2026-11-06: Route 110 rival trial definitions (prep; not launched)
 

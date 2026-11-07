@@ -234,3 +234,52 @@ describe("the Sootopolis Gym ice rows", () => {
     expect(guide.current().after).toBe("RAIN_BADGE");
   });
 });
+
+describe("the Seafloor Cavern room rows", () => {
+  const ROOMS = [1, 2, 6, 3, 8];
+  const row = (n: number): string => `MAP:SeafloorCavern_Room${String(n)}`;
+  const enter = (n: number): RunEvent => {
+    const id = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === row(n))?.enter;
+    if (id === undefined) throw new Error(`no row for room ${String(n)}`);
+    return move(5, 5, id);
+  };
+  const ROOM_7 = move(3, 23, [24, 34]);
+  const cavern = (): GuidePosition => new GuidePosition(rowsFrom("SEAFLOOR_CAVERN"), { checkpointRecovery: true });
+  it("fire in KI's room order", () => {
+    const guide = cavern();
+    for (const n of ROOMS) {
+      guide.observe(enter(n));
+      expect(guide.current().after).toBe(row(n));
+    }
+    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("MAP:SeafloorCavern") && step.gate === true)).toEqual([]);
+  });
+  it("hold on a room walked out of order", () => {
+    const guide = cavern();
+    guide.observe(enter(1));
+    guide.observe(enter(3));
+    expect(guide.current().after).toBe(row(1));
+  });
+  it("hold through a door reset or a loss, then the next room fires", () => {
+    const guide = cavern();
+    for (const n of [1, 2, 6]) guide.observe(enter(n));
+    guide.observe(move(5, 5, ELSE));
+    for (const n of [1, 2, 6]) guide.observe(enter(n));
+    expect(guide.current().after).toBe(row(6));
+    guide.observe(enter(3));
+    expect(guide.current().after).toBe(row(3));
+  });
+  it("a run that bypasses Room 6 through Room 7 is caught at Archie's chamber", () => {
+    const guide = cavern();
+    for (const n of [1, 2]) guide.observe(enter(n));
+    for (const event of [ROOM_7, enter(3), enter(8)]) guide.observe(event);
+    expect(guide.current().after).toBe(row(2));
+    guide.observe(story("SEAFLOOR_ARCHIE_CHAMBER"));
+    expect(guide.current().after).toBe("SEAFLOOR_ARCHIE_CHAMBER");
+  });
+  it("leave Archie's chamber inside REACH from the Dive row", () => {
+    expect(span("HM_DIVE_RECEIVED", "SEAFLOOR_ARCHIE_CHAMBER")).toBeLessThanOrEqual(REACH);
+    const guide = cavern();
+    guide.observe(story("SEAFLOOR_ARCHIE_CHAMBER"));
+    expect(guide.current().after).toBe("SEAFLOOR_ARCHIE_CHAMBER");
+  });
+});

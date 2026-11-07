@@ -261,3 +261,13 @@ Sootopolis Gym:
 - No gate. A skipped tile cannot leave a false later row standing for long: the stairs stay shut, the run falls, and every row carries the restart. A gate at (3,6) would only have blocked the (8,3) tactics row after a press walked past the corner.
 - Reset: any warp clears the temp vars and OnTransition sets the step count to 1, so a fall, leaving or a loss resets all 64 tiles and the stairs. Rows say so and give the route from (8,20), the floor tile both the door and the ladder pass.
 - Simulated on map.bin with the step counts and stair unlocks at 8, 28 and 67: every leg and recovery string ends on its row's tile, 64 of 64 tiles, no repeat; the ladder reaches (8,20) by L3 U2. Badge is 6 steps from entry. Not run on the emulator, and one thing to watch there: the stair opens after a 40-frame script, so a press landing inside it may lose a step and stop one tile short of a row. The next landing recovers it.
+- COMMIT: `feat(guide): checkpoint rows through the Sootopolis Gym ice` (45aeb0e40). 128 focused tests pass; tsc and eslint clean.
+
+Seafloor Cavern:
+
+- Rooms 1, 2, 6, 3 and 8 each get a `MAP:` row with button strings from the landing to the door. SEAFLOOR_CAVERN fires in the Entrance and keeps the waypoint list. No gates: recovery never crosses a map row, and every room's boulders start fresh.
+- Reset: any warp clears the temp flags that hide smashed rocks, reloads boulders and clears FLAG_SYS_USE_STRENGTH, so a door or a loss resets that room and Strength must be used again. A push moves only the boulder (GetWalkInPlaceNormalMovementAction), so strings count a push as a press.
+- Search over boulder states solved each room; rows keep KI's route. Room 3's 18-press shortcut walks past Shelly and a grunt, so the row keeps KI's boulder route and says it skips her. Room 1's grunt at (8,6) looks around and can see the route; the row says to beat anyone who stops you.
+- Room 6: KI's track is interpolated over the water, so the row is from the map, not the track. Four presses, U D U L, ride the currents from (11,19) to (4,8) through stops (14,16), (19,11), (8,12). All 139 stops can still reach (4,8) except the exit tile (14,8), which leaves to the Entrance. Current rides not run on the emulator.
+- Room 7 bypass: a run that reaches Room 3 through Room 7 keeps the Room 2 row until SEAFLOOR_ARCHIE_CHAMBER, 4 steps on. HM_DIVE_RECEIVED to Archie is 7, inside REACH.
+- After a loss the guide stays on its room and the row gives the Dive tile and earlier rooms as waypoints only; there is no room for their buttons.

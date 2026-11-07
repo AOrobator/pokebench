@@ -212,8 +212,7 @@
     "unnamed-place-story-line-v1",
     "story-line-campaign-flags-v1",
     "junk-filter-leader-lines-v1",
-    "story-line-start-steps-v1",
-    "no-open-story-goal-v1"
+    "story-line-start-steps-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -560,6 +559,6 @@
     "story-line-campaign-flags-v1": true,
     "junk-filter-leader-lines-v1": true,
     "story-line-start-steps-v1": true,
-    "no-open-story-goal-v1": true
+    "no-open-story-goal-v1": false
   }
 }

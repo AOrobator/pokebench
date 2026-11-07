@@ -17,3 +17,6 @@ Round 2 GPT: BLOCKING on one point. Fix: when the story block already carries th
 
 Final: GPT (Codex CLI, gpt-5.6-sol) LGTM and Claude (subagent) LGTM on 1d90d513d. Grok out until 11/17. Gates on 1d90d513d: `just test` passed with 2645 agent, 1073 viewer, 2,965 env and 38 gateway tests, floors and `just no-io-proof`; `pnpm -r lint`, env and gateway lint and `just verify-vendor` clean.
 
+## Switched off in both arms (2026-11-06)
+
+Asked to check first arrivals, I replayed a0b4 and 274b through `goalLine` with `unnamed-place-story-line-v1` on. The switch prints "none open (latest line done)" on a0b4 T181-T271, 91 results during the Mt. Pyre climb; on 274b from T1228 on Route 114, before Meteor Falls; and on 274b from T1304 at Mt. Chimney. The story place is not finished on any of them. My earlier replay began at T279, so it missed this. The older line already said "Story goal: none." on those turns, so the claim is not new; what the switch adds is dropping the quote, and a0b4 climbed with the quote in view. Off in `current.json` and the preset until a fix says none open only after the place's business is done. No launch carried it.

@@ -306,15 +306,28 @@ describe("ModelStreamLog taps the model's stream",()=>{
   expect(h.recorded[0]?.body).toMatchObject({ended:"error",error:"connection lost",content_chars:1});
  });
 
- it("records the run's last reply when the server holds the stream open after [DONE]",async()=>{
+ it("records the run's last reply when its stream ends during the run-end wait",async()=>{
   const h=harness();const encoder=new TextEncoder();let close:()=>void=()=>undefined;
-  const held=new Response(new ReadableStream<Uint8Array>({start(c){c.enqueue(encoder.encode(delta({content:"last"})+finish("stop")+usage(3)+DONE));close=()=>{c.close();};}}),{headers:{"content-type":"text/event-stream"}});
+  const held=new Response(new ReadableStream<Uint8Array>({start(c){c.enqueue(encoder.encode(delta({content:"last"})+finish("stop")+usage(3)+DONE));close=()=>{c.enqueue(encoder.encode(": keepalive\n\n"));c.close();};}}),{headers:{"content-type":"text/event-stream"}});
   await h.log.fetch(()=>Promise.resolve(held))(URL_,{method:"POST"});
   h.log.observe(assistant(1,{text:"last",output:3}));
-  await h.log.flush();
-  expect(h.recorded).toHaveLength(1);
-  expect(h.recorded[0]?.body).toMatchObject({ended:"done",visible:{text_chars:4},output_tokens:3});
+  const flushing=h.log.flush();
   close();
+  await flushing;
+  expect(h.recorded).toHaveLength(1);
+  expect(h.recorded[0]?.body).toMatchObject({ended:"done",visible:{text_chars:4},output_tokens:3,comment_lines:1});
+ });
+
+ it("keeps what comes after [DONE], in the same read or a later one",async()=>{
+  for(const split of [true,false]){
+   const h=harness();
+   const tail=": keepalive\n\n";
+   const parts=split?[delta({content:"x"}),usage(600),DONE,tail]:[delta({content:"x"}),usage(600),DONE+tail];
+   await h.log.fetch(()=>Promise.resolve(sseResponse(parts)))(URL_,{method:"POST"});await settled();
+   h.log.observe(assistant(1,{text:"x",output:600}));
+   expect(h.saved[0]?.raw).toContain("keepalive");
+   expect(h.recorded[0]?.body.comment_lines).toBe(1);
+  }
  });
 
  it("waits only so long at run end for a stream that never ends",async()=>{

@@ -240,7 +240,6 @@ export class StreamAccount {
  }
 
  rawLines():string {return this.raw.join("");}
- sawDone():boolean {return this.done;}
  rawCapped():boolean {return this.capped;}
 }
 
@@ -298,8 +297,6 @@ export class ModelStreamLog {
     const part=await reader?.read();
     if(part===undefined||part.done)break;
     account.bytesIn(part.value,this.ports.now());
-    // The SDK stops reading at [DONE]; a server can hold the connection open after it.
-    if(account.sawDone()){void reader?.cancel().catch(()=>undefined);break;}
    }
   }catch(error){failure=error instanceof Error?error.message:String(error);}
   account.close(this.ports.now(),failure);
@@ -322,7 +319,9 @@ export class ModelStreamLog {
   this.write(stream,reply);
  }
 
- /** At run end: waits up to FLUSH_WAIT_MS for streams still being read, then records a stream whose reply never came. */
+ /** At run end: waits up to FLUSH_WAIT_MS for streams still being read (the run can end on a reply whose clone
+  * has not reached end of stream yet; the OpenAI SDK, like this reader, reads past [DONE] to the end), then records
+  * a stream whose reply never came. */
  async flush():Promise<void> {
   if(this.reading.size>0)await Promise.race([Promise.allSettled([...this.reading]),this.ports.sleep(FLUSH_WAIT_MS)]);
   if(this.stream!==null)this.write(this.stream,null);

@@ -70,6 +70,8 @@ Round 2, fix delta 08c6b9ac7..853de22e6, diff sha256 069bd9de19cfae08d2238d6bce0
 
 GPT lane round 1 (the operator: not waived), Codex, frozen 1e26fed6c..82a440485, diff sha256 09621b2cc4f0a2f6f8939840ecb154795ad5c26390d41876099524079afb2e52: BLOCKING, two findings, both Fix. (1) A server that holds the stream open after [DONE] left the run's last reply with no event: the read waited for close and run end had already cleared the reply. Now the read stops at [DONE], and run end waits up to 2 s for streams still being read. (2) The raw cap counted UTF-16 units, so CJK text could retain about 24 MiB; it now counts UTF-8 bytes. Deleted each fix once and watched its test go red, then restored. Focused tests 37/37.
 
+GPT lane round 2, through the Codex coordinator (one worker per job), fix delta 82a440485..cb8238524, diff sha256 ff2ff1b6d04765d046b0074e7da266dac0c3d247807614f12e29899e755c420c: BLOCKING, Fix. Stopping the read at [DONE] dropped anything after it in a later read; the OpenAI SDK 6.26 also reads past [DONE] (core/streaming.mjs sets done and continues), so the round 1 comment was wrong. Reverted the stop; the run-end wait stays and covers the run's last reply. The byte cap fix was confirmed closed. New tests: trailing comment kept in either read arrangement, and a reply whose stream ends during the run-end wait. Deleting the wait turns its test red. Focused tests 38/38.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

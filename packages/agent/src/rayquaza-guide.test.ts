@@ -356,6 +356,8 @@ describe("the guide's facts", () => {
     ["DYNAMO_BADGE", "that one rock opens the way"],
     ["DYNAMO_BADGE", "(0,66-71)"],
     ["ROUTE_111_NORTH", "(0,66-71)"],
+    ["ROUTE_111_NORTH", "after a whiteout or leaving the map the rocks are back, so smash (19,100) again"],
+    ["FIERY_PATH", "After a whiteout or leaving the map, Route 111's rocks are back, so smash (19,100) again."],
     ["FALLARBOR_TOWN", "TM47 Steel Wing"],
     ["FALLARBOR_TOWN", "2 Escape Ropes, a Super Potion, 10 X Attacks"],
     ["ROUTE_114", "Use a Super Repel if you have one"],

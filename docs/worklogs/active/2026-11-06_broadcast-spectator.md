@@ -80,6 +80,7 @@ The operator 2026-11-07: "the broadcast view needs to use the actual sprites of 
 - [x] GREEN: 132 focused tests; 1920x1080 headless screenshot of a0b4 at t=4700 viewed: five earned full, Feather dimmed with an outline, two faint, pixels crisp at 2x; with no sprite files the same build drew eight discs and no errors.
 - [x] Gates on 1cd94c4b5: lint, just test, verify-vendor
 - [x] Review on 1b214d406: Claude, GPT, fallback LGTM
+- [x] Landed 70b05014c; post-main `just test`: 2,684 agent, 1,221 viewer, 3,051 env, 38 gateway
 
 ## Closing the Loop
 

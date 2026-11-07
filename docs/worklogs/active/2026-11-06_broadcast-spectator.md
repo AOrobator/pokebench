@@ -93,7 +93,8 @@ The operator 2026-11-07: "why does the broadcast view flash? it looks bad". Meas
 The operator 2026-11-07: "it'd be nice to also have game music playing". The game server's `/audio.wav?since=` is a bounded, non-consuming tape with a cursor per reader (`env/pokebench_env/audio.py`), so it is the recorder's own source and a second reader never touches the core. 20 s of cursors from 37ca: steady 1.33 of real time, never pausing, so sound follows game speed and is pitched up by a third, as `/view` says. The viewer proxies it and the page plays it under the commentary: same SOUND ON click, chunks laid end to end, dipping under each line, with level and mute. Replay and transparent stay silent.
 - [x] RED
 - [x] GREEN: 144 focused tests. 30 s headless on the live page, branch modules routed in and the audio route answered from the tape: 284 chunks at rate 1.338, 3 seams off and the worst by 24 ms, 171 ms lead, three voice lines, level dipping 0.5 to 0.15, no page errors.
-- [ ] Review, landing
+- [x] Gates on ff020194c, then 146 focused tests on the two small fixes
+- [x] Review: Claude, GPT, fallback LGTM through 52d3ebed1
 
 ## Closing the Loop
 

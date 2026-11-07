@@ -33,9 +33,9 @@ No new input surface. Coordinates in guide notes are authored data; the server's
 
 **M1: route summary**
 - [x] Write tests on recorded states (6056 T120, aeb8 T319, T416, T654, locked T416)
-- [ ] COMMIT RED
-- [ ] Implement, register the switch, prompt, wiring, explainer
-- [ ] Cheap checks
+- [x] COMMIT: `test(agent): route summary on recorded states (RED)` (87bf42a11)
+- [x] Implement, register the switch, prompt, wiring, explainer
+- [x] Cheap checks: agent and viewer `tsc --noEmit`, eslint on changed files, route-summary 28 tests, features, preset, frozen-switch, play-config, panels, next-run and recipe tests pass. Deleted once and watched go red, then restored: the production wiring, the locked-field check.
 - [ ] Full gates in a granted CPU window
 - [ ] COMMIT GREEN
 - [ ] Review

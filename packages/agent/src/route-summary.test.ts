@@ -3,7 +3,7 @@ import type {AgentTool} from "@mariozechner/pi-agent-core";
 import STATES from "./fixtures/route-summary-states.json" with {type:"json"};
 import {playSystemPrompt} from "./play-config.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
-import {ALL_ON,SWITCHABLE_FEATURES,type FeatureSet} from "./features.js";
+import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,playHarnessFeatures,type FeatureSet} from "./features.js";
 import {playGameTools} from "./play-wiring.js";
 import {guideRow} from "./rayquaza-guide.js";
 import {plannedRoute} from "./semantic-navigation.js";
@@ -142,6 +142,12 @@ describe("against the server's own flood",()=>{
 });
 
 describe("the switch",()=>{
+ it("is registered after the guide switches, off by default, and needs the whole-map planner",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("route-summary-v1")).toBe(SWITCHABLE_FEATURES.indexOf("rq-checkpoint-recovery-v1")+1);
+  expect(FEATURES.find(f=>f.id==="route-summary-v1")?.needs).toBe("full-map-navigation-v1");
+  expect(playHarnessFeatures(ON,null)).toContain("route-summary-v1");
+  expect(playHarnessFeatures(OFF,null)).not.toContain("route-summary-v1");
+ });
  const readout="Screen: overworld\nLocation: ROUTE 102 (map 0/17)\nPosition: X=34, Y=14\nMoney: 1";
  const tool=(name:string,state:GameStateSnapshot=ROUTE102):AgentTool=>({name,label:name,description:"",parameters:{},execute:()=>Promise.resolve({content:[{type:"text",text:readout}],details:{state}})});
  const ports={check:null,guide:()=>null};

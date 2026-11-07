@@ -1,5 +1,6 @@
 import {checkpointResearchTask,type CheckpointResearchNote} from "./checkpoint-research-note.js";
 import {destinationFirstPrompt} from "./destination-first.js";
+import {ROUTE_SUMMARY_SENTENCE} from "./route-summary.js";
 import {FIELD_CALL_ID,FIELD_CALL_NOTE,POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
@@ -240,6 +241,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if (semantic2) prompt = prompt.replace(NAVIGATE_RULES, SEMANTIC_NAVIGATE_RULES);
   if(show("overworld")&&semantic2)prompt += `\n\n${SEMANTIC_TARGET_SECTION}`;
   else if(show("overworld")&&features["semantic-navigation-v1"])prompt += "\n\n- navigate_to_target: choose one person, object, interaction, warp, or walking map connection by the identity and map_id in the current readout. The harness chooses the approach, follows the available route, faces and activates the target once. If battle, dialogue, a menu, a script, forced movement, unavailable field control, or a map transition interrupts it, the call stops and hands you the resulting state immediately.";
+  if(show("overworld")&&features["route-summary-v1"])prompt += `\n\nRoutes: ${ROUTE_SUMMARY_SENTENCE} The readout lists the routes to its targets with their steps and any trainer sight they cross.`;
   if(show("overworld")&&features["deterministic-exploration-v1"])prompt += "\n\n- explore_map: when you have no evidence-backed destination, ask the harness to choose and try one reachable, not-yet-attempted listed interaction or walking connection. Each call tries only one target and returns at the first interruption; inspect the result before calling it again.";
   if (features["dialogue-safe-batches-v1"]) prompt += "\n\nInterface input safety: interaction/menu inputs or locked/unknown-interface batches submit only the first input, then return a fresh observation. Repeated A can dismiss a message and reopen the object you face. Identical text is not evidence of a mandatory cutscene or new story progress. Inspect one input before choosing the next approach.";
   if (target !== null) prompt = prompt.replace(GOAL_SENTENCE, `Your goal is: ${playGoal(target, features)}`);

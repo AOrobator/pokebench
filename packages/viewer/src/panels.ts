@@ -551,6 +551,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "rq-battle-explainer-v1":"rq-milestone-guide-v1.html",
  "rq-slim-prompt-v1":"rq-milestone-guide-v1.html",
  "rq-checkpoint-recovery-v1":"rq-milestone-guide-v1.html",
+ "route-summary-v1":"route-summary-v1.html",
  "rq-no-grind-note-v1":"rq-milestone-guide-v1.html",
  "rq-old-rival-line-v1":"rq-milestone-guide-v1.html",
  "double-context-window-v1":"double-context-window-v1.html",

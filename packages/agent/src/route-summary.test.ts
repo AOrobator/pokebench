@@ -176,7 +176,7 @@ describe("what navigate_to_target does on states the recordings lack",()=>{
  });
 
  it("says sight on a way across water was checked only to the shore",async()=>{
-  const state={...shore,location:"ROUTE",topology:{width:8,height:1,connections:[{direction:"NORTH",destination:[0,1],offset:0,edges:[],water_edges:[{x:4,y:0}]}]}} as GameStateSnapshot;
+  const state={...shore,location:"ROUTE",topology:{width:8,height:1,connections:[{direction:"NORTH",destination:[0,1],offset:0,edges:[],water_edges:[{x:4,y:0}]}]}} as unknown as GameStateSnapshot;
   const line=(await routeSummary(state,ON,sees([],[0,33]).check,{map:"Route",note:"(6,0)"}))?.split("\n")[1];
   expect(line).toBe("- guide tile (6,0): 1 step to (1,0), then press A facing (2,0) to use Surf, out of every unbeaten trainer's sight as far as the shore; the water was not checked.");
  });

@@ -95,6 +95,8 @@ async function sightFree(state:GameStateSnapshot,entry:Entry,features:FeatureSet
   if(goal.route==="tile"&&avoid.some(t=>key(t)===key(goal.tile)))return "no route out of sight";
   const route=plannedRoute(avoiding(state,avoid),goal,features);
   if(route===null)return "no route out of sight";
+  // A way that needs Surf stops at the shore: no step count reaches the target, and the water was not checked.
+  if(route.launch!==undefined)return "no walking route out of sight";
   const sight=await budget.ask(route,entry.exclude);
   if("reason" in sight)return "a route out of sight was not checked";
   if(sight.seen.length===0)return `${steps(route.steps)} out of their sight`;

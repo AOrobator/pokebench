@@ -73,14 +73,15 @@ describe("route summary on recorded states",()=>{
  });
 
  it("never asks the server more than its cap, and says what it did not check",async()=>{
-  const here=ROUTE110.position??{x:0,y:0};
-  const everyTile=[...Array(100).keys()].flatMap(x=>[...Array(100).keys()].map(y=>({x,y}))).filter(p=>Math.abs(p.x-here.x)+Math.abs(p.y-here.y)>6);
   const map=ROUTE110.map_id;
   if(map===null)throw new Error("no map");
-  const server=sees(everyTile,map);
-  const text=await routeSummary(ROUTE110,ON,server.check,null);
-  expect(server.calls).toBe(SIGHT_CHECK_CAP);
-  expect(text).toMatch(/not checked\.$/m);
+  // Sees the middle of every route, so each replan finds a way round and gets seen again.
+  let calls=0;
+  const middle:TrainerSightPorts["check"]=(_map,route)=>{calls+=1;const tile=route[Math.floor(route.length/2)];return sees(tile===undefined?[]:[tile],map).check(map,route);};
+  const text=await routeSummary(ROUTE110,ON,middle,null);
+  expect(calls).toBe(SIGHT_CHECK_CAP);
+  expect(text).toContain("a route out of sight was not checked.");
+  expect(text).toContain("trainer sight not checked.");
  });
 
  it("a route that dead-ends on sight keeps looking, and says when the checks ran out",async()=>{
@@ -167,6 +168,12 @@ describe("what navigate_to_target does on states the recordings lack",()=>{
  it("sends a player who can Surf to the shore instead of saying no route",()=>{
   expect(plannedRoute(shore,{route:"connection",direction:"NORTH"},ON)).toMatchObject({point:{x:1,y:0},steps:1,launch:{water:{x:2,y:0},move:"Surf"}});
   expect(plannedRoute(shore,{route:"tile",tile:{x:6,y:0}},ON)).toMatchObject({point:{x:1,y:0}});
+ });
+
+ it("never counts a shore leg as a route out of sight",async()=>{
+  const state={...shore,location:"ROUTE",position:{x:1,y:0},topology:{width:8,height:1,connections:[{direction:"NORTH",destination:[0,1],offset:0,edges:[{x:0,y:0}],water_edges:[{x:4,y:0}]}]}} as GameStateSnapshot;
+  const line=(await routeSummary(state,ON,sees([{x:0,y:0}],[0,33]).check,null))?.split("\n").find(l=>l.startsWith("- NORTH"));
+  expect(line).toMatch(/crosses the sight of .*; no walking route out of sight\.$/);
  });
 
  it("says so on the line, and stays silent on Surf when it cannot be used",async()=>{

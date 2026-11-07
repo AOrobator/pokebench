@@ -86,6 +86,9 @@ Round 1, frozen 5ad4882bc..84cd54e21, diff sha256 77822961d8f53b7dc2d4d9d288cbb9
 - Rebut or follow-up: `semantic-navigation-v2` off leaves target words in the block (the boundary froze one dependency; scope), guide tiles on another floor of a same-named map (no failing row), sentence stronger than ledge and Surf switches guarantee (false only in a config with those off; both on in current).
 - GPT lane: packet queued to a Codex session; The operator is deciding through the coordinator whether to waive it. Not landed.
 
+Round 2, fix delta 84cd54e21..4aa65cd22, diff sha256 d8b95ecd98bf4fab49d36ba32881461ebf9627fc2e3506ee80ffb8f6b8af0ee3.
+- Claude CLI: B1, B2, B3 closed; BLOCKING on one new bug from the B3 fix, N1: the out-of-sight search printed a shore leg as a finished route. Fixed next commit: it now says "no walking route out of sight". The check-cap test was also made to reach both wordings. Round cap reached: asking the operator through the coordinator.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

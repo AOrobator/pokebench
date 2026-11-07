@@ -48,7 +48,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROCK_TOMB_RECEIVED | RustboroCity | Walk east past Rustboro's x=23, y=20-24 for a theft scene, then Route 116. No Repel yet: catch Taillow and Abra if met, Great Ball first. Abra Teleports on turn 1: throw a Ball at once; give up after 10 encounters. Then a Repel, beat Hiker Devan at (42,13), decline Bide, beat the Rusturf grunt. | KI 11, 12, ROM, TR 7da5:560, frame 0:19:52, aeb8:302, audit I5, e09e:274-285 |
+| ROCK_TOMB_RECEIVED | RustboroCity | Walk east past Rustboro's x=23, y=20-24 for a theft, then Route 116. No Repel yet: catch Taillow in the first grass, Great Ball first; stop after 10 encounters. Catch Abra if met; don't hunt: throw a Ball at once. Then a Repel, beat Hiker Devan at (42,13), decline Bide, beat the Rusturf grunt. | KI 11, 12, ROM, TR 7da5:560, frame 0:19:52, aeb8:302, audit I5, e09e:274-285 |
 | RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | RustboroCity_DevonCorp_3F | Finish Mr. Stone's talk and the Match Call tutorial. | KI 15, tested 2026-11-05, fact check |

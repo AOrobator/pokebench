@@ -19,9 +19,8 @@ const user = (content: string): AgentMessage => ({ role: "user", content, timest
 describe("the Route 116 catches", () => {
   const row = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
   it("names Abra beside Taillow, so the Abra note has no rival target", () => {
-    expect(row).toContain("catch Taillow and Abra if met");
-    expect(row).toContain("Abra Teleports on turn 1: throw a Ball at once");
-    expect(row).toContain("give up after 10 encounters");
+    expect(row).toContain("catch Taillow in the first grass, Great Ball first; stop after 10 encounters.");
+    expect(row).toContain("Catch Abra if met; don't hunt: throw a Ball at once");
   });
 });
 
@@ -344,6 +343,8 @@ describe("Abra notes", () => {
   it("names Abra only where it may be met, never as a search", () => {
     const named = RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note));
     expect(named.map((s) => s.after)).toEqual(["ROCK_TOMB_RECEIVED"]);
-    expect(named[0]?.note).toContain("if met");
+    const abra = /Catch Abra[^.]*\./.exec(named[0]?.note ?? "")?.[0] ?? "";
+    expect(abra).toContain("if met; don't hunt");
+    expect(abra.replace("don't hunt", "")).not.toMatch(/search|hunt|look for|find|seek/i);
   });
 });

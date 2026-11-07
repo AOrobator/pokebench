@@ -15,6 +15,7 @@ import {exitBlock} from "./surf-gate.js";
 import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
 export const TRUST_HEADER="Read from game memory, always true:";
+const NONE_OPEN_REACHED="Story goal: none open (latest line reached).";
 
 // The trust order, appended last to the system prompt. With game-evidence-priority-v1 it ranks that section's evidence.
 export function trustSection(gameEvidence:boolean,supervisor:boolean,unnamedPlaces=false):string {
@@ -41,7 +42,7 @@ export function goalLine(goal:StoryGoal|null,places:readonly Place[]|Error,anyLi
  if(goal===null)return "Story goal: no story character has named a place yet in this run.";
  // no-open-story-goal-v1: says outright that no goal is open. A done line's quote stays retired; a reached line's stays for its readers.
  if(goal.done===true)return noOpen?"Story goal: none open (latest line done).":staleGoalLine(goal.line,goal.doneReason);
- if(goal.reached!==undefined)return noOpen?`Story goal: none open (latest line reached).\n${reachedText(goal.line,goal.reached)}`:reachedText(goal.line,goal.reached);
+ if(goal.reached!==undefined)return noOpen?`${NONE_OPEN_REACHED}\n${reachedText(goal.line,goal.reached)}`:reachedText(goal.line,goal.reached);
  const {line,resolved}=goal;
  const source=placeEvidenceSource(line);
  if(source!==null)return `Historical named place evidence: ${source} ${resolved.map(r=>`${r.quote}${r.text}`).join(" ")}`;
@@ -264,9 +265,11 @@ export class HarnessTrust {
   const characters=charactersLine(text);
   const exits=places instanceof Error?null:exitsLine(state,places,this.options.semanticTargets===true,this.options.exitSections===true,this.options.surfNavigation===true);
   const untalked=this.people?.untalkedLine(state,text,callId)??null;
-  const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&!(this.options.noOpenGoal===true&&goal.reached!==undefined)&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
+  const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
+  // no-open-story-goal-v1: a repeated quote is still skipped, but the plain line is not.
+  const noneOpen=repeated&&this.options.noOpenGoal===true&&goal.reached!==undefined?[NONE_OPEN_REACHED]:[];
   const omitGoal=this.options.omitEmptyGoal===true&&!(places instanceof Error)&&(goal===null||goal.done===true&&this.options.noOpenGoal!==true);
-  const header=[TRUST_HEADER,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true,this.options.exitSections===true,this.options.noOpenGoal===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits]),...(untalked===null?[]:[untalked])].join("\n");
+  const header=[TRUST_HEADER,...noneOpen,...(repeated||omitGoal?[]:[goalLine(goal,places,anyLine,this.options.reachableGoal===true?state:undefined,this.options.semanticTargets===true,this.options.exitSections===true,this.options.noOpenGoal===true)]),...(characters===null?[]:[characters]),...(exits===null?[]:[exits]),...(untalked===null?[]:[untalked])].join("\n");
   const away=this.options.supervisor&&!(places instanceof Error)?this.walk.observe(state,goal?.done===true||goal?.reached!==undefined||goal?.line.deliveredPlace!==undefined?null:goal,places,own):null;
   return {header,away};
  }

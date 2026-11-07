@@ -150,6 +150,8 @@ it("no open goal, through the header: a done line prints the plain line alone, w
 });
 it("no open goal, through the header: a repeated story block does not drop the plain line",()=>{
  const block='Latest story line naming a place (turn 272, ARCHIE): "The RED ORB preserved at MT. PYRE"';
- expect(header(true,false,block)).toContain("Story goal: none open (latest line reached).");
+ const out=header(true,false,block);
+ expect(out).toContain("Story goal: none open (latest line reached).");
+ expect(out).not.toContain("Story line heard");
 });
 

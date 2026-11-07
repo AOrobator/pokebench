@@ -94,6 +94,10 @@
         },
         "during_call": {
           "type": "boolean"
+        },
+        "freeze_wait_ms": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false

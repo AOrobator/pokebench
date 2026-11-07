@@ -517,3 +517,30 @@ describe("provider wait pause", () => {
     expect(h.frozen).toEqual([]);
   });
 });
+
+it("coalesces a same-poll provider pause and resume across budget extensions", async () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.applyBatch([req(1, "pause"), req(2, "extend_30m"), req(3, "resume")]);
+  await h.control.callEnded();
+  expect(h.control.state).toBe("running");
+  expect(h.control.pausedMs()).toBe(0);
+  expect(h.frozen).toEqual([]);
+});
+
+it("records how long freeze confirmation took after an in-flight pause began", async () => {
+  const records: ControlBody[] = [];
+  const freeze = Promise.withResolvers<undefined>();
+  let now = 0;
+  const control = new RunControl({
+    providerWaitPause: true, now: () => now, record: body => { records.push(body); },
+    freeze: paused => paused ? freeze.promise : Promise.resolve(),
+    end: vi.fn(),
+  });
+  control.callStarted();
+  control.apply(req(1, "pause"));
+  now = 250;
+  freeze.resolve(undefined);
+  await Promise.resolve();
+  expect(records.at(-1)).toMatchObject({ during_call: true, freeze_wait_ms: 250 });
+});

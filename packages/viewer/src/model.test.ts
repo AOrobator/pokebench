@@ -444,3 +444,13 @@ it("releases raw events without losing folded results or order checks",()=>{
   expect(view.events).toEqual([last]);
   new RunView().releaseEvents();
 });
+
+it("counts the provider hold from before emulator freeze confirmation", () => {
+  const log = new Log();
+  log.add(0, START);
+  log.add(1250, { type: "operator_control", turn: 1, action: "pause", status: "applied", request: 1, emulator_frozen: true, during_call: true, freeze_wait_ms: 250 });
+  const view = fold(log);
+  expect(view.control.pausedBefore(BASE_MS + 1000)).toBe(0);
+  expect(view.control.pausedBefore(BASE_MS + 1250)).toBe(250);
+  expect(view.control.pausedBefore(BASE_MS + 2000)).toBe(1000);
+});

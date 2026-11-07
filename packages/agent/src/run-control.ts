@@ -144,8 +144,11 @@ export class RunControl {
 
   applyBatch(requests: readonly ControlRequest[]): void {
     for (const [index, request] of requests.entries()) {
-      // A gateway hold that both starts and ends between polls needs no freeze.
-      const cancelled = request.action === "pause" && requests[index + 1]?.action === "resume";
+      // Budget extensions do not interrupt a pause/resume pair in one poll.
+      const nextControl = this.inCall && request.action === "pause"
+        ? requests.slice(index + 1).find(next => !isExtension(next.action))
+        : undefined;
+      const cancelled = nextControl?.action === "resume";
       this.applyRequest(request, cancelled);
     }
   }
@@ -251,7 +254,8 @@ export class RunControl {
 
   private async pauseDuringCall(): Promise<void> {
     this.current = "paused";
-    this.pausedSince = this.deps.now();
+    const started = this.deps.now();
+    this.pausedSince = started;
     this.freezing = true;
     this.notify();
     let frozen = true;
@@ -262,7 +266,10 @@ export class RunControl {
     }
     this.freezing = false;
     if (!this.stillPaused()) return;
-    this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen, during_call: true });
+    this.deps.record({
+      action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen,
+      during_call: true, freeze_wait_ms: Math.max(0, this.deps.now() - started),
+    });
     this.applyDeferredResume();
   }
 

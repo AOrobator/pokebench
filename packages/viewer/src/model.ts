@@ -199,7 +199,7 @@ export class ControlView {
     if (event.action === "pause") {
       this.state = "paused";
       this.emulatorFrozen = event.emulator_frozen ?? null;
-      this.pauses.push({ startMs: ms, endMs: null });
+      this.pauses.push({ startMs: ms - (event.freeze_wait_ms ?? 0), endMs: null });
       return;
     }
     this.close(ms);

@@ -16,4 +16,5 @@ On 2026-11-07, review packets sat for hours in an ordinary Codex thread ("Compar
 - `git diff --check` clean.
 - COMMIT: `docs(skills): Codex work goes through a coordinator that starts workers` (f68a3d55d)
 - Claude CLI review of f68a3d55d: LGTM, three wording notes applied in the next commit.
-- GPT lane: through the coordinator, once the operator starts one.
+- COMMIT: `docs(skills): coordinator never forwards a job to itself; check by watcher only` (2b870b8f8)
+- GPT lane round 1, through the coordinator (worker job 3), db3d713df..2b870b8f8, diff sha256 3e2df3d6d9a1932c2c34c6353a724c822112c740fa061f63627a32138fc31f60: BLOCKING, three Fix: a letter with several jobs gave every worker every job; a replayed letter after an interrupted turn could start a second worker; the `codex queue` fallback left a job no rule covered. Now: one job per letter with a `JOB <job id>:` prefix, the worker thread is named after the job id and the coordinator checks for it before starting one, and a queued `JOB` message is handled the same way; Claude does not resend it.

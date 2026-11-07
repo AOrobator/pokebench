@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { mountBroadcast, type BroadcastDeps, type FrameSocket } from "./broadcast-main.js";
 
-const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
+const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><button data-b="sound" hidden></button><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
 const HEADER = { run: "r1", model: "deepseek/deepseek-v4.1-flash", started: "2026-11-06T12:00:00.000Z", kind: "boot", save: null };
 const T0 = Date.parse(HEADER.started);
 const ITEMS = [
@@ -99,7 +99,7 @@ describe("the broadcast page", () => {
     expect(urls).toEqual(["/api/runs", "/api/runs/2026-b/broadcast?after=0"]);
     expect(s.part("clock").textContent).toBe("0:00:05");
     await Promise.all(s.timers.splice(0).map(run => { run(); return Promise.resolve(); }));
-    await vi.waitFor(() => { expect(urls.at(-1)).toBe("/api/runs/2026-b/broadcast?after=7"); });
+    await vi.waitFor(() => { expect(urls.at(-1)).toBe("/api/runs/2026-b/broadcast?after=7&lines=0"); });
   });
 
   it("follow stops polling a run that ends and holds its last moment", async () => {
@@ -158,7 +158,7 @@ describe("the broadcast page", () => {
     const more = [{ k: "think", t: 5, turn: 1, d: " again" }];
     const s = setup("?run=r1", url => {
       if (url.endsWith("after=0")) return Promise.resolve(answer({ ended: false }));
-      const after = Number(url.split("after=")[1]), items = after < ITEMS.length + 1 ? more : [];
+      const after = Number(/after=(\d+)/.exec(url)?.[1]), items = after < ITEMS.length + 1 ? more : [];
       return new Promise(done => { replies.push(() => { done(answer({ ended: false, items, next: ITEMS.length + 1 })); }); });
     });
     const page = await s.mount();
@@ -220,5 +220,75 @@ describe("the broadcast page", () => {
     const s = setup("?run=r1&t=1", () => Promise.resolve(answer()), { width: () => 960, height: () => 1080 });
     await s.mount();
     expect(document.querySelector<HTMLElement>("#stage")?.style.transform).toBe("scale(0.5)");
+  });
+
+  describe("live captions and sound", () => {
+    const said = { turn: 1, t: 2, text: "Going north.", wav: "t000001.wav", said: 6 };
+    const later = { turn: 2, t: 6, text: "Heading home.", wav: "t000002.wav", said: 7 };
+    function live(search: string, polls: Record<string, unknown>[] = []) {
+      const played: string[] = [];
+      let stopped = 0;
+      const s = setup(search, url => url.endsWith("after=0") ? Promise.resolve(answer({ ended: false })) : Promise.resolve(answer({ ended: false, items: [], ...(polls.shift() ?? {}) })), {
+        speak: { play: url => { played.push(url); return new Promise<void>(() => undefined); }, stop: () => { stopped += 1; } },
+      });
+      return { ...s, played, stops: () => stopped, button: () => s.part("sound") as HTMLButtonElement, run: () => { for (const timer of s.timers.splice(0)) timer(); } };
+    }
+
+    it("offers sound only in live follow mode", async () => {
+      const follow = live("?run=r1");
+      await follow.mount();
+      expect(follow.button().hidden).toBe(false);
+      for (const search of ["?run=r1&t=5", "?run=r1&transparent=1", "?run=r1&voice=0"]) {
+        const quiet = live(search);
+        await quiet.mount();
+        expect(quiet.button().hidden).toBe(true);
+      }
+      const ended = setup("?run=r1", () => Promise.resolve(answer()), { speak: { play: () => Promise.resolve(), stop: () => undefined } });
+      await ended.mount();
+      expect(ended.part("sound").hidden).toBe(true);
+    });
+
+    it("shows a new caption as it arrives, long after its turn began", async () => {
+      const s = live("?run=r1", [{ commentary: [said] }]);
+      await s.mount();
+      expect(s.part("cap").hidden).toBe(true);
+      s.run();
+      await vi.waitFor(() => { s.run(); expect(s.part("say").textContent).toBe("“Going north.”"); });
+      expect(s.played).toEqual([]);
+    });
+
+    it("asks for only the lines it has not seen", async () => {
+      const urls: string[] = [];
+      const polls = [{ commentary: [said] }];
+      const s = setup("?run=r1", url => { urls.push(url); return Promise.resolve(answer({ ended: false, ...(url.endsWith("after=0") ? {} : { items: [], ...(polls.shift() ?? {}) }) })); });
+      await s.mount();
+      await vi.waitFor(() => { for (const timer of s.timers.splice(0)) timer(); expect(urls.at(-1)).toContain("lines=1"); });
+    });
+
+    it("plays lines one at a time after the click and hides the button", async () => {
+      const s = live("?run=r1", [{ commentary: [said, later] }]);
+      await s.mount();
+      await vi.waitFor(() => { s.run(); expect(s.part("say").textContent).not.toBe(""); });
+      s.button().click();
+      expect(s.button().hidden).toBe(true);
+      s.run();
+      expect(s.played).toEqual(["/api/runs/r1/commentary/t000001.wav"]);
+    });
+
+    it("goes silent when a moment is held", async () => {
+      const s = live("?run=r1", [{ commentary: [said] }]);
+      const page = await s.mount();
+      await vi.waitFor(() => { s.run(); expect(s.part("say").textContent).not.toBe(""); });
+      s.button().click();
+      await page.setTime(3);
+      expect(s.stops()).toBe(1);
+      expect(s.button().hidden).toBe(true);
+    });
+
+    it("works with no speaker at all", async () => {
+      const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })));
+      await s.mount();
+      expect(s.part("sound").hidden).toBe(true);
+    });
   });
 });

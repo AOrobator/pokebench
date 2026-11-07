@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBroadcastStore, type BroadcastDisk } from "./broadcast-store.js";
+import { commentaryWav, createBroadcastStore, type BroadcastDisk } from "./broadcast-store.js";
 
 const t = (s: number): string => new Date(1_800_000_000_000 + s * 1000).toISOString();
 const ev = (s: number, type: string, rest: Record<string, unknown>): string => `${JSON.stringify({ v: 1, run: "r", seq: 1, t: t(s), type, turn: 1, ...rest })}\n`;
@@ -57,6 +57,24 @@ describe("the broadcast store", () => {
     const s = store(d);
     expect((await s.read("r", 0)).commentary).toEqual([good]);
     expect((await s.read("r", 1)).commentary).toEqual([]);
+  });
+
+  it("sends only the lines a poll has not seen", async () => {
+    const line = (turn: number): string => JSON.stringify({ turn, t: turn, text: `say ${String(turn)}`, wav: `t${String(turn)}.wav`, said: turn + 1 });
+    const path = "/runs/broadcast/r/commentary.jsonl";
+    const d = disk({ "/runs/r/events.jsonl": START + PRESS(1), [path]: `${line(1)}\n${line(2)}\n` });
+    const s = store(d);
+    expect((await s.read("r", 0)).commentary.map(l => l.turn)).toEqual([1, 2]);
+    expect((await s.read("r", 1)).commentary).toEqual([]);
+    expect((await s.read("r", 1, 1)).commentary.map(l => l.said)).toEqual([3]);
+    d.files[path] = `${line(1)}\n${line(2)}\n${line(3)}\n`;
+    expect((await s.read("r", 1, 2)).commentary.map(l => l.turn)).toEqual([3]);
+    expect((await s.read("r", 0, 3)).commentary).toEqual([]);
+  });
+
+  it("names a run's wav only for a plain commentary file", () => {
+    expect(commentaryWav("/runs", "r", "t000085.wav")).toBe("/runs/broadcast/r/t000085.wav");
+    for (const name of ["../x.wav", "t1.wav/..", "commentary.jsonl", "t00001.wav", ""]) expect(commentaryWav("/runs", "r", name)).toBeNull();
   });
 
   it("finds this model's rates, and none for an unknown model or a bad file", async () => {

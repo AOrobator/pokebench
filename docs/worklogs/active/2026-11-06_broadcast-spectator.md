@@ -47,6 +47,12 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [x] Real lines (the operator approved via coordinator 2026-11-07): temporary loopback Qwen3.6-35B-A3B Q4, ctx 8k, 1 slot, nice 10, stopped after. a0b4 Winona fight, t=4279-4760: 16 of 17 turns. Peak 30.6 GB RSS, system memory free never under 78%. Prompt tuned against every turn's thinking; a jargon check refuses button names and KO/HP, retried up to 3 times.
 - [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
+### Piece 6: live captions and sound on /broadcast
+Follow mode only: new captions as they arrive, wavs queued one at a time, lines older than 30 s skipped, one click to turn sound on. The feed sends new lines on polls and a route serves the wavs. Replay and transparent stay silent. `?voice=0` turns sound off for a page: display-only, so no harness switch (feature-switch skill); anything else leaves it on, and a missing button, wav or speaker fails open to silent captions.
+- [x] RED
+- [ ] GREEN
+- [ ] Review, landing
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

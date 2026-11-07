@@ -7,7 +7,9 @@ failure cannot reach the run; it logs the failure and carries on or exits.
 
 import argparse
 import json
+import os
 import re
+import select
 import signal
 import subprocess  # noqa: S404 - ffmpeg, argv lists only
 import sys
@@ -39,6 +41,9 @@ WAV_HEADER_BYTES = 44
 SEGMENT_SECONDS = 3600
 # Each mark ties wall clock (the journal's `at`), game frame and file position, for compositing.
 SYNC_MARK_FRAMES = 3600
+# Sound further than this from the first frame's place did not start with the frame counter.
+ANCHOR_TOLERANCE_SAMPLES = SAMPLE_RATE
+ENCODER_WRITE_DEADLINE_SECONDS = 10.0
 
 
 @dataclass(frozen=True)
@@ -120,8 +125,10 @@ class Restarting:
         name: str,
         part: int = 1,
         clock: Callable[[], float] = time.monotonic,
+        position: Callable[[], int] = lambda: 0,
     ) -> None:
         self.start, self.log, self.name, self.clock = start, log, name, clock
+        self.position = position
         self.part = part - 1
         self.sink: Sink | None = None
         self.retry_at = 0.0
@@ -139,7 +146,7 @@ class Restarting:
             self.retry_at = self.clock() + ENCODER_RETRY_SECONDS
             return None
         self.started_at = self.clock()
-        self.log("part_started", stream=self.name, part=self.part)
+        self.log("part_started", stream=self.name, part=self.part, position=self.position())
         return sink
 
     def write(self, data: bytes) -> None:
@@ -174,27 +181,39 @@ class Anchor:
         self._lock = threading.Lock()
         self._origin: int | None = None
         self._rebase_frames: int | None = None
+        self._check = False
         self.frames = 0
 
     def first_frame(self, frame_count: int) -> None:
         with self._lock:
             self._origin = round(frame_count * SAMPLES_PER_FRAME) - AUDIO_LAG_SAMPLES
+            self._check = True
 
     def add(self, frames: int) -> None:
         with self._lock:
             self.frames += frames
 
-    def counter_reset(self) -> None:
+    def rebase(self) -> None:
+        """The frame counter no longer maps to the sound counter: place sound from its next end."""
         with self._lock:
             self._rebase_frames = self.frames
 
-    def origin(self, sample_end: int) -> int | None:
-        """Sample at file position 0; after a counter reset, set from the sound's current end."""
+    def origin(self, sample_end: int) -> tuple[int | None, bool]:
+        """Sample at file position 0, and whether it was set from the sound just now."""
         with self._lock:
-            if self._rebase_frames is not None:
-                self._origin = sample_end - round(self._rebase_frames * SAMPLES_PER_FRAME)
-                self._rebase_frames = None
-            return self._origin
+            if self._origin is None:
+                return None, False
+            expected = self._origin + round(self.frames * SAMPLES_PER_FRAME)
+            # A loaded save restores the frame counter but not the sound counter.
+            drifted = abs(sample_end - expected) > ANCHOR_TOLERANCE_SAMPLES
+            if self._check and drifted and self._rebase_frames is None:
+                self._rebase_frames = self.frames
+            self._check = False
+            if self._rebase_frames is None:
+                return self._origin, False
+            self._origin = sample_end - round(self._rebase_frames * SAMPLES_PER_FRAME)
+            self._rebase_frames = None
+            return self._origin, True
 
 
 @dataclass(frozen=True)
@@ -217,8 +236,8 @@ def record_frames(frames: Iterable[Frame], sink: Sink, anchor: Anchor, log: Log)
         plan = timeline.accept(frame.frame_count)
         if plan.event is not None:
             log(plan.event, frame_count=frame.frame_count, video_frames=anchor.frames)
-        if plan.event == "frame_counter_reset":
-            anchor.counter_reset()
+        if plan.event is not None:
+            anchor.rebase()
         for _ in range(plan.writes):
             sink.write(frame.png)
         before = anchor.frames
@@ -238,18 +257,30 @@ def parse_sound(wav: bytes, end: int) -> Sound:
 
 
 class SoundWriter:
-    def __init__(self, sink: Sink, anchor: Anchor, log: Log) -> None:
+    def __init__(
+        self, sink: Sink, anchor: Anchor, log: Log, total: list[int] | None = None
+    ) -> None:
         self.sink, self.anchor, self.log = sink, anchor, log
-        self.written = 0
+        self.total = [0] if total is None else total
+
+    @property
+    def written(self) -> int:
+        return self.total[0]
+
+    @written.setter
+    def written(self, value: int) -> None:
+        self.total[0] = value
 
     def accept(self, sound: Sound) -> None:
-        origin = self.anchor.origin(sound.end)
+        origin, rebased = self.anchor.origin(sound.end)
         if origin is None:
             return
+        if rebased:
+            self.log("sound_rebased", sound_end=sound.end, origin=origin)
         samples = len(sound.pcm) // SAMPLE_BYTES
         plan = plan_audio(sound.end - samples - origin, samples, self.written)
         if plan.event is not None:
-            self.log(plan.event, silence=plan.silence_samples, at=self.written)
+            self.log(plan.event, silence=plan.silence_samples, position=self.written)
         left = plan.silence_samples
         while left > 0:
             piece = min(left, SILENCE_CHUNK_SAMPLES)
@@ -262,6 +293,53 @@ class SoundWriter:
             self.written += kept
 
 
+def segment_rows(
+    events: Iterable[dict[str, object]], names: Iterable[str]
+) -> list[dict[str, object]]:
+    """One row per file: where it starts in the game and on the wall clock, from the journal."""
+    marks: list[tuple[float, int, float]] = []
+    first_frame = 0
+    parts: dict[tuple[str, int], int] = {}
+    for event in events:
+        kind, at = event.get("event"), event.get("at")
+        if kind == "first_frame" and isinstance(at, float):
+            first_frame = int(str(event["frame_count"]))
+            marks.append((0.0, first_frame, at))
+        elif kind == "sync" and isinstance(at, float):
+            marks.append((float(str(event["video_frames"])), int(str(event["frame_count"])), at))
+        elif kind == "part_started":
+            parts[(str(event["stream"]), int(str(event["part"])))] = int(str(event["position"]))
+
+    def wall(frames: float) -> float | None:
+        before = [m for m in marks if m[0] <= frames]
+        after = [m for m in marks if m[0] > frames]
+        if not before:
+            return None
+        low = before[-1]
+        high = after[0] if after else (before[-2] if len(before) > 1 else None)
+        if high is None or high[0] == low[0]:
+            return low[2]
+        return low[2] + (frames - low[0]) * (high[2] - low[2]) / (high[0] - low[0])
+
+    rows: list[dict[str, object]] = []
+    for name in sorted(names):
+        found = re.fullmatch(r"(video|audio)-p(\d+)-(\d+)\.mk[av]", name)
+        if found is None or (found[1], int(found[2])) not in parts:
+            continue
+        start = parts[(found[1], int(found[2]))]
+        frames = float(start) if found[1] == "video" else start / SAMPLES_PER_FRAME
+        frames += int(found[3]) * SEGMENT_SECONDS * GBA_FPS
+        rows.append(
+            {
+                "file": name,
+                "stream": found[1],
+                "first_frame_count": first_frame + round(frames),
+                "first_wall_time": wall(frames),
+            }
+        )
+    return rows
+
+
 def video_command(out: Path, part: int) -> list[str]:
     return [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin",
@@ -270,7 +348,7 @@ def video_command(out: Path, part: int) -> list[str]:
         "-pix_fmt", "yuv444p",
         "-g", "600", "-force_key_frames", f"expr:gte(t,n_forced*{SEGMENT_SECONDS})",
         "-flush_packets", "1", "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
-        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000",
+        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000:flush_packets=1",
         "-reset_timestamps", "1", str(out / f"video-p{part:02d}-%04d.mkv"),
     ]  # fmt: skip
 
@@ -281,7 +359,7 @@ def audio_command(out: Path, part: int) -> list[str]:
         "-f", "s16le", "-ar", str(SAMPLE_RATE), "-ac", "2", "-i", "pipe:0",
         "-c:a", "flac", "-flush_packets", "1",
         "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
-        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000",
+        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000:flush_packets=1",
         "-reset_timestamps", "1",
         str(out / f"audio-p{part:02d}-%04d.mka"),
     ]  # fmt: skip
@@ -290,23 +368,32 @@ def audio_command(out: Path, part: int) -> list[str]:
 class Encoder:  # pragma: no cover - the ffmpeg process
     def __init__(self, argv: list[str], log_file: IO[bytes]) -> None:
         self.process = subprocess.Popen(  # noqa: S603
-            argv, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log_file
+            argv, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log_file, bufsize=0
         )
+        if self.process.stdin is None:
+            raise OSError("encoder has no input")
+        self.stdin = self.process.stdin
+        os.set_blocking(self.stdin.fileno(), False)
 
     def write(self, data: bytes) -> None:
-        stdin = self.process.stdin
-        if stdin is None:
-            raise OSError("encoder has no input")
-        stdin.write(data)
-        stdin.flush()
+        fd = self.stdin.fileno()
+        left = memoryview(data)
+        while len(left) > 0:
+            if not select.select([], [fd], [], ENCODER_WRITE_DEADLINE_SECONDS)[1]:
+                self.process.kill()
+                raise OSError("encoder stopped reading")
+            left = left[os.write(fd, left) :]
 
     def close(self) -> None:
-        if self.process.stdin is not None:
-            try:
-                self.process.stdin.close()
-            except OSError:
-                pass
-        self.process.wait(timeout=30)
+        try:
+            self.stdin.close()
+        except OSError:
+            pass
+        try:
+            self.process.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            self.process.wait(timeout=5)
 
 
 def frames_from(
@@ -405,8 +492,14 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--wait", type=float, default=900, help="seconds to wait for the server")
     parser.add_argument("--supervise", action="store_true", help="restart the recorder if it dies")
+    parser.add_argument("--index", action="store_true", help="write segments.json and stop")
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
+    if args.index:
+        lines = (args.out / "recording.jsonl").read_text().splitlines()
+        rows = segment_rows((json.loads(line) for line in lines), os.listdir(args.out))
+        (args.out / "segments.json").write_text(json.dumps(rows, indent=1) + "\n")
+        return 0
     log = journal(args.out / "recording.jsonl")
     if args.supervise:
         return run_supervised(args.port, args.out, args.wait, log)
@@ -415,10 +508,23 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     signal.signal(signal.SIGTERM, lambda *_: stopping.set())
     anchor = Anchor()
     part = next_part(path.name for path in args.out.iterdir())
-    video = Restarting(lambda n: Encoder(video_command(args.out, n), errors), log, "video", part)
-    audio = Restarting(lambda n: Encoder(audio_command(args.out, n), errors), log, "audio", part)
+    written = [0]
+    video = Restarting(
+        lambda n: Encoder(video_command(args.out, n), errors),
+        log,
+        "video",
+        part,
+        position=lambda: anchor.frames,
+    )
+    audio = Restarting(
+        lambda n: Encoder(audio_command(args.out, n), errors),
+        log,
+        "audio",
+        part,
+        position=lambda: written[0],
+    )
     log("started", port=args.port, fps=GBA_FPS, sample_rate=SAMPLE_RATE)
-    writer = SoundWriter(audio, anchor, log)
+    writer = SoundWriter(audio, anchor, log, written)
     sound = threading.Thread(
         target=sound_loop, args=(args.port, writer, stopping, log), daemon=True
     )

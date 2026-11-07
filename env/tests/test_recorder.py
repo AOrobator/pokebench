@@ -23,6 +23,7 @@ from pokebench_env.recorder import (
     parse_sound,
     plan_audio,
     record_frames,
+    segment_rows,
     supervise,
     video_command,
 )
@@ -108,6 +109,7 @@ def test_a_long_outage_keeps_later_sound_in_its_true_place() -> None:
     origin = round(8 * SAMPLES_PER_FRAME) - AUDIO_LAG_SAMPLES
     writer, sink, _ = writer_for(anchor)
     forty_minutes = 40 * 60 * 48000
+    writer.accept(sound(100, origin + 100))
     writer.accept(sound(100, origin + forty_minutes + 100))
     assert writer.written == forty_minutes + 100
     assert max(len(c) for c in sink.chunks) == SILENCE_CHUNK_SAMPLES * SAMPLE_BYTES
@@ -338,3 +340,71 @@ def test_a_sync_mark_ties_game_frame_to_file_position_each_minute() -> None:
         {"frame_count": 99 + SYNC_MARK_FRAMES, "video_frames": SYNC_MARK_FRAMES},
         {"frame_count": 99 + SYNC_MARK_FRAMES * 2, "video_frames": SYNC_MARK_FRAMES * 2},
     ]
+
+
+def test_a_run_from_a_save_still_gets_its_sound() -> None:
+    anchor = anchored(3_157_374)
+    writer, sink, events = writer_for(anchor)
+    writer.accept(sound(800, 50_000))
+    writer.accept(sound(800, 50_800))
+    assert writer.written == 800
+    assert "sound_rebased" in events.names
+
+
+def test_a_boot_run_keeps_the_exact_anchor() -> None:
+    anchor = anchored()
+    origin = round(8 * SAMPLES_PER_FRAME) - AUDIO_LAG_SAMPLES
+    writer, _, events = writer_for(anchor)
+    writer.accept(sound(800, origin + 800))
+    assert "sound_rebased" not in events.names
+
+
+def test_a_long_stall_replaces_sound_with_the_picture() -> None:
+    events, anchor = Events(), Anchor()
+    far = 11 + MAX_HELD_FRAMES + 1000
+    record_frames([Frame(10, b"a"), Frame(far, b"b")], FakeSink(), anchor, events)
+    assert "frames_lost" in events.names
+    writer, _, logged = writer_for(anchor)
+    writer.accept(sound(100, 90_000_000))
+    assert "sound_rebased" in logged.names
+    assert "audio_gap" not in logged.names or writer.written <= 3 * SAMPLES_PER_FRAME
+
+
+def test_gap_rows_leave_the_journals_time_field_alone() -> None:
+    anchor = anchored()
+    origin = round(8 * SAMPLES_PER_FRAME) - AUDIO_LAG_SAMPLES
+    writer, _, events = writer_for(anchor)
+    writer.accept(sound(100, origin + 100))
+    writer.accept(sound(100, origin + 300))
+    assert "at" not in events.seen[-1][1]
+
+
+def test_segment_rows_give_game_frame_and_wall_time_for_each_file() -> None:
+    journal = [
+        {"at": 1000.0, "event": "first_frame", "frame_count": 8},
+        {"at": 1000.0, "event": "part_started", "stream": "video", "part": 1, "position": 0},
+        {"at": 1000.0, "event": "part_started", "stream": "audio", "part": 1, "position": 0},
+        {"at": 1045.0, "event": "sync", "frame_count": 3608, "video_frames": 3600},
+        {"at": 1090.0, "event": "sync", "frame_count": 7208, "video_frames": 7200},
+        {"at": 1100.0, "event": "part_started", "stream": "video", "part": 2, "position": 7200},
+    ]
+    names = ["video-p01-0000.mkv", "video-p02-0000.mkv", "audio-p01-0000.mka", "ffmpeg.log"]
+    rows = {str(row["file"]): row for row in segment_rows(journal, names)}
+    assert rows["video-p01-0000.mkv"] == {
+        "file": "video-p01-0000.mkv",
+        "stream": "video",
+        "first_frame_count": 8,
+        "first_wall_time": 1000.0,
+    }
+    assert rows["video-p02-0000.mkv"]["first_frame_count"] == 7208
+    assert rows["video-p02-0000.mkv"]["first_wall_time"] == 1090.0
+    assert "ffmpeg.log" not in rows
+
+
+def test_a_later_segment_starts_an_hour_of_game_time_on() -> None:
+    journal = [
+        {"at": 0.0, "event": "first_frame", "frame_count": 0},
+        {"at": 0.0, "event": "part_started", "stream": "video", "part": 1, "position": 0},
+    ]
+    rows = segment_rows(journal, ["video-p01-0002.mkv"])
+    assert rows[0]["first_frame_count"] == round(2 * 3600 * GBA_FPS)

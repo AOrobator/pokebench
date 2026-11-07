@@ -1,16 +1,19 @@
-"""`just broadcast-commentary`: after a run, one short spoken line per turn, then its voice.
+"""`just broadcast-commentary`: one short spoken line per turn, then its voice.
 
 Lines go to runs/broadcast/<run>/commentary.jsonl with the wavs beside them. Nothing is written
 under runs/<run>/. The file is rewritten every few lines and on any stop, so a stopped job keeps
-its work and the next one carries on from it.
+its work and the next one carries on from it. With --follow it tails a live run instead, saying
+each thought as it finishes and dropping turns it can no longer say on time.
 """
 
 import argparse
+import functools
 import importlib
 import io
 import json
 import os
 import re
+import time
 import urllib.request
 import wave
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -23,6 +26,12 @@ from urllib.parse import urlsplit
 MAX_WORDS = 19
 SAVE_EVERY = 25
 TRIES = 3
+STALE_TURNS = 2
+POLL_S = 0.5
+# A run that dies without a run_end line leaves its log silent; a live one is never quiet this long.
+IDLE_END_S = 1800.0
+LIVE_TIMEOUT_S = 30.0
+CHUNK_BYTES = 1024 * 1024
 # Words a viewer should not hear, which the model sometimes keeps despite the prompt.
 JARGON = re.compile(r"\b(press(es|ed|ing)?|OHKO(s|'d)?|KO(s|'d)?|HP)\b", re.IGNORECASE)
 VOICE = "af_heart"
@@ -39,7 +48,7 @@ SYSTEM = (
     "not learning a move. Reply with the line alone."
 )
 
-WANTED = ("run_start", "turn_start", "assistant")
+WANTED = ("run_start", "run_end", "turn_start", "assistant")
 
 Json = dict[str, object]
 Post = Callable[[str, Json], Json]
@@ -50,6 +59,7 @@ class Turn:
     turn: int
     t: float
     thinking: str
+    said: float | None = None
 
 
 @dataclass(frozen=True)
@@ -59,6 +69,7 @@ class Line:
     text: str
     wav: str
     seconds: float | None = None
+    said: float | None = None
 
 
 @dataclass(frozen=True)
@@ -67,34 +78,49 @@ class Voiced:
     rate: int
 
 
-def read_turns(lines: Iterable[str], start: float = 0, end: float = float("inf")) -> list[Turn]:
-    """Each thought, timed from the start of its turn: the line plays while the model thinks."""
-    started: float | None = None
-    turn_began: dict[int, float] = {}
-    turns: list[Turn] = []
-    for line in lines:
+class TurnReader:
+    """Reads log lines in order. Each thought is timed from the start of its turn, so the line
+    plays while the model thinks; `said` is when the thought finished."""
+
+    def __init__(self) -> None:
+        self.started: float | None = None
+        self.turn_began: dict[int, float] = {}
+        self.newest = 0
+        self.ended = False
+
+    def feed(self, line: str) -> Turn | None:
         if not any(f'"type":"{kind}"' in line[:300] for kind in WANTED):
-            continue
+            return None
         try:
             event = json.loads(line)
             at = datetime.fromisoformat(event["t"]).timestamp()
+            kind = event.get("type")
+            if kind == "run_start":
+                self.started = at
+                return None
+            if self.started is None:
+                return None
+            if kind == "run_end":
+                self.ended = True
+                return None
+            number = int(event["turn"])
         except (ValueError, KeyError, TypeError):
-            continue
-        if event.get("type") == "run_start":
-            started = at
-            continue
-        if started is None:
-            continue
-        if event.get("type") == "turn_start":
-            turn_began[int(event["turn"])] = at
-            continue
+            return None
+        self.newest = max(self.newest, number)
+        if kind == "turn_start":
+            self.turn_began[number] = at
+            return None
         thinking = event.get("thinking")
         if not isinstance(thinking, str) or thinking.strip() == "":
-            continue
-        t = round(turn_began.get(int(event["turn"]), at) - started, 2)
-        if start <= t < end:
-            turns.append(Turn(turn=int(event["turn"]), t=t, thinking=thinking))
-    return turns
+            return None
+        t = round(self.turn_began.get(number, at) - self.started, 2)
+        return Turn(turn=number, t=t, thinking=thinking, said=round(at - self.started, 2))
+
+
+def read_turns(lines: Iterable[str], start: float = 0, end: float = float("inf")) -> list[Turn]:
+    reader = TurnReader()
+    found = (reader.feed(line) for line in lines)
+    return [turn for turn in found if turn is not None and start <= turn.t < end]
 
 
 def local_endpoint(url: str) -> bool:
@@ -190,6 +216,96 @@ def voice_lines(
     return out
 
 
+class LogTail:
+    """Finished lines from a file still being written; a partial last line waits for its end."""
+
+    def __init__(self, read: Callable[[int, int], bytes], chunk: int = CHUNK_BYTES) -> None:
+        self.read = read
+        self.chunk = chunk
+        self.offset = 0
+        self.rest = b""
+
+    def lines(self) -> Iterator[str]:
+        while True:
+            data = self.read(self.offset, self.chunk)
+            if data == b"":
+                return
+            self.offset += len(data)
+            *whole, self.rest = (self.rest + data).split(b"\n")
+            for line in whole:
+                yield line.decode("utf-8", "replace")
+
+
+@dataclass(frozen=True)
+class Follow:
+    read: Callable[[int, int], bytes]
+    ask: Callable[[str], str]
+    synth: Callable[[str], Voiced]
+    write_wav: Callable[[str, bytes], None]
+    save: Callable[[list[Line]], None]
+    wait: Callable[[float], None]
+    now: Callable[[], float]
+    log: Callable[[str], None]
+
+
+def say_turn(turn: Turn, deps: Follow) -> Line | None:
+    """The wav lands before its line can, so a reader of the file never meets a missing sound."""
+    try:
+        text = next(filter(None, (clean_line(deps.ask(turn.thinking)) for _ in range(TRIES))), None)
+        if text is None:
+            deps.log(f"turn {turn.turn}: no usable line")
+            return None
+        voiced = deps.synth(text)
+        wav = f"t{turn.turn:06d}.wav"
+        deps.write_wav(wav, wav_bytes(voiced))
+    except Exception as error:  # one bad turn must never end the follower
+        deps.log(f"turn {turn.turn}: skipped: {error}")
+        return None
+    seconds = round(len(voiced.pcm) / 2 / voiced.rate, 3)
+    return Line(turn.turn, turn.t, text, wav, seconds, turn.said)
+
+
+def follow(deps: Follow, existing: Sequence[Line]) -> list[Line]:
+    lines = list(existing)
+    done = {line.turn for line in lines}
+    reader = TurnReader()
+    tail = LogTail(deps.read)
+    waiting: list[Turn] = []
+    heard = deps.now()
+    unsaved = False
+    while True:
+        for raw in tail.lines():
+            heard = deps.now()
+            turn = reader.feed(raw)
+            if turn is not None and turn.turn not in done:
+                done.add(turn.turn)
+                waiting.append(turn)
+        current = [turn for turn in waiting if turn.turn >= reader.newest - STALE_TURNS]
+        if len(current) < len(waiting):
+            deps.log(f"dropped {len(waiting) - len(current)} stale turns")
+        waiting = current
+        if waiting:
+            line = say_turn(waiting.pop(0), deps)
+            if line is not None:
+                lines.append(line)
+                # A restart can recover turns older than ones already saved.
+                lines.sort(key=lambda saved: saved.t)
+                unsaved = True
+            if unsaved:
+                try:
+                    deps.save(lines)
+                    unsaved = False
+                except OSError as error:
+                    deps.log(f"lines not saved yet: {error}")
+        elif reader.ended or deps.now() - heard >= IDLE_END_S:
+            deps.log("run ended" if reader.ended else "run log silent, stopping")
+            if unsaved:
+                deps.save(lines)
+            return lines
+        else:
+            deps.wait(POLL_S)
+
+
 def load_lines(text: str) -> list[Line]:
     lines: list[Line] = []
     for raw in text.splitlines():
@@ -204,11 +320,11 @@ def dump_lines(lines: Sequence[Line]) -> str:  # pragma: no cover - the disk
     return "".join(json.dumps(asdict(line)) + "\n" for line in lines)
 
 
-def _post(url: str, body: Json) -> Json:  # pragma: no cover - the network
+def _post(url: str, body: Json, timeout: float = 300) -> Json:  # pragma: no cover - the network
     request = urllib.request.Request(  # noqa: S310 - local_endpoint
         url, json.dumps(body).encode(), {"content-type": "application/json"}
     )
-    with urllib.request.urlopen(request, timeout=300) as response:  # noqa: S310 - local_endpoint
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - local_endpoint
         return cast(Json, json.load(response))
 
 
@@ -216,6 +332,12 @@ def _served_model(endpoint: str) -> str:  # pragma: no cover - the network
     url = f"{endpoint.rstrip('/')}/models"
     with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - local_endpoint
         return str(json.load(response)["data"][0]["id"])
+
+
+def _read_at(path: Path, offset: int, length: int) -> bytes:  # pragma: no cover - the disk
+    with path.open("rb") as log:
+        log.seek(offset)
+        return log.read(length)
 
 
 def _log_lines(path: Path) -> Iterator[str]:  # pragma: no cover - the disk
@@ -243,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser.add_argument("start", nargs="?", type=float, default=0.0)
     parser.add_argument("end", nargs="?", type=float, default=float("inf"))
     parser.add_argument("--endpoint", required=True, help="a local OpenAI-style /v1 address")
+    parser.add_argument("--follow", action="store_true", help="tail a live run until it ends")
     parser.add_argument("--model", help="default: the first model the endpoint serves")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
     parser.add_argument(
@@ -255,6 +378,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         parser.error("run must be a run id")
     if not local_endpoint(args.endpoint):
         parser.error("--endpoint must be a loopback http address")
+    if args.follow and (args.start != 0.0 or args.end != float("inf")):
+        parser.error("--follow takes no time range")
     folder = args.runs / "broadcast" / args.run
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / "commentary.jsonl"
@@ -265,8 +390,26 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         scratch.replace(target)
 
     model = args.model or _served_model(args.endpoint)
-    turns = read_turns(_log_lines(args.runs / args.run / "events.jsonl"), args.start, args.end)
+    log_path = args.runs / args.run / "events.jsonl"
     existing = load_lines(target.read_text(encoding="utf-8")) if target.exists() else []
+    if args.follow:
+        post = functools.partial(_post, timeout=LIVE_TIMEOUT_S)
+        lines = follow(
+            Follow(
+                read=functools.partial(_read_at, log_path),
+                ask=lambda thinking: ask_model(args.endpoint, model, post, thinking),
+                synth=_synth(args.kokoro),
+                write_wav=lambda n, b: (folder / n).write_bytes(b) and None,
+                save=save,
+                wait=time.sleep,
+                now=time.monotonic,
+                log=functools.partial(print, flush=True),
+            ),
+            existing,
+        )
+        print(f"{len(lines)} lines in {target}")
+        return 0
+    turns = read_turns(_log_lines(log_path), args.start, args.end)
     lines = write_lines(
         turns,
         existing,

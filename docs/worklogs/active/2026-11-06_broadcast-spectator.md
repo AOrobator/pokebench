@@ -47,12 +47,23 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [x] Real lines (the operator approved via coordinator 2026-11-07): temporary loopback Qwen3.6-35B-A3B Q4, ctx 8k, 1 slot, nice 10, stopped after. a0b4 Winona fight, t=4279-4760: 16 of 17 turns. Peak 30.6 GB RSS, system memory free never under 78%. Prompt tuned against every turn's thinking; a jargon check refuses button names and KO/HP, retried up to 3 times.
 - [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
+### Piece 4: `just broadcast-commentary --follow`
+Coordinator brief 2026-11-07 for the operator ("whats stopping us from generating these live?"). Follower tails a live run read-only, writes each finished thought's wav then its line, skips a turn on any model or voice failure, drops turns more than 2 behind the newest, exits on run_end or after 30 minutes of silence.
+- [x] RED
+- [x] GREEN: 43 focused tests under the no-I/O guard
+- [x] Rehearsal: real Qwen and Kokoro tailing a replayed 37ca log at one turn per 4 s: 58 backlog turns dropped, 14 lines kept pace, exit 0 on run_end, nothing written beside the fake events.jsonl
+- [x] Gates on a9f440d1e: lint (mypy through main's venv; this worktree has no mgba binding), 2,684 agent, 1,200 viewer, 3,048 env, 38 gateway, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM
+
 ### Piece 5: Broadcast link in the viewer
 Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
 - [x] RED
 - [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
 - [x] Gates on 7bdb2a62d: lint, 3 suites and floors via just test, verify-vendor
 - [x] Review: Claude, GPT, fallback LGTM (sha cb02e865)
+### Piece 6: live captions and sound on /broadcast
+Follow mode only: new captions as they arrive, wavs queued, lines older than 30 s skipped, one-click sound on. Needs the feed to send new lines on polls and a route for the wavs. Replay and transparent stay silent.
+- [ ] Build, review, landing
 
 ## Closing the Loop
 
@@ -87,6 +98,10 @@ Round 3 on b282100f1: Claude, GPT and fallback LGTM. Left as is: a range under 0
 Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passing the jargon check. Inflections added.
 
 Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude and fallback LGTM before it. Post-main `just test`: 2,684 agent, 1,200 viewer, 3,032 env, 38 gateway.
+
+Piece 4, round 1 on 724bd5a1d (sha 7e359be9): fallback LGTM, GPT BLOCKING, Claude CLI default login expired (retried with ~/.claude-review). Fixed: a failed last save exited with success and lost the line (now retried, and a repeat failure stops loudly); turns recovered on a restart were appended after later ones (sorted by time). Rebutted: a follower started before the run log exists fails at once, which is the right answer.
+
+Piece 4, round 2 on a9f440d1e: Claude and fallback LGTM; GPT BLOCKING only on a wav write failure exiting 0 after a logged skip. Rebutted (incomplete commentary is the designed outcome; the brief says skip and carry on); GPT re-judged with the rebuttal: LGTM.
 
 ## Boy Scout Log
 

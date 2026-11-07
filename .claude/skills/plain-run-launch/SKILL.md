@@ -10,6 +10,10 @@ One run, one arm, one wall cap. A launch is not done until `run_start` is read b
 
 `scripts/launch.sh --meta <dir> --model <id>` does the launch: it refuses a bad preset, endpoint, port or commit, starts the run detached with `POKEBENCH_CHECKPOINT_FRONTIER=1`, and writes `launch.receipt.json`. Every start saves frontier checkpoints by default; `POKEBENCH_CHECKPOINT_FRONTIER=0` turns that off on a hand launch.
 
+`--record` also starts `pokebench_env.recorder` before the run, detached, writing hourly picture and sound files to `runs/<meta>/recording/`. It only reads from the game server, so its failure cannot reach the run; check `recording.jsonl` for failures.
+
+`--definition <id>` resolves a fixed definition's arm to `runs/<meta>/preset.json` at launch, so a plain run follows its recipe pointer and takes no `runner.json` slot. `deepseek-boot-24h` is the DeepSeek boot run on `current`.
+
 ## 1. Pick the arm file, not the flags
 
 | What you are launching | File | Launcher |

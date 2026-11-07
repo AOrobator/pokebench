@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "deepseek-boot-24h",
+  "title": "DeepSeek boot run on the current control, 32K replies, 24 hours",
+  "worklog": "docs/worklogs/active/2026-11-06_run-recorder.md",
+  "primaryMilestone": "STONE_BADGE",
+  "romSha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
+  "base": {
+    "target": null,
+    "limits": {
+      "maxTurns": 20000,
+      "failureLimit": 3,
+      "replyFailuresEndRun": false
+    },
+    "sampling": {
+      "thinkingLevel": "medium",
+      "maxTokens": 4096
+    }
+  },
+  "phases": [
+    {
+      "id": "cook",
+      "perArm": 1,
+      "maxWallMs": 86400000,
+      "primary": false,
+      "start": {
+        "kind": "boot"
+      },
+      "singleArm": "control"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "A",
+      "gpu": "MAC",
+      "gamePort": 8000,
+      "modelUrl": "http://127.0.0.1:18100",
+      "runName": "deepseek-boot",
+      "server": "vllm",
+      "slots": 1,
+      "vision": true
+    }
+  ],
+  "serving": {
+    "model": "deepseek/deepseek-v4.1-flash",
+    "build": "vllm-orcarouter deepseek/deepseek-v4.1-flash",
+    "contextTokens": 1048576,
+    "slots": 1
+  },
+  "replacementReserveMs": 0,
+  "featureRecipe": "current",
+  "seed": "079870c5d2f6222d",
+  "plan": [
+    {
+      "slot": 1,
+      "phase": "cook",
+      "block": 1,
+      "lane": "A",
+      "arm": "control"
+    }
+  ],
+  "controlMaxTokens": 32768
+}

@@ -64,6 +64,10 @@ Round 1, frozen 5ad4882bc..08c6b9ac7, diff sha256 6e5b56b3e56e4036c2540c0deb22dd
 - Cursor GPT and Grok: not run, both models at the monthly usage limit until 11/17. Grok is waived for this work. GPT lane asked of a Codex session through `just tell-codex`.
 - Fallback subagent (Sonnet, read-only): LGTM. Its `clone()` containment note is a Fix under INV-3; the rest are follow-ups or speculation. Observer order, quadratic parse on huge args, and the unflushed decoder do not change a recorded result.
 
+Round 2, fix delta 08c6b9ac7..853de22e6, diff sha256 069bd9de19cfae08d2238d6bce0fdbe949e70ac7425b343d0d0240e48f7427b1.
+- Claude CLI: LGTM, both blockers closed. Its display note fixed in the next commit ("nothing visible"). Non-conforming shapes pi reads are follow-ups; no evidence vLLM emits them.
+- GPT lane: packet queued to a Codex session; The operator is deciding through the coordinator whether to waive it. Not landed.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

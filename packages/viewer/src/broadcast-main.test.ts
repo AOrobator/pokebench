@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { mountBroadcast, type BroadcastDeps, type FrameSocket } from "./broadcast-main.js";
 
-const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><canvas data-b="live" hidden></canvas><button data-b="sound" hidden></button><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
+const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><canvas data-b="live" hidden></canvas><button data-b="sound" hidden></button><div data-b="mix" hidden><button data-b="music-mute"></button><input data-b="music-level" type="range" value="50"></div><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
 const HEADER = { run: "r1", model: "deepseek/deepseek-v4.1-flash", started: "2026-11-06T12:00:00.000Z", kind: "boot", save: null };
 const T0 = Date.parse(HEADER.started);
 const ITEMS = [
@@ -303,6 +303,64 @@ describe("the broadcast page", () => {
       s.button().click();
       expect(s.unlocks()).toBe(1);
       expect(s.played).toEqual([]);
+    });
+
+    describe("game music", () => {
+      function mixed(search = "?run=r1", polls: Record<string, unknown>[] = []) {
+        const log: string[] = [];
+        const s = setup(search, url => url.endsWith("after=0") ? Promise.resolve(answer({ ended: false })) : Promise.resolve(answer({ ended: false, items: [], ...(polls.shift() ?? {}) })), {
+          speak: { unlock: () => undefined, play: () => new Promise<void>(() => undefined), stop: () => undefined },
+          music: { start: () => log.push("start"), stop: () => log.push("stop"), duck: on => log.push(`duck ${String(on)}`), level: value => log.push(`level ${String(value)}`) },
+        });
+        return { ...s, log, run: () => { for (const timer of s.timers.splice(0)) timer(); } };
+      }
+
+      it("starts with the same click, then shows its controls", async () => {
+        const s = mixed();
+        await s.mount();
+        expect(s.part("mix").hidden).toBe(true);
+        s.part("sound").click();
+        expect(s.log).toEqual(["level 0.5", "start"]);
+        s.run();
+        expect(s.part("mix").hidden).toBe(false);
+      });
+
+      it("dips under a spoken line and comes back", async () => {
+        const s = mixed("?run=r1", [{ commentary: [said] }]);
+        await s.mount();
+        s.part("sound").click();
+        await vi.waitFor(() => { s.run(); expect(s.log).toContain("duck true"); });
+      });
+
+      it("mutes and sets its level from the controls", async () => {
+        const s = mixed();
+        await s.mount();
+        s.part("sound").click();
+        const level = s.part("music-level") as HTMLInputElement;
+        level.value = "20";
+        level.dispatchEvent(new Event("input"));
+        expect(s.log.at(-1)).toBe("level 0.2");
+        s.part("music-mute").click();
+        expect(s.log.at(-1)).toBe("level 0");
+        expect(s.part("music-mute").textContent).toBe("MUSIC OFF");
+        s.part("music-mute").click();
+        expect(s.log.at(-1)).toBe("level 0.2");
+      });
+
+      it("stops when a moment is held, and is never offered in replay or transparent", async () => {
+        const s = mixed();
+        const page = await s.mount();
+        s.part("sound").click();
+        await page.setTime(3);
+        expect(s.log.at(-1)).toBe("stop");
+        expect(s.part("mix").hidden).toBe(true);
+        for (const search of ["?run=r1&t=5", "?run=r1&transparent=1"]) {
+          const quiet = mixed(search);
+          await quiet.mount();
+          expect(quiet.part("mix").hidden).toBe(true);
+          expect(quiet.log).toEqual([]);
+        }
+      });
     });
 
     it("goes silent when a moment is held", async () => {

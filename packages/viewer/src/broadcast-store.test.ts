@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commentaryWav, createBroadcastStore, type BroadcastDisk } from "./broadcast-store.js";
+import { commentaryWav, createBroadcastStore, gameAudioUrl, type BroadcastDisk } from "./broadcast-store.js";
 
 const t = (s: number): string => new Date(1_800_000_000_000 + s * 1000).toISOString();
 const ev = (s: number, type: string, rest: Record<string, unknown>): string => `${JSON.stringify({ v: 1, run: "r", seq: 1, t: t(s), type, turn: 1, ...rest })}\n`;
@@ -70,6 +70,12 @@ describe("the broadcast store", () => {
     d.files[path] = `${line(1)}\n${line(2)}\n${line(3)}\n`;
     expect((await s.read("r", 1, 2)).commentary.map(l => l.turn)).toEqual([3]);
     expect((await s.read("r", 0, 3)).commentary).toEqual([]);
+  });
+
+  it("asks the game server for sound only with a valid cursor", () => {
+    expect(gameAudioUrl(8000, "-1")).toBe("http://127.0.0.1:8000/audio.wav?since=-1&max_frames=12000");
+    expect(gameAudioUrl(8000, "267904042")).toBe("http://127.0.0.1:8000/audio.wav?since=267904042&max_frames=12000");
+    for (const since of ["", "-2", "1.5", "x", "1&max_frames=9", "99999999999999999999"]) expect(gameAudioUrl(8000, since)).toBeNull();
   });
 
   it("names a run's wav only for a plain commentary file", () => {

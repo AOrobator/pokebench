@@ -152,3 +152,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Rows: Taillow before Repel with a stop after 10 encounters; Wingull fallback marked as a deviation; level 26 without boosts. Route 104 Repel stays: 100 steps, spent long before Route 116.
 - Claude review: no weakening (a KO wastes the encounter), Wingull only if met, level 26 as an aim, not a gate.
 - Catch rows gate green. Claude's findings applied as proposed; GPT LGTM on facts.
+- rayquaza-lane-24h: same pointer recipe as v3, 24-hour cap; The operator 2026-11-06 10:30 PM. Run aeb8 ended on budget at turn 913 with Dynamo, past the rival at T784.

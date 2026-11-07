@@ -272,6 +272,89 @@ describe("the guide's route rows", () => {
   });
 });
 
+describe("the Mossdeep Gym rows", () => {
+  const KI_ROUTE = "U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U";
+  const LEGS = ["U4 L3 U3", "U2 R U D U R6 U2 R", "D U", "L R", "D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4", "L2", "U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6", "R U R U2", "U R2 U"];
+  const expand = (route: string): string => route.split(" ").map((press) => press.charAt(0).repeat(Number(press.slice(1) || "1"))).join("");
+  const start = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MOSSDEEP_GYM_ENTERED");
+  const badge = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MIND_BADGE");
+  const rows = RAYQUAZA_GUIDE_STEPS.slice(start, badge);
+  const gym = rows[1]?.at?.id;
+  if (gym === undefined) throw new Error("the Gym has no tile rows");
+  const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: gym, position: { x, y } }) as unknown as RunEvent;
+  const WARP_LANDINGS = [[1, 23], [23, 20], [8, 12], [11, 35], [21, 10]] as const;
+  const fromGym = (): GuidePosition => new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
+
+  it("splits KI's route at the warps without losing a press", () => {
+    expect(expand(LEGS.join(" "))).toBe(expand(KI_ROUTE));
+    for (const leg of LEGS) expect(rows.some((row) => row.note.includes(leg))).toBe(true);
+    expect(rows.map((row) => row.at === undefined ? null : [row.at.x, row.at.y])).toEqual([null, ...WARP_LANDINGS]);
+  });
+
+  it("keeps the badge within one milestone's reach of the Gym's first row", () => {
+    expect(badge - start).toBeLessThanOrEqual(8);
+  });
+
+  it("fires each row in order on its warp landing", () => {
+    const guide = fromGym();
+    for (const [i, [x, y]] of WARP_LANDINGS.entries()) {
+      guide.observe(at(x, y));
+      expect(guide.current()).toBe(rows[i + 1]);
+    }
+    guide.observe(milestone("MIND_BADGE"));
+    expect(guide.current().after).toBe("MIND_BADGE");
+  });
+
+  it("does not fire the (8,12) row on the first of the two (9,18) landings", () => {
+    const guide = fromGym();
+    for (const [x, y] of [[1, 23], [23, 20], [23, 21], [9, 18], [8, 18], [23, 20], [23, 24], [9, 18]] as const) guide.observe(at(x, y));
+    expect(guide.current()).toBe(rows[2]);
+  });
+
+  it("stalls on a skipped landing and recovers at the badge", () => {
+    const guide = fromGym();
+    guide.observe(at(1, 23));
+    for (const [x, y] of WARP_LANDINGS.slice(2)) guide.observe(at(x, y));
+    expect(guide.current()).toBe(rows[1]);
+    guide.observe(milestone("MIND_BADGE"));
+    expect(guide.current().after).toBe("MIND_BADGE");
+  });
+
+  it("stays on the row after re-entry, which names the way back to it, and goes on from there", () => {
+    const guide = fromGym();
+    for (const [x, y] of WARP_LANDINGS.slice(0, 3)) guide.observe(at(x, y));
+    const held = guide.current();
+    guide.observe(at(6, 35));
+    for (const [x, y] of WARP_LANDINGS.slice(0, 2)) guide.observe(at(x, y));
+    expect(guide.current()).toBe(held);
+    guide.observe(at(11, 35));
+    expect(guide.current()).toBe(rows[4]);
+  });
+
+  it("gives every tile row the whole route from the door up to it", () => {
+    let walked = "";
+    for (const [i, row] of rows.entries()) {
+      if (i > 0) expect(row.note).toContain(`from (6,35): ${walked}`);
+      walked = [walked, ...[LEGS.slice(0, 1), LEGS.slice(1, 2), LEGS.slice(2, 6), LEGS.slice(6, 7), LEGS.slice(7, 8)][i] ?? []].filter(Boolean).join(" ");
+    }
+    expect(rows.at(-1)?.note).toMatch(/after a loss/i);
+  });
+
+  it("cannot use one tile for two rows: only the first can ever fire", () => {
+    const tile = { id: [14, 0] as const, x: 23, y: 20 };
+    const guide = new GuidePosition([{ after: "RUN_START", map: null, note: "Start." }, { after: "AT:Gym:23:20", map: null, note: "First.", at: tile }, { after: "AT:Gym:23:20", map: null, note: "Second.", at: tile }]);
+    const on = { type: "state", map_id: tile.id, position: { x: 23, y: 20 } } as unknown as RunEvent;
+    guide.observe(on);
+    guide.observe(on);
+    expect(guide.current().note).toBe("First.");
+  });
+
+  it("uses no tile twice in the shipped guide", () => {
+    const tiles = RAYQUAZA_GUIDE_STEPS.filter((step) => step.at !== undefined).map((step) => step.after);
+    expect(new Set(tiles).size).toBe(tiles.length);
+  });
+});
+
 describe("rq-battle-explainer-v1", () => {
   const recorder = () => {
     let listener: (event: RunEvent) => void = () => undefined;

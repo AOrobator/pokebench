@@ -197,3 +197,40 @@ describe("the Fortree Gym gate rows", () => {
     expect(guide.current().after).toBe("FEATHER_BADGE");
   });
 });
+
+describe("the Sootopolis Gym ice rows", () => {
+  const tile = onFloor("SootopolisCity_Gym_1F");
+  const row = (x: number, y: number): string => `AT:SootopolisCity_Gym_1F:${String(x)}:${String(y)}`;
+  const LANDINGS = [[8, 15], [8, 10], [3, 6], [13, 6], [8, 3]] as const;
+  const gym = (): GuidePosition => new GuidePosition(rowsFrom("SOOTOPOLIS_GYM_ENTERED"), { checkpointRecovery: true });
+  it("fire in order, with no gate: closed stairs already stop an unfinished room", () => {
+    const guide = gym();
+    for (const [x, y] of LANDINGS) {
+      guide.observe(tile(x, y));
+      expect(guide.current().after).toBe(row(x, y));
+    }
+    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("AT:SootopolisCity_Gym") && step.gate === true)).toEqual([]);
+  });
+  it("sit on one floor, so a press that crosses the stairs recovers", () => {
+    const guide = gym();
+    guide.observe(tile(8, 10));
+    expect(guide.current().after).toBe(row(8, 10));
+    guide.observe(tile(8, 3));
+    expect(guide.current().after).toBe(row(8, 3));
+  });
+  it("hold through a fall to B1F and the climb back, then the next landing fires", () => {
+    const guide = gym();
+    for (const [x, y] of [[8, 15], [8, 10], [3, 6]] as const) guide.observe(tile(x, y));
+    guide.observe(move(8, 7, [14, 1]));
+    for (const [x, y] of [[11, 22], [8, 20], [8, 15], [8, 10], [3, 6]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe(row(3, 6));
+    guide.observe(tile(13, 6));
+    expect(guide.current().after).toBe(row(13, 6));
+  });
+  it("leave the badge inside REACH", () => {
+    expect(span("SOOTOPOLIS_GYM_ENTERED", "RAIN_BADGE")).toBeLessThanOrEqual(REACH);
+    const guide = gym();
+    guide.observe(story("RAIN_BADGE"));
+    expect(guide.current().after).toBe("RAIN_BADGE");
+  });
+});

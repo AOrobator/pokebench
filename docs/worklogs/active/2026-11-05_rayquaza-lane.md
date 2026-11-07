@@ -253,3 +253,11 @@ Fortree Gym:
 - Gate: only (1,8). From (7,8), L2 U6 reaches (5,2) with the (2,6) gate unturned, and the (5,2) route then blocks at (2,5). Holding the guide is safe: D6 L4 from there restores the route's exact gate state at (1,8). Other skips are harmless: a search of all 42,144 reachable gate states found (9,10) and (6,4) unavoidable, skipping (5,2) never breaks (6,4)'s route, and skipping (7,18) breaks only after an unrelated gate 0 detour.
 - Cost: a run that reaches (1,7) from (2,7) never lands on (1,8), so the gate holds the guide until FEATHER_BADGE and it misses the Winona row. The badge is 6 steps from entry.
 - Simulated on map.bin with the rotation tables: every leg and every recovery string ends on its row's tile with the route's gate state. Trainers see the route only at (9,10), (8,10), (1,8), (1,7), as KI's two battles did. Not run on the emulator.
+- COMMIT: `feat(guide): checkpoint rows through the Fortree Gym gates` (98d116703). 124 focused tests pass; tsc and eslint clean.
+
+Sootopolis Gym:
+
+- Five rows on 1F: stair tiles (8,15) and (8,10), ice corners (3,6) and (13,6), and (8,3) below Juan. Stair tiles prove a room is done, because a closed stair slides you back onto cracked ice. The 38-tile top room gets the corners. Rows end on stair tiles rather than the room's last ice, which a straight walk from the door reaches early with the stairs still shut.
+- No gate. A skipped tile cannot leave a false later row standing for long: the stairs stay shut, the run falls, and every row carries the restart. A gate at (3,6) would only have blocked the (8,3) tactics row after a press walked past the corner.
+- Reset: any warp clears the temp vars and OnTransition sets the step count to 1, so a fall, leaving or a loss resets all 64 tiles and the stairs. Rows say so and give the route from (8,20), the floor tile both the door and the ladder pass.
+- Simulated on map.bin with the step counts and stair unlocks at 8, 28 and 67: every leg and recovery string ends on its row's tile, 64 of 64 tiles, no repeat; the ladder reaches (8,20) by L3 U2. Badge is 6 steps from entry. Not run on the emulator, and one thing to watch there: the stair opens after a 40-frame script, so a press landing inside it may lose a step and stop one tile short of a row. The next landing recovers it.

@@ -169,3 +169,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Real-server load: Route 110 (35,61), controllable, ₽8,440, Marshtomp 22 at 62 HP, ROUTE_110 present at start, rival not beaten. Fake-model rehearsal, real agent and server, scratch runs root: both arms' requests ended with the right line, 8192 tokens, and a 65,536 window read from the server, so no lane context change is needed.
 - Not rehearsed: the fixed runner's chaining with these definitions (runner unchanged).
 - Correction: aeb8's winning rival fight used no items. Its only X Attack in those fights was turn 746, in a loss.
+- GPT review: primary said first fight while the tooling scores the milestone within the cap, and a stale README line. Fixed: primary is the milestone within 20 minutes, first fight is a secondary read from events.

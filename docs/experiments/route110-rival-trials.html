@@ -130,7 +130,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <div class="fact"><b>Runs per arm</b>17 (Qwen3.6: 18)</div>
 <div class="fact"><b>Trial cap</b>20 min</div>
 <div class="fact"><b>GPU-hours / wall</b>34.7 / 17.3 h</div>
-<div class="fact"><b>Primary outcome</b>Won the first rival fight</div>
+<div class="fact"><b>Primary outcome</b>Beat the rival within 20 min</div>
 <div class="fact"><b>Smallest lift we can see</b>+50 points at 80% power</div>
 </div>
 
@@ -150,7 +150,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <rect class="box b-red" x="10" y="20" width="190" height="100" rx="10"/><text x="24" y="46">Recorded failure</text><text class="small" x="24" y="68">5 of 6 fights lost:</text><text class="small" x="24" y="86">Absorb in two hits</text><text class="small" x="24" y="104">aeb8 turns 592-593</text>
 <rect class="box b-blue" x="230" y="20" width="190" height="100" rx="10"/><text x="244" y="46">Change</text><text class="small" x="244" y="68">Boost on Slugma,</text><text class="small" x="244" y="86">else aim for level 26</text><text class="small" x="244" y="104">one new line switch</text>
 <rect class="box b-amber" x="450" y="20" width="190" height="100" rx="10"/><text x="464" y="46">Expected behavior</text><text class="small" x="464" y="68">X items used before</text><text class="small" x="464" y="86">Grovyle comes out</text><text class="small" x="464" y="104">visible from fight</text>
-<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">first rival fight won</text><text class="small" x="684" y="86">within 20 min</text><text class="small" x="684" y="104">Fisher, A vs B</text>
+<rect class="box b-green" x="670" y="20" width="180" height="100" rx="10"/><text x="684" y="46">Measured as</text><text class="small" x="684" y="68">rival beaten in 20 min</text><text class="small" x="684" y="86">within 20 min</text><text class="small" x="684" y="104">Fisher, A vs B</text>
 <path class="arrow" d="M200,70 H226"/><path class="arrow" d="M420,70 H446"/><path class="arrow" d="M640,70 H666"/>
 </svg>
 <figcaption>Recorded failure: aeb8 lost five of six rival fights (seq 53085 is the win). Grovyle's Absorb took a Level 22 Marshtomp from 62 HP to zero in two hits at turns 592 and 593. The one win used no items: Rock Tomb lowered Grovyle's Speed, then a critical hit finished it. My earlier note that boosts were used in that win was wrong; the only X Attack was at turn 746, in a loss.</figcaption>
@@ -165,7 +165,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <circle cx="20" cy="50" r="7" class="box b-gray"/><text class="small" x="20" y="80" text-anchor="middle">boot</text>
 <circle cx="560" cy="50" r="9" class="box b-blue"/><text x="560" y="16" text-anchor="end">start</text><text class="small" x="560" y="32" text-anchor="end">(35,61) save</text>
 <circle cx="690" cy="50" r="7" class="box b-amber"/><text class="small" x="690" y="80" text-anchor="start">fight</text><text class="small" x="690" y="96" text-anchor="start">switch first matters</text>
-<circle cx="800" cy="50" r="9" class="box b-green"/><text x="800" y="28" text-anchor="start">primary</text><text class="small" x="800" y="80" text-anchor="middle">first rival fight won</text>
+<circle cx="800" cy="50" r="9" class="box b-green"/><text x="800" y="28" text-anchor="start">primary</text><text class="small" x="800" y="80" text-anchor="middle">rival beaten in 20 min</text>
 </svg>
 <figcaption>From the save, aeb8 walked into the rival in under a minute. The save has X Attack 3, X Speed 2, Full Heal 1, no Potions, ₽8,440, and Marshtomp alone at Level 22, 62 of 65 HP. A result here is conditional on this party.</figcaption>
 </figure>
@@ -181,12 +181,12 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <h2>4. Outcomes and the decision rule</h2>
 <div class="wrap"><table>
 <tr><th>Role</th><th>Outcome</th><th>Analysis</th></tr>
-<tr><td>Primary</td><td>Won the first rival fight</td><td>Current against old on Qwen3.8, two-sided exact Fisher at 0.05. Qwen3.6 is reported beside it, not tested against it.</td></tr>
+<tr><td>Primary</td><td>ROUTE_110_RIVAL_DEFEATED within 20 minutes</td><td>Current against old on Qwen3.8, two-sided exact Fisher at 0.05. Qwen3.6 is reported beside it, not tested against it.</td></tr>
 <tr><td>Secondary</td><td>Used an X item before Grovyle came out</td><td>Rate per arm. This is the mechanism check.</td></tr>
 <tr><td>Secondary</td><td>Walked into the fight at all within the cap</td><td>Rate per arm. Catches the current line leaving to grind for level 26.</td></tr>
-<tr><td>Secondary</td><td>ROUTE_110_RIVAL_DEFEATED within the cap</td><td>Rate per arm. Lets Qwen3.6 retry, so never pooled with the primary.</td></tr>
+<tr><td>Secondary</td><td>Won the first rival fight</td><td>Rate per arm, read from recorded battle events. For Qwen3.8 this is nearly the primary, since a retry takes 19 minutes or more. Qwen3.6 can retry inside the cap, so compare the models on this one.</td></tr>
 </table></div>
-<p>Keep the current line if it wins more and boosts more. If its fight rate falls because it goes grinding, drop the level 26 clause. Qwen3.6 goes to a boot test only if its win rate on the current line is at least Qwen3.8's.</p>
+<p>Keep the current line if it wins more and boosts more. If its fight rate falls because it goes grinding, drop the level 26 clause. Qwen3.6 goes to a boot test only if its first-fight win rate on the current line is at least Qwen3.8's.</p>
 <div class="note">Fixed N, one analysis after the last trial. Nothing stops or ejects the experiment early. Every launched trial counts; model errors and crashes count as not reached. </div>
 
 <h2>5. How many runs, and why</h2>
@@ -247,7 +247,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><td>Build</td><td><code>Frozen at launch</code></td></tr>
 <tr><td>Start state</td><td>runs/route110-rival/near-fight/ROUTE_110_NEAR_RIVAL.state, SHA-1 f6a0d23c49a946e99c36db3d3e97fc4120fe690f. CPU replay of aeb8 from its ROUTE_110 save (662fcf40f) to frame 1063791 in 64 seconds, no GPU. Work RAM matched the recording at all 51 checks, with no clock corrections. Loaded on the real server: Route 110, (35,61), controllable, ROUTE_110 present at start, rival not yet beaten.</td></tr>
 <tr><td>Baseline cohort</td><td>Qwen3.8 lane fights: aeb8 won 1 of 6, 7442 lost 1, so 1 of 7, about 15%. Hand-counted from recorded events</td></tr>
-<tr><td>Grading code</td><td>Existing ROUTE_110_RIVAL_DEFEATED milestone; first-fight result read from recorded battle events, with the script fixed before launch.</td></tr>
+<tr><td>Grading code</td><td>Primary: the existing ROUTE_110_RIVAL_DEFEATED milestone. First-fight secondary: recorded battle events, with the script fixed before launch.</td></tr>
 <tr><td>Design review</td><td>Not yet reviewed; The operator has not set a budget.</td></tr>
 </table></div>
 </main>

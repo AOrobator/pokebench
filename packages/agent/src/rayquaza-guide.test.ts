@@ -354,9 +354,10 @@ describe("Abra notes", () => {
     expect(named[0]?.note).toContain("Never search for them");
   });
   it("tells the model to throw a Ball at a wild Taillow or Wingull with no Fly carrier", () => {
-    const met = (species: string, party: readonly { species: string; hp: number }[], battleType = 4): readonly string[] => {
+    const balls = (quantity: number): { bag: readonly { pocket: string; quantity: number; name: string }[] } => ({ bag: [{ pocket: "poke_balls", quantity, name: "POKé BALL" }] });
+    const met = (species: string, party: readonly { species: string; hp: number }[], battleType = 4, resources = balls(5)): readonly string[] => {
       const guide = new GuidePosition(steps);
-      guide.observe(fight({ party, battle: { battle_type: battleType, battlers: [{ position: 0, species: "MARSHTOMP" }, { position: 1, species }] } }));
+      guide.observe(fight({ party, resources, battle: { battle_type: battleType, battlers: [{ position: 0, species: "MARSHTOMP" }, { position: 1, species }] } }));
       return notes(guide);
     };
     const alone = [{ species: "MARSHTOMP", hp: 30 }];
@@ -364,6 +365,8 @@ describe("Abra notes", () => {
     expect(met("WINGULL", alone)).toEqual([FLYER_NOTE]);
     expect(met("POOCHYENA", alone)).toEqual([]);
     expect(met("WINGULL", alone, 8)).toEqual([]);
+    expect(met("WINGULL", alone, 4, balls(0))).toEqual([]);
+    expect(met("WINGULL", alone, 4, { bag: [] })).toEqual([]);
     for (const species of ["TAILLOW", "SWELLOW", "WINGULL", "PELIPPER", "SWABLU", "ALTARIA"]) expect(met("WINGULL", [...alone, { species, hp: 0 }])).toEqual([]);
   });
 });

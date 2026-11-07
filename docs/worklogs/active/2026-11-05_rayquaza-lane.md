@@ -185,3 +185,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Route 116 row is on-path only, Repel at about x=35 after the grass. Route 110 lost its Wingull line and its level target (fact-only tail, decided 11/7). `FLYER_NOTE`: a wild Taillow or Wingull with no HM02 learner in the party, list read from the ROM. rq-old-rival-line-v1 now matches the new line.
 - Page wording tidied; rebased onto main.
 - GPT: the note said no Flying Pokémon while the check is HM02 learners, false for a Zubat party; wording now states the checked fact. Gate on 46126f1d2 passed; rerun on the final head.
+- Claude: the Fly note could tell a Ball-less run on Route 103 to throw a Ball; it now needs a Ball in the bag. Source cell and a dead test assertion fixed.
+- Rebased onto a8f723dfc (worklog-only upstream).

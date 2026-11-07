@@ -66,6 +66,7 @@ export class GuidePosition {
  inBattle=false;
  private wildAbra=false;
  private wildFlyer=false;
+ private hasBalls=false;
  private teleportReady=false;
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
@@ -83,7 +84,8 @@ export class GuidePosition {
    this.inBattle=battleOnScreen(event,true);
    const {party,battle}=event;
    this.wildAbra=this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&b.species==="ABRA")&&!party.some(p=>p.species!==null&&ABRA_LINE.has(p.species));
-   this.wildFlyer=this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&WILD_FLYERS.has(b.species))&&!party.some(p=>p.species!==null&&FLY_CARRIERS.has(p.species));
+   if(event.resources?.bag!=null)this.hasBalls=event.resources.bag.some(entry=>entry.pocket==="poke_balls"&&entry.quantity>0);
+   this.wildFlyer=this.hasBalls&&this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&WILD_FLYERS.has(b.species))&&!party.some(p=>p.species!==null&&FLY_CARRIERS.has(p.species));
    this.teleportReady=party.some(p=>(p.hp??0)>0&&(p.moves??[]).some(m=>m.move_id===TELEPORT_MOVE));
    this.map=event.map_id;
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;

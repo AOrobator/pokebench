@@ -27,7 +27,7 @@ describe("rq-old-rival-line-v1", () => {
   it("on, only the rival tactics change", async () => {
     const out = await guideAtRival({ ...ON, "rq-old-rival-line-v1": true });
     expect(out).toContain(OLD_RIVAL_LINE);
-    expect(out).not.toContain("Against Slugma");
+    expect(out).not.toContain("against Slugma");
     expect(out).toContain("Decline Foresight.");
   });
   it("the current row still holds the text the switch replaces", () => {

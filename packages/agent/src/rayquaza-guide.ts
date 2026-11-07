@@ -36,7 +36,7 @@ export const OLD_RIVAL_LINE="Rock hits Wingull and Slugma x2. Grovyle's Absorb h
 const CURRENT_RIVAL_LINE="X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.";
 
 type MapId=readonly [number,number];
-export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
+export interface GuideStep {readonly gate?:boolean;readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -155,7 +155,9 @@ export class GuidePosition {
  private recovers(reached:number):boolean {
   const id=this.steps[reached]?.at?.id;
   if(this.options.checkpointRecovery!==true||id===undefined||reached-this.furthest>REACH)return false;
-  return reached>this.furthest&&this.steps.slice(this.furthest+1,reached+1).every(step=>step.at!==undefined&&mapKey(step.at.id)===mapKey(id));
+  // A gate row holds a required action, such as Mossdeep's Green switch, that a later landing does not prove.
+  const skipped=this.steps.slice(this.furthest+1,reached);
+  return reached>this.furthest&&skipped.every(step=>step.at!==undefined&&step.gate!==true&&mapKey(step.at.id)===mapKey(id));
  }
  private onMap(id:MapId,position:{readonly x:number;readonly y:number}|null):number {
   return this.steps.findIndex(step=>(step.enter?.[0]===id[0]&&step.enter[1]===id[1])||(step.at!==undefined&&position!==null&&step.at.id[0]===id[0]&&step.at.id[1]===id[1]&&step.at.x===position.x&&step.at.y===position.y));

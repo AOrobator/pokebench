@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
 import { rayquazaLaneFeatures } from "../test-support/rayquaza-lane.js";
+import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const GYM = [14, 0], ELSE = [1, 1];
@@ -65,6 +66,30 @@ describe("rq-checkpoint-recovery-v1", () => {
   });
   it("the lane turns it on", () => {
     expect(rayquazaLaneFeatures()["rq-checkpoint-recovery-v1"]).toBe(true);
+  });
+  it("stops at a gate row until the player has landed on it", () => {
+    const gated = steps.map((step) => (step.after === "AT:2:2" ? { ...step, gate: true } : step));
+    const guide = new GuidePosition(gated, { checkpointRecovery: true });
+    guide.observe(story("GYM"));
+    guide.observe(move(3, 3));
+    expect(guide.current().after).toBe("GYM");
+    guide.observe(move(2, 2));
+    guide.observe(move(4, 4));
+    expect(guide.current().after).toBe("AT:4:4");
+  });
+  it("the real Mossdeep rows cannot skip the Green switch leg", () => {
+    const MOSSDEEP = [14, 3];
+    const atRows = RAYQUAZA_GUIDE_STEPS.filter((step) => step.at !== undefined && step.after.startsWith("AT:MossdeepCity_Gym"));
+    expect(atRows.filter((step) => step.gate === true).map((step) => step.after)).toEqual(["AT:MossdeepCity_Gym:23:20"]);
+    const entered = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MOSSDEEP_GYM_ENTERED");
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS, { checkpointRecovery: true });
+    for (const step of RAYQUAZA_GUIDE_STEPS.slice(1, entered + 1)) guide.observe({ ...story(step.after), origin: "present_at_start" } as unknown as RunEvent);
+    expect(guide.current().after).toBe("MOSSDEEP_GYM_ENTERED");
+    const id = atRows[0]?.at?.id ?? MOSSDEEP;
+    guide.observe(move(8, 12, id));
+    expect(guide.current().after).toBe("MOSSDEEP_GYM_ENTERED");
+    guide.observe(move(23, 20, id));
+    expect(guide.current().after).toBe("AT:MossdeepCity_Gym:23:20");
   });
   it("does not jump from outside the checkpoint chain's reach", () => {
     const far: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "s" }, ...Array.from({ length: 10 }, (_, n) => at(n + 1, 1))];

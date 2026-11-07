@@ -245,3 +245,11 @@ Lavaridge Gym:
 - No gates: vents are static and no leg holds a required action. Nothing resets on a loss or leaving, and the recovery line says so.
 - Simulated on map.bin with ledges, elevation-free walls, objects and buried trainers' sight 1: all 8 legs land where the rows say, no trainer sees the route, every recovery string ends on its row's tile. Vent graph: (0,6), (7,2) and (12,12) cannot be avoided; only (5,14) can, by the (1,14) or (0,17) vents, and the (0,6) row recovers it.
 - Tactics moved to the (12,12) row. Not run on the emulator.
+- COMMIT: `feat(guide): checkpoint rows on the Lavaridge Gym's 1F landings` (544f05832). 118 focused tests pass; tsc and eslint clean.
+
+Fortree Gym:
+
+- One room with no warp, but its 101 steps and 13 gate pushes are the longest string left. Five rows, each on the tile the last row's route ends on, so a press that finishes a row stops there: (7,18), (9,10), (1,8), (5,2), (6,4). (9,10) and (1,8) are also where trainers stop every run. (5,4) and (6,8) were rejected: the route crosses them twice.
+- Gate: only (1,8). From (7,8), L2 U6 reaches (5,2) with the (2,6) gate unturned, and the (5,2) route then blocks at (2,5). Holding the guide is safe: D6 L4 from there restores the route's exact gate state at (1,8). Other skips are harmless: a search of all 42,144 reachable gate states found (9,10) and (6,4) unavoidable, skipping (5,2) never breaks (6,4)'s route, and skipping (7,18) breaks only after an unrelated gate 0 detour.
+- Cost: a run that reaches (1,7) from (2,7) never lands on (1,8), so the gate holds the guide until FEATHER_BADGE and it misses the Winona row. The badge is 6 steps from entry.
+- Simulated on map.bin with the rotation tables: every leg and every recovery string ends on its row's tile with the route's gate state. Trainers see the route only at (9,10), (8,10), (1,8), (1,7), as KI's two battles did. Not run on the emulator.

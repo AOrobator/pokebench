@@ -151,3 +151,49 @@ describe("the Lavaridge Gym vent rows", () => {
     expect(guide.current().after).toBe("FLANNERY_DEFEATED");
   });
 });
+
+describe("the Fortree Gym gate rows", () => {
+  const tile = onFloor("FortreeCity_Gym");
+  const row = (x: number, y: number): string => `AT:FortreeCity_Gym:${String(x)}:${String(y)}`;
+  const LANDINGS = [[7, 18], [9, 10], [1, 8], [5, 2], [6, 4]] as const;
+  const gym = (): GuidePosition => new GuidePosition(rowsFrom("FORTREE_GYM_ENTERED"), { checkpointRecovery: true });
+  it("fire in order, each on the tile the last row's route ends on", () => {
+    const guide = gym();
+    for (const [x, y] of LANDINGS) {
+      guide.observe(tile(x, y));
+      expect(guide.current().after).toBe(row(x, y));
+    }
+  });
+  it("gate only the Darius row, whose route holds the push at (1,6)", () => {
+    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("AT:FortreeCity_Gym") && step.gate === true).map((step) => step.after)).toEqual([row(1, 8)]);
+  });
+  it("recover when a press walks past (7,18)", () => {
+    const guide = gym();
+    guide.observe(tile(9, 10));
+    expect(guide.current().after).toBe(row(9, 10));
+  });
+  it("hold at (5,2) reached straight up from (5,8), with the (2,6) gate unturned", () => {
+    const guide = gym();
+    for (const [x, y] of [[7, 18], [9, 10], [5, 2]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe(row(9, 10));
+    guide.observe(tile(1, 8));
+    expect(guide.current().after).toBe(row(1, 8));
+    guide.observe(tile(5, 2));
+    expect(guide.current().after).toBe(row(5, 2));
+  });
+  it("hold through a loss, then the next landing fires", () => {
+    const guide = gym();
+    for (const [x, y] of [[7, 18], [9, 10], [1, 8]] as const) guide.observe(tile(x, y));
+    guide.observe(move(5, 5, ELSE));
+    for (const [x, y] of [[15, 24], [7, 18], [9, 10], [1, 8]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe(row(1, 8));
+    guide.observe(tile(5, 2));
+    expect(guide.current().after).toBe(row(5, 2));
+  });
+  it("leave the badge inside REACH even from the cleared Kecleon", () => {
+    expect(span("FORTREE_GYM_OBSTRUCTION_CLEARED", "FEATHER_BADGE")).toBeLessThanOrEqual(REACH);
+    const guide = gym();
+    guide.observe(story("FEATHER_BADGE"));
+    expect(guide.current().after).toBe("FEATHER_BADGE");
+  });
+});

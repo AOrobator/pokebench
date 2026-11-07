@@ -1,4 +1,4 @@
-import {Governor,type GovernorDeps} from "./harness.js";
+import {Governor,type GovernorDeps,type ModelCallControl} from "./harness.js";
 import { TIME_EXTENSIONS, TURN_EXTENSIONS, isExtensionAction, isTimeExtension } from "./budget-extensions.js";
 // Operator run control. The viewer appends typed requests to
 // runs/<id>/control.jsonl; the running agent polls that file and applies them:
@@ -82,6 +82,7 @@ export class ControlFile {
 export type ControlBody = Omit<BodyOf<"operator_control">, "type" | "turn">;
 
 export interface RunControlDeps {
+  providerWaitPause?: boolean;
   budget?: { readonly maxWallMs: number; readonly maxTurns?:number; readonly turns?:()=>number; activeMs(): number; stopped(): boolean };
   record(body: ControlBody): void;
   freeze(paused: boolean): Promise<void>;
@@ -100,14 +101,16 @@ export class RunControl {
   private lastExtensionRequest = 0;
   private current: ControlState = "running";
   private pauseRequest = 0;
+  private inCall = false;
+  private freezing = false;
   private stopRequest = 0;
   private stopApplied = false;
   private resuming = false;
   // A resume that arrives while the freeze request is still out.
   private deferredResume: number | null = null;
   private detach: (() => void) | null = null;
-  // Set once the emulator freeze has been answered; the pause interval (for the
-  // budget and for the recorded "pause applied" event) starts there.
+  // A boundary pause starts counting after freeze. An in-flight pause starts
+  // counting immediately so the budget cannot expire during the freeze request.
   private pausedSince: number | null = null;
   private pausedTotal = 0;
   private release: (() => void) | null = null;
@@ -136,6 +139,18 @@ export class RunControl {
   }
 
   apply(request: ControlRequest): void {
+    this.applyRequest(request, false);
+  }
+
+  applyBatch(requests: readonly ControlRequest[]): void {
+    for (const [index, request] of requests.entries()) {
+      // A gateway hold that both starts and ends between polls needs no freeze.
+      const cancelled = request.action === "pause" && requests[index + 1]?.action === "resume";
+      this.applyRequest(request, cancelled);
+    }
+  }
+
+  private applyRequest(request: ControlRequest, cancelledInBatch: boolean): void {
     const { action, seq } = request;
     const ignore = (): void => { this.deps.record({ action, status: "ignored", request: seq }); };
     if (this.current === "ended") { ignore(); return; }
@@ -159,6 +174,7 @@ export class RunControl {
       if (this.current !== "running") { ignore(); return; }
       this.current = "pause_pending";
       this.pauseRequest = seq;
+      if (this.inCall && !cancelledInBatch) { void this.pauseDuringCall(); return; }
       this.deps.record({ action, status: "pending", request: seq });
       return;
     }
@@ -169,7 +185,7 @@ export class RunControl {
         return;
       }
       if (this.current !== "paused" || this.resuming || this.deferredResume !== null) { ignore(); return; }
-      if (this.pausedSince === null) { this.deferredResume = seq; return; }
+      if (this.freezing || this.pausedSince === null) { this.deferredResume = seq; return; }
       this.resume(seq);
       return;
     }
@@ -209,7 +225,7 @@ export class RunControl {
 
   // The governor asks at each turn end whether an operator stop is due.
   private catchUp(): void {
-    for (const request of this.deps.poll?.() ?? []) this.apply(request);
+    this.applyBatch(this.deps.poll?.() ?? []);
   }
 
   takeStop(): boolean {
@@ -220,6 +236,34 @@ export class RunControl {
     this.current = "ended";
     this.deps.record({ action: "stop", status: "applied", request: this.stopRequest });
     return true;
+  }
+
+  callStarted(): void {
+    if (this.deps.providerWaitPause) this.inCall = true;
+  }
+
+  async callEnded(signal?: AbortSignal): Promise<void> {
+    if (!this.inCall) return;
+    this.catchUp();
+    this.inCall = false;
+    if (this.current === "paused") await this.waitForResume(signal);
+  }
+
+  private async pauseDuringCall(): Promise<void> {
+    this.current = "paused";
+    this.pausedSince = this.deps.now();
+    this.freezing = true;
+    this.notify();
+    let frozen = true;
+    try {
+      await this.deps.freeze(true);
+    } catch {
+      frozen = false;
+    }
+    this.freezing = false;
+    if (!this.stillPaused()) return;
+    this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen, during_call: true });
+    this.applyDeferredResume();
   }
 
   // Awaited before every model call: a pending pause takes hold here, after the
@@ -245,16 +289,30 @@ export class RunControl {
     this.pausedSince = this.deps.now();
     this.deps.record({ action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen });
     this.notify();
-    const held = new Promise<void>((resolve) => {
+    const held = this.waitForResume(signal);
+    this.applyDeferredResume();
+    await held;
+  }
+
+  private waitForResume(signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve) => {
       this.release = resolve;
-      const onAbort = (): void => { this.closePause(); this.current = "ended"; this.wake(); };
+      const onAbort = (): void => {
+        this.dropDeferredResume();
+        this.closePause();
+        this.current = "ended";
+        this.wake();
+      };
+      if (signal?.aborted === true) { onAbort(); return; }
       signal?.addEventListener("abort", onAbort, { once: true });
       this.detach = () => { signal?.removeEventListener("abort", onAbort); };
     });
+  }
+
+  private applyDeferredResume(): void {
     const deferred = this.deferredResume;
     this.deferredResume = null;
     if (deferred !== null) this.resume(deferred);
-    await held;
   }
 
   // A stop or abort can arrive while the freeze request is in flight.
@@ -299,7 +357,7 @@ export class RunControl {
 }
 
 // Shared production construction: tests exercise the same effective-budget wiring as live play.
-export function controlledRun(governorDeps:Omit<GovernorDeps,"takeStop"|"pausedMs"|"wallLimit"|"turnLimit">, controlDeps:Omit<RunControlDeps,"budget"|"end">, activeMs:()=>number):{governor:Governor;control:RunControl} {
+export function controlledRun(governorDeps:Omit<GovernorDeps,"takeStop"|"pausedMs"|"wallLimit"|"turnLimit">, controlDeps:Omit<RunControlDeps,"budget"|"end">, activeMs:()=>number):{governor:Governor;control:RunControl;callControl?:ModelCallControl} {
  let control:RunControl|null=null;
  const {limits}=governorDeps;
  const governor=new Governor({...governorDeps,
@@ -308,7 +366,11 @@ export function controlledRun(governorDeps:Omit<GovernorDeps,"takeStop"|"pausedM
   turnLimit:()=>control?.turnLimit(limits.maxTurns)??limits.maxTurns,
  });
  control=new RunControl({...controlDeps,budget:{maxWallMs:limits.maxWallMs,maxTurns:limits.maxTurns,turns:()=>governor.turnCount,activeMs,stopped:()=>governor.stopReason!==null},end:reason=>{governor.abort(reason);}});
- return {governor,control};
+ const runControl = control;
+ return {governor,control,...(controlDeps.providerWaitPause ? {callControl:{
+  callStarted:()=>{runControl.callStarted();},
+  callEnded:(signal?:AbortSignal)=>runControl.callEnded(signal),
+ }} : {})};
 }
 
 // The wall-clock budget counts only unpaused time.
@@ -389,7 +451,7 @@ export async function freezeGame(gameServerUrl: string, paused: boolean, fetchFn
 // Poll the control file and apply new requests until stopped.
 export function watchControl(file: ControlFile, control: RunControl, intervalMs = 250): () => void {
   const timer = setInterval(() => {
-    for (const request of file.poll()) control.apply(request);
+    control.applyBatch(file.poll());
   }, intervalMs);
   return () => { clearInterval(timer); };
 }

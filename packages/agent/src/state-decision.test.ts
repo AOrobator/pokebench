@@ -113,7 +113,7 @@ it("refreshes input when a pause/resume occurs during snapshot I/O",async()=>{
 
 it("holds a state-mode reply before act can execute", async () => {
   const f = fixture([answer()]);
-  const replySeen = Promise.withResolvers<void>();
+  const replySeen = Promise.withResolvers<undefined>();
   const { control, governor, callControl } = controlledRun({
     limits: { maxTurns: 1, maxWallMs: 10_000, failureLimit: 3 },
     now: () => 0, retry: vi.fn(), abort: () => { f.controller.abort(); },
@@ -126,7 +126,7 @@ it("holds a state-mode reply before act can execute", async () => {
   const result = stateDecisions({
     ...f.options, governor, callControl,
     emit: event => {
-      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve();
+      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve(undefined);
     },
     streamFn: (...args) => {
       control.apply({ v: 1, seq: 1, at, action: "pause" });

@@ -305,6 +305,7 @@ export interface PiLoopOptions {
   readonly emit: (event: AgentEvent) => Promise<void> | void;
   readonly signal: AbortSignal;
   readonly streamFn?: StreamFn;
+  readonly callControl?: ModelCallControl | undefined;
   readonly requestContext?: (context: Context) => Context;
   readonly loopDetector?: LoopDetector | undefined;
   readonly window?: Window;
@@ -332,6 +333,36 @@ function streamFn(inner: StreamFn | undefined, requestContext?: (context: Contex
   };
 }
 
+export interface ModelCallControl {
+  callStarted(): void;
+  callEnded(signal?: AbortSignal): Promise<void>;
+}
+
+// Pi awaits the assistant message_end callback before dispatching any tools.
+export function modelCallHooks(
+  control: ModelCallControl | undefined,
+  transport: StreamFn,
+  emit: PiLoopOptions["emit"],
+  signal: AbortSignal,
+): { transport: StreamFn; emit: PiLoopOptions["emit"] } {
+  if (control === undefined) return { transport, emit };
+  return {
+    transport: (...args) => {
+      control.callStarted();
+      return transport(...args);
+    },
+    emit: async event => {
+      if (event.type === "message_end" && event.message.role === "assistant") {
+        const ended = control.callEnded(signal);
+        await emit(event);
+        await ended;
+      } else {
+        await emit(event);
+      }
+    },
+  };
+}
+
 export function piLoop(options: PiLoopOptions): Loop {
   const { systemPrompt, tools, governor, signal } = options;
   const budget = options.budget;
@@ -339,7 +370,7 @@ export function piLoop(options: PiLoopOptions): Loop {
     if (event.type === "message_end") budget.observe(event.message);
     return options.emit(event);
   };
-  const model = streamFn(options.streamFn, options.requestContext);
+  const hooks = modelCallHooks(options.callControl, streamFn(options.streamFn, options.requestContext), emit, signal);
   const config: AgentLoopConfig = {
     ...options.base,
     toolExecution: "sequential",
@@ -364,8 +395,8 @@ export function piLoop(options: PiLoopOptions): Loop {
   };
   return {
     start: (prompts, messages) =>
-      runAgentLoop(prompts, { systemPrompt, messages, tools }, config, emit, signal, model),
-    resume: (messages) => runAgentLoopContinue({ systemPrompt, messages, tools }, config, emit, signal, model),
+      runAgentLoop(prompts, { systemPrompt, messages, tools }, config, hooks.emit, signal, hooks.transport),
+    resume: (messages) => runAgentLoopContinue({ systemPrompt, messages, tools }, config, hooks.emit, signal, hooks.transport),
   };
 }
 

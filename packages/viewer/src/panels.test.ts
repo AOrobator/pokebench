@@ -1423,3 +1423,12 @@ it("rejects a malformed sent effort and accepts the valid forms",()=>{
  expect(()=>parseWorkbench(payload({}))).toThrow();
 });
 
+
+it("links the provider wait pause card and defaults the next run to on", async () => {
+ const { FEATURES: currentFeatures } = await import("../../agent/src/features.js");
+ const id = "provider-wait-pause-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(true);
+ const doc = new Window().document;
+ doc.body.innerHTML = harnessConfig(view(bare()), currentFeatures);
+ expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});

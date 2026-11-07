@@ -91,6 +91,9 @@
         },
         "emulator_frozen": {
           "type": "boolean"
+        },
+        "during_call": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

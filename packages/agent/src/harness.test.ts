@@ -941,7 +941,7 @@ it("resamples an error after an uncoached text reply without pi assistant-last c
 it.each(["resume", "stop"] as const)("production call control holds reply tools until %s", async action => {
   const signal = new AbortController();
   const press = vi.fn();
-  const replySeen = Promise.withResolvers<void>();
+  const replySeen = Promise.withResolvers<undefined>();
   const { control, governor, callControl } = controlledRun({
     limits: { maxTurns: 1, maxWallMs: 10_000, failureLimit: 3 },
     now: () => 0, retry: vi.fn(), abort: () => { signal.abort(); },
@@ -956,7 +956,7 @@ it.each(["resume", "stop"] as const)("production call control holds reply tools 
     transformContext: messages => Promise.resolve(messages),
     signal: signal.signal,
     emit: event => {
-      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve();
+      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve(undefined);
     },
     streamFn: (...args) => {
       control.apply({ v: 1, seq: 1, at, action: "pause" });

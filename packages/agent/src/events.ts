@@ -857,6 +857,7 @@ const OperatorControl = event("operator_control", {
   max_wall_ms: Type.Optional(NonNegativeInt),
   paused_ms: Type.Optional(NonNegativeInt),
   emulator_frozen: Type.Optional(Type.Boolean()),
+  during_call: Type.Optional(Type.Boolean()),
 });
 
 const ObjectiveUpdate = event("objective_update", { objective: ObjectiveSchema });

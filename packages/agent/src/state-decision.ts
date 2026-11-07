@@ -4,7 +4,7 @@ import { Type, type Static } from "typebox";
 import {Value} from "typebox/value";
 import type { GameStateSnapshot } from "./game-state.js";
 import { ButtonSchema, type RunEndReason } from "./events.js";
-import type { Governor } from "./harness.js";
+import { modelCallHooks, type Governor, type ModelCallControl } from "./harness.js";
 
 const closed = { additionalProperties: false } as const;
 export const StateActionSchema = Type.Union([
@@ -33,6 +33,7 @@ export interface StateDecisionOptions {
   readonly inputEpoch?:()=>number;
   readonly gate?: (signal?: AbortSignal) => Promise<void>;
   readonly streamFn?: StreamFn;
+  readonly callControl?: ModelCallControl | undefined;
 }
 
 export async function stateDecisions(options: StateDecisionOptions): Promise<RunEndReason> {
@@ -44,6 +45,7 @@ export async function stateDecisions(options: StateDecisionOptions): Promise<Run
     const message:AssistantMessage={role:"assistant",content:[],api:model.api,provider:model.provider,model:model.id,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},stopReason:"aborted",errorMessage:"Run stopped before decision request",timestamp:Date.now()};
     stream.push({type:"error",reason:"aborted",error:message});return stream;
   };
+  const hooks = modelCallHooks(options.callControl, transport, options.emit, signal);
   const act: AgentTool<typeof ActionParameters> = {
     name: "act", label: "Choose next action",
     description: "Choose exactly one action from the current snapshot: press up to eight buttons in order, or wait 1–2000 milliseconds of host time without pressing a button. A press uses buttons only; a wait uses duration_ms only. Never combine both fields. Host waiting does not guarantee a number of emulator frames; inspect the next snapshot for progress.",
@@ -96,7 +98,7 @@ export async function stateDecisions(options: StateDecisionOptions): Promise<Run
         return true;
       },
       getFollowUpMessages:()=>Promise.resolve([]),
-    },options.emit,signal,transport);
+    },hooks.emit,signal,hooks.transport);
     const last=messages.at(-1);
     if(last?.role==="assistant"&&(last.stopReason==="error"||last.stopReason==="aborted")&&!stopped())governor.modelError(last);
   }

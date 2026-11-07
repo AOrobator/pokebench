@@ -362,7 +362,7 @@ async function playAgent(): Promise<void> {
       const recovery = features["model-error-recovery-v1"]
         ? new ModelErrorRecovery({baseUrl: model.baseUrl, ...(apiKey===undefined?{}:{apiKey}), record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
         : null;
-      const {governor,control:runControl} = controlledRun({
+      const {governor,control:runControl,callControl} = controlledRun({
         limits,
         ...(screenshotButtonBaseline(features) ? { uncoachedBaseline: true } : {}),
         ...(features["text-only-supervisor-v2"]?{textOnlyReminder:TEXT_ONLY_REMINDER}:{}),
@@ -379,6 +379,7 @@ async function playAgent(): Promise<void> {
         ...(cutOff === undefined ? {} : { cutOffNotice: cutOff }),
         ...modelErrorHandlers(recovery, (reason) => { governor.abort(reason); }),
       }, {
+        providerWaitPause: features["provider-wait-pause-v1"],
         poll: () => controlFile.poll(),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
@@ -446,10 +447,11 @@ async function playAgent(): Promise<void> {
         ...budget,
         emit: event=>{if(event.type==="message_end"){exact?.observe(event.message);if(restored!==null)messages.push(event.message);}return recorder.emit(event);},
         signal: controller.signal,
+        callControl,
         gate: async (signal) => { await runControl.gate(signal); await recovery?.beforeModelCall(signal); },
       });
         if(restored!==null)return await playFromHistory(restored.messages,governor,loop);
-        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,gate:async signal=>{await runControl.gate(signal);await recovery?.beforeModelCall(signal);},inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
+        if(stateMode)return await runStateMode({features,target:goalTarget,serverUrl:gameServerUrl,recorder,governor,base:playLoopBase(model,thinking,apiKey,maxTokens,features),signal:controller.signal,callControl,gate:async signal=>{await runControl.gate(signal);await recovery?.beforeModelCall(signal);},inputEpoch:()=>runControl.pausedMs(),...(exact===undefined?{}:{exact})});
         return await deliverInitialPlayTask(start,goalTarget,features,()=>Date.now(),task=>play(task,governor,loop),researchNote);
       } finally {
         if(absoluteStop!==null)clearTimeout(absoluteStop);

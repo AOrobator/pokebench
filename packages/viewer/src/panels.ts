@@ -472,6 +472,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",
  "cutscene-journal-v1":"cutscene-journal-v1.html",
  "scene-journal-safe-capture-v1":"scene-journal-safe-capture-v1.html",
+ "provider-wait-pause-v1":"provider-wait-pause-v1.html",
  "compact-map-grid-v1":"compact-map-grid-v1.html",
  "supervisor-briefing-bound-v1":"supervisor-briefing-bound-v1.html",
  "type-gap-team-v1":"type-gap-team-v1.html",

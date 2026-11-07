@@ -1,6 +1,6 @@
 import type {AgentLoopConfig} from "@mariozechner/pi-agent-core";
 import type {FeatureSet} from "./features.js";
-import type {Governor} from "./harness.js";
+import type {Governor,ModelCallControl} from "./harness.js";
 import type {RunRecorder} from "./recorder.js";
 import type {ExactContext} from "./exact-context.js";
 import {CONTEXTUAL_CONTROLS,playGoal,toolSwitches} from "./play-config.js";
@@ -14,6 +14,7 @@ export function stateOnlyPrompt(features:FeatureSet,target:string|null):string{
 interface StateRuntimeOptions{
  readonly features:FeatureSet;readonly target:string|null;readonly serverUrl:string;readonly recorder:RunRecorder;
  readonly governor:Governor;readonly base:AgentLoopConfig;readonly signal:AbortSignal;readonly gate:(signal?:AbortSignal)=>Promise<void>;readonly inputEpoch?:()=>number;
+ readonly callControl?:ModelCallControl|undefined;
  // context-exact-count-v1: count each snapshot request on the serving server, as the normal loop does.
  readonly exact?:ExactContext;
 }
@@ -23,5 +24,5 @@ export function runStateMode(options:StateRuntimeOptions){
  const inner=options.base.onPayload;
  const base:AgentLoopConfig=exact===undefined?options.base:{...options.base,onPayload:async(payload,model)=>exact.fit((await inner?.(payload,model))??payload)};
  const emit:typeof recorder.emit=exact===undefined?recorder.emit:event=>{if(event.type==="message_end")exact.observe(event.message);return recorder.emit(event);};
- return stateDecisions({systemPrompt:stateOnlyPrompt(features,options.target),goal:playGoal(options.target,features),base,governor:options.governor,signal:options.signal,gate:options.gate,...(options.inputEpoch===undefined?{}:{inputEpoch:options.inputEpoch}),readSnapshot:signal=>readDecisionSnapshot(serverUrl,fetch,signal),recordSnapshot:snapshot=>{recorder.recordDecisionSnapshot(snapshot);return Promise.resolve();},execute:decisionActions(serverUrl,{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress(),beforeWait:(id,ms)=>{recorder.recordWaitInput(id,ms);}},fetch,undefined,toolSwitches(features)),transformContext:recorder.transformContext,emit});
+ return stateDecisions({systemPrompt:stateOnlyPrompt(features,options.target),goal:playGoal(options.target,features),base,governor:options.governor,signal:options.signal,gate:options.gate,callControl:options.callControl,...(options.inputEpoch===undefined?{}:{inputEpoch:options.inputEpoch}),readSnapshot:signal=>readDecisionSnapshot(serverUrl,fetch,signal),recordSnapshot:snapshot=>{recorder.recordDecisionSnapshot(snapshot);return Promise.resolve();},execute:decisionActions(serverUrl,{beforePress:(id,buttons,timing,before)=>{recorder.buttonPress(id,buttons,timing,before);},afterPress:()=>recorder.afterPress(),beforeWait:(id,ms)=>{recorder.recordWaitInput(id,ms);}},fetch,undefined,toolSwitches(features)),transformContext:recorder.transformContext,emit});
 }

@@ -44,7 +44,7 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 ### Piece 3: `just broadcast-commentary`
 - [x] Local model: none free (18020 serves e09e, LM Studio empty, 18100 paid). Coordinator put a temporary loopback Qwen3.6-35B-A3B to the operator; not started. Tool takes --endpoint.
 - [x] RED (1800fd9ca), GREEN: 20 env tests and 32 render tests
-- [ ] Real local model lines (waits on the operator's answer); rehearsed with a stub model and real Kokoro: 4 wavs on 80af t=225-265 in 8 s
+- [x] Real lines (the operator approved via coordinator 2026-11-07): temporary loopback Qwen3.6-35B-A3B Q4, ctx 8k, 1 slot, nice 10, stopped after. a0b4 Winona fight, t=4279-4760: 16 of 17 turns. Peak 30.6 GB RSS, system memory free never under 78%. Prompt tuned against every turn's thinking; a jargon check refuses button names and KO/HP, retried up to 3 times.
 - [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
 ## Closing the Loop

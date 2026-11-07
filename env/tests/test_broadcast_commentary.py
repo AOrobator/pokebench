@@ -66,6 +66,10 @@ def test_events_before_run_start_are_ignored() -> None:
         ("<think>hm</think>I'll go north.", "I'll go north."),
         ("one two\nthree", "one two three"),
         ("", None),
+        ("I'll press B to stay in.", None),
+        ("Surf will OHKO it.", None),
+        ("I'll KO Altaria.", None),
+        ("My HP is low.", None),
         ("word " * 20, None),
     ],
 )

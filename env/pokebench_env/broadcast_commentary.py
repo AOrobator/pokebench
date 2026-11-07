@@ -22,14 +22,21 @@ from urllib.parse import urlsplit
 
 MAX_WORDS = 19
 SAVE_EVERY = 25
-TRIES = 2
+TRIES = 3
+# Words a viewer should not hear, which the model sometimes keeps despite the prompt.
+JARGON = re.compile(r"\b(press|pressing|OHKO|KO|KOs|HP)\b", re.IGNORECASE)
 VOICE = "af_heart"
 VOICE_SPEED = 1.05
 SYSTEM = (
     "You turn a game-playing AI's private thinking into one line it says aloud to a live "
-    "audience watching it play Pokemon. First person. Under 20 words. Plain spoken words: "
-    "no coordinates, tool names, numbers worked out step by step, or jargon. Say what you "
-    "are doing or deciding right now and why. Reply with the line alone."
+    "audience watching it play Pokemon. First person, present or near future. Under 20 words. "
+    "The decision is in the last lines of the thinking: earlier parts are often ideas it dropped. "
+    "Say that decision and the reason given next to it. Use only what the thinking says: add no "
+    "reason, plan, outcome or fact of your own, and never say a move wins or ends something "
+    "unless the thinking does. Plain spoken English: never name a button or say press; no "
+    "coordinates, tool names, damage numbers or abbreviations like OHKO or HP. If the thinking "
+    "only answers a game prompt, say what the answer means, such as keeping my Pokemon in or "
+    "not learning a move. Reply with the line alone."
 )
 
 WANTED = ("run_start", "turn_start", "assistant")
@@ -99,7 +106,8 @@ def local_endpoint(url: str) -> bool:
 def clean_line(reply: str) -> str | None:
     text = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
     text = " ".join(text.split()).strip("\"'“”‘’ ")
-    return text if text != "" and len(text.split()) <= MAX_WORDS else None
+    spoken = text != "" and len(text.split()) <= MAX_WORDS and JARGON.search(text) is None
+    return text if spoken else None
 
 
 def ask_model(endpoint: str, model: str, post: Post, thinking: str) -> str:

@@ -25,3 +25,5 @@ COMMIT: `fix(env): an encoder that dies on starting waits before the next try` (
 COMMIT: `test(env): the encoder restart test uses a fake clock` (3db6a8321). GPT LGTM on the encoder delta. Added per-minute `sync` marks for compositing a Broadcast view later: journal `at`, game frame and file position. The second capture input waits on spectator-thread details.
 
 COMMIT: `feat(env): the recorder logs a sync mark each minute` (1fdd1a42b). GPT LGTM on rounds through 061e21c53. Claude BLOCKING: a run from a save recorded no sound, since a save restores the frame counter but not the sound counter; the anchor now checks the first sound and rebases, logged. Also fixed: an encoder that stops reading (10 s write deadline, then killed), picture and sound parting after `frames_lost`, `audio_gap` rows overwriting `at`, `just record` paths, and flushing (`flush_packets` belongs in the segment format options). `--index` writes `segments.json`. Claude also found real runs go at about 80 fps, so media runs about 1.34 times wall time.
+
+COMMIT: `fix(env): sound records from a save, and a stuck encoder cannot hang the recorder` (cd56ada2e).

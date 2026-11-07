@@ -40,6 +40,8 @@ AUDIO_LAG_SAMPLES = 686
 WAV_HEADER_BYTES = 44
 SEGMENT_SECONDS = 3600
 # Each mark ties wall clock (the journal's `at`), game frame and file position, for compositing.
+# flush_packets works only here: on the outer muxer the inner file buffers 256 KiB at a time.
+SEGMENT_OPTIONS = "cluster_time_limit=1000:flush_packets=1"
 SYNC_MARK_FRAMES = 3600
 # Sound further than this from the first frame's place did not start with the frame counter.
 ANCHOR_TOLERANCE_SAMPLES = SAMPLE_RATE
@@ -348,7 +350,7 @@ def video_command(out: Path, part: int) -> list[str]:
         "-pix_fmt", "yuv444p",
         "-g", "600", "-force_key_frames", f"expr:gte(t,n_forced*{SEGMENT_SECONDS})",
         "-flush_packets", "1", "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
-        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000:flush_packets=1",
+        "-segment_format", "matroska", "-segment_format_options", SEGMENT_OPTIONS,
         "-reset_timestamps", "1", str(out / f"video-p{part:02d}-%04d.mkv"),
     ]  # fmt: skip
 
@@ -359,7 +361,7 @@ def audio_command(out: Path, part: int) -> list[str]:
         "-f", "s16le", "-ar", str(SAMPLE_RATE), "-ac", "2", "-i", "pipe:0",
         "-c:a", "flac", "-flush_packets", "1",
         "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
-        "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000:flush_packets=1",
+        "-segment_format", "matroska", "-segment_format_options", SEGMENT_OPTIONS,
         "-reset_timestamps", "1",
         str(out / f"audio-p{part:02d}-%04d.mka"),
     ]  # fmt: skip

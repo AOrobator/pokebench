@@ -303,4 +303,17 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - COMMIT: `feat(agent): rq-mach-dash-v1 adds mach_dash, a whole MACH BIKE route in one POST` (d9d2ec8e2). 42 tests in its file; 177 agent and 48 viewer focused tests pass; tsc and eslint clean.
 - Guide rows: `GuidePosition.onMap` takes the first row that matches, so a first-climb row on an arrival tile, or any `MAP:` row on a Sky Pillar floor, would stop the second climb's row from ever firing. So the first climb keeps tiles only it uses, (5,4) on 4F and (6,4) on 3F, and the second climb owns the arrival tiles.
 - COMMIT RED: `test(guide): Sky Pillar rows give verified routes and fire per floor` (e9b75efa2).
+- COMMIT: `fix(guide): Sky Pillar rows use mach_dash and split per floor` (708bc9911). 140 steps.
+- Live test, all on real `pokebench_env` servers on 8160-8167, runs root in scratch, lane recipe's server switches, saves in `runs/sky-pillar-test/` (Repel on and the lead at level 100 so wild battles stay out, except the wild saves):
+  - 1F `U1 L9 U4 R2 U3 L1 U3 R3 D2 R5 U3` (36 beats) from (6,13) to 2F (10,2): 25 runs reached it, with or without the SELECT mount at the door tile; 2 more stopped for a wild battle.
+  - 2F `D1 R4 D11 L10 U4 R2 U8` (40) to 3F (3,2): 25 of 25. 3F `D7 L2 D6 R1 D1 R10 U5 L1 U6` (39) to 4F (11,2): 5 of 5.
+  - 4F `D14 L8 U8 R2` (32) to 3F (7,4), off the bike: 10 of 10. 5F `L5 D3 R1 D4 L1 D4 R5 D1 R7 U5 L1 U6 L2 U1` (46) to the top (16,15): 5 of 5; the top forces you off the bike, which the first report called a fall. Fixed by `allow_cycling`.
+  - Wrong start facing: 2F from RIGHT and from UP, 4F from LEFT, 1F from LEFT, 5F from DOWN: each turned first, then finished as normal.
+  - Falls: `D1 R4 D5` on 2F falls at (11,10) to 1F, on the route; `navigate_to (10,1)` (38 presses), SELECT, the full route crossed that crack. `D6` on 4F falls at (11,5) to 3F; `navigate_to (11,1)`, SELECT, the full route again reached the pocket. Cracks restore on reload. `D1 R4 D2` falls at (11,6).
+  - Wild battles: 2 in 26 runs with no Repel, both on 1F. The first showed a battle transition read as a fall; fixed, and the second reported `A battle started`. No battle on a cracked floor seen.
+  - Top: with the first-climb flags, reaching (14,9) starts the scene. With the second-climb flags, `navigate_to (14,7)` arrives, and A there starts the Rayquaza script. Press UP at (14,7) does not move.
+  - First climb on the clean layouts, on foot: `navigate_to` to (10,1), (3,1), (11,1), (5,4); RIGHT once drops to 3F (6,4); (7,1), (3,1), (10,1), (14,8) stops at (14,9) as the scene starts.
+  - Play path: `live.js play` with the lane preset and a scripted fake model, 1F to (14,7) in one run, no error events. It found what the direct driver could not: the recorder refused `release_frames: 0`, so the event schema now allows it (`schemas/events.v1.json` regenerated). It also found that a warp's loading frames read as an unknown screen with an active_ui, which ended the wait early.
+- Not gated: the guide rows change with the data, as every guide correction has. With `rq-milestone-guide-v1` ON and `rq-mach-dash-v1` OFF the rows would name a tool the model lacks. The lane has both on.
+- The queue cannot be cancelled: a run aborted mid-route still rides up to 100 beats.
 

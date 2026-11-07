@@ -43,7 +43,8 @@ export function parseDash(route:string):ParsedDash {
 const riding=(s:GameStateSnapshot):boolean=>((s.running?.avatar_flags??0)&MACH_BIKE_FLAG)!==0;
 const onField=(s:GameStateSnapshot):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.active_ui==null&&s.field_controls_locked===false&&s.running?.controllable===true&&s.map_id!==null&&s.position!==null&&s.world_context?.dialogue==null&&s.world_context?.message==null;
 const inBattle=(s:GameStateSnapshot):boolean=>s.in_battle||s.screen.startsWith("battle");
-const stopped=(s:GameStateSnapshot):boolean=>inBattle(s)||s.screen!=="overworld"||s.active_ui!=null||s.world_context?.dialogue!=null||s.world_context?.message!=null;
+// A warp's loading frames read as an unknown screen with an active_ui of their own, and pass by themselves.
+const stopped=(s:GameStateSnapshot):boolean=>inBattle(s)||s.screen==="overworld"&&(s.active_ui!=null||s.world_context?.dialogue!=null||s.world_context?.message!=null);
 const sameTile=(a:GameStateSnapshot,b:GameStateSnapshot):boolean=>JSON.stringify([a.map_id,a.position])===JSON.stringify([b.map_id,b.position]);
 const place=(s:GameStateSnapshot):string=>s.location_display??s.location??"this map";
 const tile=(s:GameStateSnapshot):string=>s.position===null?"an unknown tile":`(${String(s.position.x)},${String(s.position.y)})`;

@@ -1,5 +1,6 @@
 import {describe,expect,it} from "vitest";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
+import {checkEvent} from "./events.js";
 import {ALL_ON,type FeatureSet,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES} from "./features.js";
 import {ALL_TOOL_SWITCHES,gameTools,type ToolSwitches} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
@@ -10,6 +11,8 @@ import {playGameTools} from "./play-wiring.js";
 import {IN_GAME} from "../test-support/events.js";
 import {rayquazaLaneFeatures} from "../test-support/rayquaza-lane.js";
 
+const BUTTON_ENVELOPE={v:1,run:"2026-11-07T00-00-00_fake_0000",seq:1,t:"2026-11-07T00:00:00.000-05:00",turn:1};
+const MENU:NonNullable<GameStateSnapshot["active_ui"]>={phase:"field_menu",selected:null,ready:true,controls:"A picks",diagnostic:null,value:null};
 const ALL_OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
 const running={permitted:false,controllable:true,reason:"not_on_foot",shoes:true,allow_running:true,avatar_flags:0x22,metatile:0,elevation:3,map_type:4,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const FLOOR2:readonly [number,number]=[24,80],FLOOR1:readonly [number,number]=[24,79],FLOOR3:readonly [number,number]=[24,81];
@@ -103,6 +106,9 @@ describe("mach_dash sends the route",()=>{
   expect(h.recorded.slice(1).every(r=>r.buttons.join()==="B")).toBe(true);
   expect(h.afterPresses()).toBe(h.posts.length);
  });
+ it("the event log takes the list as a button_press, with its release of 0 frames",()=>{
+  expect(checkEvent({...BUTTON_ENVELOPE,type:"button_press",tool_call_id:"call",buttons:["UP"],...DASH_TIMING})).toMatchObject(DASH_TIMING);
+ });
  it("facing the wrong way: turns first, reads the turn back, then sends the list",async()=>{
   const turned=field({facing:"right"});
   const h=harness(field({facing:"up"}),[turned,landed,landed,landed]);
@@ -162,6 +168,19 @@ describe("mach_dash settles in emulated frames",()=>{
   expect(h.posts).toHaveLength(2);
   expect(text(result)).toContain("A battle started");
   expect(text(result)).not.toContain("fell");
+ });
+ it("waits through a warp's loading frames, where no screen or tile can be read",async()=>{
+  const loading=field({screen:"unknown",map_id:null,position:null,location:null,running:null,field_controls_locked:null,active_ui:{...MENU,phase:"unknown"}});
+  const h=harness(field(),[loading,landed,landed]);
+  const result=await run(h.dash,ROUTE);
+  expect(h.posts).toHaveLength(3);
+  expect(text(result)).toContain("SKY PILLAR 3F at (3,2)");
+ });
+ it("stops pressing when a field message or menu takes the input",async()=>{
+  const h=harness(field(),[field({position:{x:10,y:9},active_ui:MENU})]);
+  const result=await run(h.dash,ROUTE);
+  expect(h.posts).toHaveLength(1);
+  expect(text(result)).toContain("has not returned control");
  });
  it("says so when control never comes back inside the bound",async()=>{
   const locked=field({field_controls_locked:true});

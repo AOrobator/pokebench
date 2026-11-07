@@ -80,7 +80,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Finish the cavern scene and surface on Route 128. Go south into Route 129, then west through 130–131 to Pacifidlog. Fly to Mossdeep (no Fly: Surf and Dive); Surf south on 127, turn west into 126. Dive at (45,66) and go north through the door at (45,65) to surface in Sootopolis. | KI v1:59:15–2:02:05, U7, ROM |
+| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Finish the cavern scene and surface on Route 128. Go south into Route 129, then west through 130–131 to Pacifidlog. Fly to Mossdeep (no Fly: Surf); Surf south on 127, turn west into 126. Dive at (45,66) and go north through the door at (45,65) to surface in Sootopolis. | KI v1:59:15–2:02:05, U7, ROM |
 | `SOOTOPOLIS_CITY` | `CaveOfOrigin_1F` | Talk to Steven at (20,36) so he leads you to the Cave of Origin, then speak to Wallace inside. Choose Sky Pillar when he asks where Rayquaza is. | KI 48, WT 12 |
 | `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Use an Escape Rope, or walk out if it is missing. Fly to Pacifidlog, Surf east on Route 131 and take the north opening to Sky Pillar. | KI v2:03:47–2:04:45, U32, ROM |
 | `SKY_PILLAR_OPENED` | `SkyPillar_1F` | Use the Mach Bike. From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza. | KI v2:04:45–2:05:45, U33, ROM |

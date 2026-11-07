@@ -16,3 +16,5 @@ Claude (subagent) LGTM; its wording note on the Off clause applied.
 ## Drought counts turns only
 
 The operator 2026-11-07: the drought note is a correctness issue too. `drought-turns-only-v1` (branch claude/drought-turns, on top of this one): the turn clock without credits for level-ups, wins or heals, 30 actions. RED: 3 tests failed before; GREEN 114; removing the credit gate turns a test red. Model-facing wording drops "level-up, trainer win or full heal" when on. Landing waits for the operator's choice.
+
+COMMIT: `feat(agent): the drought note counts turns, and only story milestones restart it` (def5ae0e7). Test-file lint fix next.

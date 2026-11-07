@@ -111,6 +111,8 @@ function label(target:RequestTarget):string {
  if(target.kind==="warp")return `warp at (${String(target.x)},${String(target.y)})`;
  return `${target.interaction_kind.replaceAll("_"," ")} at (${String(target.x)},${String(target.y)})`;
 }
+// GetWarpEventAtPosition. navigator-elevation-zero-pads-v1: an elevation of 0 means the previous elevation is not known here, so it cannot rule a warp out.
+const warpMatches=(warp:number,elevation:number,options:NavigationOptions):boolean=>warp===0||warp===elevation||options.zeroPads===true&&elevation===0;
 // navigator-elevation-zero-pads-v1: whether the navigator's lookup finds this warp from this state.
 export function navigatorTakesWarp(state:GameStateSnapshot,x:number,y:number,features:FeatureSet):boolean {
  return resolve(state,{kind:"warp",x,y},navigationOptions(features))!==null;
@@ -130,8 +132,7 @@ function resolve(state:GameStateSnapshot,target:RequestTarget,options:Navigation
   const standing=here===null?undefined:state.navigation_grid?.tiles.find(tile=>tile.x===here.x&&tile.y===here.y)?.elevation??state.navigation_grid?.elevation??state.map_grid?.elevation;
   const elevation=(options.zeroPads===true?plannedWarpElevation:plannedArrivalElevation)(state,{x:target.x,y:target.y},options)??standing??null;
   if(elevation===null)return null;
-  // navigator-elevation-zero-pads-v1: on an elevation-0 tile the previous elevation is not known here, so it cannot rule a warp out.
-  const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation||options.zeroPads===true&&elevation===0))??null;
+  const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&warpMatches(item.elevation,elevation,options))??null;
   // An enrolled pad resolves canonically from the map's records, never from whichever source happens
   // to list it this read: navigate_to_target re-resolves before every step, and a target that flips
   // between the synthetic and the listed record reads as "changed during travel" mid-walk.
@@ -189,9 +190,9 @@ function goalOnlyTile(state:GameStateSnapshot,point:Point,options:NavigationOpti
  return behavior!==null&&options.goalOnly===true&&GOAL_ONLY_BEHAVIORS.has(behavior);
 }
 function interactionRecipient(state:GameStateSnapshot,target:SnapshotTarget,approach:Approach,options:NavigationOptions):SnapshotTarget|null {
- const elevation=plannedArrivalElevation(state,approach.point,options);if(elevation===null)return null;
+ const elevation=(options.zeroPads===true&&target.kind==="warp"?plannedWarpElevation:plannedArrivalElevation)(state,approach.point,options);if(elevation===null)return null;
  if(target.kind==="warp"){
-  const found=(state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  const found=(state.interaction_targets??[]).find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&warpMatches(item.elevation,elevation,options))??null;
   return (options.goalOnly===true?advertisedWarp(state,{x:target.x,y:target.y},options):null)??found;
  }
  if(target.activation!=="A")return target;

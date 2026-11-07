@@ -233,3 +233,4 @@ Unit 3, the remaining audit rows:
 - The Mossdeep pilot showed a skipped checkpoint stalls the guide. A later checkpoint on the same map may now recover it, within REACH, behind a lane-only switch.
 - COMMIT RED: `test(guide): a later checkpoint recovers a skipped one on the same map` (8c1f9f139). Wiring test goes red with the option removed.
 - Claude review: an early (8,12) landing could skip Mossdeep's Green switch leg and strand the guide. Rows tagged GATE in the Source column now stop recovery; (23,20) is the one gate. Test on the real rows.
+- Landed rq-checkpoint-recovery-v1 (650005775): Claude and GPT LGTM, Grok skipped; just test and just lint exit 0 (agent 2745, viewer 1235); memory free 86%. Open, pre-existing: an early L2 at the first (9,18) landing still fires (8,12) as the plain next row with Green undone.

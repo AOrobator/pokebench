@@ -227,7 +227,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 
 <h2>6. Order, executors and failures</h2>
 <p>Both arms run in randomized balanced blocks on one Qwen3.8 server that holds both GPUs, so each wall hour is 2 GPU-hours; the table above is doubled from power.py for that reason. Qwen3.6 runs after, one instance per GPU, each GPU running both arms. Stop anything only after checking no live run uses that server. e09e holds both GPUs until about 10:35 PM on Nov 7, unless the operator stops it.</p>
-<p>Every trial runs the full 20 minutes: the control base has no stop target, so a win carries on toward Mauville and a win is read from the milestone. Costs exclude a few minutes of start-up per trial. aeb8's quickest return after a loss was 19 minutes, so one fight per trial is close to guaranteed for Qwen3.8. Only trials with no run_start are re-run, up to three per definition.</p>
+<p>Every trial runs the full 20 minutes: the control base has no stop target, so a win carries on toward Mauville and a win is read from the milestone. Costs exclude a few minutes of start-up per trial. aeb8's quickest return after a loss was 19 minutes, so one fight per trial is close to guaranteed for Qwen3.8. The runner replaces an invalid trial, up to three per definition: one that never began, one whose run_start does not match the plan, or one ended by an outside signal. A fourth pauses the lane for the operator. Do not stop a trial by hand during the cohort; a signalled trial may count and also be replaced.</p>
 
 <h2>7. What could fool us, and what this cannot tell us</h2>
 <div class="wrap"><table>

@@ -171,3 +171,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Correction: aeb8's winning rival fight used no items. Its only X Attack in those fights was turn 746, in a loss.
 - GPT review: primary said first fight while the tooling scores the milestone within the cap, and a stale README line. Fixed: primary is the milestone within 20 minutes, first fight is a secondary read from events.
 - Claude review: a zero replacement reserve would leave a never-began trial paused forever, so both definitions reserve three trials (3,600,000 ms). Power table now uses no failure rate and no budget line, since the operator has set none. First-fight reader at `runs/route110-rival/first-fight.py`.
+- Claude recheck: the reserve allows three replacements as stated, but the runner also replaces mismatched and signalled trials; page now says so. Noted for later: fixed-run-launch section 4 says a SIGTERM'd trial is not replaced, while `classifyTrial` replaces it.

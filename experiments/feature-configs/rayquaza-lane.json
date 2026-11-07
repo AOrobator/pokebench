@@ -7,7 +7,8 @@
     "jit-guide-reuse-v1": "Keeps retained guidance from being appended again on scene re-entry.",
     "rq-slim-prompt-v1": "Holds rarely needed prompt sections back until their trigger holds.",
     "rq-milestone-guide-v1": "The lane's purpose: the current guide step ends every request.",
-    "rq-battle-explainer-v1": "Adds a short battle note drawn from recorded mistakes."
+    "rq-battle-explainer-v1": "Adds a short battle note drawn from recorded mistakes.",
+    "rq-no-grind-note-v1": "The note must never send a run to grind or hunt (the operator 2026-11-07)."
   },
   "off": {
     "context-exact-count-v1": "It can drop a turn holding JIT guidance.",

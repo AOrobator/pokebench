@@ -192,3 +192,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ### 2026-11-07: rq-no-grind-note-v1
 
 - Audit: the battle note told a run to catch a second type or gain levels after a loss. The operator approved replacing it, behind a switch that is on in the lane.
+- Switch on in the lane overlay, off in current.

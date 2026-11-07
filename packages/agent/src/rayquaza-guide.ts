@@ -11,6 +11,9 @@ import type {RunRecorder} from "./recorder.js";
 // rq-battle-explainer-v1: from 1,679 recorded fights, where models lost on preparation rather than move choice.
 export const BATTLE_EXPLAINER="BATTLE: Run from needless wild battles. After a loss, change something before retrying: teach a TM, catch a second type, buy Potions or gain levels. TMs do nothing until taught. Use X items on a safe turn. Heal if the next hit could knock you out, unless you can finish first. Whiting out halves your money.";
 
+// rq-no-grind-note-v1: aeb8 left the rival to grind after this note's earlier advice (turns 674-677, 754-771).
+export const NO_GRIND_EXPLAINER=BATTLE_EXPLAINER.replace("teach a TM, catch a second type, buy Potions or gain levels.","teach a TM, change your moves or buy Potions. Never grind or hunt.");
+
 // Abra knows only Teleport (ROM learnset), and a Poké Ball resolves before it moves.
 export const ABRA_NOTE="ABRA: Wild Abra usually Teleports away on its first turn. Do not attack. Throw a Ball now.";
 
@@ -195,7 +198,7 @@ export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,
   const state=guide.latest,due=state===null?[]:[...sections.keys()].filter(prefix=>SECTION_TRIGGERS.get(prefix)?.(state)===true);
   for(const prefix of due)if(!sectionsShown.includes(prefix))recorder.recordMilestoneHint({text:`JIT section: ${prefix}`,milestone:"RQ_SECTION"});
   sectionsShown=due;
-  const notes=[...due.flatMap(prefix=>sections.get(prefix)??[]),...(features["rq-battle-explainer-v1"]&&guide.inBattle?[BATTLE_EXPLAINER]:[]),...told,text];
+  const notes=[...due.flatMap(prefix=>sections.get(prefix)??[]),...(features["rq-battle-explainer-v1"]&&guide.inBattle?[features["rq-no-grind-note-v1"]?NO_GRIND_EXPLAINER:BATTLE_EXPLAINER]:[]),...told,text];
   return [...await transform(messages),...notes.map(content=>({role:"user" as const,content,timestamp:Date.now()}))];
  };
 }

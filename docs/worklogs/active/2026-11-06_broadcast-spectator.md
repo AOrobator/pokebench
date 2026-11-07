@@ -88,6 +88,7 @@ The operator 2026-11-07: "why does the broadcast view flash? it looks bad". Meas
 - [x] GREEN: 132 focused tests. Live frames draw on a canvas, newest frame wins; caption holds 120 s. WebKit against the live page, branch modules routed in: 0 black in 2,406 shots over 40 s, 35 distinct pictures, against 123 of 972 before. Shots viewed.
 - [x] Gates: lint, 2,688 agent, 1,233 viewer, 3,051 env, 38 gateway, verify-vendor on the music branch that contains this head
 - [x] Review: Claude, GPT, fallback LGTM on 0c4db75c7
+- [x] Landed c127971b3; post-main `just test` passed
 
 ### Piece 9: game music on /broadcast
 The operator 2026-11-07: "it'd be nice to also have game music playing". The game server's `/audio.wav?since=` is a bounded, non-consuming tape with a cursor per reader (`env/pokebench_env/audio.py`), so it is the recorder's own source and a second reader never touches the core. 20 s of cursors from 37ca: steady 1.33 of real time, never pausing, so sound follows game speed and is pitched up by a third, as `/view` says. The viewer proxies it and the page plays it under the commentary: same SOUND ON click, chunks laid end to end, dipping under each line, with level and mute. Replay and transparent stay silent.
@@ -95,6 +96,7 @@ The operator 2026-11-07: "it'd be nice to also have game music playing". The gam
 - [x] GREEN: 144 focused tests. 30 s headless on the live page, branch modules routed in and the audio route answered from the tape: 284 chunks at rate 1.338, 3 seams off and the worst by 24 ms, 171 ms lead, three voice lines, level dipping 0.5 to 0.15, no page errors.
 - [x] Gates on ff020194c, then 146 focused tests on the two small fixes
 - [x] Review: Claude, GPT, fallback LGTM through 52d3ebed1
+- [x] Landed 6efad480a; post-main `just test`: 2,688 agent, 1,235 viewer, 3,051 env, 38 gateway
 
 ## Closing the Loop
 

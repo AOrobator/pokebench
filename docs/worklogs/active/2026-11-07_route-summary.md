@@ -38,8 +38,8 @@ No new input surface. Coordinates in guide notes are authored data; the server's
 - [x] Cheap checks: agent and viewer `tsc --noEmit`, eslint on changed files, route-summary 28 tests, features, preset, frozen-switch, play-config, panels, next-run and recipe tests pass. Deleted once and watched go red, then restored: the production wiring, the locked-field check.
 - [x] Full gates in the window the coordinator granted, at 84cd54e21: `just lint` and `just verify-vendor` pass; `just test`: agent 2773 tests, viewer 1235, env 3051, gateway 38, `no-io-proof` OK, floors held (agent 67.68 lines / 58.7 branches / 61.83 functions / 62.33 statements; viewer 42.35 / 44.19 / 46.91 / 41.7).
 - [x] COMMIT: `feat(agent): route-summary-v1 puts computed routes in the readout` (84cd54e21)
-- [ ] Review
-- [ ] Land
+- [x] Review: Claude CLI LGTM (rounds 1-3), fallback LGTM, Codex GPT lane LGTM on 2c0e9d36a
+- [x] Land: final gates at 157cdc432 (lint, verify-vendor, `just test`: agent 2865, viewer 1235, env 3051, gateway 38, no-io-proof OK, floors held). Fast-forwarded main db3d713df..157cdc432 on 2026-11-07 10:05 AM. Post-main combined `just test` waits for a CPU window. Switch stays default OFF; no viewer refresh or run without the operator.
 
 ## Before and after
 

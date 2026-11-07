@@ -12,7 +12,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, customLaneTrials, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 import { readExclusions } from "./run-exclusions.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";

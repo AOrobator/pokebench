@@ -219,7 +219,8 @@ def audio_command(out: Path, part: int) -> list[str]:
     return [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin",
         "-f", "s16le", "-ar", str(SAMPLE_RATE), "-ac", "2", "-i", "pipe:0",
-        "-c:a", "flac", "-flush_packets", "1", "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
+        "-c:a", "flac", "-flush_packets", "1",
+        "-f", "segment", "-segment_time", str(SEGMENT_SECONDS),
         "-segment_format", "matroska", "-segment_format_options", "cluster_time_limit=1000",
         "-reset_timestamps", "1",
         str(out / f"audio-p{part:02d}-%04d.mka"),

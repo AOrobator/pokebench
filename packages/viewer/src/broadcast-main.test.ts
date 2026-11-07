@@ -140,6 +140,27 @@ describe("the broadcast page", () => {
     expect(fetched).toHaveBeenCalled();
   });
 
+  it("setTime during a poll waits its turn, so nothing is added twice", async () => {
+    const replies: (() => void)[] = [];
+    const more = [{ k: "think", t: 5, turn: 1, d: " again" }];
+    const s = setup("?run=r1", url => {
+      if (url.endsWith("after=0")) return Promise.resolve(answer({ ended: false }));
+      const after = Number(url.split("after=")[1]), items = after < ITEMS.length + 1 ? more : [];
+      return new Promise(done => { replies.push(() => { done(answer({ ended: false, items, next: ITEMS.length + 1 })); }); });
+    });
+    const page = await s.mount();
+    s.timers.splice(0).forEach(run => { run(); });
+    await vi.waitFor(() => { expect(replies).toHaveLength(1); });
+    const held = page.setTime(5.5);
+    await Promise.resolve();
+    expect(replies).toHaveLength(1);
+    replies[0]?.();
+    await vi.waitFor(() => { expect(replies).toHaveLength(2); });
+    replies[1]?.();
+    await held;
+    expect(s.part("think").textContent).toBe("Hello there again");
+  });
+
   it("two setTime calls on one frame both wait for its decode", async () => {
     let release = (): void => undefined;
     const s = setup("?run=r1&t=1", () => Promise.resolve(answer()), { show: () => new Promise<void>(done => { release = done; }) });

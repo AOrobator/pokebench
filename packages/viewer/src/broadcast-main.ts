@@ -81,6 +81,12 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     ended = feed.ended;
   };
   take(first);
+  // One read at a time: two answers from the same cursor would add the same items twice.
+  let reading = Promise.resolve();
+  const refresh = (): Promise<void> => {
+    reading = reading.catch(() => undefined).then(fetchFeed).then(take);
+    return reading;
+  };
 
   const paint = (el: HTMLElement, html: string): void => { if (el.dataset.was !== html) { el.dataset.was = html; el.innerHTML = html; } };
   const write = (el: HTMLElement, text: string): void => { if (el.textContent !== text) el.textContent = text; };
@@ -127,7 +133,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   };
   const poll = (): void => {
     if (moment !== null) return;
-    fetchFeed().then(take).catch(() => undefined).finally(() => { if (!ended) deps.after(POLL_MS, poll); });
+    refresh().catch(() => undefined).finally(() => { if (!ended) deps.after(POLL_MS, poll); });
   };
   const streamFrames = (): void => {
     if (moment !== null || ended || transparent || deps.openFrames === undefined || deps.frameUrl === undefined) return;
@@ -160,7 +166,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
       socket?.close();
       socket = null;
       // A run still being written may have reached t since the last read.
-      if (!ended) take(await fetchFeed());
+      if (!ended) await refresh();
       await showFrame(render(t));
     },
   };

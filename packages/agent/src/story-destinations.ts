@@ -309,7 +309,8 @@ export class StoryDestinations {
    // Recorded order (event seq), not turns: an arrival and a story step can share a turn.
    const shown=this.shownAt.get(line);
    const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here,shown)?.at.seq);
-   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??Infinity));
+   // story-line-done-on-event-v1: a line heard at the place has no later arrival; it counts from when it was heard.
+   const last=Math.max(shown??-Infinity,...arrived.map(a=>a??(this.doneOnEvent?shown??Infinity:Infinity)));
    // story-line-done-on-event-v1: reaching a place is not its business done. A story event after the arrival is, there or after the player left.
    const step=this.steps.find(s=>s.seq>last&&(!this.doneOnEvent||s.event));
    if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};

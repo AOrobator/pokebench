@@ -5,3 +5,5 @@ The operator 2026-11-06: "write the backup into the Google Drive folder". `scrip
 events.jsonl reached 2.3 GB in 4.8 h on a0b4, so re-copying it each pass would send hundreds of GB; each pass sends only the new bytes as a numbered part.
 
 Tested on a copy of the 80af recording: segments held until the recorder ended, hashes match, parts rebuild the file exactly, 0.54 s of CPU for the first pass.
+
+GPT round 1: fixed files missing a stream, a last pass that gave up on failure (now up to 12 tries, 5 minutes apart), events from an older run (only a run created after the job starts), and the model glob.

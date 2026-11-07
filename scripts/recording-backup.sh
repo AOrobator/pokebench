@@ -1,23 +1,25 @@
 #!/bin/zsh
 # Copies a run's finished recording files and new events to a backup folder every few minutes, at low priority.
 #
-#   recording-backup.sh <recording dir> <runs dir> <run name glob> <backup root> <watched pid> [interval seconds]
+#   recording-backup.sh <recording dir> <runs dir> <run name glob> <backup root> <watched pid> [interval seconds] [earliest run time]
 #
 # Copies only: nothing in the recording or the run is moved, changed or deleted, and a failed copy
 # is logged and retried on the next pass. The file being written is left alone until the watched
-# recorder pid has gone; then one last pass copies everything and the job exits.
+# recorder pid has gone; then it copies everything, retrying until that works or it has tried for
+# an hour, and exits.
 set -u
 recording=$1 runs=$2 glob=$3 root=$4 watched=$5 interval=${6:-600}
+started=${7:-$(date +%s)}
+failures=0
 log="$recording/backup.log"
 say() { print -r -- "$(date '+%Y-%m-%dT%H:%M:%S%z') $*" >>"$log"; }
 renice -n 19 $$ >/dev/null 2>&1
-started=$(date +%s)
 
 run_folder() {
   local dir
   for dir in "$runs"/${~glob}(N/om); do
     [[ -f "$dir/events.jsonl" ]] || continue
-    (( $(stat -f %B "$dir") + 600 >= started )) || continue
+    (( $(stat -f %B "$dir") >= started )) || continue
     print -r -- "$dir"
     return 0
   done
@@ -27,18 +29,25 @@ run_folder() {
 copy() {
   rsync -t "$1" "$2/" >>"$log" 2>&1 && return 0
   say "copy failed: $1"
+  failures=$(( failures + 1 ))
   return 1
 }
 
 pass() {
   local final=$1 dir name dest stem newest file
-  dir=$(run_folder) || { say "run folder not found yet"; return 0; }
+  local -a files stems parts
+  failures=0
+  dir=$(run_folder) || { say "run folder not found yet"; failures=1; return 0; }
   name=${dir:t}
   dest="$root/$name"
-  mkdir -p "$dest" || { say "cannot make $dest"; return 0; }
-  for stem in ${(u)${(f)"$(cd "$recording" && ls video-p*-*.mkv audio-p*-*.mka 2>/dev/null | sed -E 's/-[0-9]+\.mk[av]$//')"}}; do
-    newest=$(cd "$recording" && ls "$stem"-* | sort | tail -1)
-    for file in "$recording/$stem"-*; do
+  mkdir -p "$dest" || { say "cannot make $dest"; failures=1; return 0; }
+  files=("$recording"/video-p*-*.mkv(N) "$recording"/audio-p*-*.mka(N))
+  stems=()
+  for file in $files; do stems+=("${${file:t}%-*}"); done
+  for stem in ${(u)stems}; do
+    parts=("$recording/$stem"-*(N))
+    newest=${${(On)parts}[1]:t}
+    for file in $parts; do
       [[ $final == 0 && ${file:t} == $newest ]] && continue
       [[ -f "$dest/${file:t}" && $(stat -f %z "$dest/${file:t}") == $(stat -f %z "$file") ]] && continue
       copy "$file" "$dest" && say "copied ${file:t}"
@@ -65,6 +74,7 @@ copy_new_events() {
     say "copied $part, $(( size - sent )) bytes"
   else
     say "copy failed: $part"
+    failures=$(( failures + 1 ))
     rm -f "$dest/$part.tmp"
   fi
 }
@@ -77,5 +87,10 @@ while kill -0 "$watched" 2>/dev/null; do
     sleep 5
   done
 done
-pass 1
-say "finished"
+for (( try = 1; try <= 12; try++ )); do
+  pass 1
+  (( failures == 0 )) && break
+  say "last pass had failures, try $try of 12"
+  sleep 300
+done
+say "finished with $failures failures"

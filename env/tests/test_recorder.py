@@ -6,9 +6,9 @@ from pokebench_env.recorder import (
     AUDIO_LAG_SAMPLES,
     GBA_FPS,
     MAX_HELD_FRAMES,
-    SILENCE_CHUNK_SAMPLES,
     SAMPLE_BYTES,
     SAMPLES_PER_FRAME,
+    SILENCE_CHUNK_SAMPLES,
     Anchor,
     AudioPlan,
     Frame,
@@ -204,7 +204,7 @@ def test_an_encoder_that_keeps_dying_does_not_raise() -> None:
     events = Events()
     restarting = Restarting(lambda part: FakeSink(fail_after=0), events, "audio")
     restarting.write(b"a")
-    assert events.names.count("encoder_failed") == 2
+    assert events.names.count("encoder_failed") == 1
 
 
 def test_close_closes_the_live_encoder() -> None:
@@ -294,6 +294,33 @@ def test_an_encoder_that_cannot_start_drops_data_and_retries_later() -> None:
 
 def test_a_dead_encoder_is_closed_so_it_is_reaped() -> None:
     dead = FakeSink(fail_after=0)
-    restarting = Restarting(lambda part: dead if part == 1 else FakeSink(), Events(), "video")
+    restarting = Restarting(lambda part: dead, Events(), "video")
     restarting.write(b"a")
     assert dead.closed
+
+
+def test_an_encoder_that_dies_on_starting_waits_before_the_next_try() -> None:
+    now = [100.0]
+    starts: list[int] = []
+
+    def start(part: int) -> FakeSink:
+        starts.append(part)
+        return FakeSink(fail_after=0)
+
+    restarting = Restarting(start, Events(), "video", 1, lambda: now[0])
+    for _ in range(50):
+        restarting.write(b"a")
+    assert len(starts) == 1
+    now[0] = 106.0
+    restarting.write(b"a")
+    assert len(starts) == 2
+
+
+def test_an_encoder_that_had_been_running_restarts_at_once() -> None:
+    now = [100.0]
+    sinks = [FakeSink(fail_after=1), FakeSink()]
+    restarting = Restarting(lambda part: sinks[part - 1], Events(), "video", 1, lambda: now[0])
+    restarting.write(b"a")
+    now[0] = 500.0
+    restarting.write(b"b")
+    assert sinks[1].chunks == [b"b"]

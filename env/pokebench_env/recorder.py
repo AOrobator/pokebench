@@ -123,6 +123,7 @@ class Restarting:
         self.part = part - 1
         self.sink: Sink | None = None
         self.retry_at = 0.0
+        self.started_at = 0.0
 
     def _open(self) -> Sink | None:
         if self.clock() < self.retry_at:
@@ -135,6 +136,7 @@ class Restarting:
             self.part -= 1
             self.retry_at = self.clock() + ENCODER_RETRY_SECONDS
             return None
+        self.started_at = self.clock()
         self.log("part_started", stream=self.name, part=self.part)
         return sink
 
@@ -150,6 +152,9 @@ class Restarting:
             except OSError as error:
                 self.log("encoder_failed", stream=self.name, part=self.part, error=str(error))
                 dead, self.sink = self.sink, None
+                # One that had been running restarts at once; one that dies on starting waits.
+                if self.clock() - self.started_at < ENCODER_RETRY_SECONDS:
+                    self.retry_at = self.clock() + ENCODER_RETRY_SECONDS
                 try:
                     dead.close()
                 except (OSError, subprocess.SubprocessError) as closing:

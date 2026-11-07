@@ -347,6 +347,13 @@ describe("the broadcast page", () => {
         expect(s.log.at(-1)).toBe("level 0.2");
       });
 
+      it("stops when the run ends", async () => {
+        const s = mixed("?run=r1", [{ ended: true, items: [{ k: "end", t: 6.5 }] }]);
+        await s.mount();
+        s.part("sound").click();
+        await vi.waitFor(() => { s.run(); expect(s.log.at(-1)).toBe("stop"); });
+      });
+
       it("stops when a moment is held, and is never offered in replay or transparent", async () => {
         const s = mixed();
         const page = await s.mount();

@@ -104,6 +104,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     ({ header, rates } = feed);
     cursor = feed.next;
     ended = feed.ended;
+    if (ended && voice.wasOn) music?.stop();
   };
   take(first);
   // One read at a time: two answers from the same cursor would add the same items twice.

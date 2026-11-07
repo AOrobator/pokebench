@@ -139,6 +139,8 @@ Piece 6, round 3 on 293ad2bd7: Claude, GPT and fallback LGTM.
 
 Piece 8, round 1 on 361eb7172: fallback BLOCKING on two real bugs: the canvas's `.live` class also matched the next badge (`bdg live`), pulling it out of the row; and when the socket closed after the run ended nothing redrew the img. Fixed by a `.feed` class and a redraw on close.
 
+Piece 9, round 1 on ff020194c: Claude and fallback LGTM; GPT BLOCKING on one bug: music kept polling after the run ended. Fixed. Left: an operator pause drags the rate down for about 1.5 s after resume; it heals itself.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

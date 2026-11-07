@@ -39,13 +39,13 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 
 ### Piece 2: `just broadcast-render`
 - [x] Recorder format from the Mt. Pyre spec and `env/pokebench_env/recorder.py`: journal `at` is the same clock as event `t`; 240x160 at 59.7275 fps, one file frame per game frame; separate FLAC sound. Runs play near 80 fps, so sync marks retime both onto the wall clock.
-- [x] Build, proof, review
+- [x] Build, proof, review, landing: c6c0f004a; post-main `just test` passed
 
 ### Piece 3: `just broadcast-commentary`
 - [x] Local model: none free (18020 serves e09e, LM Studio empty, 18100 paid). Coordinator put a temporary loopback Qwen3.6-35B-A3B to the operator; not started. Tool takes --endpoint.
 - [x] RED (1800fd9ca), GREEN: 20 env tests and 32 render tests
 - [ ] Real local model lines (waits on the operator's answer); rehearsed with a stub model and real Kokoro: 4 wavs on 80af t=225-265 in 8 s
-- [ ] Review, landing
+- [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
 ## Closing the Loop
 

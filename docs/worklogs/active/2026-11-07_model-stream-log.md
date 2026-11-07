@@ -35,10 +35,10 @@ The raw stream holds model output only, in the gitignored run directory. Authori
 ## Milestones
 
 **M1: log the raw stream**
-- [ ] Write tests
-- [ ] COMMIT RED
-- [ ] Implement, wire into live.ts, viewer row, tail line, schema
-- [ ] Cheap checks
+- [x] Write tests
+- [x] COMMIT: `test(agent): the raw model stream log (RED)` (a2afddd82)
+- [x] Implement, wire into live.ts, viewer row, tail line, schema
+- [x] Cheap checks: agent and viewer `tsc --noEmit`, eslint on changed files, model-stream 31/31, events, trace and panels tests pass; model-stream.ts 98% lines, 96% branches. Deleted once and watched go red, then restored: returning a clone, the run cap, the reply cap, the save containment, the token minimum, the URL filter.
 - [ ] Full gates in a granted CPU window
 - [ ] COMMIT GREEN
 - [ ] Review

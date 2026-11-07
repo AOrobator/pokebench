@@ -1,5 +1,7 @@
-import {describe,expect,it} from "vitest";
+import {afterEach,describe,expect,it} from "vitest";
 import {RAW_CAP_BYTES,RAW_FILE_CAP,RAW_MIN_OUTPUT_TOKENS,ModelStreamLog,StreamAccount,chatCompletionsUrl,type ModelStreamBody,type ModelStreamPorts} from "./model-stream.js";
+import type {Model,AssistantMessage} from "@mariozechner/pi-ai";
+import {streamSimpleOpenAICompletions} from "@mariozechner/pi-ai/openai-completions";
 import type {RunEvent} from "./events.js";
 
 const URL_="http://127.0.0.1:18020/v1/chat/completions";
@@ -169,9 +171,10 @@ describe("ModelStreamLog taps the model's stream",()=>{
   const h=harness();
   const tapped=h.log.fetch(()=>Promise.resolve(sseResponse([DONE])));
   await tapped(new Request(URL_,{method:"POST",body:"x"}));
+  await settled();
   await tapped(new URL(URL_),{method:"POST"});
   await settled();h.log.flush();
-  expect(h.recorded).toHaveLength(1);
+  expect(h.recorded).toHaveLength(2);
  });
 
  it("ignores an error response, which has no stream",async()=>{
@@ -184,19 +187,18 @@ describe("ModelStreamLog taps the model's stream",()=>{
 
  it("joins the stream with the assistant event, whichever comes first",async()=>{
   for(const assistantFirst of [true,false]){
-   const h=harness();h.clock=100;
+   const h=harness();
    const tapped=h.log.fetch(()=>Promise.resolve(sseResponse([delta({content:"hello"}),usage(5),DONE])));
-   if(assistantFirst)h.log.observe(assistant(1,{text:"hello",args:{},thinking:"  a b "}));
+   const reply=assistant(1,{text:"hello",args:{},thinking:"  a b "});
+   if(assistantFirst)h.log.observe(reply);
    await tapped(URL_,{method:"POST"});
    await settled();
-   if(!assistantFirst)h.log.observe(assistant(1,{text:"hello",args:{},thinking:"  a b "}));
-   if(assistantFirst){expect(h.recorded).toHaveLength(0);h.log.observe(assistant(2));h.log.flush();}
-   const record=h.recorded[0];
-   if(assistantFirst)continue;
-   expect(record?.turn).toBe(1);
-   expect(record?.body.visible).toEqual({thinking_chars:2,text_chars:5,tool_args_chars:2,tool_calls:1});
-   expect(record?.body.output_tokens).toBe(5);
-   expect(record?.body.raw).toBeNull();
+   if(!assistantFirst)h.log.observe(reply);
+   expect(h.recorded).toHaveLength(1);
+   expect(h.recorded[0]?.turn).toBe(1);
+   expect(h.recorded[0]?.body.visible).toEqual({thinking_chars:2,text_chars:5,tool_args_chars:2,tool_calls:1});
+   expect(h.recorded[0]?.body.output_tokens).toBe(5);
+   expect(h.recorded[0]?.body.raw).toBeNull();
   }
  });
 
@@ -269,7 +271,7 @@ describe("ModelStreamLog taps the model's stream",()=>{
 
  it("records a read that fails partway and still hands pi its response",async()=>{
   const h=harness();const encoder=new TextEncoder();let pulls=0;
-  const failing=new Response(new ReadableStream<Uint8Array>({pull(c){pulls++;if(pulls===1)c.enqueue(encoder.encode(delta({content:"x"})));else c.error(new Error("connection lost"));}}),{headers:{"content-type":"text/event-stream"}});
+  const failing=new Response(new ReadableStream<Uint8Array>({async pull(c){pulls++;if(pulls===1){c.enqueue(encoder.encode(delta({content:"x"})));return;}await settled();c.error(new Error("connection lost"));}}),{headers:{"content-type":"text/event-stream"}});
   const response=await h.log.fetch(()=>Promise.resolve(failing))(URL_,{method:"POST"});
   await expect(response.text()).rejects.toThrow();
   await settled();h.log.flush();
@@ -284,5 +286,34 @@ describe("ModelStreamLog taps the model's stream",()=>{
  it("builds the chat URL from the model's base URL",()=>{
   expect(chatCompletionsUrl("http://x/v1")).toBe("http://x/v1/chat/completions");
   expect(chatCompletionsUrl("http://x/v1/")).toBe("http://x/v1/chat/completions");
+ });
+});
+
+describe("through pi's real provider",()=>{
+ const real=globalThis.fetch;
+ afterEach(()=>{globalThis.fetch=real;});
+ const model={id:"m",name:"m",api:"openai-completions",provider:"local-vllm",baseUrl:"http://127.0.0.1:18020/v1",reasoning:true,input:["text"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:1000,maxTokens:100} as Model<"openai-completions">;
+ const body=[delta({reasoning:"think"}),delta({tool_calls:[{index:0,id:"c1",type:"function",function:{name:"observe",arguments:"{}"}}]}),finish("length"),usage(8192),DONE];
+ async function run():Promise<{request:string;message:AssistantMessage}> {
+  let request="";
+  const server:typeof fetch=async(_input,init)=>{await Promise.resolve();request=typeof init?.body==="string"?init.body:"not text";return sseResponse(body);};
+  globalThis.fetch=wrap(server);
+  const message=await streamSimpleOpenAICompletions(model,{messages:[{role:"user",content:"go",timestamp:1}]},{apiKey:"k",maxTokens:100}).result();
+  return {request,message:{...message,timestamp:0}};
+ }
+ let wrap:(server:typeof fetch)=>typeof fetch=server=>server;
+
+ it("sends the same bytes and gets the same message with the tap on",async()=>{
+  wrap=server=>server;
+  const plain=await run();
+  const h=harness();
+  wrap=server=>h.log.fetch(server);
+  const tapped=await run();
+  expect(tapped.request).toBe(plain.request);
+  expect(tapped.message).toEqual(plain.message);
+  await settled();
+  h.log.observe(assistant(1,{thinking:"think",args:{},output:tapped.message.usage.output}));
+  expect(h.recorded[0]?.body).toMatchObject({ended:"done",finish_reason:"length",output_tokens:8192,visible:{thinking_chars:5,tool_args_chars:2,tool_calls:1}});
+  expect(h.saved).toHaveLength(1);
  });
 });

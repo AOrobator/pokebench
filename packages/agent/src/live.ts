@@ -8,6 +8,7 @@ import {exactCountProblems,payloadCounter} from "./exact-context.js";
 import type {FitReport} from "./context-budget.js";
 import {finalGuide,battleDecisionContext,contextBudget,contextTools,loopSupervisor,playGameTools,stallBriefing,stallStop,textOnlySupervisor} from "./play-wiring.js";
 import {ModelErrorRecovery} from "./model-error-recovery.js";
+import {ModelStreamLog,chatCompletionsUrl} from "./model-stream.js";
 import { operatorSignalLatch } from "./operator-signals.js";
 import { GAME_PORT_POOL, allocatePort, noPortMessage } from "./port-allocator.js";
 import { listClaims } from "./run-claim.js";
@@ -433,6 +434,11 @@ async function playAgent(): Promise<void> {
           writeFileSync(join(RUNS_ROOT,runId,"campaign-continuation.json"),JSON.stringify({initialObservation,messages,requests:requestIndex,reminder:restored?.receipt??null,journal}),{flag:"wx"});
         });
       }
+      // Records the raw model stream beside each reply; passes every request through untouched (model-stream.ts).
+      const streamLog=new ModelStreamLog({url:chatCompletionsUrl(model.baseUrl),now:()=>Date.now(),turn:()=>recorder.currentTurn(),record:(turn,body)=>{recorder.recordModelStream(turn,body);},save:(name,raw)=>{const directory=join(RUNS_ROOT,runId,"model-stream");mkdirSync(directory,{recursive:true});const bytes=gzipSync(raw);writeFileSync(join(directory,name),bytes,{flag:"wx"});return bytes.byteLength;}});
+      recorder.subscribe(event=>{streamLog.observe(event);});
+      globalThis.fetch=streamLog.fetch(globalThis.fetch);
+      lifecycle.beforeRunEnd(()=>{streamLog.flush();return Promise.resolve();});
       const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features, exact===undefined?undefined:payload=>exact.fit(payload));
       const loop = piLoop({
         systemPrompt,

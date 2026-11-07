@@ -48,6 +48,7 @@ function body(event: RunEvent): [string, string] {
       return ["CALL", `${event.name} ${clip(JSON.stringify(event.args), 80)}`];
     case "navigation_context":return ["NAVIGATION MEMORY",`${String(event.evidence.length)} references · ${clip(event.text,80)}`];
     case "milestone_hint":return ["MILESTONE HINT",clip(event.text,100)];
+    case "model_stream":return ["MODEL STREAM",`${String(event.output_tokens)} tok, ended ${event.ended}, finish ${event.finish_reason??"none"}, last visible ${String(event.timing.last_visible_ms)}ms of ${String(event.timing.end_ms)}ms${event.raw!==null&&"file" in event.raw?`, raw ${event.raw.file}`:""}`];
     case "guide_purchase_missed":return ["PURCHASE MISSED",`${event.step}: ${event.items.join(", ")}`];
     case "ledger_context":return ["INSTRUCTION LEDGER",`${String(event.evidence.length)} references · ${clip(event.text,80)}`];
     case "belief_ledger":return ["DISPROVED BELIEFS",`${String(event.entries)} entr${event.entries===1?"y":"ies"} · ${clip(event.text,80)}`];

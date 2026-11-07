@@ -90,6 +90,8 @@ Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude an
 
 Piece 6, round 1 on 4ebeba1b7 (sha 33b85991): Claude, GPT and fallback all BLOCKING on one bug: a click with no line waiting never played inside the gesture, so strict browsers stayed locked. Fixed by playing through Web Audio with the context resumed in the click. Rehearsal again, clicking before any line existed: context running, five wavs played in order with no overlap. Rebutted: an open page misplacing a line a restarted follower sorted into the middle (restart only, within the last two turns; a reload heals it); the run's last line missed by a page that stopped polling at run_end; the 15 s caption hold measured from the thought's end (rehearsal shows lines a few seconds behind).
 
+Piece 6, round 2 on f4b932af4: fallback BLOCKING on the new speaker: the stall limit began after the fetch, so a hung wav held the queue; a stalled line left its node running; stop missed a line in flight. Round 2 lanes: Claude LGTM; GPT BLOCKING on the same stall and stop bugs; GPT's third (a caption outliving its hold on a long turn) rebutted: it is still the current turn's line. All fixed with one limit over the whole line and a ticket. Rehearsal again: five lines, no overlap, button gone, replay and transparent silent.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

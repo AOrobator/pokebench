@@ -27,24 +27,36 @@ function frameSocket(path: string): FrameSocket {
 // Web Audio, because the click must unlock sound for lines that do not exist yet: a context resumed in the click stays
 // open, where a media element would need a real source to play inside the gesture.
 function speaker(): Speaker {
-  let context: AudioContext | null = null, source: AudioBufferSourceNode | null = null;
+  let context: AudioContext | null = null, source: AudioBufferSourceNode | null = null, ticket = 0;
+  const silence = (): void => { ticket += 1; source?.stop(); source = null; };
+  const speakLine = async (output: AudioContext, url: string, signal: AbortSignal, mine: number): Promise<void> => {
+    const response = await fetch(url, { cache: "no-store", signal });
+    if (!response.ok) return;
+    const sound = await output.decodeAudioData(await response.arrayBuffer());
+    if (mine !== ticket) return;
+    await new Promise<void>(resolve => {
+      const node = output.createBufferSource();
+      node.buffer = sound;
+      node.connect(output.destination);
+      node.onended = () => { resolve(); };
+      source = node;
+      node.start();
+    });
+  };
   return {
     unlock: () => { context ??= new AudioContext(); void context.resume(); },
     async play(url) {
       if (context === null) return;
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) return;
-      const output = context, sound = await output.decodeAudioData(await response.arrayBuffer());
-      await new Promise<void>(resolve => {
-        const stalled = setTimeout(resolve, STALLED_MS), node = output.createBufferSource();
-        node.buffer = sound;
-        node.connect(output.destination);
-        node.onended = () => { clearTimeout(stalled); resolve(); };
-        source = node;
-        node.start();
-      });
+      const abort = new AbortController();
+      let timer = setTimeout(() => undefined, 0);
+      const stalled = new Promise<void>(resolve => { timer = setTimeout(resolve, STALLED_MS); });
+      // One limit for the whole line, so a hung fetch or a suspended context cannot hold the queue or overlap the next.
+      await Promise.race([speakLine(context, url, abort.signal, ticket).catch(() => undefined), stalled]);
+      clearTimeout(timer);
+      abort.abort();
+      silence();
     },
-    stop: () => { source?.stop(); source = null; },
+    stop: silence,
   };
 }
 

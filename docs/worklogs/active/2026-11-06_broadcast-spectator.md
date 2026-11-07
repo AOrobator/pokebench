@@ -72,12 +72,14 @@ Follow mode only: new captions as they arrive, wavs queued one at a time, lines 
 - [x] Rehearsal: fake live run replaying 37ca with fresh times, real follower, Qwen and Kokoro, this page headless on 8797: button shown, one click, nine wavs played in order with no overlap (206 from the route), captions arrived on their own, button gone after the click and absent at ?t and transparent=1, no page errors. 1920x1080 screenshot viewed.
 - [x] Gates on 40947a3d5: lint, 2,684 agent, 1,218 viewer, 3,051 env, 38 gateway, verify-vendor
 - [x] Review: Claude, GPT, fallback LGTM on the final delta
+- [x] Landed b82990ae8; post-main `just test` passed
 
 ### Piece 7: real badge sprites on /broadcast
 The operator 2026-11-07: "the broadcast view needs to use the actual sprites of the gym badges". The game's Trainer Card draws every badge grey (ROM palette at 0x56f4ec, one palette for all; the image-gen thread matched all 760 opaque pixels in a real game), so the files are grey. Read from the gitignored runs/sprites/rom-badges/, never in git; discs stay as the fallback when any file is missing.
 - [x] RED
 - [x] GREEN: 132 focused tests; 1920x1080 headless screenshot of a0b4 at t=4700 viewed: five earned full, Feather dimmed with an outline, two faint, pixels crisp at 2x; with no sprite files the same build drew eight discs and no errors.
-- [ ] Review, landing
+- [x] Gates on 1cd94c4b5: lint, just test, verify-vendor
+- [x] Review on 1b214d406: Claude, GPT, fallback LGTM
 
 ## Closing the Loop
 

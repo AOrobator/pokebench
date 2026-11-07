@@ -16,7 +16,7 @@ export interface FrameSocket {
   on(name: "close", run: () => void): void;
   close(): void;
 }
-export interface Speaker { play(url: string): Promise<void>; stop(): void }
+export interface Speaker { unlock(): void; play(url: string): Promise<void>; stop(): void }
 export interface BroadcastDeps {
   readonly search: string;
   fetchJson(url: string): Promise<unknown>;
@@ -174,8 +174,8 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     });
   };
 
-  // The click itself starts the first line, which is what unlocks audio on the stricter browsers.
-  sound?.addEventListener("click", () => { voice.enable(followTime()); sound.hidden = true; });
+  // Unlocked inside the click, whether or not a line is waiting: stricter browsers allow it nowhere else.
+  sound?.addEventListener("click", () => { speak?.unlock(); voice.enable(followTime()); sound.hidden = true; });
   if (moment !== null) await showFrame(render(moment));
   else {
     showFollowing(render(followTime()));

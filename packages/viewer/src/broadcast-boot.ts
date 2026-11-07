@@ -24,19 +24,27 @@ function frameSocket(path: string): FrameSocket {
   };
 }
 
-// One element for every line: the click that starts the first one unlocks it for the rest.
+// Web Audio, because the click must unlock sound for lines that do not exist yet: a context resumed in the click stays
+// open, where a media element would need a real source to play inside the gesture.
 function speaker(): Speaker {
-  const audio = new Audio();
-  let settle = (): void => undefined;
-  for (const name of ["ended", "error"]) audio.addEventListener(name, () => { settle(); });
+  let context: AudioContext | null = null, source: AudioBufferSourceNode | null = null;
   return {
-    play: url => new Promise<void>(resolve => {
-      const stalled = setTimeout(() => { settle(); }, STALLED_MS);
-      settle = () => { clearTimeout(stalled); resolve(); };
-      audio.src = url;
-      audio.play().catch(() => { settle(); });
-    }),
-    stop: () => { audio.pause(); settle(); },
+    unlock: () => { context ??= new AudioContext(); void context.resume(); },
+    async play(url) {
+      if (context === null) return;
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) return;
+      const output = context, sound = await output.decodeAudioData(await response.arrayBuffer());
+      await new Promise<void>(resolve => {
+        const stalled = setTimeout(resolve, STALLED_MS), node = output.createBufferSource();
+        node.buffer = sound;
+        node.connect(output.destination);
+        node.onended = () => { clearTimeout(stalled); resolve(); };
+        source = node;
+        node.start();
+      });
+    },
+    stop: () => { source?.stop(); source = null; },
   };
 }
 

@@ -88,6 +88,8 @@ Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passin
 
 Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude and fallback LGTM before it. Post-main `just test`: 2,684 agent, 1,200 viewer, 3,032 env, 38 gateway.
 
+Piece 6, round 1 on 4ebeba1b7 (sha 33b85991): Claude, GPT and fallback all BLOCKING on one bug: a click with no line waiting never played inside the gesture, so strict browsers stayed locked. Fixed by playing through Web Audio with the context resumed in the click. Rehearsal again, clicking before any line existed: context running, five wavs played in order with no overlap. Rebutted: an open page misplacing a line a restarted follower sorted into the middle (restart only, within the last two turns; a reload heals it); the run's last line missed by a page that stopped polling at run_end; the 15 s caption hold measured from the thought's end (rehearsal shows lines a few seconds behind).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

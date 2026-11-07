@@ -227,11 +227,11 @@ describe("the broadcast page", () => {
     const later = { turn: 2, t: 6, text: "Heading home.", wav: "t000002.wav", said: 7 };
     function live(search: string, polls: Record<string, unknown>[] = []) {
       const played: string[] = [];
-      let stopped = 0;
+      let stopped = 0, unlocked = 0;
       const s = setup(search, url => url.endsWith("after=0") ? Promise.resolve(answer({ ended: false })) : Promise.resolve(answer({ ended: false, items: [], ...(polls.shift() ?? {}) })), {
-        speak: { play: url => { played.push(url); return new Promise<void>(() => undefined); }, stop: () => { stopped += 1; } },
+        speak: { unlock: () => { unlocked += 1; }, play: url => { played.push(url); return new Promise<void>(() => undefined); }, stop: () => { stopped += 1; } },
       });
-      return { ...s, played, stops: () => stopped, button: () => s.part("sound") as HTMLButtonElement, run: () => { for (const timer of s.timers.splice(0)) timer(); } };
+      return { ...s, played, stops: () => stopped, unlocks: () => unlocked, button: () => s.part("sound") as HTMLButtonElement, run: () => { for (const timer of s.timers.splice(0)) timer(); } };
     }
 
     it("offers sound only in live follow mode", async () => {
@@ -243,7 +243,7 @@ describe("the broadcast page", () => {
         await quiet.mount();
         expect(quiet.button().hidden).toBe(true);
       }
-      const ended = setup("?run=r1", () => Promise.resolve(answer()), { speak: { play: () => Promise.resolve(), stop: () => undefined } });
+      const ended = setup("?run=r1", () => Promise.resolve(answer()), { speak: { unlock: () => undefined, play: () => Promise.resolve(), stop: () => undefined } });
       await ended.mount();
       expect(ended.part("sound").hidden).toBe(true);
     });
@@ -273,6 +273,14 @@ describe("the broadcast page", () => {
       expect(s.button().hidden).toBe(true);
       s.run();
       expect(s.played).toEqual(["/api/runs/r1/commentary/t000001.wav"]);
+    });
+
+    it("unlocks sound in the click even with no line waiting", async () => {
+      const s = live("?run=r1");
+      await s.mount();
+      s.button().click();
+      expect(s.unlocks()).toBe(1);
+      expect(s.played).toEqual([]);
     });
 
     it("goes silent when a moment is held", async () => {

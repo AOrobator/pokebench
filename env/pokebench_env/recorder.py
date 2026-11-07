@@ -295,48 +295,67 @@ class SoundWriter:
             self.written += kept
 
 
+@dataclass(frozen=True)
+class Mark:
+    position: float
+    frame_count: int
+    at: float
+
+
+def _wall(marks: list[Mark], frames: float) -> float | None:
+    before = [m for m in marks if m.position <= frames]
+    after = [m for m in marks if m.position > frames]
+    if not before:
+        return None
+    low = before[-1]
+    high = after[0] if after else (before[-2] if len(before) > 1 else None)
+    if high is None or high.position == low.position:
+        return low.at
+    return low.at + (frames - low.position) * (high.at - low.at) / (high.position - low.position)
+
+
+def _frame_at(marks: list[Mark], frames: float) -> int | None:
+    before = [m for m in marks if m.position <= frames]
+    return None if not before else before[-1].frame_count + round(frames - before[-1].position)
+
+
 def segment_rows(
     events: Iterable[dict[str, object]], names: Iterable[str]
 ) -> list[dict[str, object]]:
-    """One row per file: where it starts in the game and on the wall clock, from the journal."""
-    marks: list[tuple[float, int, float]] = []
-    first_frame = 0
-    parts: dict[tuple[str, int], int] = {}
+    """One row per file: where it starts in the game and on the wall clock, from the journal.
+
+    Each `started` begins a session whose positions count from zero, so a file reads only the
+    marks of the session that wrote it.
+    """
+    sessions: list[list[Mark]] = []
+    parts: dict[tuple[str, int], tuple[int, int]] = {}
     for event in events:
         kind, at = event.get("event"), event.get("at")
+        if kind == "started" or not sessions:
+            sessions.append([])
         if kind == "first_frame" and isinstance(at, float):
-            first_frame = int(str(event["frame_count"]))
-            marks.append((0.0, first_frame, at))
-        elif kind == "sync" and isinstance(at, float):
-            marks.append((float(str(event["video_frames"])), int(str(event["frame_count"])), at))
+            sessions[-1].append(Mark(0.0, int(str(event["frame_count"])), at))
+        elif kind in ("sync", "frame_counter_reset", "frames_lost") and isinstance(at, float):
+            position = float(str(event["video_frames"]))
+            sessions[-1].append(Mark(position, int(str(event["frame_count"])), at))
         elif kind == "part_started":
-            parts[(str(event["stream"]), int(str(event["part"])))] = int(str(event["position"]))
-
-    def wall(frames: float) -> float | None:
-        before = [m for m in marks if m[0] <= frames]
-        after = [m for m in marks if m[0] > frames]
-        if not before:
-            return None
-        low = before[-1]
-        high = after[0] if after else (before[-2] if len(before) > 1 else None)
-        if high is None or high[0] == low[0]:
-            return low[2]
-        return low[2] + (frames - low[0]) * (high[2] - low[2]) / (high[0] - low[0])
+            key = (str(event["stream"]), int(str(event["part"])))
+            parts[key] = (len(sessions) - 1, int(str(event["position"])))
 
     rows: list[dict[str, object]] = []
     for name in sorted(names):
         found = re.fullmatch(r"(video|audio)-p(\d+)-(\d+)\.mk[av]", name)
         if found is None or (found[1], int(found[2])) not in parts:
             continue
-        start = parts[(found[1], int(found[2]))]
+        session, start = parts[(found[1], int(found[2]))]
         frames = float(start) if found[1] == "video" else start / SAMPLES_PER_FRAME
         frames += int(found[3]) * SEGMENT_SECONDS * GBA_FPS
         rows.append(
             {
                 "file": name,
                 "stream": found[1],
-                "first_frame_count": first_frame + round(frames),
-                "first_wall_time": wall(frames),
+                "first_frame_count": _frame_at(sessions[session], frames),
+                "first_wall_time": _wall(sessions[session], frames),
             }
         )
     return rows

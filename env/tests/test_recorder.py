@@ -381,6 +381,7 @@ def test_gap_rows_leave_the_journals_time_field_alone() -> None:
 
 def test_segment_rows_give_game_frame_and_wall_time_for_each_file() -> None:
     journal = [
+        {"at": 1.0, "event": "started"},
         {"at": 1000.0, "event": "first_frame", "frame_count": 8},
         {"at": 1000.0, "event": "part_started", "stream": "video", "part": 1, "position": 0},
         {"at": 1000.0, "event": "part_started", "stream": "audio", "part": 1, "position": 0},
@@ -408,3 +409,31 @@ def test_a_later_segment_starts_an_hour_of_game_time_on() -> None:
     ]
     rows = segment_rows(journal, ["video-p01-0002.mkv"])
     assert rows[0]["first_frame_count"] == round(2 * 3600 * GBA_FPS)
+
+
+def test_segment_rows_read_only_their_own_session() -> None:
+    journal = [
+        {"at": 1.0, "event": "started"},
+        {"at": 10.0, "event": "first_frame", "frame_count": 100},
+        {"at": 10.0, "event": "part_started", "stream": "video", "part": 1, "position": 0},
+        {"at": 2000.0, "event": "started"},
+        {"at": 2010.0, "event": "first_frame", "frame_count": 90000},
+        {"at": 2010.0, "event": "part_started", "stream": "video", "part": 2, "position": 0},
+    ]
+    names = ["video-p01-0000.mkv", "video-p02-0000.mkv"]
+    rows = {str(row["file"]): row for row in segment_rows(journal, names)}
+    assert rows["video-p01-0000.mkv"]["first_frame_count"] == 100
+    assert rows["video-p01-0000.mkv"]["first_wall_time"] == 10.0
+    assert rows["video-p02-0000.mkv"]["first_frame_count"] == 90000
+
+
+def test_segment_rows_follow_a_counter_reset() -> None:
+    journal = [
+        {"at": 1.0, "event": "started"},
+        {"at": 10.0, "event": "first_frame", "frame_count": 100},
+        {"at": 10.0, "event": "part_started", "stream": "video", "part": 1, "position": 0},
+        {"at": 50.0, "event": "frame_counter_reset", "frame_count": 5, "video_frames": 7000},
+        {"at": 55.0, "event": "part_started", "stream": "video", "part": 2, "position": 7200},
+    ]
+    rows = segment_rows(journal, ["video-p02-0000.mkv"])
+    assert rows[0]["first_frame_count"] == 205

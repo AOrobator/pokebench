@@ -27,3 +27,5 @@ COMMIT: `test(env): the encoder restart test uses a fake clock` (3db6a8321). GPT
 COMMIT: `feat(env): the recorder logs a sync mark each minute` (1fdd1a42b). GPT LGTM on rounds through 061e21c53. Claude BLOCKING: a run from a save recorded no sound, since a save restores the frame counter but not the sound counter; the anchor now checks the first sound and rebases, logged. Also fixed: an encoder that stops reading (10 s write deadline, then killed), picture and sound parting after `frames_lost`, `audio_gap` rows overwriting `at`, `just record` paths, and flushing (`flush_packets` belongs in the segment format options). `--index` writes `segments.json`. Claude also found real runs go at about 80 fps, so media runs about 1.34 times wall time.
 
 COMMIT: `fix(env): sound records from a save, and a stuck encoder cannot hang the recorder` (cd56ada2e).
+
+COMMIT: `style(env): segment options in one place` (247ce036b). Gates passed on cd56ada2e: 2,677 agent, 1,077 viewer, 3,003 env, 38 gateway; lint clean. GPT: index was wrong after a restart or reset; it now reads per-session marks.

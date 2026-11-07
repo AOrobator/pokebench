@@ -322,3 +322,4 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - GPT: a huge count in a route was expanded before the cap. Now summed first.
 - Claude: a landing at 3F (6,4) shares the pocket with (7,4) but fires no row, and (11,1) is unreachable from it. Row now sends it to (7,4).
 - Landed rq-mach-dash-v1 and the Sky Pillar rows (c0c574473): 159 steps, Claude and GPT LGTM (GPT after rebuttal on guide rows and the switch), Grok skipped; build, test, lint exit 0 in the granted window (agent 2830, viewer 1235). Needs viewer-main before a run from this pin.
+- rayquaza-lane-24h-v3: same protocol under a new id and seed, ready for the restart after the fixes landed.

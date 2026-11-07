@@ -12,6 +12,8 @@ One run, one arm, one wall cap. A launch is not done until `run_start` is read b
 
 `--record` also starts `pokebench_env.recorder` before the run, detached, writing hourly picture and sound files to `runs/<meta>/recording/`. It only reads from the game server, so its failure cannot reach the run; check `recording.jsonl` for failures.
 
+`--backup <folder>` with `--record` starts `scripts/recording-backup.sh`, which copies finished segments, the journal and `events.jsonl` to `<folder>/<run id>/` every 10 minutes at low priority. It only copies, and logs to `recording/backup.log`.
+
 `--definition <id>` resolves a fixed definition's arm to `runs/<meta>/preset.json` at launch, so a plain run follows its recipe pointer and takes no `runner.json` slot. `deepseek-boot-24h` is the DeepSeek boot run on `current`.
 
 ## 1. Pick the arm file, not the flags

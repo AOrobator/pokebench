@@ -2522,6 +2522,428 @@
         "t",
         "turn",
         "type",
+        "ended",
+        "bytes",
+        "frames",
+        "unparsed_frames",
+        "comment_lines",
+        "content_chars",
+        "reasoning",
+        "reasoning_dropped_chars",
+        "tool_calls",
+        "empty_deltas",
+        "extra_choice_frames",
+        "after_finish_chars",
+        "after_tool",
+        "unknown_fields",
+        "unknown_overflow",
+        "finish_reason",
+        "usage",
+        "timing",
+        "visible",
+        "output_tokens",
+        "raw"
+      ],
+      "properties": {
+        "v": {
+          "type": "number",
+          "const": 1
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}-0[45]:00$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type": {
+          "type": "string",
+          "const": "model_stream"
+        },
+        "ended": {
+          "enum": [
+            "done",
+            "closed",
+            "error"
+          ]
+        },
+        "error": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unparsed_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "comment_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoning": {
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "reasoning_dropped_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "index",
+              "ids",
+              "name",
+              "deltas",
+              "args_chars",
+              "args_blank_chars"
+            ],
+            "properties": {
+              "index": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ids": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "deltas": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "args_chars": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "args_blank_chars": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 32
+        },
+        "empty_deltas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extra_choice_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "after_finish_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "after_tool": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "frames",
+                "content_chars",
+                "reasoning_chars",
+                "tool_args_chars"
+              ],
+              "properties": {
+                "frames": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "content_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "reasoning_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tool_args_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unknown_fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "count",
+              "chars",
+              "sample"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "chars": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sample": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 32
+        },
+        "unknown_overflow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finish_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "prompt_tokens",
+                "completion_tokens"
+              ],
+              "properties": {
+                "prompt_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "completion_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "reasoning_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timing": {
+          "type": "object",
+          "required": [
+            "first_visible_ms",
+            "last_visible_ms",
+            "last_frame_ms",
+            "end_ms",
+            "longest_gap_ms",
+            "longest_gap_at_ms"
+          ],
+          "properties": {
+            "first_visible_ms": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "last_visible_ms": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "last_frame_ms": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "end_ms": {
+              "type": "integer"
+            },
+            "longest_gap_ms": {
+              "type": "integer"
+            },
+            "longest_gap_at_ms": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "visible": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "thinking_chars",
+                "text_chars",
+                "tool_args_chars",
+                "tool_calls"
+              ],
+              "properties": {
+                "thinking_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tool_args_chars": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tool_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "file",
+                "bytes",
+                "capped"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "capped": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "skipped"
+              ],
+              "properties": {
+                "skipped": {
+                  "enum": [
+                    "run_cap",
+                    "write_failed"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "run",
+        "seq",
+        "t",
+        "turn",
+        "type",
         "decision_turn",
         "state_seq",
         "text",

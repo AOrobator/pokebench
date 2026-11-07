@@ -53,6 +53,7 @@ const SAMPLES: { [K in RunEvent["type"]]: Extract<Body, { type: K }> } = {
   belief_ledger: { type: "belief_ledger", turn: 1, text: X, entries: 1, evidence: [1] },
   milestone_hint: { type: "milestone_hint", turn: 1, text: X, milestone: "CLOCK_SET" },
   guide_purchase_missed: { type: "guide_purchase_missed", turn: 1, step: X, items: [X], money: 300 },
+  model_stream: { type: "model_stream", turn: 1, ended: "done", bytes: 1, frames: 1, unparsed_frames: 0, comment_lines: 0, content_chars: 0, reasoning: {}, reasoning_dropped_chars: 0, tool_calls: [], empty_deltas: 0, extra_choice_frames: 0, after_finish_chars: 0, after_tool: null, unknown_fields: [], unknown_overflow: 0, finish_reason: "length", usage: null, timing: { first_visible_ms: 1, last_visible_ms: 1, last_frame_ms: 1, end_ms: 2, longest_gap_ms: 1, longest_gap_at_ms: 1 }, visible: null, output_tokens: 8192, raw: { file: `model-stream/${X}`, bytes: 1, capped: false } },
   decision_input: { type: "decision_input", turn: 1, decision_turn: 1, state_seq: 1, text: X, frames: [{ path: "frames/000002_0.png", sha1: "a".repeat(40) }] },
   human_input: { type: "human_input", turn: 0, id: 1, start_frame: 0, end_frame: 6, buttons: ["A"], start_ms: BASE_MS, end_ms: BASE_MS + 100, request_seq: 1, session: "keyboard" },
   human_sample: { type: "human_sample", turn: 0, frame: 12, paused: false, screenshot: { path: "frames/000004_0.png", sha1: "a".repeat(40) } },

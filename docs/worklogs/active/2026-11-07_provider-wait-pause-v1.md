@@ -107,3 +107,7 @@ Main advanced to 96bde9f72 before the final CPU window. Route Summary
 shares registry and preset wiring. Resolved those edits by retaining
 main's switch entries and appending the provider switch. The runtime
 pause, event schema and archived-continuation changes remain identical.
+
+Main advanced again to 9b3f537f2 during the first build. Cancelled that
+build and integrated the model-stream logging changes before rerunning.
+The shared live path now has both stream logging and the pause hooks.

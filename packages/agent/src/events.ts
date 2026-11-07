@@ -159,6 +159,26 @@ const HumanSample = event("human_sample", {
 const NavigationContext = event("navigation_context", {text:Type.String(),evidence:Type.Array(NonNegativeInt,{maxItems:36,uniqueItems:true})});
 const MilestoneHintContext = event("milestone_hint", {text:Type.String({maxLength:1000}),milestone:Type.String({minLength:1})});
 // rq-milestone-guide-v1: a guide buy step passed without the item. Analysis only; the model is never told.
+// What the raw model stream carried, beside what pi delivered (model-stream.ts). Never shown to the model.
+const ModelStream = event("model_stream", {
+  ended: Type.Enum(["done", "closed", "error"] as const),
+  error: Type.Optional(Type.String()),
+  bytes: NonNegativeInt, frames: NonNegativeInt, unparsed_frames: NonNegativeInt, comment_lines: NonNegativeInt,
+  content_chars: NonNegativeInt,
+  reasoning: Type.Record(Type.String(), NonNegativeInt),
+  reasoning_dropped_chars: NonNegativeInt,
+  tool_calls: Type.Array(Type.Object({ index: Type.Union([NonNegativeInt, Type.Null()]), ids: NonNegativeInt, name: Type.Union([Type.String(), Type.Null()]), deltas: NonNegativeInt, args_chars: NonNegativeInt, args_blank_chars: NonNegativeInt }, closed), { maxItems: 32 }),
+  empty_deltas: NonNegativeInt, extra_choice_frames: NonNegativeInt, after_finish_chars: NonNegativeInt,
+  after_tool: Type.Union([Type.Object({ frames: NonNegativeInt, content_chars: NonNegativeInt, reasoning_chars: NonNegativeInt, tool_args_chars: NonNegativeInt }, closed), Type.Null()]),
+  unknown_fields: Type.Array(Type.Object({ path: Type.String({ minLength: 1 }), count: NonNegativeInt, chars: NonNegativeInt, sample: Type.String({ maxLength: 200 }) }, closed), { maxItems: 32 }),
+  unknown_overflow: NonNegativeInt,
+  finish_reason: Type.Union([Type.String(), Type.Null()]),
+  usage: Type.Union([Type.Object({ prompt_tokens: NonNegativeInt, completion_tokens: NonNegativeInt, reasoning_tokens: Type.Optional(NonNegativeInt) }, closed), Type.Null()]),
+  timing: Type.Object({ first_visible_ms: Type.Union([Type.Integer(), Type.Null()]), last_visible_ms: Type.Union([Type.Integer(), Type.Null()]), last_frame_ms: Type.Union([Type.Integer(), Type.Null()]), end_ms: Type.Integer(), longest_gap_ms: Type.Integer(), longest_gap_at_ms: Type.Union([Type.Integer(), Type.Null()]) }, closed),
+  visible: Type.Union([Type.Object({ thinking_chars: NonNegativeInt, text_chars: NonNegativeInt, tool_args_chars: NonNegativeInt, tool_calls: NonNegativeInt }, closed), Type.Null()]),
+  output_tokens: NonNegativeInt,
+  raw: Type.Union([Type.Null(), Type.Object({ file: Type.String({ minLength: 1 }), bytes: NonNegativeInt, capped: Type.Boolean() }, closed), Type.Object({ skipped: Type.Enum(["run_cap", "write_failed"] as const) }, closed)]),
+});
 const GuidePurchaseMissed = event("guide_purchase_missed", {step:Type.String({minLength:1}),items:Type.Array(Type.String({minLength:1}),{minItems:1}),money:Type.Union([NonNegativeInt,Type.Null()])});
 const MemoryCompletion = Type.Object({name:Type.String(),state_event:NonNegativeInt,result_event:NonNegativeInt},closed);
 const MemoryDecision = Type.Object({result_event:NonNegativeInt,reason:Type.Enum(["no_chapter","current_chapter","unknown","unresolved","completed"]),rule:Type.Union([Type.String(),Type.Null()])},closed);
@@ -881,6 +901,7 @@ export const RunEventSchema = Type.Union([
   BeliefLedger,
   MilestoneHintContext,
   GuidePurchaseMissed,
+  ModelStream,
   DecisionInput,
   WaitInput,
   HumanInput,

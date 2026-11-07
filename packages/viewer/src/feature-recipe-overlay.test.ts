@@ -10,7 +10,7 @@ import frozenLane from "../test-support/recipes-frozen/rayquaza-lane-36826cea3.j
 import {readFeatureRecipe} from "./fixed-definition.js";
 import {armFeatures,FixedDesignError,materializeFixedSource,parseFixedDefinition,resolveFeatureRecipe,type FeatureRecipe} from "./fixed-design.js";
 
-const LANE_ON=["just-in-time-prompt-v2","jit-guide-reuse-v1","rq-slim-prompt-v1","rq-milestone-guide-v1","rq-battle-explainer-v1"];
+const LANE_ON=["just-in-time-prompt-v2","jit-guide-reuse-v1","rq-slim-prompt-v1","rq-milestone-guide-v1","rq-battle-explainer-v1","rq-no-grind-note-v1"];
 const LANE_OFF=["context-exact-count-v1","no-story-foreknowledge-v1","story-route-plan-v1","town-center-checkpoint-v1"];
 const reader=(files:Readonly<Record<string,unknown>>)=>(id:string):string=>{
  if(!Object.hasOwn(files,id))throw new Error(`no recipe ${id}`);
@@ -18,6 +18,8 @@ const reader=(files:Readonly<Record<string,unknown>>)=>(id:string):string=>{
 };
 const resolved=(lane:unknown,base:unknown):FeatureRecipe=>JSON.parse(resolveFeatureRecipe(JSON.stringify(lane),reader({current:base}))) as FeatureRecipe;
 const sorted=(list:readonly string[]):string[]=>[...list].sort();
+// The frozen recipes predate this overlay entry.
+const atFreeze={...overlay,on:Object.fromEntries(Object.entries(overlay.on).filter(([id])=>id!=="rq-no-grind-note-v1"))};
 const small={version:1,id:"current",romSha1:"a".repeat(40),controlBase:{path:"p.json",presetId:"p",sha256:"b".repeat(64)},
  switches:["treat-a","treat-b"],offInBoth:["off-a"],onInBoth:["on-a"],features:{"treat-a":false,"treat-b":false,"off-a":false,"on-a":true,"plain":false}};
 const because=(ids:readonly string[]):Record<string,string>=>Object.fromEntries(ids.map(id=>[id,"a reason"]));
@@ -34,7 +36,7 @@ describe("the Rayquaza lane overlay",()=>{
   for(const reason of [...Object.values(overlay.on),...Object.values(overlay.off)])expect(reason).toMatch(/^[^\n]{10,100}$/);
  });
  it("resolves to the hand-kept recipe on every feature, list member and bundle arm",()=>{
-  const out=resolved(overlay,frozenCurrent);
+  const out=resolved(atFreeze,frozenCurrent);
   expect(out.id).toBe(frozenLane.id);
   expect(out.romSha1).toBe(frozenLane.romSha1);
   expect(out.controlBase).toEqual(frozenLane.controlBase);

@@ -196,19 +196,17 @@ describe("rayquazaGuideContext", () => {
 });
 
 describe("the shipped guide", () => {
-  it("catches Taillow before any Repel on Route 116", () => {
+  it("meets Route 116's Pokémon before any Repel", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
-    expect(note.indexOf("catch Taillow")).toBeGreaterThan(note.indexOf("No Repel yet"));
-    expect(note.indexOf("Then a Repel")).toBeGreaterThan(note.indexOf("catch Taillow"));
+    expect(note.indexOf("If you meet Taillow")).toBeGreaterThan(note.indexOf("No Repel yet"));
+    expect(note.indexOf("Repel at about")).toBeGreaterThan(note.indexOf("If you meet Taillow"));
   });
 
   it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
     expect(note).toMatch(/X Attack and X Speed against Slugma/);
     expect(note).toMatch(/if you have them/);
-    expect(note).toMatch(/Absorb hits Marshtomp x4/);
-    expect(note).toMatch(/aim for level 26/);
-    expect(note).toMatch(/Catch a Wingull if met; don't hunt/);
+    expect(note).toMatch(/Absorb took a Level 22 Marshtomp out in two hits/);
     expect(note).not.toMatch(/Taillow/);
   });
 

@@ -48,7 +48,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROCK_TOMB_RECEIVED | RustboroCity | Walk east past Rustboro's x=23, y=20-24 for a theft, then Route 116. No Repel yet: catch Taillow in the first grass, Great Ball first; stop after 10 encounters. Catch Abra if met; don't hunt: throw a Ball at once. Then a Repel, beat Hiker Devan at (42,13), decline Bide, beat the Rusturf grunt. | KI 11, 12, ROM, TR 7da5:560, frame 0:19:52, aeb8:302, audit I5, e09e:274-285 |
+| ROCK_TOMB_RECEIVED | RustboroCity | Walk east past Rustboro's x=23, y=20-24 for a theft, then Route 116. No Repel yet. If you meet Taillow or Abra on your way, throw a Ball at once, Great Ball first. Never search for them; keep moving east. Repel at about x=35, beat Hiker Devan at (42,13), decline Bide, beat the Rusturf grunt. | KI 11, 12, ROM, TR 7da5:560, frame 0:19:52, aeb8:302, audit I5, e09e:274-285 |
 | RUSTURF_AQUA_GRUNT_DEFEATED | RusturfTunnel | Finish the dialogue to receive the Devon Goods. Return to Rustboro, report to the Devon employee outside the building, and follow him inside. | KI 12, 13, fact check |
 | DEVON_CORPORATION | - | Go to the top floor and talk to the president, Mr. Stone. He gives you a letter for Steven in Dewford. | KI 13 |
 | POKENAV_RECEIVED | RustboroCity_DevonCorp_3F | Finish Mr. Stone's talk and the Match Call tutorial. | KI 15, tested 2026-11-05, fact check |
@@ -66,7 +66,7 @@ Sources: **KI** route step or section in `keepingiticy-video/findings.md`; **WT*
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| ROUTE_110 | Route110 | At (8,76), trigger Isabel and Kaleb. At (36,67), face east, press A: Full Heal. No Flying Pokémon? Catch a Wingull if met; don't hunt. Rival north: Potions first. X Attack and X Speed against Slugma if you have them, else aim for level 26. Grovyle's Absorb hits Marshtomp x4. Decline Foresight. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868, 7442:663-669, aeb8:590-671, KI battle plans 0:34:24-0:35:52, intentional fallback: Wingull not in KI, ROM, TR 5f0f:764, 274b:873 |
+| ROUTE_110 | Route110 | At (8,76), trigger Isabel and Kaleb. At (36,67), face east, press A: Full Heal. Rival north: Potions first. X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits. Decline Foresight. | KI battle plans, GR, TR 274b:730, fact check, ROM, TR 5f0f:760, 274b:868, 7442:663-669, aeb8:590-671, KI battle plans 0:34:24-0:35:52, intentional fallback: Wingull not in KI, ROM, TR 5f0f:764, 274b:873 |
 | ROUTE_110_RIVAL_DEFEATED | Route110 | Beat Alyssa at (10,39) and Edward at (3,39). Take the Elixir ball at (6,38) from (5,38), facing east, then continue north to Mauville City. | KI 18, ROM, OCR 0:36:39, audit U11 |
 | MAUVILLE_CITY | MauvilleCity | Get HM06 Rock Smash from the scientist in the house with the door at (32,14). | KI 19, ROM, WT 03, fact check |
 | HM_ROCK_SMASH_RECEIVED | MauvilleCity | Get the Mach Bike from the shop east of the Pokémon Center. Teach Rock Smash in place of Rock Tomb, or Tackle if you still have it. Bike east on Route 118, beat Youngster Deandre at (7,7), then heal at the Mauville Pokémon Center. Beat Wally outside the Gym, then enter. | KI 19, WT 03, fact check, ROM, OCR 0:38:49, 0:39:45, audit U2, U10 |

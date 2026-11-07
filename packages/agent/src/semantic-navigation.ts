@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,routeTiles,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -259,6 +259,42 @@ function connectionApproaches(state:GameStateSnapshot,target:Extract<RequestTarg
  const connection=state.topology?.connections.find(item=>item.direction===target.direction);
  return edgeTiles(state,connection,options).flatMap(point=>{const path=planNavigation(state,point,options);return path===null?[]:[{point,facing:EDGE_BUTTON[target.direction],length:path.length}];})
   .sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
+}
+// route-summary-v1: the route navigate_to_target would take now, chosen as its walk chooses it. A tile is reached
+// directly, or from the nearest free tile beside it when something stands on it.
+export type RouteGoal={readonly route:"listed";readonly target:SnapshotTarget}|{readonly route:"connection";readonly direction:"NORTH"|"SOUTH"|"EAST"|"WEST"}|{readonly route:"tile";readonly tile:Point};
+export interface PlannedRoute {readonly point:Point;readonly steps:number;readonly tiles:readonly Point[];readonly launch?:{readonly water:Point;readonly move:"Surf"|"Waterfall"}}
+export function plannedRoute(state:GameStateSnapshot,goal:RouteGoal,features:FeatureSet):PlannedRoute|null {
+ const base=navigationOptions(features),scriptBoundary=features["navigation-truth-v1"]&&features["coordinate-script-conditions-v1"];
+ const planned=features["field-move-gates-v1"]?gatedState(state,features["surf-navigation-v1"]):state;
+ let options:NavigationOptions=scriptBoundary?{...base,triggers:matchingTriggers(state)}:base;
+ // The walk resolves a listed target first: a step-on pad is advertised, and its record is what the approach matches.
+ const listed=goal.route==="listed"?resolve(state,requestFor(goal.target),options):null;
+ const tileChoices=(tile:Point,plan:NavigationOptions):Approach[]=>{
+  const direct=planNavigation(planned,tile,plan);
+  if(direct!==null)return [{point:tile,facing:null,length:direct.length}];
+  return STEPS.flatMap(([facing,dx,dy])=>{const point={x:tile.x-dx,y:tile.y-dy},path=planNavigation(planned,point,plan);return path===null?[]:[{point,facing,length:path.length}];}).sort((a,b)=>a.length-b.length||a.point.y-b.point.y||a.point.x-b.point.x);
+ };
+ const choicesFor=(plan:NavigationOptions):Approach[]=>goal.route==="connection"?connectionApproaches(planned,{kind:"connection",direction:goal.direction},plan):goal.route==="tile"?tileChoices(goal.tile,plan):approaches(planned,listed??goal.target,plan);
+ let choices=choicesFor(options).filter(choice=>!scriptBoundary||choice.length===0||!options.triggers?.some(trigger=>trigger.x===choice.point.x&&trigger.y===choice.point.y&&(trigger.elevation===0||trigger.elevation===plannedArrivalElevation(planned,choice.point,options))));
+ if(scriptBoundary&&choices.length===0){options={...options,triggers:[]};choices=choicesFor(options);}
+ const choice=choices[0];
+ if(choice===undefined)return features["surf-navigation-v1"]&&state.surf_gate?.can_surf===true?shoreRoute(planned,goal,listed,options):null;
+ const path=planNavigation(planned,choice.point,options);if(path===null)return null;
+ const tiles=routeTiles(planned,path,options);
+ return tiles===null?null:{point:choice.point,steps:path.length,tiles};
+}
+// The way across water: as the walk does, it goes to the shore and leaves the A press to the player.
+function shoreRoute(planned:GameStateSnapshot,goal:RouteGoal,listed:SnapshotTarget|null,options:NavigationOptions):PlannedRoute|null {
+ const beside=(p:Point):Point[]=>STEPS.map(([,dx,dy])=>({x:p.x+dx,y:p.y+dy}));
+ const connection=goal.route==="connection"?planned.topology?.connections.find(item=>item.direction===goal.direction):undefined;
+ const target=goal.route==="listed"?listed??goal.target:null;
+ const goals=goal.route==="connection"?[...(connection?.edges??[]),...(connection?.water_edges??[])]:goal.route==="tile"?[goal.tile,...beside(goal.tile)]:target?.kind==="warp"?[target]:target===null?[]:beside(target);
+ const launch=surfLaunch(planned,goals.map(({x,y})=>({x,y})),withClimb(planned,options));
+ if(launch===null)return null;
+ const path=planNavigation(planned,launch.at,options);if(path===null)return null;
+ const tiles=routeTiles(planned,path,options);
+ return tiles===null?null:{point:launch.at,steps:path.length,tiles,launch:{water:launch.water,move:launch.move}};
 }
 // moving-npc-intercept-v1: a place to stand beside a watched walk, and the step into it. The game
 // pins a walk-sequence object whose next tile is taken (event_object_movement.c

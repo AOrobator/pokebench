@@ -102,3 +102,8 @@ returned LGTM after the archived-continuation delta. No local inference
 reviewers were used. The operator explicitly approved updating the viewer fixture's
 expected default to ON at 10:03 AM EST and waived re-review of that fixture
 change. The full preset assertion is preserved.
+
+Main advanced to 96bde9f72 before the final CPU window. Route Summary
+shares registry and preset wiring. Resolved those edits by retaining
+main's switch entries and appending the provider switch. The runtime
+pause, event schema and archived-continuation changes remain identical.

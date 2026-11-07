@@ -61,6 +61,8 @@ import {withMachDash} from "./mach-dash.js";
 import {withHarnessTrust,type TrustOptions,type TrustRecorder} from "./harness-trust.js";
 import {withCitedDestination,type CitationRecorder} from "./cited-destination.js";
 import {withUntakenExits} from "./untaken-exits.js";
+import {withRouteSummary} from "./route-summary.js";
+import {guideRow} from "./rayquaza-guide.js";
 import {withSemanticNavigation} from "./semantic-navigation.js";
 import {withStalePlanFact} from "./stale-plan-fact.js";
 import {withStoryLineCampaign} from "./story-line-campaign.js";
@@ -230,7 +232,7 @@ export function playGameTools(base:readonly AgentTool[],features:FeatureSet,stat
  const navigated=withSemanticNavigation(withNavigation(base,features,navigationState,gate,sight,healGate),features,navigationState);
  const names=features["no-story-foreknowledge-v1"]?new ShownStoryNames():null;
  if(names!==null)recorder.subscribe(event=>{names.observe(event);});
- const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withMachDash(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,state),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate,base.find(tool=>tool.name==="observe"),features["menu-option-honest-refusal-v1"]),features,recorder),features,recorder),features,recorder),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm,names),features,recorder,state),features,recorder)];
+ const facts=[...withResultFacts(withUnfinishedActivity(withLowHpTrainerWarning(withStoryBattleHealGate(withCatchingBlocks(withTrainingBlock(withGameSaidGoals(withEffectivenessHeard(withNavigateFirst([...withInstructionLedgerV2(withStoryDestinations(withPeopleIdCards(withRouteSummary(withUntakenExits(withGymReadiness(withPeopleLedger(withMenuOptionTool(withDialogueAutoAdvance(withMachDash(withLearnMove(withBattleAction(withNoExitHere(navigated,features),features,state,gate),features,state,gate),features,state),features,{state,recorder,...(gate===undefined?{}:{gate})}),features["menu-option-tool-v1"],gate,base.find(tool=>tool.name==="observe"),features["menu-option-honest-refusal-v1"]),features,recorder),features,recorder),features,recorder),features,{check:sight?.check??null,guide:guideRow(features,recorder)}),features,recorder),features,recorder,state),features,recorder),...extra],features),features,recorder),features,recorder),features,recorder,training),features,recorder),healGate,state),features,recorder,state,arm,names),features,recorder,state),features,recorder)];
  const pokenav=withPokenavCallAutoAdvance(facts,features,{state,recorder,press:base.find(t=>t.name==="press"),observe:base.find(t=>t.name==="observe"),...(gate===undefined?{}:{gate})});
  const progress=withDarkAreaFlashReminder(withGymProgress(withUntalkedInGym(withSupplies(withTypeGapTeam(pokenav,features,recorder),features,state),features,recorder),features,recorder),features,recorder);
  const visible=terrain===null?progress:withVisitedTerrain(progress,terrain);

@@ -15,11 +15,19 @@ log="$recording/backup.log"
 say() { print -r -- "$(date '+%Y-%m-%dT%H:%M:%S%z') $*" >>"$log"; }
 renice -n 19 $$ >/dev/null 2>&1
 
+# The run this job backs up: the oldest one created since `started`, kept for good once found, so a
+# later run of the same model cannot take over. Kept in a file so a restarted job finds it again.
+pinned="$recording/backup.run"
 run_folder() {
   local dir
-  for dir in "$runs"/${~glob}(N/om); do
+  if [[ -f $pinned ]]; then
+    print -r -- "$(<"$pinned")"
+    return 0
+  fi
+  for dir in "$runs"/${~glob}(N/Om); do
     [[ -f "$dir/events.jsonl" ]] || continue
-    (( $(stat -f %B "$dir") >= started )) || continue
+    (( $(stat -f %B "$dir" 2>/dev/null || print 0) >= started )) || continue
+    print -r -- "$dir" >"$pinned"
     print -r -- "$dir"
     return 0
   done
@@ -49,7 +57,7 @@ pass() {
     newest=${${(On)parts}[1]:t}
     for file in $parts; do
       [[ $final == 0 && ${file:t} == $newest ]] && continue
-      [[ -f "$dest/${file:t}" && $(stat -f %z "$dest/${file:t}") == $(stat -f %z "$file") ]] && continue
+      [[ -f "$dest/${file:t}" && $(stat -f %z "$dest/${file:t}" 2>/dev/null) == $(stat -f %z "$file" 2>/dev/null) ]] && continue
       copy "$file" "$dest" && say "copied ${file:t}"
     done
   done
@@ -64,10 +72,11 @@ pass() {
 copy_new_events() {
   local source=$1 dest=$2 sent=0 count=0 part size
   for part in "$dest"/events-*.part(N); do
-    sent=$(( sent + $(stat -f %z "$part") ))
+    size=$(stat -f %z "$part" 2>/dev/null) || { say "cannot read $part"; failures=$(( failures + 1 )); return 1; }
+    sent=$(( sent + size ))
     count=$(( count + 1 ))
   done
-  size=$(stat -f %z "$source")
+  size=$(stat -f %z "$source" 2>/dev/null) || { say "cannot read $source"; failures=$(( failures + 1 )); return 1; }
   (( size > sent )) || return 0
   part=$(printf 'events-%06d.part' $(( count + 1 )))
   if tail -c +$(( sent + 1 )) "$source" | head -c $(( size - sent )) >"$dest/$part.tmp" && mv "$dest/$part.tmp" "$dest/$part"; then

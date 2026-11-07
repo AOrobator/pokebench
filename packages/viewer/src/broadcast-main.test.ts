@@ -351,8 +351,8 @@ describe("the broadcast page", () => {
         const s = mixed("?run=r1", [{ ended: true, items: [] }]);
         await s.mount();
         s.timers.find((_, index) => index === 1)?.();
-        await vi.waitFor(() => { expect(s.part("sound").hidden).toBe(false); });
-        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+        await new Promise(resolve => { setTimeout(resolve, 0); });
+        expect(s.part("sound").hidden).toBe(false);
         s.part("sound").click();
         expect(s.log).toEqual([]);
       });

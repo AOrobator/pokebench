@@ -73,6 +73,8 @@ Offline only, on recorded states; no run launched, no request to any model serve
 
 - 2026-11-07: worktree `/private/tmp/pb-route-summary`, branch `claude/route-summary`.
 
+- 2026-11-07: fa0034143 fixed N1, but its cap test still failed on an assertion tied to one state; the next commit corrects the test. Focused tests 83/83 after it.
+
 ## Surprises
 
 - The no-I/O guard forbids reading gz fixtures from a test; a JSON module import is allowed, so the fixture is trimmed JSON.

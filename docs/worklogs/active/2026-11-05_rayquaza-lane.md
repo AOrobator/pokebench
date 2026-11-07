@@ -317,3 +317,4 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - Not gated: the guide rows change with the data, as every guide correction has. With `rq-milestone-guide-v1` ON and `rq-mach-dash-v1` OFF the rows would name a tool the model lacks. The lane has both on.
 - The queue cannot be cancelled: a run aborted mid-route still rides up to 100 beats.
 
+- COMMIT: `fix(agent): mach_dash survives the real path: release 0, warps and battles` (01b237c0d). 294 agent and 48 viewer focused tests pass; tsc on both packages and eslint on changed files clean. Full suites, review loop and merge not done. After a merge, `just viewer-main` is needed before a run from this pin: an older viewer rejects `release_frames: 0`.

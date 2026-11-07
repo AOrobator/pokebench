@@ -165,7 +165,7 @@ describe("the Lavaridge Gym vent rows", () => {
 describe("the Fortree Gym gate rows", () => {
   const tile = onFloor("FortreeCity_Gym");
   const row = (x: number, y: number): string => `AT:FortreeCity_Gym:${String(x)}:${String(y)}`;
-  const LANDINGS = [[7, 18], [9, 10], [1, 8], [5, 2], [6, 4]] as const;
+  const LANDINGS = [[7, 18], [9, 10], [1, 6], [6, 4]] as const;
   const gym = (): GuidePosition => new GuidePosition(rowsFrom("FORTREE_GYM_ENTERED"), { checkpointRecovery: true });
   it("fire in order, each on the tile the last row's route ends on", () => {
     const guide = gym();
@@ -174,31 +174,41 @@ describe("the Fortree Gym gate rows", () => {
       expect(guide.current().after).toBe(row(x, y));
     }
   });
-  it("gate only the Darius row, whose route holds the push at (1,6)", () => {
-    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("AT:FortreeCity_Gym") && step.gate === true).map((step) => step.after)).toEqual([row(1, 8)]);
+  it("need no gate: (1,6) and (6,4) lie on every path to Winona", () => {
+    expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("AT:FortreeCity_Gym") && step.gate === true)).toEqual([]);
   });
   it("recover when a press walks past (7,18)", () => {
     const guide = gym();
     guide.observe(tile(9, 10));
     expect(guide.current().after).toBe(row(9, 10));
   });
-  it("hold at (5,2) reached straight up from (5,8), with the (2,6) gate unturned", () => {
+  it("fire (1,6) on either approach, past (1,8) or from (2,7)", () => {
+    for (const approach of [[1, 8], [2, 7]] as const) {
+      const guide = gym();
+      for (const [x, y] of [[7, 18], [9, 10], approach, [1, 7]] as const) guide.observe(tile(x, y));
+      expect(guide.current().after).toBe(row(9, 10));
+      guide.observe(tile(1, 6));
+      expect(guide.current().after).toBe(row(1, 6));
+    }
+  });
+  it("hold on a detour up from (5,8), which reaches (5,2) with the (2,6) gate unturned", () => {
     const guide = gym();
-    for (const [x, y] of [[7, 18], [9, 10], [5, 2]] as const) guide.observe(tile(x, y));
+    for (const [x, y] of [[7, 18], [9, 10], [5, 8], [5, 2]] as const) guide.observe(tile(x, y));
     expect(guide.current().after).toBe(row(9, 10));
-    guide.observe(tile(1, 8));
-    expect(guide.current().after).toBe(row(1, 8));
-    guide.observe(tile(5, 2));
-    expect(guide.current().after).toBe(row(5, 2));
+  });
+  it("show Winona's row even if a press walked past (1,6)", () => {
+    const guide = gym();
+    for (const [x, y] of [[7, 18], [9, 10], [6, 4]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe(row(6, 4));
   });
   it("hold through a loss, then the next landing fires", () => {
     const guide = gym();
-    for (const [x, y] of [[7, 18], [9, 10], [1, 8]] as const) guide.observe(tile(x, y));
+    for (const [x, y] of [[7, 18], [9, 10], [1, 6]] as const) guide.observe(tile(x, y));
     guide.observe(move(5, 5, ELSE));
-    for (const [x, y] of [[15, 24], [7, 18], [9, 10], [1, 8]] as const) guide.observe(tile(x, y));
-    expect(guide.current().after).toBe(row(1, 8));
-    guide.observe(tile(5, 2));
-    expect(guide.current().after).toBe(row(5, 2));
+    for (const [x, y] of [[15, 24], [7, 18], [9, 10], [1, 6]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe(row(1, 6));
+    guide.observe(tile(6, 4));
+    expect(guide.current().after).toBe(row(6, 4));
   });
   it("leave the badge inside REACH even from the cleared Kecleon", () => {
     expect(span("FORTREE_GYM_OBSTRUCTION_CLEARED", "FEATHER_BADGE")).toBeLessThanOrEqual(REACH);

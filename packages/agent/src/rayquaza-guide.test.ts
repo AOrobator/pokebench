@@ -20,7 +20,7 @@ describe("the Route 116 catches", () => {
   const row = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
   it("names Abra beside Taillow, so the Abra note has no rival target", () => {
     expect(row).toContain("catch Taillow and Abra if met");
-    expect(row).toContain("Abra Teleports on turn 1: throw a Ball at once.");
+    expect(row).toContain("Abra Teleports on turn 1: throw a Ball at once");
     expect(row).toContain("give up after 10 encounters");
   });
 });

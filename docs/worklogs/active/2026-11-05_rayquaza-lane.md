@@ -173,3 +173,7 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: a zero replacement reserve would leave a never-began trial paused forever, so both definitions reserve three trials (3,600,000 ms). Power table now uses no failure rate and no budget line, since the operator has set none. First-fight reader at `runs/route110-rival/first-fight.py`.
 - Claude recheck: the reserve allows three replacements as stated, but the runner also replaces mismatched and signalled trials; page now says so. Noted for later: fixed-run-launch section 4 says a SIGTERM'd trial is not replaced, while `classifyTrial` replaces it.
 - Landed the Route 110 definitions (fc670e951): Claude and GPT lanes LGTM, Grok skipped; just test and just lint exit 0 on the final head (agent 2680, viewer 1077); memory free 96%. Not launched; The operator's pick, N and GPU window pending.
+
+### 2026-11-07: Route 116 row names both catches
+
+- e09e ran from three wild Abra (turns 274, 283, 285) despite the Abra note: the guide row named only Taillow and came last. Audit of every row for only/catch wording: this row is the only conflict.

@@ -16,6 +16,15 @@ const steps: readonly GuideStep[] = [
 const milestone = (name: string, origin = "observed"): RunEvent => ({ type: "milestone", name, origin, kind: "story" }) as unknown as RunEvent;
 const user = (content: string): AgentMessage => ({ role: "user", content, timestamp: 1 });
 
+describe("the Route 116 catches", () => {
+  const row = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
+  it("names Abra beside Taillow, so the Abra note has no rival target", () => {
+    expect(row).toContain("catch Taillow and Abra if met");
+    expect(row).toContain("Abra Teleports on turn 1: throw a Ball at once.");
+    expect(row).toContain("give up after 10 encounters");
+  });
+});
+
 describe("GuidePosition", () => {
   it("starts on the first step and advances on later milestones", () => {
     const guide = new GuidePosition(steps);

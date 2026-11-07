@@ -50,6 +50,7 @@ const LEGACY_RULE:ElevationRule={
 };
 export type ElevationMode="game"|"legacy";
 const ready=(s:GameStateSnapshot,mode:NavigationMode="local"):boolean=>s.started&&s.screen==="overworld"&&!s.in_battle&&s.field_controls_locked===false&&s.position!==null&&s.map_id!==null&&(mode==="full"?s.map_grid!=null:s.navigation_grid!=null)&&(s.active_ui==null||(s.active_ui.ready===true&&s.active_ui.diagnostic===null));
+export const navigationReady=ready;
 export const MAX_NAVIGATION_COMMANDS=8;
 // Safety bound for whole-map routes; the longest Emerald routes need a few hundred steps.
 export const MAX_FULL_ROUTE_COMMANDS=512;

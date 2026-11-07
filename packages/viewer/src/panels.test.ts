@@ -587,6 +587,7 @@ it("links the elevation transitions card to its tracked explainer",()=>{
 
 it("links the battle details v2 card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["battle-details-v2"]).toBe("battle-details-v2.html");
+ expect(FEATURE_EXPLAINERS["route-summary-v1"]).toBe("route-summary-v1.html");
 });
 
 it("documents recall_dialogue and links the dialogue log explainer",()=>{

@@ -221,6 +221,57 @@ describe("the shipped guide", () => {
   });
 });
 
+describe("the guide's route rows", () => {
+  const row = (after: string): GuideStep => {
+    const step = RAYQUAZA_GUIDE_STEPS.find((candidate) => candidate.after === after);
+    if (step === undefined) throw new Error(`no row ${after}`);
+    return step;
+  };
+  const BUTTON_ROUTE = /\b[UDLR]\d*[ ,][UDLR]\d*[ ,][UDLR]\d*\b/;
+  const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED"]);
+
+  it("gives every button route but the climbs one recovery line", () => {
+    const routes = RAYQUAZA_GUIDE_STEPS.filter((step) => BUTTON_ROUTE.test(step.note) && !CLIMBS.has(step.after));
+    expect(routes.map((step) => step.after)).toEqual(expect.arrayContaining(["DEWFORD_GYM_ENTERED", "KNUCKLE_BADGE", "FORTREE_GYM_ENTERED", "MOSSDEEP_GYM_ENTERED", "SOOTOPOLIS_GYM_ENTERED", "VICTORY_ROAD_WALLY_DEFEATED"]));
+    expect(routes.filter((step) => !step.note.includes("If off this route, trust the map."))).toEqual([]);
+    for (const after of CLIMBS) expect(row(after).note).not.toContain("trust the map");
+  });
+
+  it("walks a run without Teleport back to Mauville and heals there", () => {
+    const { note } = row("HM_STRENGTH_RECEIVED");
+    expect(note).toContain("walk east through the opened tunnel to Verdanturf, then Route 117");
+    expect(note).toContain("Heal at the Center.");
+    expect(note).toContain("Rock Smash (19,100)");
+    expect(note).not.toContain("(18,101)");
+    expect(note).not.toMatch(/in place of Mud-Slap now/);
+  });
+
+  it("ends the climb at Rayquaza and names the talks that open Juan's Gym", () => {
+    const climb = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
+    const top = RAYQUAZA_GUIDE_STEPS[climb + 1];
+    expect(RAYQUAZA_GUIDE_STEPS[climb]?.note.endsWith("top D L4 U4 R2 U4.")).toBe(true);
+    expect(top?.after).toBe("AT:SkyPillar_Top:14:7");
+    expect(top?.note).toContain("Maxie at (33,35)");
+    expect(top?.note).toContain("Archie at (34,35)");
+    expect(top?.note).toContain("Wallace at the Gym door for HM07");
+    expect(RAYQUAZA_GUIDE_STEPS[climb + 2]?.after).toBe("HM_WATERFALL_RECEIVED");
+  });
+
+  it("moves to the talks row only on the tile below Rayquaza", () => {
+    const from = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(from));
+    const tile = RAYQUAZA_GUIDE_STEPS[from + 1]?.at;
+    if (tile === undefined) throw new Error("the talks row has no tile");
+    const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: tile.id, position: { x, y } }) as unknown as RunEvent;
+    guide.observe(at(14, 8));
+    expect(guide.current().after).toBe("SOOTOPOLIS_CRISIS_RESOLVED");
+    guide.observe(at(14, 7));
+    expect(guide.current().after).toBe("AT:SkyPillar_Top:14:7");
+    guide.observe(milestone("HM_WATERFALL_RECEIVED"));
+    expect(guide.current().after).toBe("HM_WATERFALL_RECEIVED");
+  });
+});
+
 describe("rq-battle-explainer-v1", () => {
   const recorder = () => {
     let listener: (event: RunEvent) => void = () => undefined;

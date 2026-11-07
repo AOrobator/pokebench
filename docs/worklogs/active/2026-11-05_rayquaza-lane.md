@@ -197,3 +197,10 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Reviews: a second test file resolved the overlay against the frozen recipe; OFF test now pins the exact note.
 - Landed rq-no-grind-note-v1 (3ac8226e6): Claude and GPT LGTM, Grok skipped; just test and just lint exit 0 (agent 2688, viewer 1221); memory free 86%. Live run 6056 keeps its frozen recipe.
 - e09e stop reason (not recorded in the run): restart on on-path catch fix, the operator 11/7.
+### 2026-11-07: guide text batch 1 (branch claude/rq-guide-batch1; audit of aeb8, 7442, e09e; not merged)
+
+- Unit 1, operator-approved correctness rows. HM_STRENGTH_RECEIVED: walking route back through the opened tunnel, Verdanturf and Route 117, "Heal at the Center.", Strength over Mud-Slap or Growl as known, rock (19,100) only. Tile search reaches the tunnel's east warp from (25,5) in 15 steps and Route 117 end to end in 63. Teleport stays with the situation note, so no row but Route 116 names it.
+- SOOTOPOLIS_CRISIS_RESOLVED ends at the climb, bike route text unchanged. New row AT:SkyPillar_Top:14:7 restores the Maxie (33,35), Archie (34,35) and Wallace talks; both talks set FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE, which GiveWaterfall needs. Rayquaza stands at (14,6) on the second visit and the climb ends on (14,7). A run that talks to it from the side never fires the row; HM_WATERFALL_RECEIVED still moves the guide.
+- Recovery line "If off this route, trust the map." on every button route except the two climbs: Dewford, Knuckle, Fortree, Mossdeep, Sootopolis Gym, Victory Road. The short form is used everywhere because Fortree, Sootopolis and Mossdeep have no room for the long one.
+- Room for that line took the Fortree and Sootopolis Gym rewrites from Unit 3, so they land here. Sootopolis simulated on map.bin: 64 of 64 ice tiles, no repeat, ends (8,3) below Juan. Fortree gates reset on map transition (RotatingGate_InitPuzzle).
+- Tests 66 pass in the focused set; tsc and eslint clean. The first commit of this unit went in with a failed generate and was amended before anything built on it.

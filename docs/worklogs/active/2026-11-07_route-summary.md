@@ -93,6 +93,9 @@ Round 1, frozen 5ad4882bc..84cd54e21, diff sha256 77822961d8f53b7dc2d4d9d288cbb9
 Round 2, fix delta 84cd54e21..4aa65cd22, diff sha256 d8b95ecd98bf4fab49d36ba32881461ebf9627fc2e3506ee80ffb8f6b8af0ee3.
 - Claude CLI: B1, B2, B3 closed; BLOCKING on one new bug from the B3 fix, N1: the out-of-sight search printed a shore leg as a finished route. Fixed next commit: it now says "no walking route out of sight". The check-cap test was also made to reach both wordings. Round cap reached: asking the operator through the coordinator.
 
+Round 3, the one extra check the coordinator asked for, fix delta 4aa65cd22..bd4bcd2c8, diff sha256 536f2841a5745e671711d89e03dd53c2311342b25433a21c0f2b6f17b1eb3a50: Claude CLI LGTM, N1 closed.
+GPT lane: The operator did not waive it (2026-11-07 9:41 AM). Final-head packet (1e26fed6c..fd87c4b03, sha256 6c01887c5823e0f4a39891a01eab17baf80665d366e9d2538e8df3d229b71756) queued to Codex thread "Compare Sol and Astra pricing"; waiting.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

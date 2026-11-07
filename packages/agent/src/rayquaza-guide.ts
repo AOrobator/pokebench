@@ -81,7 +81,7 @@ export class GuidePosition {
  private optionsReady=false;
  private inOptions=false;
  latest:GameStateSnapshot|null=null;
- constructor(private readonly steps:readonly GuideStep[]) {}
+ constructor(private readonly steps:readonly GuideStep[],private readonly options:{readonly checkpointRecovery?:boolean}={}) {}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"screen" in event){
    this.inBattle=battleOnScreen(event,true);
@@ -95,7 +95,7 @@ export class GuidePosition {
   }
   const reached=event.type==="milestone"?this.steps.findIndex(step=>step.after===event.name):event.type==="state"&&"map_id" in event&&event.map_id!=null?this.onMap(event.map_id,"position" in event?event.position:null):-1;
   // A place or tile counts only from the step before it, so an early visit moves nothing.
-  if(reached>=0&&(event.type==="milestone"||reached===this.furthest+1))this.advance(event,reached);
+  if(reached>=0&&(event.type==="milestone"||reached===this.furthest+1||this.recovers(reached)))this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
   // A press that changes a value and leaves in one batch ends with values no state showed.
   if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
@@ -151,6 +151,12 @@ export class GuidePosition {
   if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
  }
+ // rq-checkpoint-recovery-v1: only checkpoints on one map may be skipped, so a story step can never be.
+ private recovers(reached:number):boolean {
+  const id=this.steps[reached]?.at?.id;
+  if(this.options.checkpointRecovery!==true||id===undefined||reached-this.furthest>REACH)return false;
+  return reached>this.furthest&&this.steps.slice(this.furthest+1,reached+1).every(step=>step.at!==undefined&&mapKey(step.at.id)===mapKey(id));
+ }
  private onMap(id:MapId,position:{readonly x:number;readonly y:number}|null):number {
   return this.steps.findIndex(step=>(step.enter?.[0]===id[0]&&step.enter[1]===id[1])||(step.at!==undefined&&position!==null&&step.at.id[0]===id[0]&&step.at.id[1]===id[1]&&step.at.x===position.x&&step.at.y===position.y));
  }
@@ -185,7 +191,7 @@ const laneSteps=(features:FeatureSet):readonly GuideStep[]=>features["rq-old-riv
 // is present on map entry and during a stall without separate triggers.
 export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=laneSteps(features)):Transform {
  if(!features["rq-milestone-guide-v1"])return transform;
- const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true,true);
+ const guide=new GuidePosition(steps,{checkpointRecovery:features["rq-checkpoint-recovery-v1"]});recorder.subscribe(event=>{guide.observe(event);},true,true);
  let recorded:string|null=null,told:readonly string[]=[],sectionsShown:readonly string[]=[];
  const sections=features["rq-slim-prompt-v1"]?rqMovedSections(features,null):new Map<string,string>();
  return async messages=>{

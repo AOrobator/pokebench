@@ -231,3 +231,4 @@ Unit 3, the remaining audit rows:
 ### 2026-11-07: rq-checkpoint-recovery-v1
 
 - The Mossdeep pilot showed a skipped checkpoint stalls the guide. A later checkpoint on the same map may now recover it, within REACH, behind a lane-only switch.
+- COMMIT RED: `test(guide): a later checkpoint recovers a skipped one on the same map` (8c1f9f139). Wiring test goes red with the option removed.

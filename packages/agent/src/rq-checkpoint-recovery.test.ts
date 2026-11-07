@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
-import { GuidePosition, type GuideStep } from "./rayquaza-guide.js";
+import { rayquazaLaneFeatures } from "../test-support/rayquaza-lane.js";
+import { GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const GYM = [14, 0], ELSE = [1, 1];
 const at = (x: number, y: number, id: readonly number[] = GYM): GuideStep => ({ after: `AT:${String(x)}:${String(y)}`, map: null, note: `leg ${String(x)}`, at: { id: id as [number, number], x, y } });
@@ -50,6 +51,20 @@ describe("rq-checkpoint-recovery-v1", () => {
     guide.observe(move(4, 4));
     guide.observe(move(9, 9, ELSE));
     expect(guide.current().after).toBe("AT:4:4");
+  });
+  it("the production guide honours the switch", async () => {
+    for (const on of [true, false]) {
+      let listener: (event: RunEvent) => void = () => undefined;
+      const hints: string[] = [];
+      const context = rayquazaGuideContext({ ...rayquazaLaneFeatures(), "rq-checkpoint-recovery-v1": on }, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: (hint: { text: string }) => { hints.push(hint.text); } }, (messages) => Promise.resolve(messages), steps);
+      listener(story("GYM"));
+      listener(move(3, 3));
+      await context([]);
+      expect(hints).toContain(on ? "GUIDE: leg 3" : "GUIDE: enter");
+    }
+  });
+  it("the lane turns it on", () => {
+    expect(rayquazaLaneFeatures()["rq-checkpoint-recovery-v1"]).toBe(true);
   });
   it("does not jump from outside the checkpoint chain's reach", () => {
     const far: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "s" }, ...Array.from({ length: 10 }, (_, n) => at(n + 1, 1))];

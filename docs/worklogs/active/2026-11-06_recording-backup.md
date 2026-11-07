@@ -13,3 +13,5 @@ GPT round 2: model glob now mirrors newRunId exactly.
 GPT LGTM on fd6a14ca0 after three rounds. Claude review waived by the operator 2026-11-06, 11:58 PM NY: "claude's review is waived, launch". No app code changed; script and launcher only.
 
 Claude review finished after the waiver, BLOCKING on two points, both backup-only: a failed stat ended the job, and a later same-model run could take over. Fixed: the run folder is pinned on first find and kept in `recording/backup.run`; stat failures log and retry. Its t11 and t6b reruns pass.
+
+GPT: two failed stats compared equal and skipped a copy; sizes are now read separately and a failure counts.

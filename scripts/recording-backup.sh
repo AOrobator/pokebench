@@ -42,7 +42,7 @@ copy() {
 }
 
 pass() {
-  local final=$1 dir name dest stem newest file
+  local final=$1 dir name dest stem newest file have sent
   local -a files stems parts
   failures=0
   dir=$(run_folder) || { say "run folder not found yet"; failures=1; return 0; }
@@ -57,7 +57,11 @@ pass() {
     newest=${${(On)parts}[1]:t}
     for file in $parts; do
       [[ $final == 0 && ${file:t} == $newest ]] && continue
-      [[ -f "$dest/${file:t}" && $(stat -f %z "$dest/${file:t}" 2>/dev/null) == $(stat -f %z "$file" 2>/dev/null) ]] && continue
+      have=$(stat -f %z "$file" 2>/dev/null) || { say "cannot read $file"; failures=$(( failures + 1 )); continue; }
+      if [[ -f "$dest/${file:t}" ]]; then
+        sent=$(stat -f %z "$dest/${file:t}" 2>/dev/null) || sent=-1
+        [[ $sent == $have ]] && continue
+      fi
       copy "$file" "$dest" && say "copied ${file:t}"
     done
   done

@@ -95,7 +95,7 @@ describe(SURF_ID,()=>{
  });
  it("on: a route up a Waterfall replays to the warp above it, at the elevation the surfer lands with",()=>{
   const at=(y:number,elevation:number,behavior=0)=>({x:0,y,collision:0,behavior,elevation});
-  const falls=row([at(6,3),at(5,1,OCEAN),at(4,1,0x13),at(3,1,0x13),at(2,1,OCEAN),at(1,3),at(0,3)],3,{position:{x:0,y:6},facing:"up",interaction_targets:[{...warp(0,3)}],surf_gate:surfGate,field_obstacles:{obstacles:[],capabilities:{waterfall:true}}} as unknown as Partial<GameStateSnapshot>);
+  const falls=row([at(6,3),at(5,1,OCEAN),at(4,1,0x13),at(3,1,0x13),at(2,1,OCEAN),at(1,3),at(0,3)],3,{position:{x:0,y:6},facing:"up",interaction_targets:[{...warp(0,3)}],surf_gate:surfGate,field_obstacles:{obstacles:[],capabilities:{waterfall:true}}});
   const climbing={...options,surf:true,climb:true,launch:()=>undefined};
   const path=planNavigation(falls,{x:0,y:0},climbing);
   if(path===null)throw new Error("no route");

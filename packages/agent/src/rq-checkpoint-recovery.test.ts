@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
 import { rayquazaLaneFeatures } from "../test-support/rayquaza-lane.js";
+import { MILESTONES } from "./milestones.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
@@ -290,5 +291,71 @@ describe("the Seafloor Cavern room rows", () => {
     const guide = cavern();
     guide.observe(story("SEAFLOOR_ARCHIE_CHAMBER"));
     expect(guide.current().after).toBe("SEAFLOOR_ARCHIE_CHAMBER");
+  });
+});
+
+describe("a milestone's reach under rq-checkpoint-recovery-v1", () => {
+  const story = (name: string, origin = "observed"): RunEvent => ({ type: "milestone", name, origin, kind: "story" }) as unknown as RunEvent;
+  const row = (after: string): GuideStep => ({ after, map: null, note: after });
+  const place = (n: number): GuideStep[] => [at(n, 1), { after: `MAP:${String(n)}`, map: null, note: "m", enter: [20, n] }, { after: `GOT:${String(n)}`, map: null, note: "g", got: "CANDY" }];
+  const spaced: readonly GuideStep[] = [row("RUN_START"), ...[1, 2, 3, 4].flatMap(place), row("FAR"), ...Array.from({ length: 8 }, (_, n) => row(`S${String(n)}`)), row("BEYOND")];
+  const SAVED = RAYQUAZA_GUIDE_STEPS.filter((step) => MILESTONES.find((milestone) => milestone.name === step.after)?.kind === "story");
+  const index = (after: string): number => RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === after);
+  const storyRows = (from: number, to: number): number => RAYQUAZA_GUIDE_STEPS.slice(from + 1, to + 1).filter((step) => step.at === undefined && step.enter === undefined && step.got === undefined).length;
+  const load = (upTo: number, recovery: boolean): GuidePosition => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS, { checkpointRecovery: recovery });
+    for (const step of SAVED) if (index(step.after) <= upTo) guide.observe(story(step.after, "present_at_start"));
+    return guide;
+  };
+
+  it("off, a place row still counts", () => {
+    const guide = new GuidePosition(spaced);
+    guide.observe(story("FAR"));
+    expect(guide.current().after).toBe("RUN_START");
+  });
+  it("on, place rows do not count, live or at a checkpoint start", () => {
+    for (const origin of ["observed", "present_at_start"]) {
+      const guide = new GuidePosition(spaced, { checkpointRecovery: true });
+      guide.observe(story("FAR", origin));
+      expect(guide.current().after).toBe("FAR");
+    }
+  });
+  it("on, a ninth story row is still out of reach, and is remembered", () => {
+    const guide = new GuidePosition(spaced, { checkpointRecovery: true });
+    guide.observe(story("FAR"));
+    guide.observe(story("BEYOND"));
+    expect(guide.current().after).toBe("FAR");
+    guide.observe(story("S7"));
+    expect(guide.current().after).toBe("BEYOND");
+  });
+  it("keeps every neighbouring pair of flag milestones in the real guide within reach", () => {
+    const gaps = SAVED.slice(1).map((step, i) => ({ from: SAVED[i]?.after, to: step.after, rows: storyRows(index(SAVED[i]?.after ?? ""), index(step.after)) }));
+    expect(gaps.filter((gap) => gap.rows > REACH)).toEqual([]);
+  });
+  it("loads at every row of the real guide, reaches the save's last flag milestone and plays on to the end", () => {
+    const last = RAYQUAZA_GUIDE_STEPS.length - 1;
+    for (let point = 1; point < last; point++) {
+      const guide = load(point, true);
+      const saved = SAVED.filter((step) => index(step.after) <= point).at(-1)?.after;
+      if (saved !== undefined) expect(guide.current().after, `load at ${String(point)}`).toBe(saved);
+      for (const step of RAYQUAZA_GUIDE_STEPS.slice(point + 1)) if (step.at === undefined && step.enter === undefined && step.got === undefined) guide.observe(story(step.after));
+      expect(guide.current().after, `play on from ${String(point)}`).toBe(RAYQUAZA_GUIDE_STEPS[last]?.after);
+    }
+  });
+  it("the Aqua escape save used to stick at the Aqua row with the switch off", () => {
+    expect(index("MIND_BADGE") - index("AQUA_HIDEOUT_ESCAPE_COMPLETE")).toBeGreaterThan(REACH);
+    expect(load(index("MIND_BADGE"), false).current().after).toBe("AQUA_HIDEOUT_ESCAPE_COMPLETE");
+    expect(load(index("MIND_BADGE"), true).current().after).toBe("MIND_BADGE");
+  });
+  it("an early Dewford Gym visit still cannot skip the boat row", () => {
+    const start = index("GOT:RARE_CANDY");
+    const gym = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "MAP:DewfordTown_Gym")?.enter ?? [];
+    const early = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start - 1), { checkpointRecovery: true });
+    early.observe(story("DEWFORD_GYM_ENTERED"));
+    early.observe(move(5, 27, gym));
+    expect(early.current().after).toBe(RAYQUAZA_GUIDE_STEPS[start - 1]?.after);
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start), { checkpointRecovery: true });
+    guide.observe(move(5, 27, gym));
+    expect(guide.current().after).toBe("MAP:DewfordTown_Gym");
   });
 });

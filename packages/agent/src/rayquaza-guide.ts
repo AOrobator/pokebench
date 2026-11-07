@@ -134,7 +134,7 @@ export class GuidePosition {
   this.earned.add(reached);
   const atStart=event.type==="milestone"&&event.origin==="present_at_start";
   if(atStart)this.atStart.add(reached);
-  else if(reached>this.furthest&&reached<=this.furthest+REACH)this.furthest=reached;
+  else if(reached>this.furthest&&reached<=this.reachEnd())this.furthest=reached;
   for(let next=this.next(atStart);next!==null;next=this.next(atStart))this.furthest=next;
   for(let step=from;step<this.furthest;step++)this.noteMisses(step);
  }
@@ -148,8 +148,18 @@ export class GuidePosition {
  takeMisses():readonly {readonly after:string;readonly items:readonly string[]}[] {return this.misses.splice(0);}
  private next(atStart:boolean):number|null {
   if(this.earned.has(this.furthest+1))return this.furthest+1;
-  if(atStart)for(let i=this.furthest+REACH;i>this.furthest;i--)if(this.atStart.has(i))return i;
+  if(atStart)for(let i=this.reachEnd();i>this.furthest;i--)if(this.atStart.has(i))return i;
   return null;
+ }
+ // rq-checkpoint-recovery-v1: reach counts story rows only, so adding place rows can never put a milestone out of it.
+ private reachEnd():number {
+  if(this.options.checkpointRecovery!==true)return this.furthest+REACH;
+  let end=this.furthest,story=0;
+  for(const step of this.steps.slice(this.furthest+1)){
+   if(step.at===undefined&&step.enter===undefined&&step.got===undefined&&++story>REACH)break;
+   end++;
+  }
+  return end;
  }
  // rq-checkpoint-recovery-v1: only checkpoints on one map may be skipped, so a story step can never be.
  private recovers(reached:number):boolean {

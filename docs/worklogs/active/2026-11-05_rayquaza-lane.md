@@ -278,3 +278,8 @@ Mossdeep Green switch (the open item from rq-checkpoint-recovery-v1):
 - New gated row AT:MossdeepCity_Gym:15:34, the first Green switch landing, between (23,20) and (8,12). An early L2 at the first (9,18) landing now holds on (23,20), because (8,12) is no longer the next row and recovery cannot cross the new gate. Tracker logic unchanged. Gym entry to MIND_BADGE is now 7 steps, inside REACH.
 - The string is the same presses, cut at the switch; the door route to (15,34) and on to (8,12) simulates clean. Statue rotation is still simulated only.
 - COMMIT: `fix(guide): the Green switch landing holds Mossdeep's (8,12) row back` (7bc7b44fb). 134 focused tests pass; tsc and eslint clean. Guide is 152 steps. Full suites, review and merge not done; no row here has run on the emulator.
+
+Review of the checkpoint rows (branch rebased, head 4903caee9):
+
+- Blocking: the new Mossdeep row put AQUA_HIDEOUT_ESCAPE_COMPLETE 9 rows from MIND_BADGE. MOSSDEEP_CITY and MOSSDEEP_GYM_ENTERED are map milestones, so a later save never reports them and the load stuck at the Aqua row. Under rq-checkpoint-recovery-v1 only, reach now counts story rows and skips AT, MAP and GOT rows (`reachEnd`), for live milestones and checkpoint loads. REACH stays 8; recovery's own limit is unchanged. Off is `furthest+REACH` as before.
+- Tests: every neighbouring pair of the 60 flag milestones in the real guide is within reach; loading at each of the 150 row positions lands on the save's last flag milestone and plays on to HALL_OF_FAME_ENTERED; the off-switch stick is pinned; the Dewford early-visit guard holds with the switch on. Four of these fail with the tracker change removed.

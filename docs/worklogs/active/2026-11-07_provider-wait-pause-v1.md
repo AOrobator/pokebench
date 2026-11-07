@@ -96,3 +96,9 @@ A new no-I/O regression failed at the migration check before the fix.
 Qualified baselines now inherit the recorded provider-wait setting if
 the field is absent, and the measured launcher carries the resolved
 value through preset normalization. All 88 focused tests passed.
+
+Claude, GPT and Astra (distinct fallback under the standing Grok waiver)
+returned LGTM after the archived-continuation delta. No local inference
+reviewers were used. The operator explicitly approved updating the viewer fixture's
+expected default to ON at 10:03 AM EST and waived re-review of that fixture
+change. The full preset assertion is preserved.

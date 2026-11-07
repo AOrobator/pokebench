@@ -273,6 +273,14 @@ it("stops the starter diagnostic without replacing its broad play goal",()=>{
  expect(definitionProblems({...def,base:{...def.base,stopAt:"STONE_BADGE"}})).toContain("base stopping target must equal primaryMilestone");
 });
 
+ it("a control reply cap sets the control arm only, and the base still matches its control base",()=>{
+ const original=definition();
+ const def=parseFixedDefinition(JSON.stringify({...original,controlMaxTokens:32768})).definition;
+ expect(armPreset(def,"cook","control").sampling.maxTokens).toBe(32768);
+ expect(armPreset(def,"cook","bundle").sampling.maxTokens).toBe(original.base.sampling.maxTokens);
+ expect(controlBaseProblems(def,controlBaseText())).toEqual(controlBaseProblems(parseFixedDefinition(JSON.stringify(original)).definition,controlBaseText()));
+ for(const invalid of [0,-1,1.5,"8192"])expect(()=>parseFixedDefinition(JSON.stringify({...original,controlMaxTokens:invalid}))).toThrow();
+});
 it("allows an explicit bundle reply cap without changing shared sampling or control provenance",()=>{
  const original=definition();
  const def=parseFixedDefinition(JSON.stringify({...original,bundleMaxTokens:8192})).definition;

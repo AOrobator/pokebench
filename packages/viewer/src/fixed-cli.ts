@@ -12,7 +12,7 @@ import { newRunId } from "@pokebench/agent/run";
 import { spawnDetached } from "./detached.js";
 import { mainCheckout, sourceIdentity } from "./fixed-source.js";
 import { analyze, customLaneTrials, renderAnalysis, rescoreTrials, trialsFromLedger, type AnalysisTrial } from "./fixed-analysis.js";
-import { controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
+import { armPreset, controlBaseProblems, materializeFixedSource, dryRunDefinition, FIXED_ARMS, FixedDraftSchema, generatePlan, parseFixedDefinition, phaseOf, soloDefinition, type FixedArm, type FixedDefinition, type FixedLane } from "./fixed-design.js";
 import { readExclusions } from "./run-exclusions.js";
 import { classifyTrial, readLedger } from "./fixed-ledger.js";
 import { fileLines, type LogLines } from "./run-log.js";
@@ -46,6 +46,7 @@ export interface FixedCliDeps {
 
 const USAGE = [
   "usage: fixed-run plan <id> [--seed <16 hex>]   freeze the seeded plan into experiments/fixed/<id>.json",
+  "       fixed-run preset <id> [--phase <phase>] [--arm <bundle|control>]  print one arm as a play preset, resolved from its recipe",
   "       fixed-run check <id>                     validate the definition and every phase's start save; a lane recipe also lists switches changed since its last recorded run",
   "       fixed-run run <id>                       run the experiment (both lanes)",
   "       fixed-run dry-run <id> [--phase <phase>] [--wall-ms <ms>] [--arm <bundle|control> --lane <id>] [--feature-recipe <id>]  exploratory trials with that phase's start",
@@ -113,6 +114,16 @@ function plan(argv: readonly string[], deps: FixedCliDeps, id: string): void {
   deps.out(`planned ${String(def.plan.length)} trials with seed ${seed}`);
 }
 
+// One arm of a definition as a play preset, so a plain run can follow the recipe pointer without a hand copy.
+function resolvedPreset(argv: readonly string[], deps: FixedCliDeps, id: string): void {
+  const { definition: def } = load(deps, id);
+  const phase = def.phases.find((p) => p.id === (flag(argv, "--phase") ?? def.phases[0]?.id));
+  if (phase === undefined) throw new CliError(`${id} has no such phase`);
+  const arm = flag(argv, "--arm") ?? phase.singleArm;
+  if (arm !== "control" && arm !== "bundle") throw new CliError("preset needs --arm control or bundle");
+  deps.out(JSON.stringify(armPreset(def, phase.id, arm), null, 2));
+}
+
 function check(deps: FixedCliDeps, id: string): void {
   const { definition: def, sha256: digest, featureRecipe } = load(deps, id);
   deps.out(`${def.id}: ${def.title}`);
@@ -124,7 +135,7 @@ function check(deps: FixedCliDeps, id: string): void {
   }
   for (const lane of def.lanes) deps.out(`lane ${lane.id}: ${lane.gpu}, game port ${String(lane.gamePort)}, model ${lane.modelUrl}${lane.server === "vllm" ? ` (vllm, ${String(lane.slots)} slots, vision ${String(lane.vision)})` : ""}${lane.apiKeyFile === undefined ? "" : `, key file ${lane.apiKeyFile}`}`);
   deps.out(`bundle switches: ${def.switches.join(", ")}; off in both: ${def.offInBoth.join(", ")}; on in both: ${def.onInBoth.length === 0 ? "none" : def.onInBoth.join(", ")}`);
-  deps.out(`reply token caps: control ${String(def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
+  deps.out(`reply token caps: control ${String(def.controlMaxTokens??def.base.sampling.maxTokens)}, bundle ${String(def.bundleMaxTokens??def.base.sampling.maxTokens)}`);
   deps.out(`control base: ${def.controlBase.presetId} (${def.controlBase.path}, sha256 ${def.controlBase.sha256}) matches outside the switches and off-in-both flags`);
   if (deps.laneRuns !== undefined) for (const line of laneDriftReport(def, featureRecipe?.id ?? null, deps.laneRuns)) deps.out(line);
 }
@@ -300,6 +311,7 @@ export async function main(argv: readonly string[], deps: FixedCliDeps): Promise
     if (id === undefined) throw new RangeError();
     if (command === "plan") plan(rest, deps, id);
     else if (command === "check") check(deps, id);
+    else if (command === "preset") resolvedPreset(rest, deps, id);
     else if (command === "run") await run(deps, id);
     else if (command === "dry-run") await dryRun(rest, deps, id);
     else if (command === "rerun") await rerun(rest, deps, id);

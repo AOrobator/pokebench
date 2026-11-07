@@ -227,12 +227,12 @@ describe("the guide's route rows", () => {
     if (step === undefined) throw new Error(`no row ${after}`);
     return step;
   };
-  const BUTTON_ROUTE = /\b[UDLR]\d*[ ,][UDLR]\d*[ ,][UDLR]\d*\b/;
+  const BUTTON_ROUTE = /\b[UDLR]\d*[ ,][UDLR]\d*\b/;
   const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED"]);
 
   it("gives every button route but the climbs one recovery line", () => {
     const routes = RAYQUAZA_GUIDE_STEPS.filter((step) => BUTTON_ROUTE.test(step.note) && !CLIMBS.has(step.after));
-    expect(routes.map((step) => step.after)).toEqual(expect.arrayContaining(["DEWFORD_GYM_ENTERED", "KNUCKLE_BADGE", "FORTREE_GYM_ENTERED", "MOSSDEEP_GYM_ENTERED", "SOOTOPOLIS_GYM_ENTERED", "VICTORY_ROAD_WALLY_DEFEATED"]));
+    expect(routes.map((step) => step.after)).toEqual(expect.arrayContaining(["MAP:DewfordTown_Gym", "KNUCKLE_BADGE", "FORTREE_GYM_ENTERED", "MOSSDEEP_GYM_ENTERED", "SOOTOPOLIS_GYM_ENTERED", "VICTORY_ROAD_WALLY_DEFEATED"]));
     expect(routes.filter((step) => !step.note.includes("If off this route, trust the map."))).toEqual([]);
     for (const after of CLIMBS) expect(row(after).note).not.toContain("trust the map");
   });
@@ -269,6 +269,88 @@ describe("the guide's route rows", () => {
     expect(guide.current().after).toBe("AT:SkyPillar_Top:14:7");
     guide.observe(milestone("HM_WATERFALL_RECEIVED"));
     expect(guide.current().after).toBe("HM_WATERFALL_RECEIVED");
+  });
+});
+
+describe("the guide's facts", () => {
+  const note = (after: string, nth = 0): string => RAYQUAZA_GUIDE_STEPS.filter((step) => step.after === after)[nth]?.note ?? "";
+  it.each([
+    ["PLAYER_NAME_CONFIRMED", "Finish Birch's speech."],
+    ["ROXANNE_FIRST_INTERACTION", "If offered, decline Bide and teach Mud Shot over Growl."],
+    ["ROCK_TOMB_RECEIVED", "West of the Gym door, cross x=23"],
+    ["DEVON_CORPORATION", "You are on 3F."],
+    ["OCEANIC_MUSEUM_ENTERED", "If Mud Shot is offered now, teach it over Growl."],
+    ["DEVON_GOODS_DELIVERED", "or Growl if Tackle is gone"],
+    ["ROUTE_110", "Full Heal (status only, not HP)"],
+    ["ROUTE_110", "No Cut needed."],
+    ["DYNAMO_BADGE", "that one rock opens the way"],
+    ["DYNAMO_BADGE", "(0,66-71)"],
+    ["ROUTE_111_NORTH", "(0,66-71)"],
+    ["FALLARBOR_TOWN", "TM47 Steel Wing"],
+    ["FALLARBOR_TOWN", "2 Escape Ropes, a Super Potion, 10 X Attacks"],
+    ["ROUTE_114", "Use a Super Repel if you have one"],
+    ["LAVARIDGE_TOWN", "Use Potions now if you are hurt"],
+    ["LAVARIDGE_GYM_ENTERED", "Bag items before Flannery."],
+    ["WEATHER_INSTITUTE_ENTERED", "If your party is full, Castform goes to the PC."],
+    ["FEATHER_BADGE", "hideout door at (16,18)"],
+    ["MASTER_BALL_OBTAINED", "You land at (3,20)."],
+    ["AQUA_HIDEOUT_SUBMARINE_CHAMBER", "B2F panel (31,8), stairs (3,3), B1F stairs (12,1), B2F panel (8,8)"],
+    ["MOSSDEEP_CITY", "Sell any Nugget first."],
+    ["SPACE_CENTER_OCCUPATION_ENTERED", "At the party screen pick your Surf user first, then CONFIRM."],
+    ["HM_DIVE_RECEIVED", "Dive at (38,27)"],
+    ["SEAFLOOR_KYOGRE_RELEASE_CONFIRMED", "Dive at (45,66)"],
+    ["SOOTOPOLIS_CITY", "Talk to Steven at (20,36)"],
+    ["HM_WATERFALL_RECEIVED", "If it went to the PC, withdraw it first."],
+    ["EVER_GRANDE_LANDING", "Pokémon Center at (27,48) to set your respawn"],
+    ["VICTORY_ROAD_WALLY_DEFEATED", "go up to (5,16), then U2 R4 to the ladder at (9,14)"],
+    ["VICTORY_ROAD_B1F", "the ladder at (30,25)"],
+  ])("%s says: %s", (after, text) => {
+    expect(note(after)).toContain(text);
+  });
+
+  it("sends the candy rows by the tile the story needs", () => {
+    expect(note("GOT:RARE_CANDY", 0)).toContain("enter Dewford Gym");
+    expect(note("GOT:RARE_CANDY", 0)).not.toContain("(18,101)");
+    expect(note("GOT:RARE_CANDY", 2)).toContain("Stand at (25,7), face south, press A and answer YES");
+    expect(note("GOT:RARE_CANDY", 2)).toContain("Fly needs the Feather Badge");
+  });
+
+  it("gives each later Fly row its own way without Fly, the held Sky Pillar rows aside", () => {
+    const held = new Set(["WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE", "SOOTOPOLIS_CRISIS_RESOLVED"]);
+    const from = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "FEATHER_BADGE");
+    const rows = RAYQUAZA_GUIDE_STEPS.slice(from).filter((step) => /\bFly to\b/.test(step.note) && !held.has(step.after));
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+    expect(rows.filter((step) => !step.note.includes("(no Fly:"))).toEqual([]);
+  });
+});
+
+describe("the Dewford Gym row", () => {
+  const start = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "GO_GOGGLES_RECEIVED");
+  const rows = RAYQUAZA_GUIDE_STEPS.slice(start);
+  const gym = rows.find((step) => step.after === "MAP:DewfordTown_Gym");
+  if (gym?.enter === undefined) throw new Error("no Dewford Gym map row");
+  const inGym = { type: "state", map_id: gym.enter, position: { x: 5, y: 27 } } as unknown as RunEvent;
+  const ROUTE111 = rows[1]?.at;
+  if (ROUTE111 === undefined) throw new Error("no candy tile row");
+  const bag = (quantity: number): RunEvent => ({ type: "state", started: true, screen: "overworld", active_ui: null, in_battle: false, map_id: ROUTE111.id, position: { x: ROUTE111.x, y: ROUTE111.y }, party: [], resources: { bag: [{ name: "RARE CANDY", quantity }] } }) as unknown as RunEvent;
+
+  it("keeps the boat row after an early Gym visit, then fires on entering", () => {
+    const guide = new GuidePosition(rows);
+    guide.observe(milestone("DEWFORD_GYM_ENTERED"));
+    guide.observe(inGym);
+    guide.observe(bag(0));
+    guide.observe(bag(1));
+    expect(guide.current().note).toContain("Briney");
+    guide.observe(inGym);
+    expect(guide.current()).toBe(gym);
+  });
+
+  it("is not stranded by a skipped candy: the badge moves the guide", () => {
+    const guide = new GuidePosition(rows);
+    guide.observe(inGym);
+    expect(guide.current().after).toBe("GO_GOGGLES_RECEIVED");
+    guide.observe(milestone("KNUCKLE_BADGE"));
+    expect(guide.current().after).toBe("KNUCKLE_BADGE");
   });
 });
 

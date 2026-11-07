@@ -43,7 +43,7 @@ html.transparent .gbox{background:transparent}
 .bdg.spr{border:0;border-radius:0;background:none}.bdg.spr img{width:32px;height:32px;image-rendering:pixelated}
 .bdg.spr:not(.got) img{filter:brightness(0) invert(1);opacity:.16}.bdg.spr.live img{filter:none;opacity:.5}.bdg.spr.live{outline:2px dashed #ffd447;outline-offset:1px}
 .feed{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated}.feed[hidden]{display:none}
-.ctl{position:fixed;left:calc(1000px*var(--s,1));top:calc(18px*var(--s,1));transform:scale(var(--s,1));transform-origin:0 0;z-index:2}
+.ctl{position:fixed;left:calc(1060px*var(--s,1));top:calc(18px*var(--s,1));transform:scale(var(--s,1));transform-origin:0 0;z-index:2}
 .sound,.mix{box-sizing:border-box;height:44px;padding:0 16px;background:none;border:2px solid #ffd447;border-radius:8px;color:#ffd447}
 .sound{font:13px PX;cursor:pointer}.sound[hidden],.mix[hidden]{display:none}
 .mix{display:flex;align-items:center;gap:14px}.mix button{background:none;border:0;color:#ffd447;font:13px PX;cursor:pointer;padding:0}.mix input{width:150px;accent-color:#ffd447}

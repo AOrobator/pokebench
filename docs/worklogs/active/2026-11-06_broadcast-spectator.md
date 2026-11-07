@@ -153,7 +153,7 @@ Piece 9, round 1 on ff020194c: Claude and fallback LGTM; GPT BLOCKING on one bug
 
 Piece 9, round 2 on cf0a05fe5: Claude and fallback LGTM; GPT BLOCKING on a click in the 100 ms after the run ended. Fixed. The test was committed red at 52d3ebed1 by a timing mistake in the test; fixed, and proven to fail with the guard removed.
 
-Piece 10, round 1 on e114d4dac: fallback BLOCKING: a landscape phone under 700 px wide put the controls past the screen's bottom. The under-the-stage rule is now portrait only.
+Piece 10, round 1 on e114d4dac: fallback BLOCKING: a landscape phone under 700 px wide put the controls past the screen's bottom. The under-the-stage rule is now portrait only. Claude and GPT found the same bug. Controls also moved 60 px right, clear of the longest model and pill.
 
 ## Boy Scout Log
 

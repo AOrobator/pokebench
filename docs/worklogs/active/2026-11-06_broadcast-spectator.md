@@ -51,7 +51,8 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
 - [x] RED
 - [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
-- [ ] Review, landing
+- [x] Gates on 7bdb2a62d: lint, 3 suites and floors via just test, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM (sha cb02e865)
 
 ## Closing the Loop
 

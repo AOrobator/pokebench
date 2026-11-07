@@ -227,3 +227,7 @@ Unit 3, the remaining audit rows:
 - Reviews of the guide batch: RAIN_BADGE no-Fly fallback needs Dive; the rocks block a bike too; "No Cut needed" dropped (one run only, and it put the switched row over 300 chars). AT:SkyPillar_Top:14:7 stays: Rayquaza at (14,6) plugs the only entrance, so a BFS reaches only (14,7), (14,8), (13,8). An earlier gate ran on a half-finished rebase and does not count.
 - Only RAIN_BADGE's fallback needs Dive; the Pacifidlog one stays Surf.
 - Landed the guide batch (be20d0e28): 132 steps, Claude and GPT LGTM with ROM fact checks, Grok skipped; just test and just lint exit 0 (agent 2734, viewer 1235); memory free 86%. Mossdeep landings not run on the emulator.
+
+### 2026-11-07: rq-checkpoint-recovery-v1
+
+- The Mossdeep pilot showed a skipped checkpoint stalls the guide. A later checkpoint on the same map may now recover it, within REACH, behind a lane-only switch.

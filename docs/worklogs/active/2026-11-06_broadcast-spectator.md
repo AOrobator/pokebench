@@ -98,6 +98,13 @@ The operator 2026-11-07: "it'd be nice to also have game music playing". The gam
 - [x] Review: Claude, GPT, fallback LGTM through 52d3ebed1
 - [x] Landed 6efad480a; post-main `just test`: 2,688 agent, 1,235 viewer, 3,051 env, 38 gateway
 
+### Piece 10: sound controls in the header
+The operator 2026-11-07: "i'd rather the music /sound toggle not be overlayed on the video, we have so much space in the header". Controls sit outside the scaled stage, placed by the stage's scale: in the header's empty middle on wide screens, under the stage on a phone, where a scaled header would make them too small to tap. The page also now keeps phones from zooming out to fit the 1920 stage (minimum-scale=1), which had put it at 1560 wide.
+- [x] RED
+- [x] GREEN: 146 focused tests; 1920x1080 and 390x844 headless on the live page, branch modules routed in: controls clear of the game box in both, click works in both, shots viewed.
+- [x] Gates on e114d4dac: lint, 2,734 agent, 1,235 viewer, 3,051 env, 38 gateway, verify-vendor; later delta is CSS only
+- [x] Review: Claude, GPT, fallback LGTM on 5c6d20818
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.
@@ -146,6 +153,8 @@ Piece 8, round 1 on 361eb7172: fallback BLOCKING on two real bugs: the canvas's 
 Piece 9, round 1 on ff020194c: Claude and fallback LGTM; GPT BLOCKING on one bug: music kept polling after the run ended. Fixed. Left: an operator pause drags the rate down for about 1.5 s after resume; it heals itself.
 
 Piece 9, round 2 on cf0a05fe5: Claude and fallback LGTM; GPT BLOCKING on a click in the 100 ms after the run ended. Fixed. The test was committed red at 52d3ebed1 by a timing mistake in the test; fixed, and proven to fail with the guard removed.
+
+Piece 10, round 1 on e114d4dac: fallback BLOCKING: a landscape phone under 700 px wide put the controls past the screen's bottom. The under-the-stage rule is now portrait only. Claude and GPT found the same bug. Controls also moved 60 px right, clear of the longest model and pill.
 
 ## Boy Scout Log
 

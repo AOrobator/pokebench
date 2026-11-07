@@ -107,7 +107,8 @@
     "rq-battle-explainer-v1",
     "rq-slim-prompt-v1",
     "rq-old-rival-line-v1",
-    "rq-no-grind-note-v1"
+    "rq-no-grind-note-v1",
+    "rq-checkpoint-recovery-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",
@@ -577,6 +578,7 @@
     "navigator-surf-start-warps-v1": true,
     "story-line-done-on-event-v1": true,
     "rq-old-rival-line-v1": false,
-    "rq-no-grind-note-v1": false
+    "rq-no-grind-note-v1": false,
+    "rq-checkpoint-recovery-v1": false
   }
 }

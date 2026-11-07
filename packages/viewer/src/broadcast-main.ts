@@ -61,7 +61,11 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     return el;
   };
   const stage = doc.querySelector<HTMLElement>("#stage");
-  const fit = (): void => { if (stage !== null) stage.style.transform = `scale(${String(Math.min(deps.width() / STAGE_WIDTH, deps.height() / STAGE_HEIGHT))})`; };
+  const fit = (): void => {
+    const scale = String(Math.min(deps.width() / STAGE_WIDTH, deps.height() / STAGE_HEIGHT));
+    doc.documentElement.style.setProperty("--s", scale);
+    if (stage !== null) stage.style.transform = `scale(${scale})`;
+  };
   fit();
   doc.defaultView?.addEventListener("resize", fit);
 

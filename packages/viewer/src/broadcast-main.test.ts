@@ -36,6 +36,7 @@ describe("the broadcast page", () => {
   it("renders the named run at ?t and stays there", async () => {
     const s = setup("?run=r1&t=5.5", url => { expect(url).toBe("/api/runs/r1/broadcast?after=0"); return Promise.resolve(answer()); });
     await s.mount();
+    expect(document.documentElement.style.getPropertyValue("--s")).toBe("1");
     expect(s.part("clock").textContent).toBe("0:00:05");
     expect(s.part("who").textContent).toBe("DEEPSEEK V4.1 FLASH");
     expect(s.part("pill").textContent).toBe("FROM BOOT");

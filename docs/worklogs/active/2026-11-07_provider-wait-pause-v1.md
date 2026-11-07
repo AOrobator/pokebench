@@ -56,3 +56,13 @@ A duplicate pause within the same poll now also leaves a completed
 hold cancelled. A stop or abort before the resume still takes effect.
 The duplicate-pause regression failed before the correction and the
 focused agent count is now 142.
+
+## Integration with main
+
+Main advanced to `5ad4882bc`. Its Rayquaza checkpoint switch shared the
+feature catalog, preset schema and viewer defaults with this branch.
+The merge preserves both switches and appends the provider switch after
+main's existing registry entries. The broadcast header changes are
+separate from the run controller. Focused integration reruns passed
+153 agent and 260 viewer tests. The viewer reruns still used source
+imports. Full branch gates require the pending CPU window.

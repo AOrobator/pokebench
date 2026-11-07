@@ -375,6 +375,7 @@ export const SWITCHABLE_FEATURES = [
   "story-line-done-on-event-v1",
   "rq-old-rival-line-v1",
   "rq-no-grind-note-v1",
+  "rq-checkpoint-recovery-v1",
   "provider-wait-pause-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -872,6 +873,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("story-line-done-on-event-v1", "observation", "STORY LINE DONE ON EVENT", "retire-reached-story-line-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). A line naming a place counted as done on first entry plus any later step, even a place milestone on that same arrival, so the goal vanished at the bottom of Mt. Pyre and on Route 114 before Meteor Falls. On: only a story event the game confirms after the arrival finishes it, at the place or after the player left. Off: any later step finishes it, a place reached included."),
   on("rq-old-rival-line-v1", "guidance", "RAYQUAZA LANE OLD RIVAL LINE", "rq-milestone-guide-v1", "Default off; Rayquaza lane only, for the Route 110 rival trials. Swaps the guide's rival tactics on Route 110 for the earlier line that says no boosts on Grovyle. Off: the guide gives the current line, boost against Slugma."),
   on("rq-no-grind-note-v1", "guidance", "RAYQUAZA LANE NO GRIND NOTE", "rq-battle-explainer-v1", "Default off; on in the Rayquaza lane. Changes the battle note's after-a-loss advice to teach a TM, change moves or buy Potions, and adds Never grind or hunt. Off: the note also suggests catching a second type or gaining levels."),
+  on("rq-checkpoint-recovery-v1", "guidance", "RAYQUAZA LANE CHECKPOINT RECOVERY", "rq-milestone-guide-v1", "Default off; on in the Rayquaza lane. When a checkpoint row is skipped, a later checkpoint on the same map moves the guide forward, within the guide's reach. Off: a skipped checkpoint holds the guide until the next story milestone."),
   on("provider-wait-pause-v1", "guard", "PROVIDER WAIT PAUSE", null, "Default on. A pause request during a model call freezes the emulator and pauses the active run clock. A reply waits for resume before its tools can execute. Off: pause waits for the next safe boundary and a provider hold counts against the run clock."),
 ];
 
@@ -1356,6 +1358,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("story-line-done-on-event-v1"),
     ...when("rq-old-rival-line-v1"),
     ...when("rq-no-grind-note-v1"),
+    ...when("rq-checkpoint-recovery-v1"),
     ...when("provider-wait-pause-v1"),
   ];
 }

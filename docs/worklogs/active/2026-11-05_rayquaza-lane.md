@@ -183,3 +183,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Reviews (Claude and GPT): the row put "if met" on Taillow, dropped "first grass" and let the 10-encounter limit read as an Abra search. Row now keeps the Taillow plan and its limit, then a separate "Catch any Abra if met; don't hunt". Guard test also rejects search wording in the Abra sentence.
 - The operator 11/7 12:08 AM: always advance the story; catch only what shows up on the path; never search. 12:09 AM: catch guidance for Wingull too. Fly compatibility read from the ROM's TM/HM table.
 - Route 116 row is on-path only, Repel at about x=35 after the grass. Route 110 lost its Wingull line and its level target (fact-only tail, decided 11/7). `FLYER_NOTE`: a wild Taillow or Wingull with no HM02 learner in the party, list read from the ROM. rq-old-rival-line-v1 now matches the new line.
+- Page wording tidied; rebased onto main.

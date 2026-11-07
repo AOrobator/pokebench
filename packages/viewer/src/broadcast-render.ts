@@ -201,13 +201,13 @@ export function encoderArgs({ out, fps, seconds, game, voices = [] }: EncoderPla
     const index = open(clip);
     return index < 0
       ? `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[v${String(i)}]`
-      : `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[b${String(i)}];[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)},tpad=stop_mode=clone:stop_duration=${number(clip.wall)},trim=duration=${number(clip.wall)}[c${String(i)}];[b${String(i)}][c${String(i)}]overlay=eof_action=pass[v${String(i)}]`;
+      : `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[b${String(i)}];[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)},tpad=stop_mode=clone:stop_duration=${number(clip.wall)},trim=duration=${number(clip.wall)}[c${String(i)}];[b${String(i)}][c${String(i)}]overlay=eof_action=pass:format=yuv444[v${String(i)}]`;
   });
   const sounds = game.audio.map((clip, i) => {
     const index = open(clip);
     return index < 0
       ? `anullsrc=r=${String(SAMPLE_RATE)}:cl=stereo:d=${number(clip.wall)}[a${String(i)}]`
-      : `[${String(index)}:a]${atempoChain(clip.length / clip.wall)},aresample=${String(SAMPLE_RATE)},apad=whole_dur=${number(clip.wall)},atrim=duration=${number(clip.wall)},asetpts=PTS-STARTPTS[a${String(i)}]`;
+      : `[${String(index)}:a]${atempoChain(clip.length / clip.wall)},aresample=${String(SAMPLE_RATE)},apad=whole_dur=${number(clip.wall)},atrim=duration=${number(clip.wall)},asetpts=N/SR/TB[a${String(i)}]`;
   });
   const join = (kind: string, count: number): string => Array.from({ length: count }, (_, i) => `[${kind}${String(i)}]`).join("");
   const filter = [
@@ -236,7 +236,7 @@ export function parseRenderArgs(argv: readonly string[]): RenderArgs {
     if (arg === "--fps") fps = Number(value); else gameVideo = value;
   }
   const [run, fromText, toText, out] = plain, from = Number(fromText), to = Number(toText);
-  if (plain.length !== 4 || run === undefined || out === undefined || !Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || !Number.isFinite(fps) || fps <= 0) throw new Error(USAGE);
+  if (plain.length !== 4 || run === undefined || out === undefined || !Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || !Number.isFinite(fps) || fps <= 0 || !Number.isSafeInteger(Math.round((to - from) * fps))) throw new Error(USAGE);
   return { run, from, to, out, gameVideo, fps };
 }
 
@@ -283,7 +283,7 @@ export async function renderClip(deps: RenderDeps, args: RenderArgs): Promise<vo
     const folder = deps.commentaryFolder(args.run), commentary = deps.readText(join(folder, "commentary.jsonl"));
     const voices = commentary === null ? [] : planVoices(commentary, args.from, args.to, folder);
     const encoder = deps.encode(encoderArgs({ out: args.out, fps: args.fps, seconds, game, voices }));
-    const frames = Math.round(seconds * args.fps);
+    const frames = Math.max(1, Math.round(seconds * args.fps));
     try {
       for (let i = 0; i < frames; i += 1) {
         await page.setTime(args.from + i / args.fps);

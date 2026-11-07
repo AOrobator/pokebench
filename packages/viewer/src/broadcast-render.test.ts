@@ -137,8 +137,9 @@ describe("the encoder command", () => {
     expect(args).toContain("-ss");
     expect(filter).toContain("setpts=(PTS-STARTPTS)*0.750000,tpad=stop_mode=clone:stop_duration=45,trim=duration=45");
     expect(filter).toContain("color=c=black:s=240x160:r=60:d=45[b0]");
-    expect(filter).toContain("[b0][c0]overlay=eof_action=pass[v0]");
+    expect(filter).toContain("[b0][c0]overlay=eof_action=pass:format=yuv444[v0]");
     expect(filter).toContain("atempo=1.333333");
+    expect(filter).toContain("asetpts=N/SR/TB[a0]");
     expect(filter).toContain("color=c=black:s=240x160:r=60:d=5");
     expect(filter).toContain("anullsrc=r=48000:cl=stereo:d=5");
     expect(filter).toContain("scale=1098:728:flags=neighbor");
@@ -184,7 +185,7 @@ describe("the command line", () => {
     expect(parseRenderArgs(["--fps", "15", "r", "1", "2", "o.mp4", "--game-video", "/g"])).toMatchObject({ fps: 15, gameVideo: "/g" });
   });
 
-  it.each([[[]], [["r", "x", "2", "o"]], [["r", "5", "2", "o"]], [["r", "-1", "2", "o"]], [["r", "1", "2", "o", "--fps", "0"]], [["r", "1", "2", "o", "--fps"]], [["r", "1", "2", "o", "--fps", "Infinity"]], [["r", "1", "2", "o", "--nope", "1"]], [["r", "1", "2", "o", "x"]]])("refuses %j", argv => {
+  it.each([[[]], [["r", "x", "2", "o"]], [["r", "5", "2", "o"]], [["r", "-1", "2", "o"]], [["r", "1", "2", "o", "--fps", "0"]], [["r", "1", "2", "o", "--fps"]], [["r", "1", "2", "o", "--fps", "Infinity"]], [["r", "1", "2", "o", "--fps", "1e308"]], [["r", "1", "2", "o", "--nope", "1"]], [["r", "1", "2", "o", "x"]]])("refuses %j", argv => {
     expect(() => parseRenderArgs(argv)).toThrow(/usage/);
   });
 });
@@ -212,6 +213,12 @@ describe("rendering a clip", () => {
     expect(f.steps).toEqual([10, 10.25, 10.5, 10.75]);
     expect(f.written).toEqual(["f1", "f2", "f3", "f4"]);
     expect(f.urls).toEqual(["/broadcast?run=r&t=10"]);
+  });
+
+  it("gives a stretch shorter than a frame one frame", async () => {
+    const f = fakes();
+    await renderClip(f.deps, { run: "r", from: 1, to: 1.04, out: "/o.mp4", gameVideo: null, fps: 10 });
+    expect(f.steps).toEqual([1]);
   });
 
   it("with a recording, renders transparent and maps run time onto the recorder's clock", async () => {

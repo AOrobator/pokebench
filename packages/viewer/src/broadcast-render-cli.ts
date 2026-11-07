@@ -26,7 +26,8 @@ function encoder(args: string[]): Encoder {
       else { child.stdin.once("drain", ready); done.then(ready, fail); }
     }),
     finish: () => { child.stdin.end(); return done; },
-    abort: () => { child.kill(); },
+    // ffmpeg blocked on stdin ignores SIGTERM until the pipe closes.
+    abort: () => { child.stdin.destroy(); child.kill(); },
   };
 }
 

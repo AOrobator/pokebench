@@ -73,6 +73,8 @@ Round 4 on d7b7d1f16, the blob fix alone: Claude, GPT and fallback LGTM. Coordin
 
 Pieces 2 and 3, round 1 on 08069ac80 (sha 81c9d25c), Claude, GPT and fallback all BLOCKING. Fixed: a clip past its file's end dropped out of the concat and shifted later picture (every clip now plays over black of its own length); joined stretches averaged away a small lasting pace change (marks must stay within 6 frames of the joined line); a failed step left ffmpeg running and the command hung (Encoder.abort); `content: null` crashed the job; a session too short for a sync mark rendered black; page-only renders now carry a silent AAC track; `--fps Infinity`; report video reader closed on a dropped request; just recipes pass paths as arguments; commentary saves every 25 lines. Rebutted: GPT's missing report route (it was committed after the frozen head by a hook refusal; now reviewed). Left: `frames_lost` stretching frames across a hole longer than 10 minutes.
 
+Pieces 2 and 3, round 2 on 6377340ad: all BLOCKING. Fixed: abort left ffmpeg blocked on stdin (close it, then kill); sound past a file's end collapsed the rest of the track to 0.2 s (`asetpts=N/SR/TB`; real 80af stretch at 246.6 now 12.000 s of sound, -23.7 dB); the black-base overlay dropped colour to 4:2:0 before the upscale (`format=yuv444`); a stretch shorter than a frame rendered nothing; `--fps 1e308`. Rebutted: GPT's quadratic pace merge at 80,000 marks: that is 41 days of run, and a 24 h run has about 1,900.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

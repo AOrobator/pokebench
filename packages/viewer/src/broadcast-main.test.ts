@@ -112,8 +112,8 @@ describe("the broadcast page", () => {
   it("paints live frames on the canvas and falls back to recorded ones when they stop", async () => {
     const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
     const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close: vi.fn() };
-    const open = vi.fn(() => socket), painted: unknown[] = [];
-    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: open, paintFrame: (_canvas, data) => { painted.push(data); return Promise.resolve(); } });
+    const open = vi.fn(() => socket), painted: unknown[] = [], laneWidth = vi.fn(() => 600);
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { laneWidth, openFrames: open, paintFrame: (_canvas, data) => { painted.push(data); return Promise.resolve(); } });
     await s.mount();
     expect(open).toHaveBeenCalledWith("/api/runs/r1/frames");
     expect(s.part("live").hidden).toBe(true);
@@ -121,8 +121,10 @@ describe("the broadcast page", () => {
     await vi.waitFor(() => { expect(s.part("live").hidden).toBe(false); });
     expect(painted).toEqual(["frame"]);
     expect(s.shown).not.toContain("frame");
+    const drawn = laneWidth.mock.calls.length;
     handlers.close?.();
     expect(s.part("live").hidden).toBe(true);
+    expect(laneWidth.mock.calls.length).toBe(drawn + 1);
     expect(s.timers.length).toBeGreaterThan(0);
   });
 

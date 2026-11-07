@@ -182,6 +182,8 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
       socket = null;
       liveFrames = false;
       canvas.hidden = true;
+      // The tick may already have stopped at the run's end, and the img has not moved during live play.
+      if (moment === null) showFollowing(render(followTime()));
       deps.after(FRAME_RETRY_MS, streamFrames);
     });
   };

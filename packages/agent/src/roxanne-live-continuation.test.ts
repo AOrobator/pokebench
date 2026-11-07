@@ -95,3 +95,11 @@ it("explicit memory-run migration is hash-bound without allowing another feature
  expect(loaded.runtime.features["restored-memory-run-v1"]).toBe(true);expect(loaded.bundle).toEqual(f.bundle);expect(loaded.history).toEqual(f.history);
  expect(()=>loadLiveContinuation(f.bind({...baseline,features:{...baseline.features,"ram-state-v1":!loaded.runtime.features["ram-state-v1"]}}),f.read)).toThrow(/unapproved/);
 });
+
+it("preserves the recorded provider wait setting when a qualified baseline predates the switch", async () => {
+ const f = await runtimeFixture();
+ const features: Partial<typeof f.baseline.features> = { ...f.baseline.features };
+ delete features["provider-wait-pause-v1"];
+ const loaded = loadLiveContinuation(f.bind({ ...f.baseline, features }), f.read);
+ expect(loaded.runtime.features["provider-wait-pause-v1"]).toBe(false);
+});

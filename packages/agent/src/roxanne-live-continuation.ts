@@ -43,7 +43,7 @@ export function loadLiveContinuation(descriptor:unknown,read:(path:string)=>Buff
   if(createHash("sha256").update(bytes).digest("hex")!==descriptor.runtimeBaselineSha256)throw new Error("runtime baseline digest mismatch");
   const baseline:unknown=JSON.parse(bytes.toString("utf8"));
   if(!Value.Check(RuntimeBaseline,baseline)||baseline.sourceBundleHash!==digest(bundle)||baseline.referenceHash!==digest(history.map(m=>({...m,timestamp:0}))))throw new Error("invalid qualified runtime baseline provenance");
-  const features=normalizeFeatures(baseline.features),required=["move-learn-tool-v1","move-learn-offer-identity-v1"];
+  const features=normalizeFeatures({...baseline.features,"provider-wait-pause-v1":baseline.features["provider-wait-pause-v1"]??originalFeatures["provider-wait-pause-v1"]}),required=["move-learn-tool-v1","move-learn-offer-identity-v1"];
   if(required.some(key=>baseline.features[key as keyof typeof baseline.features]!==true)||Object.entries(features).some(([key,on])=>!(["restored-memory-run-v1","blackout-transition-v1"].includes(key))&&on!==(required.includes(key)?true:originalFeatures[key as keyof FeatureSet])))throw new Error("runtime migration changes unapproved features");
   runtime={features,systemPrompt:baseline.systemPrompt,tools:baseline.tools,sourceCommit:baseline.sourceCommit};restoreHash=digest({bundle,runtimeBaseline:baseline});
  }

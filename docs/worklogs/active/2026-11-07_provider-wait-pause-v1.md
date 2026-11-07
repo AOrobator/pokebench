@@ -87,3 +87,12 @@ still default on, and explicit v2 OFF is preserved. The failing tests were
 left intact. Integrated main at db3d713df, retaining its new switch entries.
 The scheduler relayed the operator's standing Grok waiver. Landing requires Claude,
 GPT and a distinct fallback reviewer, with the reduced diversity recorded.
+
+The 9:57 CPU window on 2550c565d passed build, agent coverage and full
+lint. Viewer coverage stopped on the default-next-run preset fixture.
+CPU RELEASE was delivered. Claude and Astra approved that candidate.
+GPT identified a qualified archived continuation compatibility issue.
+A new no-I/O regression failed at the migration check before the fix.
+Qualified baselines now inherit the recorded provider-wait setting if
+the field is absent, and the measured launcher carries the resolved
+value through preset normalization. All 88 focused tests passed.

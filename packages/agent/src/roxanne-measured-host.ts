@@ -90,7 +90,7 @@ export function measuredCampaignHost(config:MeasuredConfig,ports:MeasuredPorts):
     const bytes=ports.read(join(loaded.directory,"runtime-baseline.json"));if(createHash("sha256").update(bytes).digest("hex")!==loaded.runtimeBaselineSha256)throw new Error("changed frozen runtime feature contract");
     const raw:unknown=JSON.parse(bytes.toString());if(!Value.Check(Type.Object({features:Type.Record(Type.String(),Type.Boolean())}),raw))throw new Error("invalid frozen runtime features");frozenFeatures=raw.features;
    }
-   const features={...frozenFeatures,"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
+   const features={...frozenFeatures,"provider-wait-pause-v1":loaded.runtime.features["provider-wait-pause-v1"],"roxanne-campaign-reminder-v1":job.arm!=="baseline"};
    const maxWallMs=Math.floor(deadline-ports.now()-60_000);if(maxWallMs<1)throw new Error("insufficient episode setup/teardown budget");
    const definition=parsePlayPreset({version:2,id:config.id,target:null,stopAt:"ROXANNE_DEFEATED",features,start:{kind:"save_state",path:loaded.statePath,sha1:createHash("sha1").update(loaded.state).digest("hex")},limits:{maxTurns:job.capMs===600_000?70:210,maxWallMs,failureLimit:sourceStart.evaluation?.failure_limit??3,replyFailuresEndRun:sourceStart.evaluation?.reply_failures_end_run??false},sampling});
    const frozenDefinition={...definition,features};

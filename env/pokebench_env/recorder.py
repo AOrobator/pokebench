@@ -37,6 +37,8 @@ MAX_RESTART_PAUSE_SECONDS = 60.0
 AUDIO_LAG_SAMPLES = 686
 WAV_HEADER_BYTES = 44
 SEGMENT_SECONDS = 3600
+# Each mark ties wall clock (the journal's `at`), game frame and file position, for compositing.
+SYNC_MARK_FRAMES = 3600
 
 
 @dataclass(frozen=True)
@@ -219,7 +221,10 @@ def record_frames(frames: Iterable[Frame], sink: Sink, anchor: Anchor, log: Log)
             anchor.counter_reset()
         for _ in range(plan.writes):
             sink.write(frame.png)
+        before = anchor.frames
         anchor.add(plan.writes)
+        if anchor.frames // SYNC_MARK_FRAMES != before // SYNC_MARK_FRAMES:
+            log("sync", frame_count=frame.frame_count, video_frames=anchor.frames)
 
 
 @dataclass(frozen=True)

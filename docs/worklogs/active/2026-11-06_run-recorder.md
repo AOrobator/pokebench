@@ -21,3 +21,5 @@ COMMIT: `feat(env): a watchdog restarts a dead recorder without touching earlier
 COMMIT: `fix(env): sound keeps its place through an outage, and failed encoders back off` (575c31322). GPT round 2 BLOCKING: an ffmpeg that starts then dies respawned with no delay. An encoder that dies within 5 s of starting now waits; one that had been running restarts at once.
 
 COMMIT: `fix(env): an encoder that dies on starting waits before the next try` (061e21c53). One older test needed a fake clock; 31 recorder tests pass.
+
+COMMIT: `test(env): the encoder restart test uses a fake clock` (3db6a8321). GPT LGTM on the encoder delta. Added per-minute `sync` marks for compositing a Broadcast view later: journal `at`, game frame and file position. The second capture input waits on spectator-thread details.

@@ -9,6 +9,7 @@ from pokebench_env.recorder import (
     SAMPLE_BYTES,
     SAMPLES_PER_FRAME,
     SILENCE_CHUNK_SAMPLES,
+    SYNC_MARK_FRAMES,
     Anchor,
     AudioPlan,
     Frame,
@@ -326,3 +327,14 @@ def test_an_encoder_that_had_been_running_restarts_at_once() -> None:
     now[0] = 500.0
     restarting.write(b"b")
     assert sinks[1].chunks == [b"b"]
+
+
+def test_a_sync_mark_ties_game_frame_to_file_position_each_minute() -> None:
+    events, anchor = Events(), Anchor()
+    frames = (Frame(n, b"x") for n in range(100, 100 + SYNC_MARK_FRAMES * 2))
+    record_frames(frames, FakeSink(), anchor, events)
+    marks = [fields for name, fields in events.seen if name == "sync"]
+    assert marks == [
+        {"frame_count": 99 + SYNC_MARK_FRAMES, "video_frames": SYNC_MARK_FRAMES},
+        {"frame_count": 99 + SYNC_MARK_FRAMES * 2, "video_frames": SYNC_MARK_FRAMES * 2},
+    ]

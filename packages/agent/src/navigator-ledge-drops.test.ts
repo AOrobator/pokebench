@@ -6,7 +6,7 @@ import type {GameStateSnapshot} from "./game-state.js";
 import {featureInfo,type FeatureSet} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import type {CheckedPressTool} from "./game-tools.js";
-import {planNavigation,plannedArrivalElevation,requestedStep,withNavigation,type CheckedNavigationTool} from "./navigation.js";
+import {planNavigation,plannedArrivalElevation,plannedWarpElevation,requestedStep,routeTiles,withNavigation,type CheckedNavigationTool} from "./navigation.js";
 import {navigatorTakesWarp,withSemanticNavigation} from "./semantic-navigation.js";
 
 const LEDGE_ID="navigator-ledge-drops-v1",SURF_ID="navigator-surf-start-warps-v1";
@@ -92,6 +92,16 @@ describe(SURF_ID,()=>{
  it("on: a warp the player can walk to resolves as before",()=>{
   const state=row([tile(0,3),tile(1,3)],3,{interaction_targets:[warp(1,3)]});
   expect(navigatorTakesWarp(state,1,0,features(false,true))).toBe(true);
+ });
+ it("on: a route up a Waterfall replays to the warp above it, at the elevation the surfer lands with",()=>{
+  const at=(y:number,elevation:number,behavior=0)=>({x:0,y,collision:0,behavior,elevation});
+  const falls=row([at(6,3),at(5,1,OCEAN),at(4,1,0x13),at(3,1,0x13),at(2,1,OCEAN),at(1,3),at(0,3)],3,{position:{x:0,y:6},facing:"up",interaction_targets:[{...warp(0,3)}],surf_gate:surfGate,field_obstacles:{obstacles:[],capabilities:{waterfall:true}}} as unknown as Partial<GameStateSnapshot>);
+  const climbing={...options,surf:true,climb:true,launch:()=>undefined};
+  const path=planNavigation(falls,{x:0,y:0},climbing);
+  if(path===null)throw new Error("no route");
+  expect(routeTiles(falls,path,climbing)?.at(-1)).toEqual({x:0,y:0});
+  expect(plannedWarpElevation(falls,{x:0,y:0},climbing)).toBe(3);
+  expect(navigatorTakesWarp(falls,0,0,{...features(false,true),"navigator-elevation-zero-pads-v1":true})).toBe(true);
  });
  it("registers with an Off clause",()=>{
   expect(featureInfo(SURF_ID).description).toContain(" Off: ");

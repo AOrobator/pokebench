@@ -13,3 +13,5 @@ Limits: no emulator run yet. `navigate_to` planned the Lilycove walk with a real
 COMMIT: `feat(agent): take ledges that land at another elevation and plan surf starts to warps` (11a9238d5). `just test`: 2,667 agent, 1,075 viewer, 2,965 env, 38 gateway passed. Lint fixed in the test file.
 
 GPT round 1 BLOCKING, two findings, both on the surf-start block from 11/4 that connections and objects already use, rebutted: the walk to the shore does not re-resolve the warp, and a shore more than one segment away returns after one segment. Warps do not vanish mid-walk, and the second call continues; the status says why it stopped.
+
+COMMIT: `fix(agent): lint and wording for ledge drops` (78e2e3eff). GPT round 2 LGTM. Claude BLOCKING: `walked` and `routeTiles` had no Waterfall climb edge, so Meteor Falls 1F 1R (10,3) went from a surf start to not listed. Fix: shared `climbTop` in the planner and both replays, launch searches only. Reproduction now reaches the shore, Surf, and the foot of the falls; OFF is refused after Surf.

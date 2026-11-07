@@ -153,6 +153,12 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
 const navigationStatus=(result:AgentToolResult<unknown>):string|undefined=>(result.details as {navigation?:{status?:string}}|undefined)?.navigation?.status;
 export const isSurfing=(state:Pick<GameStateSnapshot,"running">):boolean=>((state.running?.avatar_flags??0)&SURFING_FLAG)!==0;
 const WATERFALL=0x13;
+// surf-navigation-v1: the tile above the falls a launch search climbs to in one UP step; replays must follow that step, not the falls' push.
+const climbTop=(geometry:Geometry,next:Point,direction:Direction,options:NavigationOptions):Point|null=>{
+ if(options.launch===undefined||options.climb!==true||direction!=="UP"||geometry.tile(next)?.behavior!==WATERFALL)return null;
+ let top=next;while(geometry.tile(top)?.behavior===WATERFALL)top={x:top.x,y:top.y-1};
+ return top;
+};
 const STEP:Readonly<Record<Direction,readonly [number,number]>>={UP:[0,-1],DOWN:[0,1],LEFT:[-1,0],RIGHT:[1,0]};
 // surf-navigation-v1: the tiles a surfer is pushed over after entering forced water at next, ending on the tile that stops
 // the push. Null when it is not forced water, loops, or runs into anything but water (the game would dismount or stall).
@@ -311,7 +317,11 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
   const slid=slideEnd(geometry,next,direction,options);
   const pushed=options.surf===true?forcedPath(geometry,next):null;
-  if(pushed!==null){
+  const top=climbTop(geometry,next,direction,options);
+  if(top!==null){
+   const land=geometry.tile(top);if(land===undefined)return null;
+   settle(land.elevation);here=land.elevation;cost+=next.y-top.y;p=top;
+  }else if(pushed!==null){
    const end=pushed.at(-1);if(end===undefined)return null;
    cost+=pushed.length;p=end;
   }else if(slid!==null){
@@ -348,6 +358,8 @@ export function routeTiles(state:GameStateSnapshot,path:readonly Direction[],opt
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);
   const hop=options.ledges===true&&tile!==undefined&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y);
   const pushed=options.surf===true?forcedPath(geometry,next):null;
+  const top=climbTop(geometry,next,direction,options);
+  if(top!==null){for(let y=next.y;y>=top.y;y--)tiles.push({x:next.x,y});p=top;continue;}
   if(pushed!==null){tiles.push(...pushed);p=pushed.at(-1)??next;continue;}
   const slid=slideEnd(geometry,next,direction,options);
   if(slid!==null){for(let y=next.y;y<=slid.y;y++)tiles.push({x:next.x,y});p=slid;continue;}
@@ -592,7 +604,7 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
     const isGoal=distance(next,goal)===0;
     // A launch search with Waterfall usable may climb; the walk stops at the foot, as it stops at a shore.
     if(options.launch!==undefined&&options.climb===true&&direction==="UP"&&tile.behavior===WATERFALL){
-     let top=next;while(geometry.tile(top)?.behavior===WATERFALL)top={x:top.x,y:top.y-1};
+     const top=climbTop(geometry,next,direction,options)??next;
      const land=geometry.tile(top);if(land===undefined||!SURF_FLOOR.has(land.behavior)||land.collision!==0)continue;
      const cost=node.cost+LAUNCH_COST+next.y-top.y;
      pending.push(cost+distance(top,goal),{...carried,p:top,here:land.elevation,elevation:node.elevation,cost,surf:true,launch:node.launch??{at:node.p,water:next,facing:direction,move:"Waterfall"}});continue;

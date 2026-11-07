@@ -153,3 +153,7 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: no weakening (a KO wastes the encounter), Wingull only if met, level 26 as an aim, not a gate.
 - Catch rows gate green. Claude's findings applied as proposed; GPT LGTM on facts.
 - rayquaza-lane-24h: same pointer recipe as v3, 24-hour cap; The operator 2026-11-06 10:30 PM. Run aeb8 ended on budget at turn 913 with Dynamo, past the rival at T784.
+
+### 2026-11-06: rq-old-rival-line-v1 (for the Route 110 trials; coordinator-relayed prep)
+
+- Switch swaps the rival tactics on the ROUTE_110 row for aeb8's line. OFF is today's guide; default off, lane-only.

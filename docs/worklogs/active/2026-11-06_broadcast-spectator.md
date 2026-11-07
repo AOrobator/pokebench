@@ -82,6 +82,12 @@ The operator 2026-11-07: "the broadcast view needs to use the actual sprites of 
 - [x] Review on 1b214d406: Claude, GPT, fallback LGTM
 - [x] Landed 70b05014c; post-main `just test`: 2,684 agent, 1,221 viewer, 3,051 env, 38 gateway
 
+### Piece 8: the live page stops flashing
+The operator 2026-11-07: "why does the broadcast view flash? it looks bad". Measured on the served page: WebKit showed a black game box in 123 of 972 shots in 15 s, because live frames swapped the img src about 75 times a second and WebKit blanks between sources; Chromium did not show it, though 57 of 1,718 animation frames found the image incomplete. The caption box also vanished 15 s after each line and popped back, a white block about every turn.
+- [x] RED
+- [ ] GREEN
+- [ ] Review, landing
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { mountBroadcast, type BroadcastDeps, type FrameSocket } from "./broadcast-main.js";
 
-const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><button data-b="sound" hidden></button><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
+const STAGE = `<html><body><div id="stage"><div data-b="who"></div><div data-b="pill"></div><div data-b="where"></div><img data-b="game"><canvas data-b="live" hidden></canvas><button data-b="sound" hidden></button><div data-b="cap"><div data-b="say"></div></div><div data-b="think-label"></div><div data-b="think"></div><div data-b="action"></div><div data-b="party"></div><span data-b="clock"></span><div data-b="lane"></div><div data-b="badges"></div><div data-b="cost"></div></div></body></html>`;
 const HEADER = { run: "r1", model: "deepseek/deepseek-v4.1-flash", started: "2026-11-06T12:00:00.000Z", kind: "boot", save: null };
 const T0 = Date.parse(HEADER.started);
 const ITEMS = [
@@ -109,37 +109,45 @@ describe("the broadcast page", () => {
     expect(s.timers).toHaveLength(0);
   });
 
-  it("uses live frames while following and falls back to recorded ones when they stop", async () => {
+  it("paints live frames on the canvas and falls back to recorded ones when they stop", async () => {
     const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
     const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close: vi.fn() };
-    const open = vi.fn(() => socket);
-    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: open, frameUrl: () => "blob:1" });
+    const open = vi.fn(() => socket), painted: unknown[] = [];
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: open, paintFrame: (_canvas, data) => { painted.push(data); return Promise.resolve(); } });
     await s.mount();
     expect(open).toHaveBeenCalledWith("/api/runs/r1/frames");
-    handlers.message?.(new ArrayBuffer(1));
-    await vi.waitFor(() => { expect(s.shown).toContain("blob:1"); });
+    expect(s.part("live").hidden).toBe(true);
+    handlers.message?.("frame");
+    await vi.waitFor(() => { expect(s.part("live").hidden).toBe(false); });
+    expect(painted).toEqual(["frame"]);
+    expect(s.shown).not.toContain("frame");
     handlers.close?.();
+    expect(s.part("live").hidden).toBe(true);
     expect(s.timers.length).toBeGreaterThan(0);
   });
 
-  it("retires each live frame's blob even when a newer frame cancels its decode", async () => {
+  it("while a frame paints keeps only the newest one, and a failed paint keeps the last picture up", async () => {
     const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
     const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close: vi.fn() };
-    let n = 0;
-    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, frameUrl: () => { n += 1; return `blob:${String(n)}`; }, show: () => Promise.reject(new Error("cancelled")) });
+    const painted: unknown[] = [], finish: ((ok: boolean) => void)[] = [];
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, paintFrame: (_canvas, data) => { painted.push(data); return new Promise<void>((resolve, reject) => { finish.push(ok => { if (ok) resolve(); else reject(new Error("bad")); }); }); } });
     await s.mount();
-    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
-    handlers.message?.(new ArrayBuffer(1));
-    handlers.message?.(new ArrayBuffer(1));
-    await vi.waitFor(() => { expect(revoke).toHaveBeenCalledWith("blob:1"); });
-    revoke.mockRestore();
+    handlers.message?.("a");
+    handlers.message?.("b");
+    handlers.message?.("c");
+    expect(painted).toEqual(["a"]);
+    finish.shift()?.(false);
+    await vi.waitFor(() => { expect(painted).toEqual(["a", "c"]); });
+    expect(s.part("live").hidden).toBe(true);
+    finish.shift()?.(true);
+    await vi.waitFor(() => { expect(s.part("live").hidden).toBe(false); });
   });
 
   it("setTime leaves live frames for good and waits for the recorded frame", async () => {
     const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
     const close = vi.fn();
     const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close };
-    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, frameUrl: () => "blob:1" });
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, paintFrame: () => Promise.resolve() });
     const fetched = vi.fn(() => Promise.resolve(answer({ ended: false })));
     s.deps.fetchJson = url => url.endsWith("after=0") ? Promise.resolve(answer({ ended: false, next: 7 })) : fetched();
     const page = await s.mount();

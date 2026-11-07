@@ -81,9 +81,9 @@ describe("the live caption", () => {
   it("shows what is being said", () => {
     expect(liveCaption([line(1, 1), line(2, 90)], line(1, 1), 91)).toBe("line 1");
   });
-  it("otherwise shows the newest line while it is fresh", () => {
-    expect(liveCaption([line(1, 1), line(2, 20, 30)], null, 44)).toBe("line 2");
-    expect(liveCaption([line(1, 1), line(2, 20, 30)], null, 46)).toBeNull();
+  it("otherwise holds the newest line, so the box does not blink between lines", () => {
+    expect(liveCaption([line(1, 1), line(2, 20, 30)], null, 149)).toBe("line 2");
+    expect(liveCaption([line(1, 1), line(2, 20, 30)], null, 151)).toBeNull();
     expect(liveCaption([], null, 1)).toBeNull();
   });
 });

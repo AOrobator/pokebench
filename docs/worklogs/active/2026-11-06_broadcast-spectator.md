@@ -102,7 +102,8 @@ The operator 2026-11-07: "it'd be nice to also have game music playing". The gam
 The operator 2026-11-07: "i'd rather the music /sound toggle not be overlayed on the video, we have so much space in the header". Controls sit outside the scaled stage, placed by the stage's scale: in the header's empty middle on wide screens, under the stage on a phone, where a scaled header would make them too small to tap. The page also now keeps phones from zooming out to fit the 1920 stage (minimum-scale=1), which had put it at 1560 wide.
 - [x] RED
 - [x] GREEN: 146 focused tests; 1920x1080 and 390x844 headless on the live page, branch modules routed in: controls clear of the game box in both, click works in both, shots viewed.
-- [ ] Review, landing
+- [x] Gates on e114d4dac: lint, 2,734 agent, 1,235 viewer, 3,051 env, 38 gateway, verify-vendor; later delta is CSS only
+- [x] Review: Claude, GPT, fallback LGTM on 5c6d20818
 
 ## Closing the Loop
 

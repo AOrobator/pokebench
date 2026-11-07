@@ -57,6 +57,8 @@ Piece 1 browser proof, headless on port 8797 from a scratch runs root symlinking
 
 ## Multi-Model Review Log
 
+Round 1, frozen 0bc415075..5eff8420d (sha 0e4069bc). Cursor out of usage until 11/17, so Claude CLI, Codex GPT (gpt-5.6-sol) and a fresh fallback subagent per the operator's standing rule. All BLOCKING on one real bug: setTime on a page already following live frames neither stopped them nor loaded the recorded frame (Claude reproduced it). Claude and GPT also: a frame that failed to load still resolved setTime. Both fixed, with tests; a held moment also re-reads a live log and clears the picture before the first frame. Rebutted: GPT's superlinear copying in the store test fake and in partial lines: lines stay far under the 1 MiB chunk, and the fake's copying is a few KB; no failure shown.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

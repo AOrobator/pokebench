@@ -12,3 +12,5 @@ The brief's at-or-inside test and its no-stuck-goal requirement reduce to one te
 no-open-story-goal-v1 stays off: on a0b4 T181-T271 it would still print none open on all 91 results, through its reached path.
 
 COMMIT: `feat(agent): a story line finishes on a story event, not on arrival` (70020f1df). `just test`: 2,675 agent, 1,076 viewer, 2,965 env, 38 gateway passed; `pnpm -r lint`, env mypy (main venv), `just verify-vendor` clean. GPT round 1: a line heard at the place never retires, pre-existing, fixed under the switch since the brief rules out stuck goals. Replay unchanged.
+
+COMMIT: `fix(agent): a line heard at the place counts from when it was heard` (d236a0f02). That commit's new test failed: a line from an unnamed speaker naming its own place never becomes a goal. The next commit uses a named speaker; 8 tests pass, and removing the fix turns the test red.

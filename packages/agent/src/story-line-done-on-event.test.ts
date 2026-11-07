@@ -61,7 +61,7 @@ it("on: a line heard at the place retires on the next story event there; off it 
  const said=(on:boolean):HarnessTrust=>{
   const t=new HarnessTrust({supervisor:false,activity:true,retireLab:true,stageBound:true,omitEmptyGoal:true,goalOnce:false,retireReached:true,unnamedPlaces:true,doneOnEvent:on});
   t.observe(event({type:"state",turn:181,...body(PYRE)}));
-  t.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:182,tool_call_id:"c",pages:[{text:"ARCHIE: The RED ORB preserved at MT. PYRE",speaker:"ARCHIE",speaker_source:"name_prefix",map:"MT PYRE 1F",position:null,map_id:[...PYRE],state_seq:seq}]}));
+  t.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:182,tool_call_id:"c",pages:[{text:"MAY: Meet me at MT. PYRE, the RED ORB is here.",speaker:"MAY",speaker_source:"name_prefix",map:"MT PYRE 1F",position:null,map_id:[...PYRE],state_seq:seq}]}));
   t.observe(event({type:"tool_result",turn:182,id:"c",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
   t.observe(milestone("MAGMA_EMBLEM_RECEIVED","story",190));
   return t;

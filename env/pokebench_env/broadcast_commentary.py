@@ -24,7 +24,7 @@ MAX_WORDS = 19
 SAVE_EVERY = 25
 TRIES = 3
 # Words a viewer should not hear, which the model sometimes keeps despite the prompt.
-JARGON = re.compile(r"\b(press|pressing|OHKO|KO|KOs|HP)\b", re.IGNORECASE)
+JARGON = re.compile(r"\b(press(es|ed|ing)?|OHKO(s|'d)?|KO(s|'d)?|HP)\b", re.IGNORECASE)
 VOICE = "af_heart"
 VOICE_SPEED = 1.05
 SYSTEM = (

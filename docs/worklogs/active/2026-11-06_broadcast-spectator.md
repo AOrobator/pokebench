@@ -77,6 +77,8 @@ Pieces 2 and 3, round 2 on 6377340ad: all BLOCKING. Fixed: abort left ffmpeg blo
 
 Round 3 on b282100f1: Claude, GPT and fallback LGTM. Left as is: a range under 0.5 ms writes an empty file; an aborted render leaves a partial mp4.
 
+Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passing the jargon check. Inflections added.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

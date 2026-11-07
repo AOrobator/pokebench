@@ -68,6 +68,8 @@ def test_events_before_run_start_are_ignored() -> None:
         ("", None),
         ("I'll press B to stay in.", None),
         ("Surf will OHKO it.", None),
+        ("Surf OHKOs it.", None),
+        ("I pressed A.", None),
         ("I'll KO Altaria.", None),
         ("My HP is low.", None),
         ("word " * 20, None),

@@ -350,6 +350,7 @@
     "no-open-story-goal-v1": false,
     "navigator-elevation-zero-pads-v1": true,
     "navigator-ledge-drops-v1": true,
-    "navigator-surf-start-warps-v1": true
+    "navigator-surf-start-warps-v1": true,
+    "story-line-done-on-event-v1": true
   }
 }

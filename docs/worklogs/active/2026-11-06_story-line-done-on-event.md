@@ -1,0 +1,12 @@
+# Story line done on event
+
+Coordinator brief 2026-11-06: a place-naming line stays open until a game-confirmed story step at or inside the place, with no goal stuck forever. Milestones already carry `kind`: navigation for a place reached, story for an event. Every false done came from a navigation milestone.
+
+The brief's at-or-inside test and its no-stuck-goal requirement reduce to one test. Strict at-place left 274b's Verdanturf line alive from T1874 to T1992 after the story moved on. Adding a story event elsewhere once the player left changed that one line in four runs. A story event after arrival is either at the place or after leaving it, so `kind==="story"` after the arrival covers both, needs no name matching, and keeps a retired line retired.
+
+- [x] RED: `story-line-done-on-event.test.ts`, through the `HarnessTrust` header. Removing the rule and the wiring each turned a test red, then restored.
+- [x] GREEN: 7 tests.
+- [x] Replay, four runs. a0b4: grunt line kept T181-T271, replaced by ARCHIE at T272. 274b: Meteor Falls kept to T1261, replaced at T1262 on the confrontation; Mt. Chimney done at T1335, was T1304; Petalburg Gym kept to Norman at T1756, was T1670; Verdanturf done T1874, was T1872; Fortree Gym stays open with the gym unfinished, was T2043. 5f0f the same shape. ee2a unchanged.
+- [ ] Gates, review, landing
+
+no-open-story-goal-v1 stays off: on a0b4 T181-T271 it would still print none open on all 91 results, through its reached path.

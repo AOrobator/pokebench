@@ -172,12 +172,12 @@ export class StoryDestinations {
  // story-goal-player-name-v1: the player's own name (the game prints it where the player is meant) is never who "He/She lives" means.
  private readonly taskCompletion:TaskGoalCompletion|null;
  // retire-reached-story-line-v1: the story milestones the game recorded, in order.
- private readonly steps:{readonly turn:number;readonly seq:number;readonly name:string}[]=[];
+ private readonly steps:{readonly turn:number;readonly seq:number;readonly name:string;readonly event:boolean}[]=[];
  // retire-reached-story-line-v1: the recorded event (the page's state, else its dialogue event) each story line was shown at.
  private readonly shownAt=new WeakMap<StoryLine,number>();
- constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false,private readonly unnamedPlaces=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
+ constructor(private readonly scriptedGuidance=false,private readonly activity=false,private readonly playerName=false,private readonly gymEvidence=false,private readonly deliveredPlaces=false,nativeTasks=false,private readonly selfNamed=false,private readonly retireReached=false,private readonly unnamedPlaces=false,private readonly doneOnEvent=false){this.taskCompletion=nativeTasks?new TaskGoalCompletion():null;}
  observe(event:RunEvent):void {
-  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,seq:event.seq,name:event.name});return;}
+  if(event.type==="milestone"){if(this.retireReached&&storyStep(event))this.steps.push({turn:event.turn,seq:event.seq,name:event.name,event:event.kind==="story"});return;}
   if(event.type==="state"&&"started" in event){
    this.taskCompletion?.observe(event);
    const map=event.map_id;
@@ -310,7 +310,8 @@ export class StoryDestinations {
    const shown=this.shownAt.get(line);
    const arrived=resolved.map(r=>r.target===null?undefined:this.arrival(line,r.target.map_id,here,shown)?.at.seq);
    const last=Math.max(shown??-Infinity,...arrived.map(a=>a??Infinity));
-   const step=this.steps.find(s=>s.seq>last);
+   // story-line-done-on-event-v1: reaching a place is not its business done. A story event after the arrival is, there or after the player left.
+   const step=this.steps.find(s=>s.seq>last&&(!this.doneOnEvent||s.event));
    if(step!==undefined)return {line,resolved,done:true,doneReason:`${reached.map(reachedPlace).join("; ")}, then ${step.name.replaceAll("_"," ").toLowerCase()} at turn ${String(step.turn)}`};
   }
   return reached===null?{line,resolved}:{line,resolved,reached};
@@ -497,7 +498,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 
 export function withStoryDestinations(tools:readonly AgentTool[],features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">,source:PlaceSource):AgentTool[] {
  if(!features["story-destinations-v1"])return [...tools];
- const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"],features["unnamed-place-story-line-v1"]);recorder.subscribe(event=>{story.observe(event);});
+ const story=new StoryDestinations(features["scripted-place-guidance-v1"],features["unfinished-activity-v1"],features["story-goal-player-name-v1"],features["gym-evidence-v1"],features["delivered-place-evidence-v1"],features["native-task-goal-retirement-v1"],features["self-named-speaker-v1"],features["retire-reached-story-line-v1"],features["unnamed-place-story-line-v1"],features["story-line-done-on-event-v1"]);recorder.subscribe(event=>{story.observe(event);});
  // The map table never changes; the names of the player's own house do, so it is read once per player name.
  const tables=new Map<string,Promise<readonly Place[]>>();
  const table=async(player:string):Promise<readonly Place[]|Error>=>{

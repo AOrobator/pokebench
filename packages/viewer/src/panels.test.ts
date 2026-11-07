@@ -1296,6 +1296,15 @@ it("links the ledge drops and surf start cards to one page, default off",async()
  }
 });
 
+it("links the story line done on event card, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="story-line-done-on-event-v1";
+ expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+});
+
 it("links the first visit cycle credit card, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="first-visit-cycle-credit-v1";

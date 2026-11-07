@@ -402,5 +402,6 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [No open story goal](no-open-story-goal-v1.html): the readout says plainly when no story goal is open. Off in both arms since 2026-11-06: it printed none open during the Mt. Pyre climb.
 - [Navigator elevation-zero pads](navigator-elevation-zero-pads-v1.html): warps are matched the way the game does, so Lavaridge Gym pads can be targeted.
 - [Navigator ledge drops and surf starts](navigator-ledge-drops-v1.html): ledges that land at another elevation are taken, as the game does, and warps across water reach the surf start.
+- [Story line done on event](story-line-done-on-event-v1.html): a place-naming line stays the goal until a story event, not until the player arrives.
 - [First visit cycle credit](first-visit-cycle-credit-v1.html): a first entry to a map holds map-cycle and drought notes for 10 calls, with every held note recorded.
 - [Field call input](field-call-input-v1.html): a field call page that waits for A reads input ready, with the printer states from the source, the auto-advance decision and the raw-RAM replay of runs 7442 and 5f0f.

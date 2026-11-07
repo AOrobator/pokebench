@@ -216,7 +216,8 @@
     "story-line-start-steps-v1",
     "navigator-elevation-zero-pads-v1",
     "navigator-ledge-drops-v1",
-    "navigator-surf-start-warps-v1"
+    "navigator-surf-start-warps-v1",
+    "story-line-done-on-event-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -566,6 +567,7 @@
     "no-open-story-goal-v1": false,
     "navigator-elevation-zero-pads-v1": true,
     "navigator-ledge-drops-v1": true,
-    "navigator-surf-start-warps-v1": true
+    "navigator-surf-start-warps-v1": true,
+    "story-line-done-on-event-v1": true
   }
 }

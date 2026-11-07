@@ -131,6 +131,8 @@ const DecisionInput = event("decision_input",{decision_turn:Type.Integer({minimu
 const WaitInput = event("wait_input",{tool_call_id:Type.String(),duration_ms:Type.Integer({minimum:1,maximum:2000})});
 
 const Frames = Type.Integer({ minimum: 1, maximum: 255 });
+// rq-mach-dash-v1 releases nothing between entries.
+const ReleaseFrames = Type.Integer({ minimum: 0, maximum: 255 });
 
 const ButtonPress = event("button_press", {
   tool_call_id: Type.String(),
@@ -141,7 +143,7 @@ const ButtonPress = event("button_press", {
   requested_held_buttons:Type.Optional(Type.Array(ButtonSchema,{maxItems:1})),
   buttons: Type.Array(ButtonSchema, { minItems: 1 }),
   hold_frames: Type.Optional(Frames),
-  release_frames: Type.Optional(Frames),
+  release_frames: Type.Optional(ReleaseFrames),
 });
 
 const HumanInput = event("human_input", {

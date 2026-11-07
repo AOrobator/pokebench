@@ -11,7 +11,7 @@ import {frozenRecipeToWrite,launchedRecipeReader,presetToUse,type LaunchedRecipe
 const JUNK="instruction-memory-junk-filter-v1";
 const sha256=(text:string):string=>createHash("sha256").update(text).digest("hex");
 // The frozen recipes predate this overlay entry.
-const atFreeze={...overlay,on:Object.fromEntries(Object.entries(overlay.on).filter(([id])=>id!=="rq-no-grind-note-v1"&&id!=="rq-checkpoint-recovery-v1"))};
+const atFreeze={...overlay,on:Object.fromEntries(Object.entries(overlay.on).filter(([id])=>id!=="rq-no-grind-note-v1"&&id!=="rq-checkpoint-recovery-v1"&&id!=="rq-mach-dash-v1"))};
 const recipes=(base:unknown)=>(id:string):string=>{
  if(id==="rayquaza-lane")return resolveFeatureRecipe(JSON.stringify(atFreeze),()=>JSON.stringify(base));
  throw new Error(`no recipe ${id}`);

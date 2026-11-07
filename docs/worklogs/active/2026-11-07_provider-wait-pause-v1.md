@@ -77,3 +77,13 @@ pre-integration packet has not yet returned a verdict. Grok is blocked
 by Cursor's usage limit, and the relay has not granted the requested
 CPU window. The relay acknowledged delivery of the blocked handoff.
 No changes landed on main.
+
+## Landing correction
+
+The full test gate exposed four assertions tied to the historical four-flag
+mapping. That mapping keeps the switch off, while actual flag-only launches
+enable it at the live entry point. Current recipes and omitted v2 settings
+still default on, and explicit v2 OFF is preserved. The failing tests were
+left intact. Integrated main at db3d713df, retaining its new switch entries.
+The scheduler relayed the operator's standing Grok waiver. Landing requires Claude,
+GPT and a distinct fallback reviewer, with the reduced diversity recorded.

@@ -24,7 +24,7 @@ export function parseSceneJournal(value:unknown):SceneJournalReply {
  }
  return value;
 }
-const GAME_TOOLS=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","learn_move","choose_evolution","select_menu_option"]);
+const GAME_TOOLS=new Set(["observe","press","navigate_to","navigate_to_target","explore_map","battle_action","learn_move","choose_evolution","select_menu_option","mach_dash"]);
 
 // This outer wrapper runs after the complete action/auto-advance composition.
 // Content is ordinary tool_result text/images: the recorder, context, Activity

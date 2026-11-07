@@ -1938,7 +1938,7 @@
         },
         "release_frames": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 255
         }
       },

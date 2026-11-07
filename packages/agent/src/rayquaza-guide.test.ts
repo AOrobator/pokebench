@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
+import { parseDash } from "./mach-dash.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { ABRA_NOTE, BATTLE_EXPLAINER, FLYER_NOTE, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
@@ -228,7 +229,7 @@ describe("the guide's route rows", () => {
     return step;
   };
   const BUTTON_ROUTE = /\b[UDLR]\d*[ ,][UDLR]\d*\b/;
-  const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED"]);
+  const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED", "AT:SkyPillar_2F:10:2", "AT:SkyPillar_3F:3:2", "AT:SkyPillar_4F:11:2", "AT:SkyPillar_5F:3:2"]);
 
   it("gives every button route but the climbs one recovery line", () => {
     const routes = RAYQUAZA_GUIDE_STEPS.filter((step) => BUTTON_ROUTE.test(step.note) && !CLIMBS.has(step.after));
@@ -247,28 +248,98 @@ describe("the guide's route rows", () => {
   });
 
   it("ends the climb at Rayquaza and names the talks that open Juan's Gym", () => {
-    const climb = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
-    const top = RAYQUAZA_GUIDE_STEPS[climb + 1];
-    expect(RAYQUAZA_GUIDE_STEPS[climb]?.note.endsWith("top D L4 U4 R2 U4.")).toBe(true);
-    expect(top?.after).toBe("AT:SkyPillar_Top:14:7");
+    const top = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "AT:SkyPillar_Top:14:7");
     expect(top?.note).toContain("Maxie at (33,35)");
     expect(top?.note).toContain("Archie at (34,35)");
     expect(top?.note).toContain("Wallace at the Gym door for HM07");
-    expect(RAYQUAZA_GUIDE_STEPS[climb + 2]?.after).toBe("HM_WATERFALL_RECEIVED");
+    const index = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "AT:SkyPillar_Top:14:7");
+    expect(RAYQUAZA_GUIDE_STEPS[index + 1]?.after).toBe("HM_WATERFALL_RECEIVED");
+  });
+});
+
+describe("the Sky Pillar climbs", () => {
+  const index = (after: string): number => RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === after);
+  const row = (after: string): GuideStep => {
+    const step = RAYQUAZA_GUIDE_STEPS.find((candidate) => candidate.after === after);
+    if (step === undefined) throw new Error(`no row ${after}`);
+    return step;
+  };
+  const at = (name: string, x: number, y: number): RunEvent => {
+    const tile = RAYQUAZA_GUIDE_STEPS.find((step) => step.at !== undefined && step.after.startsWith(`AT:${name}:`))?.at;
+    if (tile === undefined) throw new Error(`no row on ${name}`);
+    return { type: "state", map_id: tile.id, position: { x, y } } as unknown as RunEvent;
+  };
+  const SECOND = ["AT:SkyPillar_2F:10:2", "AT:SkyPillar_3F:3:2", "AT:SkyPillar_4F:11:2", "AT:SkyPillar_3F:7:4", "AT:SkyPillar_5F:3:2", "AT:SkyPillar_Top:16:15", "AT:SkyPillar_Top:14:7"];
+  // Each route ran through the real tool on a real game server (worklog, 2026-11-07).
+  const ROUTES = {
+    SOOTOPOLIS_CRISIS_RESOLVED: "U1 L9 U4 R2 U3 L1 U3 R3 D2 R5 U3",
+    "AT:SkyPillar_2F:10:2": "D1 R4 D11 L10 U4 R2 U8",
+    "AT:SkyPillar_3F:3:2": "D7 L2 D6 R1 D1 R10 U5 L1 U6",
+    "AT:SkyPillar_4F:11:2": "D14 L8 U8 R2",
+    "AT:SkyPillar_5F:3:2": "L5 D3 R1 D4 L1 D4 R5 D1 R7 U5 L1 U6 L2 U1",
+  };
+
+  it("gives each floor of the second climb its verified route, in a form mach_dash takes", () => {
+    for (const [after, route] of Object.entries(ROUTES)) {
+      const { note } = row(after);
+      expect(note).toContain(`mach_dash ${route}`);
+      expect(parseDash(route).ok).toBe(true);
+    }
   });
 
-  it("moves to the talks row only on the tile below Rayquaza", () => {
-    const from = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
-    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(from));
-    const tile = RAYQUAZA_GUIDE_STEPS[from + 1]?.at;
-    if (tile === undefined) throw new Error("the talks row has no tile");
-    const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: tile.id, position: { x, y } }) as unknown as RunEvent;
-    guide.observe(at(14, 8));
-    expect(guide.current().after).toBe("SOOTOPOLIS_CRISIS_RESOLVED");
-    guide.observe(at(14, 7));
-    expect(guide.current().after).toBe("AT:SkyPillar_Top:14:7");
+  it("never tells the model to ride past the 4F pocket", () => {
+    const rows = RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED"), index("HM_WATERFALL_RECEIVED"));
+    expect(rows.filter((step) => /R4 U3/.test(step.note))).toEqual([]);
+  });
+
+  it("walks the first climb, with no bike and no dash", () => {
+    const rows = RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED"), index("RAYQUAZA_AWAKENED"));
+    expect(rows.map((step) => step.after)).toEqual(["SKY_PILLAR_OPENED", "AT:SkyPillar_4F:5:4", "AT:SkyPillar_3F:6:4"]);
+    expect(rows[0]?.note).toContain("No bike needed");
+    expect(rows.filter((step) => step.note.includes("mach_dash"))).toEqual([]);
+    expect(rows[1]?.note).toContain("Press RIGHT once");
+  });
+
+  it("first climb: its rows fire on the drop, and its stairs tiles move nothing", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED")));
+    for (const tile of [at("SkyPillar_2F", 10, 2), at("SkyPillar_3F", 3, 2), at("SkyPillar_4F", 11, 2)]) guide.observe(tile);
+    expect(guide.current().after).toBe("SKY_PILLAR_OPENED");
+    guide.observe(at("SkyPillar_4F", 5, 4));
+    expect(guide.current().after).toBe("AT:SkyPillar_4F:5:4");
+    guide.observe(at("SkyPillar_3F", 6, 4));
+    expect(guide.current().after).toBe("AT:SkyPillar_3F:6:4");
+    for (const tile of [at("SkyPillar_4F", 7, 2), at("SkyPillar_5F", 3, 2), at("SkyPillar_Top", 16, 15)]) guide.observe(tile);
+    expect(guide.current().after).toBe("AT:SkyPillar_3F:6:4");
+  });
+
+  it("second climb: every floor's arrival tile moves the guide one row, though the first climb passed them", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SOOTOPOLIS_CRISIS_RESOLVED")));
+    const tiles: readonly (readonly [string, number, number])[] = [["SkyPillar_2F", 10, 2], ["SkyPillar_3F", 3, 2], ["SkyPillar_4F", 11, 2], ["SkyPillar_3F", 7, 4], ["SkyPillar_5F", 3, 2], ["SkyPillar_Top", 16, 15], ["SkyPillar_Top", 14, 7]];
+    tiles.forEach(([name, x, y], n) => {
+      if (x === 14) {
+        guide.observe(at(name, 14, 8));
+        expect(guide.current().after).toBe(SECOND[n - 1]);
+      }
+      guide.observe(at(name, x, y));
+      expect(guide.current().after).toBe(SECOND[n]);
+    });
     guide.observe(milestone("HM_WATERFALL_RECEIVED"));
     expect(guide.current().after).toBe("HM_WATERFALL_RECEIVED");
+  });
+
+  it("a fall holds the row, and the same row still stands after the walk back", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SOOTOPOLIS_CRISIS_RESOLVED")));
+    guide.observe(at("SkyPillar_2F", 10, 2));
+    guide.observe(at("SkyPillar_4F", 11, 2));
+    expect(guide.current().after).toBe("AT:SkyPillar_2F:10:2");
+    guide.observe(at("SkyPillar_2F", 10, 2));
+    expect(guide.current().after).toBe("AT:SkyPillar_2F:10:2");
+    expect(guide.current().note).toContain("If you fall");
+  });
+
+  it("the next story step stays within reach of a climb with no checkpoint seen", () => {
+    expect(index("HM_WATERFALL_RECEIVED") - index("SOOTOPOLIS_CRISIS_RESOLVED")).toBeLessThanOrEqual(8);
+    expect(index("RAYQUAZA_AWAKENED") - index("SKY_PILLAR_OPENED")).toBeLessThanOrEqual(8);
   });
 });
 
@@ -289,7 +360,7 @@ describe("the guide's facts", () => {
     ["FALLARBOR_TOWN", "2 Escape Ropes, a Super Potion, 10 X Attacks"],
     ["ROUTE_114", "Use a Super Repel if you have one"],
     ["LAVARIDGE_TOWN", "Use Potions now if you are hurt"],
-    ["LAVARIDGE_GYM_ENTERED", "Bag items before Flannery."],
+    ["AT:LavaridgeTown_Gym_1F:12:12", "Bag items before Flannery."],
     ["WEATHER_INSTITUTE_ENTERED", "If your party is full, Castform goes to the PC."],
     ["FEATHER_BADGE", "hideout door at (16,18)"],
     ["MASTER_BALL_OBTAINED", "You land at (3,20)."],
@@ -355,7 +426,7 @@ describe("the Dewford Gym row", () => {
 
 describe("the Mossdeep Gym rows", () => {
   const KI_ROUTE = "U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U";
-  const LEGS = ["U4 L3 U3", "U2 R U D U R6 U2 R", "D U", "L R", "D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4", "L2", "U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6", "R U R U2", "U R2 U"];
+  const LEGS = ["U4 L3 U3", "U2 R U D U R6 U2 R", "D U", "L R", "D4 L R2 D7 L D L D L D L6", "R L R6 U R U R U R U7 L2 R U4", "L2", "U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6", "R U R U2", "U R2 U"];
   const expand = (route: string): string => route.split(" ").map((press) => press.charAt(0).repeat(Number(press.slice(1) || "1"))).join("");
   const start = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MOSSDEEP_GYM_ENTERED");
   const badge = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MIND_BADGE");
@@ -363,7 +434,7 @@ describe("the Mossdeep Gym rows", () => {
   const gym = rows[1]?.at?.id;
   if (gym === undefined) throw new Error("the Gym has no tile rows");
   const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: gym, position: { x, y } }) as unknown as RunEvent;
-  const WARP_LANDINGS = [[1, 23], [23, 20], [8, 12], [11, 35], [21, 10]] as const;
+  const WARP_LANDINGS = [[1, 23], [23, 20], [15, 34], [8, 12], [11, 35], [21, 10]] as const;
   const fromGym = (): GuidePosition => new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
 
   it("splits KI's route at the warps without losing a press", () => {
@@ -408,7 +479,7 @@ describe("the Mossdeep Gym rows", () => {
     guide.observe(at(6, 35));
     for (const [x, y] of WARP_LANDINGS.slice(0, 2)) guide.observe(at(x, y));
     expect(guide.current()).toBe(held);
-    guide.observe(at(11, 35));
+    guide.observe(at(8, 12));
     expect(guide.current()).toBe(rows[4]);
   });
 
@@ -416,7 +487,7 @@ describe("the Mossdeep Gym rows", () => {
     let walked = "";
     for (const [i, row] of rows.entries()) {
       if (i > 0) expect(row.note).toContain(`from (6,35): ${walked}`);
-      walked = [walked, ...[LEGS.slice(0, 1), LEGS.slice(1, 2), LEGS.slice(2, 6), LEGS.slice(6, 7), LEGS.slice(7, 8)][i] ?? []].filter(Boolean).join(" ");
+      walked = [walked, ...[LEGS.slice(0, 1), LEGS.slice(1, 2), LEGS.slice(2, 5), LEGS.slice(5, 7), LEGS.slice(7, 8), LEGS.slice(8, 9)][i] ?? []].filter(Boolean).join(" ");
     }
     expect(rows.at(-1)?.note).toMatch(/after a loss/i);
   });

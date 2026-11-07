@@ -296,7 +296,9 @@ async function playAgent(): Promise<void> {
   if(assigned!==undefined&&!new RegExp(RUN_ID_PATTERN).test(assigned))throw new Error("POKEBENCH_RUN_ID is invalid");
   const continuation=liveContinuationFromEnv(process.env);
   const limits=preset?.limits??PLAY_LIMITS;
-  const features=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
+  const resolvedFeatures=preset===null?{...flagFeatures({loopGuard:readLoopMode(process.env)==="enforced",activeUi:activeUiFeatures().length>0,interfaceDocs:process.env["POKEBENCH_INTERFACE_DOCS"]!=="0",objectives:process.env["POKEBENCH_OBJECTIVES"]!=="0"}),"field-dialogue-phase-v1":process.env["POKEBENCH_FIELD_DIALOGUE_PHASE"]!=="0","automatic-running-v1":process.env["POKEBENCH_AUTOMATIC_RUNNING"]!=="0","expanded-menu-battle-information-v1":process.env["POKEBENCH_EXPANDED_INFORMATION"]!=="0"}:presetFeatures(preset);
+  // Flag-only launches cannot express the switch. Keep their preset conversion stable.
+  const features=preset?.version===2?resolvedFeatures:{...resolvedFeatures,"provider-wait-pause-v1":true};
   const serverEnv={...process.env,...serverFeatureEnv(features),...(continuation===null?{}:{POKEBENCH_RESTORE_RTC_MS:String(continuation.rtcMs)})};
   const start=preset===null?{kind:"boot" as const}:presetStart(preset,path=>readFileSync(path));
   const researchFile=process.env["POKEBENCH_CHECKPOINT_RESEARCH_NOTE"];

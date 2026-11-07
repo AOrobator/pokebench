@@ -16,6 +16,7 @@ export interface FrameSocket {
   on(name: "close", run: () => void): void;
   close(): void;
 }
+export interface Music { start(base: string): void; stop(): void; duck(on: boolean): void; level(value: number): void }
 export interface Speaker { unlock(): void; play(url: string): Promise<void>; stop(): void }
 export interface BroadcastDeps {
   readonly search: string;
@@ -29,6 +30,7 @@ export interface BroadcastDeps {
   readonly openFrames?: (path: string) => FrameSocket;
   readonly paintFrame?: (canvas: HTMLCanvasElement, data: unknown) => Promise<void>;
   readonly speak?: Speaker;
+  readonly music?: Music;
   readonly badgeSprites?: (urls: readonly string[]) => Promise<boolean>;
 }
 export interface BroadcastPage { setTime(t: number): Promise<void> }
@@ -88,6 +90,11 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   const voice = new BroadcastVoice(line => speak?.play(`${base}/commentary/${encodeURIComponent(line.wav)}`) ?? Promise.resolve());
   const sound = doc.querySelector<HTMLElement>('[data-b="sound"]');
   // Only a live page a person is watching makes a sound; broadcast-render mixes its own.
+  const { music } = deps;
+  const mix = doc.querySelector<HTMLElement>('[data-b="mix"]');
+  const muteButton = doc.querySelector<HTMLElement>('[data-b="music-mute"]'), levelSlider = doc.querySelector<HTMLInputElement>('[data-b="music-level"]');
+  let muted = false, ducked = false;
+  const setLevel = (): void => { music?.level(muted ? 0 : Number(levelSlider?.value ?? "50") / 100); };
   const speaks = speak !== undefined && moment === null && !first.ended && !transparent && params.get("voice") !== "0";
   let { header, rates } = first;
   const take = (feed: BroadcastResponse): void => {
@@ -143,6 +150,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     part("cap").hidden = caption === null;
     write(part("say"), caption === null ? "" : `“${caption}”`);
     if (sound !== null) sound.hidden = !speaks || !live || voice.enabled;
+    if (mix !== null) mix.hidden = music === undefined || !speaks || !live || !voice.enabled;
     lane.innerHTML = laneHtml(laneMarks({ now: t, width: deps.laneWidth(lane), presses: view.presses, tools: view.tools, miles: view.miles }));
     return view;
   };
@@ -150,6 +158,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   const tick = (): void => {
     if (moment !== null) return;
     voice.pump(followTime());
+    if ((voice.current !== null) !== ducked) { ducked = !ducked; music?.duck(ducked); }
     showFollowing(render(followTime()));
     if (timeline.end === null) deps.after(TICK_MS, tick);
   };
@@ -189,7 +198,9 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   };
 
   // Unlocked inside the click, whether or not a line is waiting: stricter browsers allow it nowhere else.
-  sound?.addEventListener("click", () => { speak?.unlock(); voice.enable(followTime()); sound.hidden = true; });
+  sound?.addEventListener("click", () => { speak?.unlock(); setLevel(); music?.start(base); voice.enable(followTime()); sound.hidden = true; });
+  levelSlider?.addEventListener("input", () => { muted = false; if (muteButton !== null) muteButton.textContent = "MUSIC ON"; setLevel(); });
+  muteButton?.addEventListener("click", () => { muted = !muted; muteButton.textContent = muted ? "MUSIC OFF" : "MUSIC ON"; setLevel(); });
   if (moment !== null) await showFrame(render(moment));
   else {
     showFollowing(render(followTime()));
@@ -200,6 +211,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
       moment = t;
       voice.stop();
       speak?.stop();
+      if (voice.wasOn) music?.stop();
       liveFrames = false;
       socket?.close();
       socket = null;

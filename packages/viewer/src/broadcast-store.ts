@@ -21,6 +21,12 @@ export interface BroadcastStoreOptions {
 }
 export interface BroadcastStore { read(runId: string, after: number, lines?: number): Promise<BroadcastResponse> }
 
+// The game server's tape keeps a cursor per reader and never touches the emulator, so this is safe beside the recorder.
+export function gameAudioUrl(port: number, since: string): string | null {
+  if (!/^(-1|0|[1-9][0-9]*)$/.test(since) || !Number.isSafeInteger(Number(since))) return null;
+  return `http://127.0.0.1:${String(port)}/audio.wav?since=${since}&max_frames=12000`;
+}
+
 export function commentaryWav(runsRoot: string, runId: string, name: string): string | null {
   return /^t[0-9]{6,}\.wav$/.test(name) ? join(runsRoot, "broadcast", runId, name) : null;
 }

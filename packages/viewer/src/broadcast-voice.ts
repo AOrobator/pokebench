@@ -9,15 +9,17 @@ export class BroadcastVoice {
   private waiting: CommentaryLine[] = [];
   private speaking: CommentaryLine | null = null;
   private on = false;
+  private started = false;
 
   constructor(private readonly play: (line: CommentaryLine) => Promise<void>) {}
 
   get enabled(): boolean { return this.on; }
+  get wasOn(): boolean { return this.started; }
   get current(): CommentaryLine | null { return this.speaking; }
 
   add(lines: readonly CommentaryLine[]): void { this.waiting.push(...lines); }
 
-  enable(now: number): void { this.on = true; this.pump(now); }
+  enable(now: number): void { this.on = this.started = true; this.pump(now); }
 
   stop(): void { this.on = false; this.waiting = []; this.speaking = null; }
 

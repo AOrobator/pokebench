@@ -3,7 +3,7 @@ import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
 import { BADGE_FILES } from "./broadcast-view.js";
-import { commentaryWav, createBroadcastStore, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
+import { commentaryWav, createBroadcastStore, gameAudioUrl, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
@@ -628,6 +628,18 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       const after = query.get("after") ?? "0", lines = query.get("lines");
       if (![after, lines ?? "0"].every(value => /^(0|[1-9][0-9]*)$/.test(value) && Number.isSafeInteger(Number(value)))) { sendJson(res, 400, { error: "invalid broadcast cursor" }); return; }
       sendJson(res, 200, await broadcast.read(id, Number(after), lines === null ? undefined : Number(lines)));
+      return;
+    }
+    if (parts.length === 4 && leaf === "audio") {
+      const gamePort = liveScreenPort(options.runsRoot, id);
+      if (gamePort === null) { sendJson(res, 409, { error: "run is not live" }); return; }
+      const url = gameAudioUrl(gamePort, new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("since") ?? "-1");
+      if (url === null) { sendJson(res, 400, { error: "invalid audio cursor" }); return; }
+      const answer = await (options.fetchFn ?? fetch)(url, { signal: AbortSignal.timeout(SCREEN_TIMEOUT_MS) });
+      const next = answer.headers.get("x-audio-next");
+      if (!answer.ok || next === null) { sendJson(res, 502, { error: "no game audio" }); return; }
+      res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "audio/wav", "cache-control": "no-store", "x-audio-next": next });
+      res.end(Buffer.from(await answer.arrayBuffer()));
       return;
     }
     if (parts.length === 5 && leaf === "commentary") {

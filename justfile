@@ -278,6 +278,11 @@ experiments-audit: build
 fixed-run *args: build
     node packages/viewer/dist/fixed-cli.js {{args}}
 
+# Render a stretch of a run as video through the /broadcast page. --game-video names a recorder folder;
+# its picture and sound go under the page, retimed onto the run's wall clock by the sync marks.
+broadcast-render *args: build
+    nice -n 10 node packages/viewer/dist/broadcast-render-cli.js {{args}}
+
 # Manual validation probes are recorded like runs, excluded from benchmark results.
 # stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.
 probe saved="": build

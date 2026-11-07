@@ -38,7 +38,7 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [ ] Gates, review, landing
 
 ### Piece 2: `just broadcast-render`
-- [ ] Ask the Mt. Pyre thread for the recorder's file format and clock base
+- [x] Recorder format from the Mt. Pyre spec and `env/pokebench_env/recorder.py`: journal `at` is the same clock as event `t`; 240x160 at 59.7275 fps, one file frame per game frame; separate FLAC sound. Runs play near 80 fps, so sync marks retime both onto the wall clock.
 - [ ] Build, proof, review, landing
 
 ### Piece 3: `just broadcast-commentary`

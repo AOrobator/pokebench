@@ -522,7 +522,7 @@ describe("badge-resets-cycles-v1",()=>{
 
 // drought-turns-only-v1: 41 of 165 drought notes in five DeepSeek runs were false on the 5-minute clock (about 11 turns).
 describe("drought-turns-only-v1",()=>{
- const play=(on:boolean,actions:number,level=(_i:number)=>5)=>{
+ const play=(on:boolean,actions:number,level:(i:number)=>number=()=>5)=>{
   const r=rig({...ON,"drought-turns-only-v1":on});
   r.milestone("GAME_RUNNING","observed");
   r.state({party:[MEMBER("a","MUDKIP",5,0)]});

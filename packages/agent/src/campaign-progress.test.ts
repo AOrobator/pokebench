@@ -61,7 +61,7 @@ describe("campaign native predicates",()=>{
  });
 });
 function clock(enabled:boolean,turns=false){
- const features={...ALL_ON,[ID]:enabled,"turn-drought-clock-v1":turns,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"drought-battle-heal-hold-v1":false,"milestone-drought-suppression-v1":false};
+ const features={...ALL_ON,[ID]:enabled,"turn-drought-clock-v1":turns,"drought-turns-only-v1":false,"positive-supervisor-v1":false,"progress-aware-cycles-v1":false,"story-character-stall-gate-v1":false,"drought-battle-heal-hold-v1":false,"milestone-drought-suppression-v1":false};
  const listeners:((e:RunEvent)=>void)[]=[];const notes:string[]=[];let seq=0,now=0;
  stallBriefing(features,{subscribe:(f:(e:RunEvent)=>void)=>listeners.push(f),recordLoopGuard:()=>undefined,recordStallGate:()=>undefined},{stall:(_k,text)=>{notes.push(text(1));return true;}},{pausedMs:()=>0},()=>now);
  const emit=(b:Record<string,unknown>)=>{const e=checkEvent({v:1,run:"r",seq:++seq,turn:seq,t:"2026-10-23T12:00:00.000-04:00",...b});listeners.forEach(f=> { f(e); });};

@@ -45,7 +45,7 @@ const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {zeroPads:features["navigator-elevation-zero-pads-v1"],mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
+ return {zeroPads:features["navigator-elevation-zero-pads-v1"],surfStarts:features["navigator-surf-start-warps-v1"],mode,ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -130,7 +130,10 @@ function resolve(state:GameStateSnapshot,target:RequestTarget,options:Navigation
   // still identifies the event; it does not make the warp disappear.
   const here=state.position;
   const standing=here===null?undefined:state.navigation_grid?.tiles.find(tile=>tile.x===here.x&&tile.y===here.y)?.elevation??state.navigation_grid?.elevation??state.map_grid?.elevation;
-  const elevation=(options.zeroPads===true?plannedWarpElevation:plannedArrivalElevation)(state,{x:target.x,y:target.y},options)??standing??null;
+  const arrival=options.zeroPads===true?plannedWarpElevation:plannedArrivalElevation,goal={x:target.x,y:target.y};
+  // navigator-surf-start-warps-v1: a warp only the water reaches is matched at the elevation of that route, not the player's on land.
+  const afloat=():number|null=>options.surfStarts===true&&state.surf_gate?.can_surf===true?arrival(state,goal,withClimb(state,{...options,launch:()=>undefined})):null;
+  const elevation=arrival(state,goal,options)??afloat()??standing??null;
   if(elevation===null)return null;
   const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&warpMatches(item.elevation,elevation,options))??null;
   // An enrolled pad resolves canonically from the map's records, never from whichever source happens

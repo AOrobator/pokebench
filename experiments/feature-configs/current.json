@@ -214,7 +214,9 @@
     "story-line-campaign-flags-v1",
     "junk-filter-leader-lines-v1",
     "story-line-start-steps-v1",
-    "navigator-elevation-zero-pads-v1"
+    "navigator-elevation-zero-pads-v1",
+    "navigator-ledge-drops-v1",
+    "navigator-surf-start-warps-v1"
   ],
   "features": {
     "screenshot-button-baseline-v1": false,
@@ -562,6 +564,8 @@
     "junk-filter-leader-lines-v1": true,
     "story-line-start-steps-v1": true,
     "no-open-story-goal-v1": false,
-    "navigator-elevation-zero-pads-v1": true
+    "navigator-elevation-zero-pads-v1": true,
+    "navigator-ledge-drops-v1": true,
+    "navigator-surf-start-warps-v1": true
   }
 }

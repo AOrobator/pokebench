@@ -464,6 +464,8 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "story-line-start-steps-v1":"story-line-start-steps-v1.html",
  "no-open-story-goal-v1":"no-open-story-goal-v1.html",
  "navigator-elevation-zero-pads-v1":"navigator-elevation-zero-pads-v1.html",
+ "navigator-ledge-drops-v1":"navigator-ledge-drops-v1.html",
+ "navigator-surf-start-warps-v1":"navigator-ledge-drops-v1.html",
  "rotating-gate-turn-reasons-v1":"rotating-gate-turns-log-v1.html",
  "rotating-gate-push-log-v1":"rotating-gate-turns-log-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",

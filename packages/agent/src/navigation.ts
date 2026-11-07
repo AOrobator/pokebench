@@ -73,7 +73,7 @@ export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonl
 export interface SurfLaunch extends SurfLaunchPoint {readonly goal:Point}
 // Starting Surf takes the model's own turns, so a launch search prefers a route with less of it.
 const LAUNCH_COST=4;
-export interface NavigationOptions {readonly zeroPads?:boolean;readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
+export interface NavigationOptions {readonly zeroPads?:boolean;readonly ledgeDrops?:boolean;readonly surfStarts?:boolean;readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
 // rotating-gate-navigation-v1: the current arms by the pair of tiles each separates. A step across one pushes the gate in the
 // game (rotating_gate.c CheckForRotatingGatePuzzleCollision), so the planner treats that edge as blocked and press stays the
 // only way to move a gate.
@@ -638,7 +638,8 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!warps.has(key(next))){
     const landing={x:next.x+dx,y:next.y+dy},land=geometry.tile(landing);
     if(land===undefined||occupied(landing)||warps.has(key(landing))||land.collision!==0||land.behavior===0x69||!walkable.has(land.behavior))continue;
-    if(mismatch(node.elevation,land.elevation))continue;
+    // ShouldJumpLedge reads no elevation; navigator-ledge-drops-v1 follows it, and the landing sets the elevation.
+    if(options.ledgeDrops!==true&&mismatch(node.elevation,land.elevation))continue;
     const landed=jumped(node.elevation,node.here,tile.elevation,land.elevation);
     if(distance(landing,goal)!==0&&triggerAt(options.triggers,landing,landed)!==undefined)continue;
     pending.push(node.cost+1+step(land)+distance(landing,goal),{...carried,p:landing,here:land.elevation,elevation:landed,cost:node.cost+1+step(land),surf:false});continue;
@@ -779,6 +780,7 @@ export interface NavigationPorts {
  // Plan only over local cells already delivered to the model this run (visited-terrain-navigation-v1).
  readonly visitedTerrain?:boolean;
  readonly ledges?:boolean;
+ readonly ledgeDrops?:boolean;
  readonly oneWay?:boolean;
  readonly elevation?:ElevationMode;
  readonly grassCost?:boolean;
@@ -864,7 +866,7 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{}),...(bike?{bike:true as const}:{})};
 }
 // rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
-export interface PrefixRules {readonly ledges:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
+export interface PrefixRules {readonly ledges:boolean;readonly ledgeDrops?:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
 export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean}|{readonly ok:false;readonly reason:string};
 // rejected-movement-prefix-v1: one direction of a model's walking batch is valid when navigate_to's own planner would take
 // exactly that press to its landing tile (a ledge hop or slope slide included) and the landing is not a coordinate script
@@ -877,7 +879,7 @@ export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:Pr
  if(tile===undefined)return {ok:false,reason:`${at(next)} is outside the known map`};
  if(occupied(next))return {ok:false,reason:`${at(next)} has a person or object on it`};
  const triggers=matchingTriggers(state);
- const options:NavigationOptions={mode:"local",ledges:rules.ledges,oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
+ const options:NavigationOptions={mode:"local",ledges:rules.ledges,...(rules.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
  const landing=routeTiles(state,[direction],options)?.at(-1);
  const path=landing===undefined?null:planNavigation(state,landing,options);
  if(landing!==undefined&&path?.length===1&&path[0]===direction){
@@ -999,7 +1001,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    // Script-trigger boundary: coordinate scripts are visible with coordinate-script-conditions-v1, and there is no
    // switch over what to do when every route crosses one (see the port comment): they are walked, not refused.
    const boundary=truth&&ports.triggers===true?matchingTriggers(state):[];
-   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{}),...(ports.surfNavigation===true?{surf:true}:{}),...(ports.rotatingGates===true?{gateArms:gateArms(state)}:{})};
+   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,...(ports.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{}),...(ports.surfNavigation===true?{surf:true}:{}),...(ports.rotatingGates===true?{gateArms:gateArms(state)}:{})};
    const surfing=ports.surfNavigation===true&&isSurfing(state);
    // A script-free route wins. When the scripts are the only obstruction, the same route is walked and the first
    // matching script becomes the step that stops navigation; clear the triggers only if that route exists, so the
@@ -1204,5 +1206,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

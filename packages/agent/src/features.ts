@@ -370,6 +370,8 @@ export const SWITCHABLE_FEATURES = [
   "story-line-start-steps-v1",
   "no-open-story-goal-v1",
   "navigator-elevation-zero-pads-v1",
+  "navigator-ledge-drops-v1",
+  "navigator-surf-start-warps-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -861,6 +863,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("story-line-start-steps-v1", "observation", "STORY LINE START STEPS", "story-line-campaign-flags-v1", "Default off; on in both arms of the current recipe (the operator 2026-11-06). A run started from a checkpoint already holds steps the save's flags record, such as Knuckle through Balance badges in run ee2a, and the Story line and the briefing's done list skipped them. On: the Story line lists the campaign steps recorded as present at the start, before the run's own, whole, and so does the briefing's done list when story-briefing-native-milestones-v1 is on. They do not count as this run's progress. Off: only steps confirmed during the run are listed."),
   on("no-open-story-goal-v1", "guidance", "NO OPEN STORY GOAL", "harness-trust-v1", "Default off, and off in both arms of the current recipe since 2026-11-06: replay showed it prints none open while a story place is still unfinished, such as the Mt. Pyre climb. In run a0b4 the only Story line after the Magma Emblem was a reached one, printed as a heard line, so nothing told the model that no goal was open. On: when the latest place-naming line is reached, the readout says Story goal: none open above the existing line, and when it is done, that line alone, without repeating the retired quote. It prints from the first arrival, even before anything happens at the place. It gives no hint. Off: a reached line prints alone and a done line prints or is left out as before."),
   on("navigator-elevation-zero-pads-v1", "guard", "NAVIGATOR ELEVATION-ZERO PADS", "bounded-navigation-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The game matches a warp against the player's previous elevation, which elevation-0 tiles and multi-level steps leave unchanged (pret ObjectEventUpdateElevation). The navigator compared the current elevation, so Lavaridge Gym 1F pads like (10,18) and (5,9) were refused as not listed, though runs reached them by hand. On: navigate_to_target matches warps as the game does; on an elevation-0 start, where the previous elevation is not known, it does not rule the warp out. Routes are unchanged. Off: the current elevation is compared."),
+  on("navigator-ledge-drops-v1", "guard", "NAVIGATOR LEDGE DROPS", "bounded-navigation-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). pret ShouldJumpLedge reads no elevation, so the game takes a ledge whose landing is at another elevation; 28 of the ROM's 789 walkable ledges do this, on Route 115, Lilycove City, Route 120 and the Safari Zone. On: the planner and the press batch check take those hops and the player holds the landing's elevation. Off: such a hop is no route, and Lilycove's beach reads as unreachable."),
+  on("navigator-surf-start-warps-v1", "guard", "NAVIGATOR SURF START WARPS", "surf-navigation-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-06). The lookup of a warp across water used the player's elevation on land, so a warp on the water read as not listed and the surf start never ran. On: with Surf usable, the lookup plans through a surf start and the existing start walks to the shore. Off: such a warp is refused as not listed."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1339,6 +1343,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("story-line-start-steps-v1"),
     ...when("no-open-story-goal-v1"),
     ...when("navigator-elevation-zero-pads-v1"),
+    ...when("navigator-ledge-drops-v1"),
+    ...when("navigator-surf-start-warps-v1"),
   ];
 }
 

@@ -1286,6 +1286,16 @@ it("links the navigator elevation-zero pads card, default off",async()=>{
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
 
+it("links the ledge drops and surf start cards to one page, default off",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ for(const id of ["navigator-ledge-drops-v1","navigator-surf-start-warps-v1"] as const){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  expect(FEATURE_EXPLAINERS[id]).toBe("navigator-ledge-drops-v1.html");
+  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe("/explainers/navigator-ledge-drops-v1.html");
+ }
+});
+
 it("links the first visit cycle credit card, default off",async()=>{
  const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
  const id="first-visit-cycle-credit-v1";

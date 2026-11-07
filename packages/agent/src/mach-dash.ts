@@ -32,11 +32,12 @@ export function parseDash(route:string):ParsedDash {
  const form="Write a route like D1 R4 D11: U, D, L or R, each with a count of 4-frame beats, separated by spaces.";
  const tokens=route.trim().split(/\s+/);
  if(!tokens.every(token=>/^[UDLR]([1-9]\d*)?$/.test(token)))return {ok:false,reason:form};
+ const beats=tokens.reduce((sum,token)=>sum+Number(token.slice(1)||"1"),0);
+ if(beats>MAX_DASH_BEATS)return {ok:false,reason:`That route is ${String(beats)} beats; ${String(MAX_DASH_BEATS)} is the most in one call.`};
  const buttons=tokens.flatMap(token=>{
   const direction=DIRECTIONS[token.charAt(0)];
   return direction===undefined?[]:Array.from({length:Number(token.slice(1)||"1")},()=>direction.button);
  });
- if(buttons.length>MAX_DASH_BEATS)return {ok:false,reason:`That route is ${String(buttons.length)} beats; ${String(MAX_DASH_BEATS)} is the most in one call.`};
  return {ok:true,buttons};
 }
 

@@ -52,6 +52,10 @@ describe("parseDash",()=>{
   const parsed=parseDash(ROUTE);
   expect(parsed.ok&&parsed.buttons.length).toBe(40);
  });
+ it("refuses a huge count before building the list",()=>{
+  expect(parseDash("D4294967296")).toMatchObject({ok:false});
+  expect(parseDash("D99999999999999999999999")).toMatchObject({ok:false});
+ });
  it.each(["","   ","D0","X3","D1,R2","d1","D-1","R2 up","D1.5"])("refuses %j",route=>{expect(parseDash(route).ok).toBe(false);});
  it("refuses a route over the cap and takes one at the cap",()=>{
   expect(parseDash(`D${String(MAX_DASH_BEATS)}`).ok).toBe(true);

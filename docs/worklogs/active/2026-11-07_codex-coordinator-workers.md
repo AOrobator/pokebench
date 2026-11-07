@@ -24,3 +24,6 @@ On 2026-11-07, review packets sat for hours in an ordinary Codex thread ("Compar
 - GPT lane round 3 (the operator: not waived; coordinator said run it), c8b52fcd1..5756b3114: both round 2 gaps closed; BLOCKING on one Fix: the title lookup ran only for queued jobs and with a 200-chat limit, so the same job by both paths, or after 200 newer chats, could start twice. Now the lookup runs for every job, over the full listing, and must succeed before a worker starts.
 - COMMIT: `docs(skills): every job checks for its JOB chat before a worker starts` (623e61bc2)
 - GPT lane round 4, 5756b3114..623e61bc2: round 3 closed; BLOCKING on one Fix: a missing session index lists nothing and exits 0, which reads as no match. Now a missing or empty index counts as a failed lookup.
+- COMMIT: `docs(skills): a missing session index is a failed lookup, not no match` (742efd57b)
+- GPT lane round 5, 623e61bc2..742efd57b: LGTM. Hardening follow-up noted: a `CODEX_SESSION_INDEX` test override would need the same path in the guard.
+- Prose-only: `git diff --check` clean; no application gates (execute-worklog). Landing with Claude CLI LGTM (round 1) and Codex LGTM (round 5).

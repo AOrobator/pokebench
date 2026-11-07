@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { checkEvent, type RunEvent } from "./events.js";
-import { BudgetTimer, STALL_STOP_MS, StallStop, RunControl, controlLine, freezeGame, parseControlRequest, type ControlBody } from "./run-control.js";
+import { BudgetTimer, STALL_STOP_MS, StallStop, RunControl, controlledRun, controlLine, freezeGame, parseControlRequest, type ControlBody } from "./run-control.js";
 
-function harness(start = 1_000) {
+function harness(start = 1_000, providerWaitPause = false) {
   let now = start;
   const records: ControlBody[] = [];
   const frozen: boolean[] = [];
   const ended: string[] = [];
   const control = new RunControl({
+    providerWaitPause,
     record: (body) => { records.push(body); },
     freeze: (paused) => { frozen.push(paused); return Promise.resolve(); },
     end: (reason) => { ended.push(reason); },
@@ -427,5 +428,92 @@ describe("milestone stall stop", () => {
       expect(expired).not.toHaveBeenCalled();
       stop.clear();
     } finally { vi.useRealTimers(); }
+  });
+});
+
+describe("provider wait pause", () => {
+  const hour = 3_600_000;
+
+  it("freezes and counts an in-flight pause, then records the full hold on resume", async () => {
+    const h = harness(0, true);
+    h.control.callStarted();
+    h.control.apply(req(1, "pause"));
+    expect(h.control.state).toBe("paused");
+    expect(h.frozen).toEqual([true]);
+    await Promise.resolve();
+    h.advance(2 * hour);
+    expect(h.control.pausedMs()).toBe(2 * hour);
+    expect(h.records.at(-1)).toMatchObject({ action: "pause", status: "applied", request: 1, during_call: true, emulator_frozen: true });
+    h.control.apply(req(2, "resume"));
+    await h.control.callEnded();
+    expect(h.control.state).toBe("running");
+    expect(h.control.pausedMs()).toBe(2 * hour);
+    expect(h.records.at(-1)).toMatchObject({ action: "resume", status: "applied", request: 2, paused_ms: 2 * hour });
+    expect(h.frozen).toEqual([true, false]);
+  });
+
+  it("expires a 12-hour active budget after 15 hours with a 3-hour provider hold", async () => {
+    vi.useFakeTimers({ now: 0 });
+    try {
+      const abort = vi.fn();
+      const { control } = controlledRun(
+        { limits: { maxWallMs: 12 * hour, maxTurns: 100, failureLimit: 3 }, now: Date.now, abort, retry: vi.fn() },
+        { providerWaitPause: true, now: Date.now, freeze: () => Promise.resolve(), record: vi.fn() },
+        () => Date.now() - control.pausedMs(),
+      );
+      const timer = new BudgetTimer(control, 12 * hour, Date.now, abort);
+      control.callStarted();
+      await vi.advanceTimersByTimeAsync(11 * hour);
+      control.apply(req(1, "pause"));
+      await vi.advanceTimersByTimeAsync(3 * hour);
+      expect(abort).not.toHaveBeenCalled();
+      control.apply(req(2, "resume"));
+      await control.callEnded();
+      await vi.advanceTimersByTimeAsync(hour - 1);
+      expect(abort).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(abort).toHaveBeenCalledOnce();
+      timer.clear();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it.each(["resume", "stop", "abort"] as const)("holds the reply until %s", async action => {
+    const h = harness(0, true);
+    const signal = new AbortController();
+    h.control.callStarted();
+    h.control.apply(req(1, "pause"));
+    const released = vi.fn();
+    const reply = h.control.callEnded(signal.signal).then(released);
+    await Promise.resolve();
+    expect(released).not.toHaveBeenCalled();
+    if (action === "abort") signal.abort();
+    else h.control.apply(req(2, action));
+    await reply;
+    expect(released).toHaveBeenCalledOnce();
+    expect(h.control.state).toBe(action === "resume" ? "running" : "ended");
+    expect(h.ended).toEqual(action === "stop" ? ["operator_stop"] : []);
+  });
+
+  it("cancels a pause and resume in the same poll batch without freezing", async () => {
+    const h = harness(0, true);
+    h.control.callStarted();
+    h.control.applyBatch([req(1, "pause"), req(2, "resume")]);
+    await h.control.callEnded();
+    expect(h.control.state).toBe("running");
+    expect(h.control.pausedMs()).toBe(0);
+    expect(h.frozen).toEqual([]);
+  });
+
+  it("preserves pause-pending cancellation with the switch off", async () => {
+    const h = harness();
+    h.control.callStarted();
+    h.control.apply(req(1, "pause"));
+    expect(h.control.state).toBe("pause_pending");
+    h.advance(2 * hour);
+    h.control.apply(req(2, "resume"));
+    await h.control.callEnded();
+    expect(h.control.state).toBe("running");
+    expect(h.control.pausedMs()).toBe(0);
+    expect(h.frozen).toEqual([]);
   });
 });

@@ -9,7 +9,7 @@ import {
 } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
 import { describe, expect, it, vi } from "vitest";
-import { RunControl } from "./run-control.js";
+import { RunControl, controlledRun } from "./run-control.js";
 import { PRESS_TIMING, pressTool } from "./game-tools.js";
 import { DOUBLE_WINDOW, Governor, NUDGE, OMITTED_FRAME, TEXT_ONLY_NOTE_LIMIT, WINDOW, contextWindow, keepCount, piLoop, play, slideWindow, withoutTextOnlyReplies, type Loop, type Window } from "./harness.js";
 import {} from "./features.js";
@@ -936,4 +936,38 @@ it("resamples an error after an uncoached text reply without pi assistant-last c
   };
   expect(await play(TASK, g, loop)).toBe("operator_abort");
   expect(starts).toBe(3);
+});
+
+it.each(["resume", "stop"] as const)("production call control holds reply tools until %s", async action => {
+  const signal = new AbortController();
+  const press = vi.fn();
+  const replySeen = Promise.withResolvers<void>();
+  const { control, governor, callControl } = controlledRun({
+    limits: { maxTurns: 1, maxWallMs: 10_000, failureLimit: 3 },
+    now: () => 0, retry: vi.fn(), abort: () => { signal.abort(); },
+  }, {
+    providerWaitPause: true, now: () => 0, freeze: () => Promise.resolve(), record: vi.fn(),
+  }, () => 0);
+  const at = "2026-11-07T12:00:00.000Z";
+  const stream = scriptedModel([pressReply(["A"])], []);
+  const loop = piLoop({
+    systemPrompt: "play", tools: [fakePress(press)], governor, callControl,
+    base: { model: MODEL, convertToLlm: messages => messages as Message[] },
+    transformContext: messages => Promise.resolve(messages),
+    signal: signal.signal,
+    emit: event => {
+      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve();
+    },
+    streamFn: (...args) => {
+      control.apply({ v: 1, seq: 1, at, action: "pause" });
+      return stream(...args);
+    },
+  });
+  const result = play(TASK, governor, loop);
+  await replySeen.promise;
+  expect(control.state).toBe("paused");
+  expect(press).not.toHaveBeenCalled();
+  control.apply({ v: 1, seq: 2, at, action });
+  expect(await result).toBe(action === "resume" ? "budget" : "operator_stop");
+  expect(press).toHaveBeenCalledTimes(action === "resume" ? 1 : 0);
 });

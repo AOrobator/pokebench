@@ -3,6 +3,7 @@ import type {AgentEvent, StreamFn} from "@mariozechner/pi-agent-core";
 import {expect, it, vi} from "vitest";
 import {Value} from "typebox/value";
 import {Governor} from "./harness.js";
+import { controlledRun } from "./run-control.js";
 import {gatewayLoopConfig} from "./provider.js";
 import type {GatewayModel} from "./gateway.js";
 import {StateActionSchema, stateDecisions, type DecisionSnapshot, type StateDecisionOptions} from "./state-decision.js";
@@ -108,4 +109,34 @@ it("refreshes input when a pause/resume occurs during snapshot I/O",async()=>{
  const f=fixture([answer()]);let gates=0;let epoch=0;let current=1;
  f.options={...f.options,inputEpoch:()=>epoch,gate:()=>{gates++;if(gates===3){epoch++;current=99;}return Promise.resolve();},readSnapshot:()=>Promise.resolve(snapshot(current))};
  expect(await stateDecisions(f.options)).toBe("budget");expect(f.contexts[0]?.messages[0]?.content).toEqual([{type:"text",text:"Reach native clock target"},...snapshot(99).content]);expect(f.record).toHaveBeenCalledWith(snapshot(99));
+});
+
+it("holds a state-mode reply before act can execute", async () => {
+  const f = fixture([answer()]);
+  const replySeen = Promise.withResolvers<void>();
+  const { control, governor, callControl } = controlledRun({
+    limits: { maxTurns: 1, maxWallMs: 10_000, failureLimit: 3 },
+    now: () => 0, retry: vi.fn(), abort: () => { f.controller.abort(); },
+  }, {
+    providerWaitPause: true, now: () => 0, freeze: () => Promise.resolve(), record: vi.fn(),
+  }, () => 0);
+  const at = "2026-11-07T12:00:00.000Z";
+  const stream = f.options.streamFn;
+  if (stream === undefined) throw Error("Missing fixture transport");
+  const result = stateDecisions({
+    ...f.options, governor, callControl,
+    emit: event => {
+      if (event.type === "message_end" && event.message.role === "assistant") replySeen.resolve();
+    },
+    streamFn: (...args) => {
+      control.apply({ v: 1, seq: 1, at, action: "pause" });
+      return stream(...args);
+    },
+  });
+  await replySeen.promise;
+  expect(control.state).toBe("paused");
+  expect(f.execute).not.toHaveBeenCalled();
+  control.apply({ v: 1, seq: 2, at, action: "resume" });
+  expect(await result).toBe("budget");
+  expect(f.execute).toHaveBeenCalledOnce();
 });

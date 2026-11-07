@@ -289,7 +289,7 @@ describe("the guide's facts", () => {
     ["FALLARBOR_TOWN", "2 Escape Ropes, a Super Potion, 10 X Attacks"],
     ["ROUTE_114", "Use a Super Repel if you have one"],
     ["LAVARIDGE_TOWN", "Use Potions now if you are hurt"],
-    ["LAVARIDGE_GYM_ENTERED", "Bag items before Flannery."],
+    ["AT:LavaridgeTown_Gym_1F:12:12", "Bag items before Flannery."],
     ["WEATHER_INSTITUTE_ENTERED", "If your party is full, Castform goes to the PC."],
     ["FEATHER_BADGE", "hideout door at (16,18)"],
     ["MASTER_BALL_OBTAINED", "You land at (3,20)."],
@@ -355,7 +355,7 @@ describe("the Dewford Gym row", () => {
 
 describe("the Mossdeep Gym rows", () => {
   const KI_ROUTE = "U4 L3 U5 R U D U R6 U2 R D U L R D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4 L2 U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6 R U R U3 R2 U";
-  const LEGS = ["U4 L3 U3", "U2 R U D U R6 U2 R", "D U", "L R", "D4 L R2 D7 L D L D L D L6 R L R6 U R U R U R U7 L2 R U4", "L2", "U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6", "R U R U2", "U R2 U"];
+  const LEGS = ["U4 L3 U3", "U2 R U D U R6 U2 R", "D U", "L R", "D4 L R2 D7 L D L D L D L6", "R L R6 U R U R U R U7 L2 R U4", "L2", "U2 D U D U2 L U3 R U D U D U2 L3 D2 R D U D U D U D R D2 R D U R3 U6", "R U R U2", "U R2 U"];
   const expand = (route: string): string => route.split(" ").map((press) => press.charAt(0).repeat(Number(press.slice(1) || "1"))).join("");
   const start = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MOSSDEEP_GYM_ENTERED");
   const badge = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MIND_BADGE");
@@ -363,7 +363,7 @@ describe("the Mossdeep Gym rows", () => {
   const gym = rows[1]?.at?.id;
   if (gym === undefined) throw new Error("the Gym has no tile rows");
   const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: gym, position: { x, y } }) as unknown as RunEvent;
-  const WARP_LANDINGS = [[1, 23], [23, 20], [8, 12], [11, 35], [21, 10]] as const;
+  const WARP_LANDINGS = [[1, 23], [23, 20], [15, 34], [8, 12], [11, 35], [21, 10]] as const;
   const fromGym = (): GuidePosition => new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
 
   it("splits KI's route at the warps without losing a press", () => {
@@ -408,7 +408,7 @@ describe("the Mossdeep Gym rows", () => {
     guide.observe(at(6, 35));
     for (const [x, y] of WARP_LANDINGS.slice(0, 2)) guide.observe(at(x, y));
     expect(guide.current()).toBe(held);
-    guide.observe(at(11, 35));
+    guide.observe(at(8, 12));
     expect(guide.current()).toBe(rows[4]);
   });
 
@@ -416,7 +416,7 @@ describe("the Mossdeep Gym rows", () => {
     let walked = "";
     for (const [i, row] of rows.entries()) {
       if (i > 0) expect(row.note).toContain(`from (6,35): ${walked}`);
-      walked = [walked, ...[LEGS.slice(0, 1), LEGS.slice(1, 2), LEGS.slice(2, 6), LEGS.slice(6, 7), LEGS.slice(7, 8)][i] ?? []].filter(Boolean).join(" ");
+      walked = [walked, ...[LEGS.slice(0, 1), LEGS.slice(1, 2), LEGS.slice(2, 5), LEGS.slice(5, 7), LEGS.slice(7, 8), LEGS.slice(8, 9)][i] ?? []].filter(Boolean).join(" ");
     }
     expect(rows.at(-1)?.note).toMatch(/after a loss/i);
   });

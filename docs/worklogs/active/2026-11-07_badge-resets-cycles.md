@@ -8,3 +8,5 @@ The operator 2026-11-07: "is the supervisor being harmful to deepseek?" and "thi
 - [ ] Reviews; landing waits for the operator's OK on the 3 lost notes.
 
 37ca is pinned to 25774e1f6 in its own frozen checkout, so landing cannot change it.
+
+COMMIT: `feat(agent): a new badge starts the stall note's map count over` (e8a4f8bcb). `just test`: 2,922 agent, 1,237 viewer, 3,051 env, 38 gateway passed; lint clean. GPT LGTM.

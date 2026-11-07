@@ -115,7 +115,7 @@ it("no open goal on: a reached line says plainly that none is open and keeps its
  expect(line.split("\n")[0]).toBe("Story goal: none open (latest line reached).");
  expect(line.split("\n")[1]?.startsWith("Story line heard (")).toBe(true);
 });
-it("no open goal on: a done line says so with its reason",()=>{
+it("no open goal on: a done line says so plainly",()=>{
  const g={...reachedGoal(heardThenArrived()),done:true,doneReason:"Pokédex received"};
  expect(goalLine(g,PLACES,true,undefined,false,false,true)).toBe("Story goal: none open (latest line done).");
 });

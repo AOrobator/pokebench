@@ -14,3 +14,5 @@ Replay through the real tool on recorded refusals: 274b, 19 refusals, 10 now wal
 Claude review LGTM on 1af3f18e5 with one rule error, unreachable on any Emerald map: a step off a multi-level tile does update previousElevation. Fixed with its test, comment and explainer. Follow-up, harmless: Sootopolis Gym B1F ladder (11,22) from (11,21) resolves but will not fire; the server reads only currentElevation, and exposing previousElevation would remove the fallback.
 
 Merged main 4057ad9f4: no-open-story-goal-v1 stays off, this switch stays on in both arms.
+
+Gates on 66f02287c: `just test` passed with 2,655 agent, 1,074 viewer, 2,965 env and 38 gateway tests; `pnpm -r lint`, env ruff and mypy (main venv) and `just verify-vendor` clean. Final: GPT (Codex CLI) LGTM on the delta and Claude (subagent) LGTM on 1af3f18e5. Rayquaza control-base check `[]`.

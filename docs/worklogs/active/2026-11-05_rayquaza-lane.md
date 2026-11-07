@@ -234,3 +234,62 @@ Unit 3, the remaining audit rows:
 - COMMIT RED: `test(guide): a later checkpoint recovers a skipped one on the same map` (8c1f9f139). Wiring test goes red with the option removed.
 - Claude review: an early (8,12) landing could skip Mossdeep's Green switch leg and strand the guide. Rows tagged GATE in the Source column now stop recovery; (23,20) is the one gate. Test on the real rows.
 - Landed rq-checkpoint-recovery-v1 (650005775): Claude and GPT LGTM, Grok skipped; just test and just lint exit 0 (agent 2745, viewer 1235); memory free 86%. Open, pre-existing: an early L2 at the first (9,18) landing still fires (8,12) as the plain next row with Green undone.
+
+### 2026-11-07: checkpoint rows (branch claude/rq-checkpoints; not merged)
+
+Order set by the operator: Lavaridge Gym, Fortree Gym, Sootopolis Gym, Seafloor Cavern. Sky Pillar waits for a bike tool. Simulations live in scratch, not the repo.
+
+Lavaridge Gym:
+
+- Rows sit on the four 1F landings, (5,14), (0,6), (7,2), (12,12), and each carries two legs. B1F landings get no row: recovery only skips rows on the landing's own map, so alternating floors could never recover, and all eight landings would put FLANNERY_DEFEATED 9 steps out, past REACH. Entry to defeat is 5.
+- No gates: vents are static and no leg holds a required action. Nothing resets on a loss or leaving, and the recovery line says so.
+- Simulated on map.bin with ledges, elevation-free walls, objects and buried trainers' sight 1: all 8 legs land where the rows say, no trainer sees the route, every recovery string ends on its row's tile. Vent graph: (0,6), (7,2) and (12,12) cannot be avoided; only (5,14) can, by the (1,14) or (0,17) vents, and the (0,6) row recovers it.
+- Tactics moved to the (12,12) row. Not run on the emulator.
+- COMMIT: `feat(guide): checkpoint rows on the Lavaridge Gym's 1F landings` (544f05832). 118 focused tests pass; tsc and eslint clean.
+
+Fortree Gym:
+
+- One room with no warp, but its 101 steps and 13 gate pushes are the longest string left. Five rows, each on the tile the last row's route ends on, so a press that finishes a row stops there: (7,18), (9,10), (1,8), (5,2), (6,4). (9,10) and (1,8) are also where trainers stop every run. (5,4) and (6,8) were rejected: the route crosses them twice.
+- Gate: only (1,8). From (7,8), L2 U6 reaches (5,2) with the (2,6) gate unturned, and the (5,2) route then blocks at (2,5). Holding the guide is safe: D6 L4 from there restores the route's exact gate state at (1,8). Other skips are harmless: a search of all 42,144 reachable gate states found (9,10) and (6,4) unavoidable, skipping (5,2) never breaks (6,4)'s route, and skipping (7,18) breaks only after an unrelated gate 0 detour.
+- Cost: a run that reaches (1,7) from (2,7) never lands on (1,8), so the gate holds the guide until FEATHER_BADGE and it misses the Winona row. The badge is 6 steps from entry.
+- Simulated on map.bin with the rotation tables: every leg and every recovery string ends on its row's tile with the route's gate state. Trainers see the route only at (9,10), (8,10), (1,8), (1,7), as KI's two battles did. Not run on the emulator.
+- COMMIT: `feat(guide): checkpoint rows through the Fortree Gym gates` (98d116703). 124 focused tests pass; tsc and eslint clean.
+
+Sootopolis Gym:
+
+- Five rows on 1F: stair tiles (8,15) and (8,10), ice corners (3,6) and (13,6), and (8,3) below Juan. Stair tiles prove a room is done, because a closed stair slides you back onto cracked ice. The 38-tile top room gets the corners. Rows end on stair tiles rather than the room's last ice, which a straight walk from the door reaches early with the stairs still shut.
+- No gate. A skipped tile cannot leave a false later row standing for long: the stairs stay shut, the run falls, and every row carries the restart. A gate at (3,6) would only have blocked the (8,3) tactics row after a press walked past the corner.
+- Reset: any warp clears the temp vars and OnTransition sets the step count to 1, so a fall, leaving or a loss resets all 64 tiles and the stairs. Rows say so and give the route from (8,20), the floor tile both the door and the ladder pass.
+- Simulated on map.bin with the step counts and stair unlocks at 8, 28 and 67: every leg and recovery string ends on its row's tile, 64 of 64 tiles, no repeat; the ladder reaches (8,20) by L3 U2. Badge is 6 steps from entry. Not run on the emulator, and one thing to watch there: the stair opens after a 40-frame script, so a press landing inside it may lose a step and stop one tile short of a row. The next landing recovers it.
+- COMMIT: `feat(guide): checkpoint rows through the Sootopolis Gym ice` (45aeb0e40). 128 focused tests pass; tsc and eslint clean.
+
+Seafloor Cavern:
+
+- Rooms 1, 2, 6, 3 and 8 each get a `MAP:` row with button strings from the landing to the door. SEAFLOOR_CAVERN fires in the Entrance and keeps the waypoint list. No gates: recovery never crosses a map row, and every room's boulders start fresh.
+- Reset: any warp clears the temp flags that hide smashed rocks, reloads boulders and clears FLAG_SYS_USE_STRENGTH, so a door or a loss resets that room and Strength must be used again. A push moves only the boulder (GetWalkInPlaceNormalMovementAction), so strings count a push as a press.
+- Search over boulder states solved each room; rows keep KI's route. Room 3's 18-press shortcut walks past Shelly and a grunt, so the row keeps KI's boulder route and says it skips her. Room 1's grunt at (8,6) looks around and can see the route; the row says to beat anyone who stops you.
+- Room 6: KI's track is interpolated over the water, so the row is from the map, not the track. Four presses, U D U L, ride the currents from (11,19) to (4,8) through stops (14,16), (19,11), (8,12). All 139 stops can still reach (4,8) except the exit tile (14,8), which leaves to the Entrance. Current rides not run on the emulator.
+- Room 7 bypass: a run that reaches Room 3 through Room 7 keeps the Room 2 row until SEAFLOOR_ARCHIE_CHAMBER, 4 steps on. HM_DIVE_RECEIVED to Archie is 7, inside REACH.
+- After a loss the guide stays on its room and the row gives the Dive tile and earlier rooms as waypoints only; there is no room for their buttons.
+- COMMIT: `feat(guide): checkpoint rows through the Seafloor Cavern rooms` (e2e05e3a3). 133 focused tests pass; tsc and eslint clean.
+
+Mossdeep Green switch (the open item from rq-checkpoint-recovery-v1):
+
+- New gated row AT:MossdeepCity_Gym:15:34, the first Green switch landing, between (23,20) and (8,12). An early L2 at the first (9,18) landing now holds on (23,20), because (8,12) is no longer the next row and recovery cannot cross the new gate. Tracker logic unchanged. Gym entry to MIND_BADGE is now 7 steps, inside REACH.
+- The string is the same presses, cut at the switch; the door route to (15,34) and on to (8,12) simulates clean. Statue rotation is still simulated only.
+- COMMIT: `fix(guide): the Green switch landing holds Mossdeep's (8,12) row back` (7bc7b44fb). 134 focused tests pass; tsc and eslint clean. Guide is 152 steps. Full suites, review and merge not done; no row here has run on the emulator.
+
+Review of the checkpoint rows (branch rebased, head 4903caee9):
+
+- Blocking: the new Mossdeep row put AQUA_HIDEOUT_ESCAPE_COMPLETE 9 rows from MIND_BADGE. MOSSDEEP_CITY and MOSSDEEP_GYM_ENTERED are map milestones, so a later save never reports them and the load stuck at the Aqua row. Under rq-checkpoint-recovery-v1 only, reach now counts story rows and skips AT, MAP and GOT rows (`reachEnd`), for live milestones and checkpoint loads. REACH stays 8; recovery's own limit is unchanged. Off is `furthest+REACH` as before.
+- Tests: every neighbouring pair of the 60 flag milestones in the real guide is within reach; loading at each of the 150 row positions lands on the save's last flag milestone and plays on to HALL_OF_FAME_ENTERED; the off-switch stick is pinned; the Dewford early-visit guard holds with the switch on. Four of these fail with the tracker change removed.
+- COMMIT: `fix(guide): a milestone's reach counts story rows under checkpoint recovery` (547322955). 141 focused tests pass; tsc and eslint clean.
+- Room 7 bypass: Room 2's (11,1) door is reachable (L, Rock Smash, L2 U L3 U6 R4, Rock Smash, R5 U2), so it is a real path. Under the switch, recovery also crosses an unbroken run of map rows, respecting GATE. Only Seafloor has such a run, so Dewford, Rustboro Mart and Aqua B1F keep their one-step rule. The Room 3 row now also gives the (9,13) landing from Room 7: U2 R2 joins the route at (11,11).
+- COMMIT: `fix(guide): a later Seafloor room recovers skipped map rows` (3417df008). 143 focused tests pass; tsc and eslint clean.
+- Room 1: the warp lands on (5,18), not KI's first tracked tile. Rows, loss lines and the waypoint list now say (5,18), and U L U7 simulates through to (6,2). Checked the other landings against warp data: (10,7), (11,21), (4,15), (5,12) are right.
+- COMMIT: `fix(guide): Seafloor Room 1 starts from the (5,18) landing` (d8ceba491). 143 focused tests pass.
+- Sootopolis recovery: a fall comes back up at (11,22) and a door or loss starts at (8,25), so rows now give L3 U2 and U5 to reach (8,20). Simulated both starts for every row; all end on the row's tile. The (8,3) row counts from (8,25) with U6.
+- COMMIT: `fix(guide): Sootopolis rows say how to get back to (8,20)` (1aa5fdd53). 144 focused tests pass; eslint clean.
+- Fortree: the Darius row moved from (1,8) to (1,6), and the (5,2) row and the gate are gone. Re-run over all 42,144 gate states: with (1,6) avoided, neither (6,4) nor Winona's tile is reachable, so both approaches cross it; (1,8) can be avoided. (5,2) could be reached with the (2,6) gate unturned, which is the only reason a gate existed. Without that row a detour holds on (9,10), and (6,4), unavoidable and solvable from all 32 of its states, recovers from anywhere, so Winona's row always shows. Cost: the (1,6) leg is 12 tokens. The guide is 151 steps.
+- COMMIT: `fix(guide): Fortree's Darius checkpoint moves to (1,6), with no gate` (2cd5ba327). 146 focused tests pass; tsc and eslint clean. Full gate, re-review and merge not done; no row here has run on the emulator.
+- Landed gym and puzzle checkpoint rows (76da08e39): Lavaridge, Fortree, Sootopolis, Seafloor, Mossdeep Green row; 151 steps; reach counted in story rows under rq-checkpoint-recovery-v1. Claude LGTM, GPT LGTM after rebuttal (guide rows are lane data, not the switch's scope); Grok skipped. build, test, lint exit 0 (agent 2778, viewer 1235) in the granted window. With recovery off, later saves stick at the Aqua row: never compare OFF past the Mind Badge. No row run on the emulator.

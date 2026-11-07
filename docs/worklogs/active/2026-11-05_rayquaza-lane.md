@@ -318,3 +318,4 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - The queue cannot be cancelled: a run aborted mid-route still rides up to 100 beats.
 
 - COMMIT: `fix(agent): mach_dash survives the real path: release 0, warps and battles` (01b237c0d). 294 agent and 48 viewer focused tests pass; tsc on both packages and eslint on changed files clean. Full suites, review loop and merge not done. After a merge, `just viewer-main` is needed before a run from this pin: an older viewer rejects `release_frames: 0`.
+- Rebased mach dash onto the checkpoint rows; guide regenerated at 159 steps.

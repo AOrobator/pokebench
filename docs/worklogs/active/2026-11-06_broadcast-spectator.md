@@ -57,6 +57,8 @@ Piece 1 browser proof, headless on port 8797 from a scratch runs root symlinking
 
 Piece 2 proof on 80af, t=225-265, across the recorder's kill and restart at t=246.8: 1920x1080 at 60 fps, 40.00 s, sound at -23.8 dB mean. The composite frame viewed. Saved game frames at t=226, 231 and 246 match the render's game box within 0.22 s. A session's last stretch has no sync mark, so it runs on at its last pace. Own-frames path: a0b4 t=4650-4656 rendered in 6 s.
 
+Full 80af render to mp4 (10:11, 1080p60, H.264 yuv420p, AAC, 91 MB). Report folder `2026-11-07_broadcast-80af-test` embeds it, so the reports route now serves .mp4 with byte ranges (Safari needs them) and report pages allow media from their own folder. Caption rehearsal showed a line timed at the end of a thought could vanish in half a second when the tool was quick, so lines now start with their turn.
+
 ## Surprises
 
 ## Multi-Model Review Log

@@ -12,8 +12,8 @@ import { Timing } from "./frame-diagnostics.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
-import { listReports, reportFile } from "./reports.js";
-import { closeSync, existsSync, openSync, readFileSync, readSync } from "node:fs";
+import { byteRange, listReports, reportFile } from "./reports.js";
+import { closeSync, createReadStream, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
@@ -105,9 +105,17 @@ const SECURITY_HEADERS = {
 const REPORT_HEADERS = {
   ...SECURITY_HEADERS,
   "content-security-policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; " +
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self'; connect-src 'none'; " +
     "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation",
 };
+function sendReportVideo(req: IncomingMessage, res: ServerResponse, path: string, type: string): void {
+  const { size } = statSync(path);
+  const range = byteRange(req.headers.range, size);
+  if (range === "unsatisfiable") { res.writeHead(416, { ...SECURITY_HEADERS, "content-range": `bytes */${String(size)}` }); res.end(); return; }
+  const { start, end } = range ?? { start: 0, end: size - 1 };
+  res.writeHead(range === null ? 200 : 206, { ...SECURITY_HEADERS, "accept-ranges": "bytes", "content-type": type, "content-length": String(end - start + 1), ...(range === null ? {} : { "content-range": `bytes ${String(start)}-${String(end)}/${String(size)}` }) });
+  createReadStream(path, { start, end }).on("error", () => { res.destroy(); }).pipe(res);
+}
 function sendReport(res: ServerResponse, path: string, type: string): void {
   let body: Buffer;
   try { body = readFileSync(path); } catch { sendJson(res, 404, { error: "not found" }); return; }
@@ -474,7 +482,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (head === "reports" && second !== undefined) {
     const found = reportFile(options.runsRoot, second, parts.slice(2).filter((part, i, all) => !(part === "" && i === all.length - 1)));
-    if (found === null) sendJson(res, 404, { error: "not found" }); else sendReport(res, found.path, found.type);
+    if (found === null) sendJson(res, 404, { error: "not found" }); else if (found.type === "video/mp4") sendReportVideo(req, res, found.path, found.type); else sendReport(res, found.path, found.type);
     return;
   }
   if (parts.length === 1 && head === "probes") {

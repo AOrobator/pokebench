@@ -21,11 +21,21 @@ const SLUG = /^(\d{4}-\d{2}-\d{2})_[a-z0-9][a-z0-9-]*$/;
 const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
-  ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8",
+  ".mp4": "video/mp4", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8",
   // Evidence a report links to: tables, and the scripts that made it, shown as text so they never run.
   ".csv": "text/csv; charset=utf-8", ".mjs": "text/plain; charset=utf-8", ".js": "text/plain; charset=utf-8", ".py": "text/plain; charset=utf-8",
 };
 const TITLE_BYTES = 16 * 1024;
+
+// The bytes a Range header asks for; null means send the whole file. Safari will not play a video without this.
+export function byteRange(header: string | undefined, size: number): { readonly start: number; readonly end: number } | "unsatisfiable" | null {
+  const found = /^bytes=(\d*)-(\d*)$/.exec(header ?? "");
+  if (found === null || (found[1] === "" && found[2] === "")) return null;
+  const [, first = "", last = ""] = found;
+  const start = first === "" ? Math.max(0, size - Number(last)) : Number(first);
+  const end = first === "" || last === "" ? size - 1 : Math.min(Number(last), size - 1);
+  return start > end || start >= size ? "unsatisfiable" : { start, end };
+}
 
 const reportsDir = (runsRoot: string): string => join(runsRoot, "reports", "run-analysis");
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

@@ -19,14 +19,18 @@ export interface BroadcastStoreOptions {
   readonly chunkBytes?: number;
   readonly keepRuns?: number;
 }
-export interface BroadcastStore { read(runId: string, after: number): Promise<BroadcastResponse> }
+export interface BroadcastStore { read(runId: string, after: number, lines?: number): Promise<BroadcastResponse> }
 
-const LineSchema = Type.Object({ turn: Type.Integer(), t: Type.Number(), text: Type.String(), wav: Type.String() });
+export function commentaryWav(runsRoot: string, runId: string, name: string): string | null {
+  return /^t[0-9]{6,}\.wav$/.test(name) ? join(runsRoot, "broadcast", runId, name) : null;
+}
+
+const LineSchema = Type.Object({ turn: Type.Integer(), t: Type.Number(), text: Type.String(), wav: Type.String(), said: Type.Optional(Type.Union([Type.Number(), Type.Null()])) });
 const RateSchema = Type.Object({ input_per_million: Type.Number(), output_per_million: Type.Number(), cache_read_per_million: Type.Number() });
 const HEAD_BYTES = 256;
 const NEWLINE = 0x0a;
 
-interface Tail { readonly reducer: BroadcastReducer; offset: number; rest: Buffer; pending: Promise<void> }
+interface Tail { readonly reducer: BroadcastReducer; offset: number; rest: Buffer; pending: Promise<void>; said: { text: string | null; lines: CommentaryLine[] } }
 
 function commentaryOf(text: string | null): CommentaryLine[] {
   const lines: CommentaryLine[] = [];
@@ -72,14 +76,14 @@ export function createBroadcastStore(options: BroadcastStoreOptions): BroadcastS
   const tailOf = (runId: string): Tail => {
     const known = tails.get(runId);
     tails.delete(runId);
-    const tail = known ?? { reducer: createBroadcastReducer(), offset: 0, rest: Buffer.alloc(0), pending: Promise.resolve() };
+    const tail = known ?? { reducer: createBroadcastReducer(), offset: 0, rest: Buffer.alloc(0), pending: Promise.resolve(), said: { text: null, lines: [] } };
     tails.set(runId, tail);
     for (const oldest of tails.keys()) { if (tails.size <= keepRuns) break; tails.delete(oldest); }
     return tail;
   };
 
   return {
-    async read(runId, after) {
+    async read(runId, after, lines) {
       const path = options.eventsPath(runId), tail = tailOf(runId);
       // One reader per run at a time: a second poll waits for the first instead of reading the same bytes.
       tail.pending = tail.pending.catch(() => undefined).then(() => advance(tail, path));
@@ -87,9 +91,12 @@ export function createBroadcastStore(options: BroadcastStoreOptions): BroadcastS
       const { header, items, ended } = tail.reducer;
       if (header === null) throw new Error(`run ${runId} has no run_start`);
       const folder = join(options.runsRoot, "broadcast");
+      // A live page polls twice a second, and the file changes only once a turn.
+      const text = disk.readText(join(folder, runId, "commentary.jsonl"));
+      if (text !== tail.said.text) tail.said = { text, lines: commentaryOf(text) };
       return {
         header, ended, next: items.length, items: items.slice(after),
-        commentary: after === 0 ? commentaryOf(disk.readText(join(folder, runId, "commentary.jsonl"))) : [],
+        commentary: tail.said.lines.slice(lines ?? (after === 0 ? 0 : Infinity)),
         rates: ratesOf(disk.readText(join(folder, "pricing.json")), header.model),
       };
     },

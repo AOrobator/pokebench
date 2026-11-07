@@ -50,7 +50,8 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 ### Piece 6: live captions and sound on /broadcast
 Follow mode only: new captions as they arrive, wavs queued one at a time, lines older than 30 s skipped, one click to turn sound on. The feed sends new lines on polls and a route serves the wavs. Replay and transparent stay silent. `?voice=0` turns sound off for a page: display-only, so no harness switch (feature-switch skill); anything else leaves it on, and a missing button, wav or speaker fails open to silent captions.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 128 focused tests
+- [x] Rehearsal: fake live run replaying 37ca with fresh times, real follower, Qwen and Kokoro, this page headless on 8797: button shown, one click, nine wavs played in order with no overlap (206 from the route), captions arrived on their own, button gone after the click and absent at ?t and transparent=1, no page errors. 1920x1080 screenshot viewed.
 - [ ] Review, landing
 
 ## Closing the Loop

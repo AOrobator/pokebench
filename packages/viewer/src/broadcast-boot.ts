@@ -1,4 +1,6 @@
-import { mountBroadcast, type FrameSocket } from "./broadcast-main.js";
+import { mountBroadcast, type FrameSocket, type Speaker } from "./broadcast-main.js";
+
+const STALLED_MS = 30_000;
 
 declare global {
   interface Window {
@@ -22,6 +24,22 @@ function frameSocket(path: string): FrameSocket {
   };
 }
 
+// One element for every line: the click that starts the first one unlocks it for the rest.
+function speaker(): Speaker {
+  const audio = new Audio();
+  let settle = (): void => undefined;
+  for (const name of ["ended", "error"]) audio.addEventListener(name, () => { settle(); });
+  return {
+    play: url => new Promise<void>(resolve => {
+      const stalled = setTimeout(() => { settle(); }, STALLED_MS);
+      settle = () => { clearTimeout(stalled); resolve(); };
+      audio.src = url;
+      audio.play().catch(() => { settle(); });
+    }),
+    stop: () => { audio.pause(); settle(); },
+  };
+}
+
 async function fetchJson(url: string): Promise<unknown> {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`${url}: HTTP ${String(response.status)}`);
@@ -40,6 +58,7 @@ mountBroadcast(document, {
   show: (image, src) => { image.src = src; return image.decode(); },
   laneWidth: lane => lane.offsetWidth,
   openFrames: frameSocket,
+  speak: speaker(),
   frameUrl: data => {
     if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
     return URL.createObjectURL(new Blob([data], { type: "image/png" }));

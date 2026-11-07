@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { BroadcastVoice, liveCaption } from "./broadcast-voice.js";
 import type { CommentaryLine } from "./broadcast-feed.js";
 

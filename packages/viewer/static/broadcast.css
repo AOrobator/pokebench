@@ -40,3 +40,5 @@ html.transparent .gbox{background:transparent}
 .lane>.mile{font:9px PX;color:#ffd447;white-space:nowrap;top:4px;transform:translate(-100%,0);background:#0b1a2c;padding:1px 4px;z-index:4}
 .lane>.mile.right{transform:translate(0,0)}
 .lane>.mstar{color:#ffd447;font-size:22px;top:auto;bottom:-4px;transform:translate(-50%,0);z-index:2}
+.sound{position:absolute;left:60px;top:110px;z-index:2;padding:14px 20px;background:#0b1a2c;color:#ffd447;border:4px solid #ffd447;border-radius:10px;font:14px PX;cursor:pointer}
+.sound[hidden]{display:none}

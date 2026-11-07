@@ -2,7 +2,7 @@ import { PAGE_SPRITE_PATH } from "./trainer-page.js";
 import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
-import { createBroadcastStore, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
+import { commentaryWav, createBroadcastStore, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
@@ -619,9 +619,15 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       return;
     }
     if (parts.length === 4 && leaf === "broadcast") {
-      const after = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("after") ?? "0";
-      if (!/^(0|[1-9][0-9]*)$/.test(after) || !Number.isSafeInteger(Number(after))) { sendJson(res, 400, { error: "invalid broadcast cursor" }); return; }
-      sendJson(res, 200, await broadcast.read(id, Number(after)));
+      const query = new URL(req.url ?? "/", "http://viewer.invalid").searchParams;
+      const after = query.get("after") ?? "0", lines = query.get("lines");
+      if (![after, lines ?? "0"].every(value => /^(0|[1-9][0-9]*)$/.test(value) && Number.isSafeInteger(Number(value)))) { sendJson(res, 400, { error: "invalid broadcast cursor" }); return; }
+      sendJson(res, 200, await broadcast.read(id, Number(after), lines === null ? undefined : Number(lines)));
+      return;
+    }
+    if (parts.length === 5 && leaf === "commentary") {
+      const wav = commentaryWav(options.runsRoot, id, parts[4] ?? "");
+      if (wav === null) sendJson(res, 404, { error: "not found" }); else sendReportVideo(req, res, wav, "audio/wav");
       return;
     }
     if(parts.length===4 && leaf==="budget") {sendJson(res,200,{max_turns:readTurnBudgetReceipt(dir,id)});return;}

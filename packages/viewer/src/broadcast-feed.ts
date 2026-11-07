@@ -13,7 +13,7 @@ export type BroadcastItem =
   | { readonly k: "end"; readonly t: number };
 
 export interface BroadcastHeader { readonly run: string; readonly model: string; readonly started: string; readonly kind: "boot" | "save"; readonly save: string | null }
-export interface CommentaryLine { readonly turn: number; readonly t: number; readonly text: string; readonly wav: string }
+export interface CommentaryLine { readonly turn: number; readonly t: number; readonly text: string; readonly wav: string; readonly said?: number | null }
 // USD per million tokens.
 export interface BroadcastRates { readonly input: number; readonly output: number; readonly cacheRead: number }
 export interface BroadcastResponse {

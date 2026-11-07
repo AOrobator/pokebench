@@ -1,8 +1,9 @@
 // Boots the read-only /broadcast page. ?run= picks a run (default: the newest live one), ?t= holds one moment of it
-// (default: follow), ?transparent=1 leaves the game and background out for compositing.
-import { parseBroadcast, type BroadcastResponse } from "./broadcast-feed.js";
+// (default: follow), ?transparent=1 leaves the game and background out for compositing, ?voice=0 keeps a live page silent.
+import { parseBroadcast, type BroadcastResponse, type CommentaryLine } from "./broadcast-feed.js";
 import { BroadcastTimeline, clockText, thinkingTail, type BroadcastView } from "./broadcast-timeline.js";
 import { actionHtml, badgesHtml, laneHtml, laneMarks, modelTitle, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
+import { BroadcastVoice, liveCaption } from "./broadcast-voice.js";
 import { esc } from "./format.js";
 
 const STAGE_WIDTH = 1920, STAGE_HEIGHT = 1080;
@@ -15,6 +16,7 @@ export interface FrameSocket {
   on(name: "close", run: () => void): void;
   close(): void;
 }
+export interface Speaker { play(url: string): Promise<void>; stop(): void }
 export interface BroadcastDeps {
   readonly search: string;
   fetchJson(url: string): Promise<unknown>;
@@ -26,6 +28,7 @@ export interface BroadcastDeps {
   laneWidth(lane: HTMLElement): number;
   readonly openFrames?: (path: string) => FrameSocket;
   readonly frameUrl?: (data: unknown) => string;
+  readonly speak?: Speaker;
 }
 export interface BroadcastPage { setTime(t: number): Promise<void> }
 
@@ -70,12 +73,23 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   let cursor = 0, ended = false, liveFrames = false;
   let onScreen: string | null = null, showing = Promise.resolve(), socket: FrameSocket | null = null;
 
-  const fetchFeed = async (): Promise<BroadcastResponse> => parseBroadcast(await deps.fetchJson(`${base}/broadcast?after=${String(cursor)}`));
+  const lines: CommentaryLine[] = [];
+  const fetchFeed = async (): Promise<BroadcastResponse> => {
+    const seen = cursor === 0 && lines.length === 0 ? "" : `&lines=${String(lines.length)}`;
+    return parseBroadcast(await deps.fetchJson(`${base}/broadcast?after=${String(cursor)}${seen}`));
+  };
   const first = await fetchFeed();
-  const lines = first.commentary, started = Date.parse(first.header.started);
+  const started = Date.parse(first.header.started);
+  const { speak } = deps;
+  const voice = new BroadcastVoice(line => speak?.play(`${base}/commentary/${encodeURIComponent(line.wav)}`) ?? Promise.resolve());
+  const sound = doc.querySelector<HTMLElement>('[data-b="sound"]');
+  // Only a live page a person is watching makes a sound; broadcast-render mixes its own.
+  const speaks = speak !== undefined && moment === null && !first.ended && !transparent && params.get("voice") !== "0";
   let { header, rates } = first;
   const take = (feed: BroadcastResponse): void => {
     timeline.add(feed.items);
+    lines.push(...feed.commentary);
+    voice.add(feed.commentary);
     ({ header, rates } = feed);
     cursor = feed.next;
     ended = feed.ended;
@@ -120,14 +134,18 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     paint(part("party"), partyHtml(view.party));
     paint(part("badges"), badgesHtml(view.badges));
     write(part("cost"), view.cost === null ? "—" : `$${view.cost.toFixed(2)}`);
-    part("cap").hidden = view.caption === null;
-    write(part("say"), view.caption === null ? "" : `“${view.caption}”`);
+    const live = moment === null && !ended;
+    const caption = (live ? liveCaption(lines, voice.current, t) : null) ?? view.caption;
+    part("cap").hidden = caption === null;
+    write(part("say"), caption === null ? "" : `“${caption}”`);
+    if (sound !== null) sound.hidden = !speaks || !live || voice.enabled;
     lane.innerHTML = laneHtml(laneMarks({ now: t, width: deps.laneWidth(lane), presses: view.presses, tools: view.tools, miles: view.miles }));
     return view;
   };
   const followTime = (): number => timeline.end ?? Math.max(0, (deps.now() - started) / 1000 - FOLLOW_DELAY_S);
   const tick = (): void => {
     if (moment !== null) return;
+    voice.pump(followTime());
     showFollowing(render(followTime()));
     if (timeline.end === null) deps.after(TICK_MS, tick);
   };
@@ -156,6 +174,8 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     });
   };
 
+  // The click itself starts the first line, which is what unlocks audio on the stricter browsers.
+  sound?.addEventListener("click", () => { voice.enable(followTime()); sound.hidden = true; });
   if (moment !== null) await showFrame(render(moment));
   else {
     showFollowing(render(followTime()));
@@ -164,6 +184,8 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   return {
     async setTime(t) {
       moment = t;
+      voice.stop();
+      speak?.stop();
       liveFrames = false;
       socket?.close();
       socket = null;

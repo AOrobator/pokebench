@@ -190,10 +190,12 @@ def test_a_counter_reset_reanchors_sound_at_the_pictures_place() -> None:
 
 
 def test_a_dead_encoder_starts_a_new_part_and_keeps_the_data() -> None:
+    now = [0.0]
     sinks = [FakeSink(fail_after=1), FakeSink()]
     events = Events()
-    restarting = Restarting(lambda part: sinks[part - 1], events, "video")
+    restarting = Restarting(lambda part: sinks[part - 1], events, "video", 1, lambda: now[0])
     restarting.write(b"a")
+    now[0] = 60.0
     restarting.write(b"b")
     assert restarting.part == 2
     assert sinks[1].chunks == [b"b"]

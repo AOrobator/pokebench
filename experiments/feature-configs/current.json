@@ -101,7 +101,8 @@
     "map-cycle-recovery-v1",
     "authored-scene-labels-v1",
     "player-map-visibility-v2",
-    "dark-area-flash-reminder-v1"
+    "dark-area-flash-reminder-v1",
+    "no-open-story-goal-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",

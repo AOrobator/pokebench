@@ -136,7 +136,7 @@ export interface EncoderPlan {
 }
 
 const number = (value: number): string => String(Number(value.toFixed(3)));
-const OUTPUT = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p"];
+const OUTPUT = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart"];
 
 export function encoderArgs({ out, fps, seconds, game }: EncoderPlan): string[] {
   const start = ["-y", "-hide_banner", "-loglevel", "error", "-nostdin"];

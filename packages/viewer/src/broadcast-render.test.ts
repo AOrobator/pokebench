@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { atempoChain, clipsFor, encoderArgs, GBA_FPS, parseRenderArgs, readJournal, renderClip, spansFor, type RenderDeps } from "./broadcast-render.js";
+import { atempoChain, clipsFor, encoderArgs, GBA_FPS, parseRenderArgs, planVoices, readJournal, renderClip, spansFor, type RenderDeps } from "./broadcast-render.js";
 
 const SEGMENT_FRAMES = 3600 * GBA_FPS;
 const line = (at: number, event: string, rest: Record<string, unknown> = {}): string => JSON.stringify({ at, event, ...rest });
@@ -131,6 +131,36 @@ describe("the encoder command", () => {
   });
 });
 
+describe("the commentary track", () => {
+  const voice = (turn: number, t: number, seconds?: number) => JSON.stringify({ turn, t, text: "x", wav: `t${String(turn)}.wav`, ...(seconds === undefined ? {} : { seconds }) });
+
+  it("places voiced lines inside the stretch, relative to its start", () => {
+    expect(planVoices([voice(1, 5, 2), voice(2, 15, 2), voice(3, 40, 2), voice(4, 16, undefined)].join("\n"), 10, 30, "/b")).toEqual([{ path: "/b/t2.wav", delayMs: 5000 }]);
+  });
+
+  it("never talks over itself: a line waits for the last, and is dropped if it would run late", () => {
+    const plan = planVoices([voice(1, 10, 3), voice(2, 11, 3), voice(3, 11.5, 3), "bad"].join("\n"), 10, 60, "/b");
+    expect(plan).toEqual([{ path: "/b/t1.wav", delayMs: 0 }, { path: "/b/t2.wav", delayMs: 3200 }]);
+  });
+
+  it("mixes voices over the game with the game turned down", () => {
+    const video = [{ file: "/v.mkv", start: 0, length: 4, wall: 3 }], audio = [{ file: "/a.mka", start: 0, length: 4, wall: 3 }];
+    const args = encoderArgs({ out: "/o.mp4", fps: 10, seconds: 3, game: { backdrop: "/b.png", video, audio }, voices: [{ path: "/w.wav", delayMs: 1200 }] });
+    const filter = args[args.indexOf("-filter_complex") + 1] ?? "";
+    expect(args).toContain("/w.wav");
+    expect(filter).toContain("adelay=1200:all=1");
+    expect(filter).toContain("volume=0.35");
+    expect(filter).toContain("amix=inputs=2:duration=first:normalize=0");
+  });
+
+  it("gives a render with no recording a voice track too", () => {
+    const args = encoderArgs({ out: "/o.mp4", fps: 10, seconds: 3, game: null, voices: [{ path: "/w.wav", delayMs: 0 }] });
+    const filter = args[args.indexOf("-filter_complex") + 1] ?? "";
+    expect(filter).toContain("anullsrc");
+    expect(args).toContain("0:v");
+  });
+});
+
 describe("the command line", () => {
   it("reads a run, a range, a file and its options", () => {
     expect(parseRenderArgs(["r", "10", "70.5", "/o.mp4"])).toEqual({ run: "r", from: 10, to: 70.5, out: "/o.mp4", gameVideo: null, fps: 10 });
@@ -149,6 +179,7 @@ describe("rendering a clip", () => {
     const deps: RenderDeps = {
       started: () => Promise.resolve(Date.parse("2026-11-06T12:00:00.000Z") / 1000),
       readText: path => path.endsWith("recording.jsonl") ? JOURNAL : null,
+      commentaryFolder: run => `/runs/broadcast/${run}`,
       listFiles: () => FILES,
       openPage: url => { urls.push(url); return Promise.resolve({ setTime: t => { steps.push(t); return Promise.resolve(); }, shot: () => Promise.resolve(Buffer.from(`f${String(steps.length)}`)), backdrop: () => Promise.resolve("/tmp/b.png"), close: () => Promise.resolve() }); },
       encode: args => { encoder = args; return { write: frame => { written.push(frame.toString()); return Promise.resolve(); }, finish: () => Promise.resolve() }; },
@@ -184,6 +215,12 @@ describe("rendering a clip", () => {
     await renderClip(f.deps, { run: "r", from: 40, to: 60, out: "/o.mp4", gameVideo: "/rec/video-p01-0000.mkv", fps: 1 });
     expect(f.encoder()).toContain("/rec/video-p01-0000.mkv");
     expect(log).toHaveBeenCalledWith(expect.stringMatching(/no picture for 10\.0 s/));
+  });
+
+  it("picks up the run's commentary for the stretch", async () => {
+    const f = fakes({ readText: path => path === "/runs/broadcast/r/commentary.jsonl" ? JSON.stringify({ turn: 1, t: 10.5, text: "x", wav: "a.wav", seconds: 1 }) : null });
+    await renderClip(f.deps, { run: "r", from: 10, to: 11, out: "/o.mp4", gameVideo: null, fps: 1 });
+    expect(f.encoder()).toContain("/runs/broadcast/r/a.wav");
   });
 
   it("refuses a folder with no journal", async () => {

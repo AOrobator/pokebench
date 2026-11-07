@@ -42,8 +42,9 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [ ] Build, proof, review, landing
 
 ### Piece 3: `just broadcast-commentary`
-- [ ] Find a local model not serving a live run; stop and report if none fits
-- [ ] Build, proof, review, landing
+- [x] Local model: none free (18020 serves e09e, LM Studio empty, 18100 paid). Coordinator put a temporary loopback Qwen3.6-35B-A3B to the operator; not started. Tool takes --endpoint.
+- [ ] RED: `test_broadcast_commentary.py` and voice tests in `broadcast-render.test.ts`
+- [ ] GREEN, proof, review, landing
 
 ## Closing the Loop
 

@@ -1,5 +1,5 @@
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
-import {expect,it} from "vitest";
+import {describe,expect,it} from "vitest";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
 import {INTERFACE_DWELL_CALLS,STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
@@ -491,4 +491,31 @@ it("a cycle rebuilt after a milestone during the hold is a new note: the old one
  stay(r,3);
  expect(held(r).filter(g=>g.message.includes("no longer due"))).toHaveLength(1);
  expect(sent(r).filter(g=>g.kind==="map_cycle")).toHaveLength(1);
+});
+
+// badge-resets-cycles-v1: run 37ca was told it was stalling 12 turns after the Heat Badge, on trips made before it.
+describe("badge-resets-cycles-v1",()=>{
+ const trips=(on:boolean,name:string)=>{
+  const r=rig({...ON,"badge-resets-cycles-v1":on});
+  stairs(r,2*STALL_ROUND_TRIPS-2);
+  r.milestone(name,"observed");
+  r.press(["UP"],{...HOUSE_2F,position:{x:7,y:1}},10_000,[LOADING]);
+  r.press(["DOWN"],{...HOUSE_1F,position:{x:8,y:2}},10_000,[LOADING]);
+  return r.guards().filter(g=>g.kind==="map_cycle");
+ };
+ it("off: a badge leaves the trips made before it counting, as before",()=>{
+  expect(trips(false,"HEAT_BADGE")).toHaveLength(1);
+ });
+ it("on: a new badge starts the map-pair count over",()=>{
+  expect(trips(true,"HEAT_BADGE")).toEqual([]);
+ });
+ it("on: a gym completion does too",()=>{
+  expect(trips(true,"LAVARIDGE_GYM_COMPLETE")).toEqual([]);
+ });
+ it("on: another later-game milestone does not",()=>{
+  expect(trips(true,"OVERHEAT_RECEIVED")).toHaveLength(1);
+ });
+ it("registers with an Off clause",()=>{
+  expect(featureInfo("badge-resets-cycles-v1").description).toContain(" Off: ");
+ });
 });

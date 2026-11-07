@@ -195,6 +195,8 @@ export class StallBriefing {
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
     const seen=this.campaignSeen.has(event.name);this.campaignSeen.add(event.name);
     if(this.features["campaign-progress-clock-v1"]&&event.origin==="observed"&&!seen){this.restart(event.seq);this.progressSeq=event.seq;}
+    // badge-resets-cycles-v1: trips made before a new badge or gym win are not a stall after it.
+    if(this.features["badge-resets-cycles-v1"]&&event.origin==="observed"&&!seen&&/_BADGE$|_GYM_COMPLETE$/.test(event.name))this.pairs.clear();
     return;
    }
   this.progressCycles?.observe(event);

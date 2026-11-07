@@ -409,3 +409,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Field call input](field-call-input-v1.html): a field call page that waits for A reads input ready, with the printer states from the source, the auto-advance decision and the raw-RAM replay of runs 7442 and 5f0f.
 
 - [Provider wait pause](provider-wait-pause-v1.html)
+- [Badge resets cycles](badge-resets-cycles-v1.html): trips made before a new badge or gym win no longer count toward the stall note.

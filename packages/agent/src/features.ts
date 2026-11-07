@@ -379,6 +379,7 @@ export const SWITCHABLE_FEATURES = [
   "rq-mach-dash-v1",
   "route-summary-v1",
   "provider-wait-pause-v1",
+  "badge-resets-cycles-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -879,6 +880,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("rq-mach-dash-v1", "guidance", "RAYQUAZA LANE MACH DASH", null, "Default off; on in the Rayquaza lane. Adds the model tool mach_dash, which rides a whole route on the MACH BIKE in one /action POST, one 4-frame beat per entry with no gap, because an ordinary press (11 held, 8 released) never builds the speed the second Sky Pillar climb needs over cracked floor. It refuses unless the player rides the MACH BIKE on the field, turns the bike to the first direction first if needed, and reports where the player ended and any fall. Off: no tool, no prompt section; press and navigate_to are unchanged."),
   on("route-summary-v1", "observation", "ROUTE SUMMARY", "full-map-navigation-v1", "Default off in both arms (the operator 2026-11-07, from Qwen spending 10-41% of its output tokens tracing the map grid by hand). Adds a block under the readout's Location/Position lines: one line per listed navigate_to_target target and per tile the current guide row names, with whether a route exists from where the player stands, its steps, which unbeaten trainers' sight it crosses (the trainer-sight-check-v1 check), and the steps of a route out of their sight when one exists. At most 12 lines, whole lines dropped by relevance with an \"N more left out\" line. The block and the system prompt say navigate_to and navigate_to_target find their own path, so give the final tile or target. Off: no block and no sentence."),
   on("provider-wait-pause-v1", "guard", "PROVIDER WAIT PAUSE", null, "Default on. A pause request during a model call freezes the emulator and pauses the active run clock. A reply waits for resume before its tools can execute. Off: pause waits for the next safe boundary and a provider hold counts against the run clock."),
+  on("badge-resets-cycles-v1", "guidance", "BADGE RESETS CYCLES", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The map-pair count behind You are stalling. You have walked between A and B was cleared only by early-game milestones, so run 37ca was told it was stalling 12 turns after the Heat Badge, on trips made long before it. On: a newly observed badge or gym completion starts that count over. Off: later-game milestones restart only the drought clock."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1366,6 +1368,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("rq-mach-dash-v1"),
     ...when("route-summary-v1"),
     ...when("provider-wait-pause-v1"),
+    ...when("badge-resets-cycles-v1"),
   ];
 }
 

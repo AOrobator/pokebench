@@ -19,6 +19,9 @@ export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, pr
 // Run 0952 spent 11 turns activating Petalburg Mart shelves and left without buying.
 export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
 
+// Taillow and Wingull are the wild Fly carriers on the route; a run with none cannot use the guide's Fly steps.
+export const FLYER_NOTE="FLY: Nothing in your party can learn Fly. This one can: throw a Ball, Great Ball first.";
+
 // Run 7442 waited 30+ turns on Dad's boat call; run 5f0f cleared it in about four with batched A presses.
 export const CALL_NOTE="CALL: This call will not finish by itself. Press A several times in one press to advance it.";
 
@@ -27,7 +30,7 @@ export const BRINEY_NOTE="BRINEY: Mr. Briney is inside his house on Route 104. T
 
 // rq-old-rival-line-v1: run aeb8's tactics, kept so the Route 110 trials can compare them with the current ones.
 export const OLD_RIVAL_LINE="Rock hits Wingull and Slugma x2. Grovyle's Absorb hits Marshtomp x4: no boosts on it; use a Flying, Fire or Bug move if you have one, else attack.";
-const CURRENT_RIVAL_LINE="X Attack and X Speed against Slugma if you have them, else aim for level 26. Grovyle's Absorb hits Marshtomp x4.";
+const CURRENT_RIVAL_LINE="X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.";
 
 type MapId=readonly [number,number];
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
@@ -36,6 +39,9 @@ export interface SituationNote {readonly text:string;readonly milestone:string}
 const TELEPORT_MOVE=100;
 const BATTLE_TYPE_TRAINER=8;
 const ABRA_LINE=new Set(["ABRA","KADABRA","ALAKAZAM"]);
+const WILD_FLYERS=new Set(["TAILLOW","WINGULL"]);
+// Every species the ROM's TM/HM table lets learn HM02.
+const FLY_CARRIERS=new Set(["CHARIZARD","PIDGEY","PIDGEOTTO","PIDGEOT","SPEAROW","FEAROW","FARFETCH'D","DODUO","DODRIO","AERODACTYL","ARTICUNO","ZAPDOS","MOLTRES","DRAGONITE","MEW","HOOTHOOT","NOCTOWL","CROBAT","TOGETIC","XATU","MURKROW","DELIBIRD","SKARMORY","LUGIA","HO-OH","TAILLOW","SWELLOW","WINGULL","PELIPPER","VIBRAVA","FLYGON","SWABLU","ALTARIA","TROPIUS","SALAMENCE","RAYQUAZA","LATIAS","LATIOS"]);
 const OUTDOORS=new Set(RAYQUAZA_OUTDOOR_MAPS);
 const SECTION_TRIGGERS:ReadonlyMap<string,(state:GameStateSnapshot)=>boolean>=new Map([
  ["PokéNav calls",s=>s.screen==="pokenav"],
@@ -59,6 +65,8 @@ export class GuidePosition {
  private readonly atStart=new Set<number>();
  inBattle=false;
  private wildAbra=false;
+ private wildFlyer=false;
+ private hasBalls=false;
  private teleportReady=false;
  private map:MapId|null=null;
  private lastHeal:MapId|null=null;
@@ -76,6 +84,8 @@ export class GuidePosition {
    this.inBattle=battleOnScreen(event,true);
    const {party,battle}=event;
    this.wildAbra=this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&b.species==="ABRA")&&!party.some(p=>p.species!==null&&ABRA_LINE.has(p.species));
+   if(event.resources?.bag!=null)this.hasBalls=event.resources.bag.some(entry=>entry.pocket==="poke_balls"&&entry.quantity>0);
+   this.wildFlyer=this.hasBalls&&this.inBattle&&battle!=null&&((battle.battle_type??0)&BATTLE_TYPE_TRAINER)===0&&(battle.battlers??[]).some(b=>b.position%2===1&&WILD_FLYERS.has(b.species))&&!party.some(p=>p.species!==null&&FLY_CARRIERS.has(p.species));
    this.teleportReady=party.some(p=>(p.hp??0)>0&&(p.moves??[]).some(m=>m.move_id===TELEPORT_MOVE));
    this.map=event.map_id;
    if(event.heal_before_trainers!==undefined)this.lastHeal=event.heal_before_trainers.last_heal;
@@ -144,6 +154,7 @@ export class GuidePosition {
  // What only the live state can say: never a step, so nothing here sends the model looking for an Abra.
  situationNotes():readonly SituationNote[] {
   if(this.wildAbra)return [{text:ABRA_NOTE,milestone:"RQ_WILD_ABRA"}];
+  if(this.wildFlyer)return [{text:FLYER_NOTE,milestone:"RQ_WILD_FLYER"}];
   if(this.latest?.active_ui?.phase.startsWith("field_match_call")===true)return [{text:CALL_NOTE,milestone:"RQ_CALL"}];
   if(this.bootStart&&!this.optionsDone&&this.latest?.screen==="overworld"&&this.steps.some(step=>step.after==="OPTIONS_SET"))return [{text:OPTIONS_NOTE,milestone:"RQ_OPTIONS"}];
   if(!this.inBattle&&/\b(MART|HERB SHOP)$/.test(this.latest?.location??""))return [{text:SHOP_NOTE,milestone:"RQ_SHOP"}];

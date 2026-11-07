@@ -173,3 +173,18 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: a zero replacement reserve would leave a never-began trial paused forever, so both definitions reserve three trials (3,600,000 ms). Power table now uses no failure rate and no budget line, since the operator has set none. First-fight reader at `runs/route110-rival/first-fight.py`.
 - Claude recheck: the reserve allows three replacements as stated, but the runner also replaces mismatched and signalled trials; page now says so. Noted for later: fixed-run-launch section 4 says a SIGTERM'd trial is not replaced, while `classifyTrial` replaces it.
 - Landed the Route 110 definitions (fc670e951): Claude and GPT lanes LGTM, Grok skipped; just test and just lint exit 0 on the final head (agent 2680, viewer 1077); memory free 96%. Not launched; The operator's pick, N and GPU window pending.
+
+### 2026-11-07: Route 116 row names both catches
+
+- e09e ran from three wild Abra (turns 274, 283, 285) despite the Abra note: the guide row named only Taillow and came last. Audit of every row for only/catch wording: this row is the only conflict.
+- COMMIT: `test(guide): the Route 116 row names Abra beside Taillow` (de9c6ec75), RED: one failure. Row rewritten to 300 chars or under and regenerated.
+- COMMIT: `fix(guide): Route 116 names Abra beside Taillow so the Abra note has no rival` (0f298a9f3). The older guard banned Abra from every row; it now allows this one row, with "if met", and still bans any search.
+- `experiments/fixed/rayquaza-lane-24h-v2.json`: same protocol as rayquaza-lane-24h under a new id and seed, for the restart the operator approved at 12:03 AM on 11/7 ("once those changes land you can restart the rayquaza lane with it").
+- Reviews (Claude and GPT): the row put "if met" on Taillow, dropped "first grass" and let the 10-encounter limit read as an Abra search. Row now keeps the Taillow plan and its limit, then a separate "Catch any Abra if met; don't hunt". Guard test also rejects search wording in the Abra sentence.
+- The operator 11/7 12:08 AM: always advance the story; catch only what shows up on the path; never search. 12:09 AM: catch guidance for Wingull too. Fly compatibility read from the ROM's TM/HM table.
+- Route 116 row is on-path only, Repel at about x=35 after the grass. Route 110 lost its Wingull line and its level target (fact-only tail, decided 11/7). `FLYER_NOTE`: a wild Taillow or Wingull with no HM02 learner in the party, list read from the ROM. rq-old-rival-line-v1 now matches the new line.
+- Page wording tidied; rebased onto main.
+- GPT: the note said no Flying Pokémon while the check is HM02 learners, false for a Zubat party; wording now states the checked fact. Gate on 46126f1d2 passed; rerun on the final head.
+- Claude: the Fly note could tell a Ball-less run on Route 103 to throw a Ball; it now needs a Ball in the bag. Source cell and a dead test assertion fixed.
+- Rebased onto a8f723dfc (worklog-only upstream).
+- Landed the on-path catch fix and rayquaza-lane-24h-v2 (01b0dcda4): Claude and GPT LGTM after three rounds of real findings, Grok skipped; just test and just lint exit 0 (agent 2684, viewer 1200); memory free 96%.

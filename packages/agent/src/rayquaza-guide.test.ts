@@ -4,7 +4,7 @@ import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
-import { ABRA_NOTE, BATTLE_EXPLAINER, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
+import { ABRA_NOTE, BATTLE_EXPLAINER, FLYER_NOTE, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
 const OFF = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": false };
 const ON = { ...LEGACY_ALL_ON, "rq-milestone-guide-v1": true };
@@ -15,6 +15,24 @@ const steps: readonly GuideStep[] = [
 ];
 const milestone = (name: string, origin = "observed"): RunEvent => ({ type: "milestone", name, origin, kind: "story" }) as unknown as RunEvent;
 const user = (content: string): AgentMessage => ({ role: "user", content, timestamp: 1 });
+
+describe("catches stay on the path", () => {
+  const row = (after: string): string => RAYQUAZA_GUIDE_STEPS.find((step) => step.after === after)?.note ?? "";
+  it("Route 116 names both catches and never a search", () => {
+    const note = row("ROCK_TOMB_RECEIVED");
+    expect(note).toContain("If you meet Taillow or Abra on your way, throw a Ball at once");
+    expect(note).toContain("Never search for them; keep moving east.");
+    expect(note.replace("Never search", "")).not.toMatch(/search|hunt|look for|seek|encounters|first grass/i);
+  });
+  it("uses the Repel after the grass, so it blocks no meeting", () => {
+    expect(row("ROCK_TOMB_RECEIVED")).toContain("Repel at about x=35");
+  });
+  it("Route 110 leaves Wingull to the battle note and sets no level target", () => {
+    const note = row("ROUTE_110");
+    expect(note).not.toMatch(/Wingull|aim for level/);
+    expect(note).toContain("X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.");
+  });
+});
 
 describe("GuidePosition", () => {
   it("starts on the first step and advances on later milestones", () => {
@@ -178,19 +196,17 @@ describe("rayquazaGuideContext", () => {
 });
 
 describe("the shipped guide", () => {
-  it("catches Taillow before any Repel on Route 116", () => {
+  it("meets Route 116's Pokémon before any Repel", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROCK_TOMB_RECEIVED")?.note ?? "";
-    expect(note.indexOf("catch Taillow")).toBeGreaterThan(note.indexOf("No Repel yet"));
-    expect(note.indexOf("Then a Repel")).toBeGreaterThan(note.indexOf("catch Taillow"));
+    expect(note.indexOf("If you meet Taillow")).toBeGreaterThan(note.indexOf("No Repel yet"));
+    expect(note.indexOf("Repel at about")).toBeGreaterThan(note.indexOf("If you meet Taillow"));
   });
 
   it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
     expect(note).toMatch(/X Attack and X Speed against Slugma/);
     expect(note).toMatch(/if you have them/);
-    expect(note).toMatch(/Absorb hits Marshtomp x4/);
-    expect(note).toMatch(/aim for level 26/);
-    expect(note).toMatch(/Catch a Wingull if met; don't hunt/);
+    expect(note).toMatch(/Absorb took a Level 22 Marshtomp out in two hits/);
     expect(note).not.toMatch(/Taillow/);
   });
 
@@ -332,7 +348,25 @@ describe("Abra notes", () => {
     expect(recorded.filter((r) => r.text === ABRA_NOTE)).toHaveLength(2);
   });
 
-  it("names no search for Abra anywhere in the guide", () => {
-    expect(RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note))).toEqual([]);
+  it("names Abra only on the row that says never to search", () => {
+    const named = RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note));
+    expect(named.map((s) => s.after)).toEqual(["ROCK_TOMB_RECEIVED"]);
+    expect(named[0]?.note).toContain("Never search for them");
+  });
+  it("tells the model to throw a Ball at a wild Taillow or Wingull with no Fly carrier", () => {
+    const balls = (quantity: number): { bag: readonly { pocket: string; quantity: number; name: string }[] } => ({ bag: [{ pocket: "poke_balls", quantity, name: "POKé BALL" }] });
+    const met = (species: string, party: readonly { species: string; hp: number }[], battleType = 4, resources = balls(5)): readonly string[] => {
+      const guide = new GuidePosition(steps);
+      guide.observe(fight({ party, resources, battle: { battle_type: battleType, battlers: [{ position: 0, species: "MARSHTOMP" }, { position: 1, species }] } }));
+      return notes(guide);
+    };
+    const alone = [{ species: "MARSHTOMP", hp: 30 }];
+    expect(met("TAILLOW", alone)).toEqual([FLYER_NOTE]);
+    expect(met("WINGULL", alone)).toEqual([FLYER_NOTE]);
+    expect(met("POOCHYENA", alone)).toEqual([]);
+    expect(met("WINGULL", alone, 8)).toEqual([]);
+    expect(met("WINGULL", alone, 4, balls(0))).toEqual([]);
+    expect(met("WINGULL", alone, 4, { bag: [] })).toEqual([]);
+    for (const species of ["TAILLOW", "SWELLOW", "WINGULL", "PELIPPER", "SWABLU", "ALTARIA"]) expect(met("WINGULL", [...alone, { species, hp: 0 }])).toEqual([]);
   });
 });

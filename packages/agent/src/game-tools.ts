@@ -203,6 +203,8 @@ export type CheckedPressTool=AgentTool<typeof PressArgs> & {
  // bike-register-v1 / bike-auto-mount-v1: frame-owned SELECT registration and SELECT toggle on the game server.
  readonly executeBikeRegister?:(id:string,item:number,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeRegisterReceipt>;
  readonly executeBikeToggle?:(id:string,ride:boolean,check:BeforePressCheck,signal?:AbortSignal)=>Promise<BikeToggleReceipt>;
+ // rq-mach-dash-v1: one /action POST at explicit timing, past every press guard. The caller owns its checks.
+ readonly executeTimed?:(id:string,buttons:readonly Button[],timing:PressTiming,before:GameStateSnapshot,signal?:AbortSignal)=>Promise<void>;
 };
 export function isCheckedPress(tool:AgentTool):tool is CheckedPressTool {return "executeChecked" in tool&&typeof tool.executeChecked==="function";}
 
@@ -433,6 +435,17 @@ export function pressTool(
     await hooks.afterPress();
     return parsed;
   };
+  const executeTimed=async(toolCallId:string,buttons:readonly Button[],timing:PressTiming,before:GameStateSnapshot,signal?:AbortSignal):Promise<void>=>{
+    signal?.throwIfAborted();
+    hooks.beforePress(toolCallId,buttons,timing,before,{automatic_running:false});
+    const url=`${gameServerUrl}/action`;
+    const response=await fetchFn(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({buttons,...timing}),signal:deadline(15_000,signal)});
+    const reply:unknown=await response.json();
+    if(!response.ok||!Value.Check(ActionSchema,reply)||reply.status!=="success")throw new Error(`POST ${url} failed: ${Value.Check(ActionSchema,reply)?(reply.message??reply.status):`HTTP ${String(response.status)}`}`);
+    await waitForQueue(gameServerUrl,fetchFn,clock,signal);
+    await clock.sleep(STATE_CACHE_SETTLE_MS);
+    await hooks.afterPress();
+  };
   const executeBikeRegister=(toolCallId:string,item:number,check:BeforePressCheck,signal?:AbortSignal):Promise<BikeRegisterReceipt>=>{
     const body={id:randomUUID(),item};
     return bikeAction(toolCallId,"/pokebench/bike/register",body,raw=>Value.Check(BikeRegisterReceiptSchema,raw)&&raw.id===body.id&&raw.item===item&&raw.stopped?raw:null,check,signal);
@@ -454,6 +467,7 @@ export function pressTool(
     executeIntercept,
     executeBikeRegister,
     executeBikeToggle,
+    executeTimed,
   };
 }
 

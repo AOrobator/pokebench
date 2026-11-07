@@ -293,3 +293,33 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - Fortree: the Darius row moved from (1,8) to (1,6), and the (5,2) row and the gate are gone. Re-run over all 42,144 gate states: with (1,6) avoided, neither (6,4) nor Winona's tile is reachable, so both approaches cross it; (1,8) can be avoided. (5,2) could be reached with the (2,6) gate unturned, which is the only reason a gate existed. Without that row a detour holds on (9,10), and (6,4), unavoidable and solvable from all 32 of its states, recovers from anywhere, so Winona's row always shows. Cost: the (1,6) leg is 12 tokens. The guide is 151 steps.
 - COMMIT: `fix(guide): Fortree's Darius checkpoint moves to (1,6), with no gate` (2cd5ba327). 146 focused tests pass; tsc and eslint clean. Full gate, re-review and merge not done; no row here has run on the emulator.
 - Landed gym and puzzle checkpoint rows (76da08e39): Lavaridge, Fortree, Sootopolis, Seafloor, Mossdeep Green row; 151 steps; reach counted in story rows under rq-checkpoint-recovery-v1. Claude LGTM, GPT LGTM after rebuttal (guide rows are lane data, not the switch's scope); Grok skipped. build, test, lint exit 0 (agent 2778, viewer 1235) in the granted window. With recovery off, later saves stick at the Aqua row: never compare OFF past the Mind Badge. No row run on the emulator.
+### 2026-11-07: rq-mach-dash-v1
+
+- The second Sky Pillar climb crosses cracked floors that need Mach Bike top speed; `press` never builds it. New model tool `mach_dash` behind a lane-only switch, agent side only unless the live test says otherwise.
+- COMMIT RED: `test(agent): mach_dash sends a whole route, turns first and reports a fall` (bfe0f281d).
+- Tool: `packages/agent/src/mach-dash.ts`, built from a new `executeTimed` on press, which is one `/action` POST at explicit timing past every press guard. Wiring test goes red with `withMachDash` removed from `playGameTools`.
+- WAIT cannot end the wait: a `WAIT` or `hold_frames:0` entry leaves `current_action` set, so `/queue_status` never empties. After the route the tool presses B with 28 release frames, up to 10 times, until the same free tile reads twice. That keeps the wait in emulated frames and needs no server change.
+- A 2-frame tap turns a stopped bike in place from any facing (hold 0 to 5 measured; hold 10 moves a tile). A tap towards the door at (6,13) on 1F leaves the map, and the tool then reports the failed turn.
+- COMMIT: `feat(agent): rq-mach-dash-v1 adds mach_dash, a whole MACH BIKE route in one POST` (d9d2ec8e2). 42 tests in its file; 177 agent and 48 viewer focused tests pass; tsc and eslint clean.
+- Guide rows: `GuidePosition.onMap` takes the first row that matches, so a first-climb row on an arrival tile, or any `MAP:` row on a Sky Pillar floor, would stop the second climb's row from ever firing. So the first climb keeps tiles only it uses, (5,4) on 4F and (6,4) on 3F, and the second climb owns the arrival tiles.
+- COMMIT RED: `test(guide): Sky Pillar rows give verified routes and fire per floor` (e9b75efa2).
+- COMMIT: `fix(guide): Sky Pillar rows use mach_dash and split per floor` (708bc9911). 140 steps.
+- Live test, all on real `pokebench_env` servers on 8160-8167, runs root in scratch, lane recipe's server switches, saves in `runs/sky-pillar-test/` (Repel on and the lead at level 100 so wild battles stay out, except the wild saves):
+  - 1F `U1 L9 U4 R2 U3 L1 U3 R3 D2 R5 U3` (36 beats) from (6,13) to 2F (10,2): 25 runs reached it, with or without the SELECT mount at the door tile; 2 more stopped for a wild battle.
+  - 2F `D1 R4 D11 L10 U4 R2 U8` (40) to 3F (3,2): 25 of 25. 3F `D7 L2 D6 R1 D1 R10 U5 L1 U6` (39) to 4F (11,2): 5 of 5.
+  - 4F `D14 L8 U8 R2` (32) to 3F (7,4), off the bike: 10 of 10. 5F `L5 D3 R1 D4 L1 D4 R5 D1 R7 U5 L1 U6 L2 U1` (46) to the top (16,15): 5 of 5; the top forces you off the bike, which the first report called a fall. Fixed by `allow_cycling`.
+  - Wrong start facing: 2F from RIGHT and from UP, 4F from LEFT, 1F from LEFT, 5F from DOWN: each turned first, then finished as normal.
+  - Falls: `D1 R4 D5` on 2F falls at (11,10) to 1F, on the route; `navigate_to (10,1)` (38 presses), SELECT, the full route crossed that crack. `D6` on 4F falls at (11,5) to 3F; `navigate_to (11,1)`, SELECT, the full route again reached the pocket. Cracks restore on reload. `D1 R4 D2` falls at (11,6).
+  - Wild battles: 2 in 26 runs with no Repel, both on 1F. The first showed a battle transition read as a fall; fixed, and the second reported `A battle started`. No battle on a cracked floor seen.
+  - Top: with the first-climb flags, reaching (14,9) starts the scene. With the second-climb flags, `navigate_to (14,7)` arrives, and A there starts the Rayquaza script. Press UP at (14,7) does not move.
+  - First climb on the clean layouts, on foot: `navigate_to` to (10,1), (3,1), (11,1), (5,4); RIGHT once drops to 3F (6,4); (7,1), (3,1), (10,1), (14,8) stops at (14,9) as the scene starts.
+  - Play path: `live.js play` with the lane preset and a scripted fake model, 1F to (14,7) in one run, no error events. It found what the direct driver could not: the recorder refused `release_frames: 0`, so the event schema now allows it (`schemas/events.v1.json` regenerated). It also found that a warp's loading frames read as an unknown screen with an active_ui, which ended the wait early.
+- Not gated: the guide rows change with the data, as every guide correction has. With `rq-milestone-guide-v1` ON and `rq-mach-dash-v1` OFF the rows would name a tool the model lacks. The lane has both on.
+- The queue cannot be cancelled: a run aborted mid-route still rides up to 100 beats.
+
+- COMMIT: `fix(agent): mach_dash survives the real path: release 0, warps and battles` (01b237c0d). 294 agent and 48 viewer focused tests pass; tsc on both packages and eslint on changed files clean. Full suites, review loop and merge not done. After a merge, `just viewer-main` is needed before a run from this pin: an older viewer rejects `release_frames: 0`.
+- Rebased mach dash onto the checkpoint rows; guide regenerated at 159 steps.
+- GPT: a huge count in a route was expanded before the cap. Now summed first.
+- Claude: a landing at 3F (6,4) shares the pocket with (7,4) but fires no row, and (11,1) is unreachable from it. Row now sends it to (7,4).
+- Landed rq-mach-dash-v1 and the Sky Pillar rows (c0c574473): 159 steps, Claude and GPT LGTM (GPT after rebuttal on guide rows and the switch), Grok skipped; build, test, lint exit 0 in the granted window (agent 2830, viewer 1235). Needs viewer-main before a run from this pin.
+- rayquaza-lane-24h-v3: same protocol under a new id and seed, ready for the restart after the fixes landed.

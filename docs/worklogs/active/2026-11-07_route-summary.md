@@ -77,6 +77,8 @@ Offline only, on recorded states; no run launched, no request to any model serve
 
 - 2026-11-07: merged main; `features.ts` conflict on the rq-checkpoint-recovery text resolved to main's text plus this switch's entry.
 
+- 2026-11-07 10:00 AM: merged main again; main had added `rq-mach-dash-v1` at the same registry, preset, next-run and explainer places. Each conflict resolved as main's line plus this switch's addition; `route-summary-v1` now registers right after `rq-mach-dash-v1`. GPT lane round 2 (through the coordinator): LGTM on 2c0e9d36a.
+
 ## Surprises
 
 - The no-I/O guard forbids reading gz fixtures from a test; a JSON module import is allowed, so the fixture is trimmed JSON.

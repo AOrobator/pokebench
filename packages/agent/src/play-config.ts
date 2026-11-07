@@ -4,6 +4,7 @@ import {ROUTE_SUMMARY_SENTENCE} from "./route-summary.js";
 import {FIELD_CALL_ID,FIELD_CALL_NOTE,POKENAV_CALL_NOTE} from "./pokenav-call-auto-advance.js";
 import {instructionGoalsSection} from "./instruction-goal-tools.js";
 import {MENU_OPTION_SECTION} from "./menu-option-tool.js";
+import {MACH_DASH_ID,MACH_DASH_SECTION} from "./mach-dash.js";
 // Play-run configuration: limits, prompts and the feature-dependent parts of
 // what the model is told. The prompt constants moved here byte for byte from
 // live.ts; every feature switched on reproduces the earlier prompt exactly.
@@ -97,10 +98,10 @@ export function contextualFor(scene: PromptScene | "core"): string {
 
 const DROP_TOOLS: Record<Exclude<PromptScene, "unknown">, readonly string[]> = {
   overworld: ["battle_action"],
-  battle: ["navigate_to", "navigate_to_target", "explore_map"],
-  naming: ["navigate_to", "navigate_to_target", "explore_map", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction"],
-  clock: ["navigate_to", "navigate_to_target", "explore_map", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction"],
-  menu: ["navigate_to", "navigate_to_target", "explore_map", "battle_action"],
+  battle: ["navigate_to", "navigate_to_target", "explore_map", "mach_dash"],
+  naming: ["navigate_to", "navigate_to_target", "explore_map", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction", "mach_dash"],
+  clock: ["navigate_to", "navigate_to_target", "explore_map", "battle_action", "get_dialogue", "recall_dialogue", "remember_destination", "get_next_milestone", "note_contradiction", "mach_dash"],
+  menu: ["navigate_to", "navigate_to_target", "explore_map", "battle_action", "mach_dash"],
 };
 
 export function jitTools<T extends { name: string }>(tools: readonly T[], scene: PromptScene): T[] {
@@ -293,6 +294,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   }
   // move-learn-tool-v1 (tool-prompt-sync): learn_move is offered in every scene, so its section is too.
   if (features["move-learn-tool-v1"]) prompt += `\n\n${features["move-learn-offer-identity-v1"]?GUARDED_LEARN_MOVE_SECTION:LEARN_MOVE_SECTION}`;
+  if (show("overworld") && features[MACH_DASH_ID]) prompt += `\n\n${MACH_DASH_SECTION}`;
   if (show("overworld") && features["screen-center-player-v1"]) prompt += `\n\n${SCREEN_CENTER_SECTION}`;
   // Order the game-evidence sources after the main controls.
   if (features["harness-trust-v1"]) prompt += `\n\n${trustSection(features["game-evidence-priority-v1"], true, features["unnamed-place-story-line-v1"])}`;
@@ -326,7 +328,7 @@ export function toolSwitches(features: FeatureSet): ToolSwitches {
 }
 
 export function playTools(features: FeatureSet): string[] {
-  return ["observe", "press", ...(features["instruction-goal-ledger-v1"]?["review_goals","get_instruction_goals"]:[]), ...(features["menu-option-tool-v1"]?["select_menu_option"]:[]), ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : [])];
+  return ["observe", "press", ...(features["instruction-goal-ledger-v1"]?["review_goals","get_instruction_goals"]:[]), ...(features["menu-option-tool-v1"]?["select_menu_option"]:[]), ...(features["evolution-decision-v1"] ? ["choose_evolution"] : []), ...(features["objective-tracking-v1"] ? ["get_objectives", "set_objective", "update_objective"] : []), ...(features["bounded-navigation-v1"] ? ["navigate_to"] : []), ...(semanticNavigation(features) ? ["navigate_to_target"] : []), ...(features["deterministic-exploration-v1"] ? ["explore_map"] : []), ...(features["navigation-evidence-memory-v1"] ? ["remember_destination"] : []), ...(features["dialogue-log-v1"] ? ["recall_dialogue"] : []), ...(features["instruction-ledger-v1"] ? ["note_contradiction"] : []), ...(features["next-milestone-hint-v1"] ? ["get_next_milestone"] : []), ...(features["dialogue-auto-advance-v1"] ? ["get_dialogue"] : []), ...(features["battle-move-tool-v1"] ? ["battle_action"] : []), ...(features["move-learn-tool-v1"] ? ["learn_move"] : []), ...(features[MACH_DASH_ID] ? ["mach_dash"] : [])];
 }
 
 // The full text of each section rq-slim-prompt-v1 moved out; never shortened.

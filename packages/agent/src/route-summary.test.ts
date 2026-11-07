@@ -203,8 +203,8 @@ describe("against the server's own flood",()=>{
 });
 
 describe("the switch",()=>{
- it("is registered after the guide switches, off by default, and needs the whole-map planner",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf("route-summary-v1")).toBe(SWITCHABLE_FEATURES.indexOf("rq-checkpoint-recovery-v1")+1);
+ it("is registered right after rq-mach-dash-v1, off by default, and needs the whole-map planner",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("route-summary-v1")).toBe(SWITCHABLE_FEATURES.indexOf("rq-mach-dash-v1")+1);
   expect(FEATURES.find(f=>f.id==="route-summary-v1")?.needs).toBe("full-map-navigation-v1");
   expect(playHarnessFeatures(ON,null)).toContain("route-summary-v1");
   expect(playHarnessFeatures(OFF,null)).not.toContain("route-summary-v1");

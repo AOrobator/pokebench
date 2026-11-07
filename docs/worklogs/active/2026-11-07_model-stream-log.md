@@ -39,8 +39,8 @@ The raw stream holds model output only, in the gitignored run directory. Authori
 - [x] COMMIT: `test(agent): the raw model stream log (RED)` (a2afddd82)
 - [x] Implement, wire into live.ts, viewer row, tail line, schema
 - [x] Cheap checks: agent and viewer `tsc --noEmit`, eslint on changed files, model-stream 31/31, events, trace and panels tests pass; model-stream.ts 98% lines, 96% branches. Deleted once and watched go red, then restored: returning a clone, the run cap, the reply cap, the save containment, the token minimum, the URL filter.
-- [ ] Full gates in a granted CPU window
-- [ ] COMMIT GREEN
+- [x] Full gates in the window the coordinator granted (2026-11-07 2:17 AM New York time): `just test` passed: agent 2776 tests, viewer 1235, env 3051, gateway 38, `no-io-proof` OK, every floor held (agent 67.88 lines / 58.74 branches / 61.72 functions / 62.5 statements; viewer 42.36 / 44.2 / 46.91 / 41.7). `just lint`: agent and viewer pass; env mypy first failed only on the missing native mGBA binding in the fresh worktree venv, and passed (144 files) once it was copied from the main venv, then the gateway ruff and mypy steps passed. `just verify-vendor` first failed on the uninitialized submodule, and passed after `git submodule update --init`.
+- [x] COMMIT: `feat(agent): record the raw model stream beside each reply` (ba9190bbf)
 - [ ] Review
 - [ ] Land
 
@@ -53,6 +53,9 @@ Offline rehearsal only: replay a production-shaped SSE stream through `ModelStre
 - 2026-11-07: worklog written, worktree `/private/tmp/pb-stream-log`, branch `claude/model-stream-log`.
 
 ## Surprises
+
+- A fresh worktree's `just lint` and `just verify-vendor` fail on setup, not code: copy `mgba` into the worktree venv and init the submodule first.
+- A viewer built before this lands cannot read `model_stream`; any run from a newer pin needs `just viewer-main` first (already the rule in CLAUDE.md). Live runs keep their pins.
 
 ## Multi-Model Review Log
 

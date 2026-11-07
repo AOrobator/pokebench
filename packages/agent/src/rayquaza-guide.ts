@@ -199,6 +199,14 @@ type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">&Partial<P
 
 const laneSteps=(features:FeatureSet):readonly GuideStep[]=>features["rq-old-rival-line-v1"]?RAYQUAZA_GUIDE_STEPS.map(step=>step.after==="ROUTE_110"?{...step,note:step.note.replace(CURRENT_RIVAL_LINE,OLD_RIVAL_LINE)}:step):RAYQUAZA_GUIDE_STEPS;
 
+// route-summary-v1: the guide row in force, for the tiles it names. Null without the guide or the summary.
+export function guideRow(features:FeatureSet,recorder:Pick<RunRecorder,"subscribe">):()=>{readonly map:string;readonly note:string}|null {
+ if(!features["route-summary-v1"]||!features["rq-milestone-guide-v1"])return ()=>null;
+ const guide=new GuidePosition(laneSteps(features),{checkpointRecovery:features["rq-checkpoint-recovery-v1"]});
+ recorder.subscribe(event=>{guide.observe(event);},true,true);
+ return ()=>{const step=guide.current();return step.map===null?null:{map:step.map,note:step.note};};
+}
+
 // rq-milestone-guide-v1: the current step stays the request's final message until the next step, so it
 // is present on map entry and during a stall without separate triggers.
 export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=laneSteps(features)):Transform {

@@ -277,3 +277,4 @@ Mossdeep Green switch (the open item from rq-checkpoint-recovery-v1):
 
 - New gated row AT:MossdeepCity_Gym:15:34, the first Green switch landing, between (23,20) and (8,12). An early L2 at the first (9,18) landing now holds on (23,20), because (8,12) is no longer the next row and recovery cannot cross the new gate. Tracker logic unchanged. Gym entry to MIND_BADGE is now 7 steps, inside REACH.
 - The string is the same presses, cut at the switch; the door route to (15,34) and on to (8,12) simulates clean. Statue rotation is still simulated only.
+- COMMIT: `fix(guide): the Green switch landing holds Mossdeep's (8,12) row back` (7bc7b44fb). 134 focused tests pass; tsc and eslint clean. Guide is 152 steps. Full suites, review and merge not done; no row here has run on the emulator.

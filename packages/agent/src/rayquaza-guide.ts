@@ -20,7 +20,7 @@ export const OPTIONS_NOTE="OPTIONS: Your settings are not done. On the field, pr
 export const SHOP_NOTE="SHOP: Talk to the clerk behind the counter to buy or sell. The shelves are only decoration.";
 
 // Taillow and Wingull are the wild Fly carriers on the route; a run with none cannot use the guide's Fly steps.
-export const FLYER_NOTE="FLY: No Flying Pokémon yet. Throw a Ball, Great Ball first. You need one for Fly later.";
+export const FLYER_NOTE="FLY: Nothing in your party can learn Fly. This one can: throw a Ball, Great Ball first.";
 
 // Run 7442 waited 30+ turns on Dad's boat call; run 5f0f cleared it in about four with batched A presses.
 export const CALL_NOTE="CALL: This call will not finish by itself. Press A several times in one press to advance it.";

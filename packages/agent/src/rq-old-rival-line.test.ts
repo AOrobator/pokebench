@@ -13,7 +13,7 @@ const milestone = (name: string) => ({ type: "milestone", name, origin: "present
 
 async function guideAtRival(features: typeof ON): Promise<string> {
   let listener: (event: RunEvent) => void = () => undefined;
-  const context = finalGuide(features, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: () => undefined } as never, (messages: AgentMessage[]) => Promise.resolve(messages));
+  const context = finalGuide(features, { subscribe: (next: (event: RunEvent) => void) => { listener = next; }, recordMilestoneHint: () => undefined }, (messages: AgentMessage[]) => Promise.resolve(messages));
   for (const step of AT_RIVAL.slice(1)) listener(milestone(step.after));
   return JSON.stringify((await context([])).at(-1));
 }

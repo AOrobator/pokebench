@@ -15,7 +15,7 @@ const features=(ledge:boolean,surf=false):FeatureSet=>({...flagFeatures({loopGua
 const tile=(x:number,elevation:number,behavior=0,collision=0)=>({x,y:0,collision,behavior,elevation});
 const warp=(x:number,elevation:number)=>({kind:"warp",x,y:0,elevation,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[4,2,0] as [number,number,number],name:"Warp"});
 function row(tiles:readonly ReturnType<typeof tile>[],elevation:number,extra:Partial<GameStateSnapshot>={}):GameStateSnapshot {
- return {...IN_GAME,screen:"overworld",started:true,location:"TOWN",map_id:[0,5],position:{x:0,y:0},facing:"right",field_controls_locked:false,in_battle:false,interaction_targets:[],interaction_object_slots:[],navigation_grid:{elevation,tiles:[...tiles],objects:[],warps:[]},...extra} as GameStateSnapshot;
+ return {...IN_GAME,screen:"overworld",started:true,location:"TOWN",map_id:[0,5],position:{x:0,y:0},facing:"right",field_controls_locked:false,in_battle:false,interaction_targets:[],interaction_object_slots:[],navigation_grid:{elevation,tiles:[...tiles],objects:[],warps:[]},...extra};
 }
 // Lilycove's shape: a walk at elevation 5, a ledge tile, and a landing at elevation 3.
 const drop=row([tile(0,5),tile(1,0,JUMP_EAST,1),tile(2,3),tile(3,3)],5);
@@ -23,7 +23,7 @@ const options={mode:"local",floor:true,ledges:true,elevation:"game"} as const;
 const rules={ledges:true,oneWay:false,floor:true,elevation:"game",fieldMoveGates:false} as const;
 const surfGate={can_surf:true,balance_badge:true,party_surf:true,surfing:false,warps:[],connections:[]};
 // A shore at elevation 3 and a cave mouth on water at elevation 1, as at Lilycove (70,5).
-const cove=(can=true):GameStateSnapshot=>row([tile(0,3),tile(1,3),tile(2,1,OCEAN),tile(3,1,OCEAN)],3,{interaction_targets:[warp(3,1)],surf_gate:{...surfGate,can_surf:can}} as Partial<GameStateSnapshot>);
+const cove=(can=true):GameStateSnapshot=>row([tile(0,3),tile(1,3),tile(2,1,OCEAN),tile(3,1,OCEAN)],3,{interaction_targets:[warp(3,1)],surf_gate:{...surfGate,can_surf:can}});
 
 async function target(on:boolean,state:GameStateSnapshot):Promise<{text:string;walked:{x:number;y:number}[]}> {
  const walked:{x:number;y:number}[]=[];
@@ -90,7 +90,7 @@ describe(SURF_ID,()=>{
   expect(out.walked).toEqual([]);
  });
  it("on: a warp the player can walk to resolves as before",()=>{
-  const state=row([tile(0,3),tile(1,3)],3,{interaction_targets:[warp(1,3)]} as Partial<GameStateSnapshot>);
+  const state=row([tile(0,3),tile(1,3)],3,{interaction_targets:[warp(1,3)]});
   expect(navigatorTakesWarp(state,1,0,features(false,true))).toBe(true);
  });
  it("registers with an Off clause",()=>{

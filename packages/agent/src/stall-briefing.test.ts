@@ -553,3 +553,29 @@ describe("drought-turns-only-v1",()=>{
   expect(featureInfo("drought-turns-only-v1").description).toContain(" Off: ");
  });
 });
+
+// drought-hold-screens-v1: run 37ca turn 1361 got the drought note on the evolution screen right after the Flannery win.
+describe("drought-hold-screens-v1",()=>{
+ const play=(on:boolean,screen:Record<string,unknown>)=>{
+  const r=rig({...ON,"drought-turns-only-v1":true,"drought-hold-screens-v1":on});
+  r.milestone("GAME_RUNNING","observed");
+  const party=(i:number)=>({party:[MEMBER("a","MUDKIP",5,i)]});
+  r.state(party(0));
+  // The action that brings the count to 30 lands on the screen under test.
+  for(let i=0;i<STALL_DROUGHT_ACTIONS;i++)r.press(["A"],i===STALL_DROUGHT_ACTIONS-1?{...party(i),...screen}:party(i),1_000);
+  return r.guards().filter(g=>g.kind==="milestone_drought"&&g.phase==="supervisor");
+ };
+ const EVOLUTION={in_battle:true,screen:"evolution"};
+ it("off: the note is sent on the evolution screen after a battle, as before",()=>{
+  expect(play(false,EVOLUTION)).toHaveLength(1);
+ });
+ it("on: it is held while the evolution screen owns the game",()=>{
+  expect(play(true,EVOLUTION)).toEqual([]);
+ });
+ it("on: an ordinary field action still gets it",()=>{
+  expect(play(true,{})).toHaveLength(1);
+ });
+ it("registers with an Off clause",()=>{
+  expect(featureInfo("drought-hold-screens-v1").description).toContain(" Off: ");
+ });
+});

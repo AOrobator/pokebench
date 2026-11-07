@@ -98,3 +98,5 @@ Story line done on event (coordinator brief 2026-11-06, under the operator's rul
 Badge resets cycles (the operator 2026-11-07, "this is a correctness fix so it goes on in both arms"): `badge-resets-cycles-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. A new badge or gym win clears the stall note's map-pair count.
 
 Drought counts turns only (the operator 2026-11-07, "this is a correctness issue"): `drought-turns-only-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. The drought note counts 30 actions; level-ups, wins and heals do not restart it, while a story milestone or the end of a battle or heal hold that kept a note back still does.
+
+Drought holds on battle screens (the operator 2026-11-07, "yes"): `drought-hold-screens-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`.

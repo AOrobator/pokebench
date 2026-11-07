@@ -1,5 +1,5 @@
 import {EXTENDED_PROGRESS_NAMES,OPTIONAL_PROGRESS_NAMES} from "./story-progress.js";
-import {battleOnScreen} from "./battle-context.js";
+import {battleOnScreen,nonBattleOwner} from "./battle-context.js";
 import {ProgressAwareCycles} from "./progress-aware-cycles.js";
 import {roomKey,roomOf} from "./dialogue-log.js";
 import {BattleOutcomes} from "./battle-outcomes.js";
@@ -107,12 +107,14 @@ export class StallBriefing {
 
  // drought-battle-heal-hold-v1: the open heal trip (from the warning's seq), the hold in force, the drought level already recorded as held.
  private healTrip:{readonly seq:number;calls:number}|null=null;
- private holding:"battle"|"trainer"|"heal"|null=null;
+ private holding:"battle"|"trainer"|"heal"|"screen"|null=null;
  private heldLevel=0;
- private hold():"battle"|"trainer"|"heal"|null {
+ private hold():"battle"|"trainer"|"heal"|"screen"|null {
   const s=this.last;
   const battle=s!==null&&battleOnScreen(s,this.features["drought-progress-facts-v1"]||this.features["owned-battle-context-v1"]);
   if(this.features["drought-progress-facts-v1"]&&battle)return "battle";
+  // drought-hold-screens-v1: an evolution or move screen that a battle handed control to is still the battle's aftermath.
+  if(this.features["drought-hold-screens-v1"]&&s!==null&&s.in_battle&&nonBattleOwner(s)!==null)return "screen";
   if(!this.features["drought-battle-heal-hold-v1"])return null;
   if(battle)return "battle";
   // An unbeaten trainer's sight script holds the field before the battle starts (trainer_opponent is set, not defeated).
@@ -334,9 +336,9 @@ export class StallBriefing {
   if(holding!==null){
    if(level>this.heldLevel){
     this.heldLevel=level;
-    const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
+    const why=holding==="battle"?"a battle is on screen":holding==="screen"?"an evolution or move screen from the battle is up":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
     const what=this.features["drought-progress-facts-v1"]&&holding==="battle"?`the active drought clock reached ${turns?`${String(level*STALL_DROUGHT_ACTIONS)} actions`:`${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`}`:turns?`no new story milestone${this.credits()?", level-up, trainer win or full heal":""} in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
-    this.heldDrought?.(`Not sent (${this.features["drought-progress-facts-v1"]&&holding==="battle"?"drought-progress-facts-v1":"drought-battle-heal-hold-v1"}): ${what}, but ${why}.`,[from??seq,seq]);
+    this.heldDrought?.(`Not sent (${holding==="screen"?"drought-hold-screens-v1":this.features["drought-progress-facts-v1"]&&holding==="battle"?"drought-progress-facts-v1":"drought-battle-heal-hold-v1"}): ${what}, but ${why}.`,[from??seq,seq]);
    }
    return;
   }

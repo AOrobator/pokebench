@@ -381,6 +381,7 @@ export const SWITCHABLE_FEATURES = [
   "provider-wait-pause-v1",
   "badge-resets-cycles-v1",
   "drought-turns-only-v1",
+  "drought-hold-screens-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -883,6 +884,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("provider-wait-pause-v1", "guard", "PROVIDER WAIT PAUSE", null, "Default on. A pause request during a model call freezes the emulator and pauses the active run clock. A reply waits for resume before its tools can execute. Off: pause waits for the next safe boundary and a provider hold counts against the run clock."),
   on("badge-resets-cycles-v1", "guidance", "BADGE RESETS CYCLES", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The map-pair count behind You are stalling. You have walked between A and B was cleared only by early-game milestones, so run 37ca was told it was stalling 12 turns after the Heat Badge, on trips made long before it. On: a newly observed badge or gym completion starts that count over. Off: later-game milestones leave that count alone."),
   on("drought-turns-only-v1", "guard", "DROUGHT COUNTS TURNS ONLY", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The drought note ran on a 5-minute wall clock, about 11 DeepSeek turns, and 41 of 165 notes in five DeepSeek runs were false; turn-drought-clock-v1 credits level-ups, wins and heals and stays silent through long gym stalls. On: the drought clock counts 30 actions and a level-up, trainer win or heal no longer restarts it; a story milestone does, and so does the end of a battle or heal trip that held back a due note, as before. The note no longer lists those credits. Off: the clock is as configured by turn-drought-clock-v1."),
+  on("drought-hold-screens-v1", "guard", "DROUGHT HOLDS ON BATTLE SCREENS", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). Run 37ca got the drought note on the evolution screen right after beating Flannery. On: while an evolution or move screen that a battle handed control to is up, a due drought note is held, like one due during the battle itself. Off: the note can be sent on those screens."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1372,6 +1374,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("provider-wait-pause-v1"),
     ...when("badge-resets-cycles-v1"),
     ...when("drought-turns-only-v1"),
+    ...when("drought-hold-screens-v1"),
   ];
 }
 

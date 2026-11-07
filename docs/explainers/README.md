@@ -411,3 +411,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Provider wait pause](provider-wait-pause-v1.html)
 - [Badge resets cycles](badge-resets-cycles-v1.html): trips made before a new badge or gym win no longer count toward the stall note.
 - [Drought counts turns only](drought-turns-only-v1.html): the no-milestone note counts 30 actions; level-ups, wins and heals no longer restart it.
+- [Drought holds on battle screens](drought-hold-screens-v1.html): the no-milestone note waits while an evolution or move screen from a battle is up.

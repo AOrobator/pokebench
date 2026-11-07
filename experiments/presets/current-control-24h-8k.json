@@ -13,6 +13,7 @@
     "maxTokens": 8192
   },
   "features": {
+    "drought-hold-screens-v1": true,
     "drought-turns-only-v1": true,
     "badge-resets-cycles-v1": true,
     "screenshot-button-baseline-v1": false,

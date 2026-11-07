@@ -1,0 +1,11 @@
+{
+  "source_runs": [
+    "2026-11-07T00-28-59_rayquaza-lane-qwen_6056",
+    "2026-11-06T10-33-12_rayquaza-lane-qwen_aeb8",
+    "2026-11-06T10-33-12_rayquaza-lane-qwen_aeb8",
+    "2026-11-06T10-33-12_rayquaza-lane-qwen_aeb8"
+  ],
+  "selection": "state rows, seq 4325, 15268, 21062, 37182, 21186; 6056 T120, aeb8 T319, T416, T654, then the locked-field aeb8 T416 state; dropped map_observation, local_map, raw_ram, game_stats, type_gap and the event envelope",
+  "event_count": 5,
+  "fixture_sha256": "a864f15c2def88ae1c4b6e91374f8889efa52545e50de99ba4e4da2d042b71a4"
+}

@@ -21,7 +21,7 @@ describe("the broadcast store", () => {
     const s = store(d);
     const first = await s.read("r", 0);
     expect(first).toMatchObject({ next: 1, ended: false, header: { run: "r" }, items: [{ k: "press", t: 1 }] });
-    d.files["/runs/r/events.jsonl"] += PRESS(2);
+    d.files["/runs/r/events.jsonl"] = START + PRESS(1) + PRESS(2);
     expect(await s.read("r", first.next)).toMatchObject({ next: 2, items: [{ k: "press", t: 2 }] });
     expect(await s.read("r", 2)).toMatchObject({ next: 2, items: [] });
   });

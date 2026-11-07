@@ -32,6 +32,7 @@ describe("the broadcast reducer", () => {
     ["navigate_to", { x: 23, y: 10, map_id: [24, 22] }, "to (23,10)"],
     ["navigate_to_target", { map_id: [0, 36], target: { direction: "EAST", kind: "connection" } }, "to EAST exit"],
     ["navigate_to_target", { target: { kind: "warp", x: 5, y: 6 } }, "to warp (5,6)"],
+    ["navigate_to_target", { target: { kind: "object", local_id: 1 } }, "to object"],
     ["battle_action", { action: "run" }, "RUN"],
     ["select_menu_option", { phase: "start_menu", option: "BAG" }, "BAG"],
     ["learn_move", { forget: "none" }, "forget none"],

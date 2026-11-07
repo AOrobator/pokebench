@@ -2,6 +2,7 @@ import { PAGE_SPRITE_PATH } from "./trainer-page.js";
 import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
 import {readTurnBudgetReceipt} from "./budget-receipt.js";
+import { createBroadcastStore, type BroadcastDisk, type BroadcastStore } from "./broadcast-store.js";
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
@@ -12,7 +13,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { createWorkbenchUpdates, type WorkbenchUpdate } from "./workbench-sync.js";
 import { ProbeError, listProbes, readProbe } from "./probes.js";
 import { listReports, reportFile } from "./reports.js";
-import { existsSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, readSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
@@ -141,6 +142,17 @@ export interface ViewerOptions {
   // Where workbench run logs are reduced (default: in process) and where finished runs persist.
   readonly workbench?: { readonly compute?: WorkbenchCompute; readonly store?: RunStore<LoadedRun>; readonly partial?: boolean; readonly prioritize?: (runIds: readonly string[]) => void };
 }
+
+const broadcastDisk: BroadcastDisk = {
+  readBytes(path, offset, length) {
+    const fd = openSync(path, "r");
+    try {
+      const bytes = Buffer.allocUnsafe(length);
+      return bytes.subarray(0, readSync(fd, bytes, 0, length, offset));
+    } finally { closeSync(fd); }
+  },
+  readText(path) { try { return readFileSync(path, "utf8"); } catch { return null; } },
+};
 
 const MAX_BODY = 64 * 1024;
 export const STREAM_CHUNK_BYTES = 1024 * 1024;
@@ -413,7 +425,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader, current: CurrentApi | null): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader, current: CurrentApi | null, broadcast: BroadcastStore): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -517,6 +529,14 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   if(parts.length===1 && head==="play") {
     sendFile(res,join(options.staticDir,"play.html"),"text/html; charset=utf-8");return;
   }
+  if (parts.length === 1 && head === "broadcast") {
+    sendFile(res, join(options.staticDir, "broadcast.html"), "text/html; charset=utf-8");
+    return;
+  }
+  if (parts.length === 1 && head === "broadcast.css") {
+    sendFile(res, join(options.staticDir, "broadcast.css"), "text/css; charset=utf-8");
+    return;
+  }
   if(parts.length===1 && head==="human.css") {
     sendFile(res,join(options.staticDir,"human.css"),"text/css; charset=utf-8");return;
   }
@@ -584,6 +604,12 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       try { art = parseBagArt(JSON.parse(readFileSync(join(options.runsRoot, "sprites", "bag-v1", "manifest.json"), "utf8")) as unknown); } catch { /* Names remain usable without optional ROM art. */ }
       const input = { ledger: history.ledger, run: id, art };
       sendJson(res, 200, { run: id, throughSeq: history.throughSeq, range: bagRange(input), html: bagPage(input) });
+      return;
+    }
+    if (parts.length === 4 && leaf === "broadcast") {
+      const after = new URL(req.url ?? "/", "http://viewer.invalid").searchParams.get("after") ?? "0";
+      if (!/^(0|[1-9][0-9]*)$/.test(after) || !Number.isSafeInteger(Number(after))) { sendJson(res, 400, { error: "invalid broadcast cursor" }); return; }
+      sendJson(res, 200, await broadcast.read(id, Number(after)));
       return;
     }
     if(parts.length===4 && leaf==="budget") {sendJson(res,200,{max_turns:readTurnBudgetReceipt(dir,id)});return;}
@@ -676,6 +702,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   let origins: ReadonlyMap<string, string> = new Map();
   const readBaseline = createBaselineReader(options.runsRoot, { ...(options.baselines?.compute === undefined ? {} : { compute: options.baselines.compute }), ...(options.baselines?.store === undefined ? {} : { store: options.baselines.store }) });
   const readBag = createBagHistoryReader(options.runsRoot);
+  const broadcast = createBroadcastStore({ runsRoot: options.runsRoot, disk: broadcastDisk, eventsPath: id => eventsPath(options.runsRoot, id), pause: () => yieldImmediate() });
   const catalog = createRunCatalog(options.runsRoot, null);
   const strictCatalog = options.build === null ? catalog : createRunCatalog(options.runsRoot, options.build ?? null);
   const workbenchLoader = createWorkbenchLoader({ build: options.build ?? null, cards: createCardReader(options.runsRoot), ...(options.current === undefined ? {cardWriter:createCardStore(options.runsRoot)} : {}), ...(options.workbench?.compute === undefined ? {} : { compute: options.workbench.compute }), ...(options.workbench?.store === undefined ? {} : { store: options.workbench.store }) });
@@ -723,7 +750,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag, currentApi).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag, currentApi, broadcast).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

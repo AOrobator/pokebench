@@ -32,8 +32,8 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 ## Milestones
 
 ### Piece 1: `/broadcast` page
-- [ ] RED
-- [ ] GREEN
+- [x] RED (8002bec3d)
+- [x] GREEN: 68 focused tests
 - [ ] Browser proof on a separate port against a0b4, 1920x1080 screenshots viewed; follow mode on fake data
 - [ ] Gates, review, landing
 

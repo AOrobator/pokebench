@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { esc, eventMs, hms, num, signedDelta } from "./format.js";
+import { broadcastUrl, esc, eventMs, hms, num, signedDelta } from "./format.js";
 
 describe("format", () => {
+  it("opens the broadcast page on a run, or on the newest live run with none chosen", () => {
+    expect(broadcastUrl(null)).toBe("/broadcast");
+    expect(broadcastUrl("2026-11-07T00-01-56_deepseek-deepseek-v4.1-flash_37ca")).toBe("/broadcast?run=2026-11-07T00-01-56_deepseek-deepseek-v4.1-flash_37ca");
+    expect(broadcastUrl("a b&c")).toBe("/broadcast?run=a%20b%26c");
+  });
+
   it.each([
     [0, "0:00:00"],
     [65.9, "0:01:05"],

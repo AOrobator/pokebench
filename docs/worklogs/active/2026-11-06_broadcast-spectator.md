@@ -47,6 +47,23 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [x] Real lines (the operator approved via coordinator 2026-11-07): temporary loopback Qwen3.6-35B-A3B Q4, ctx 8k, 1 slot, nice 10, stopped after. a0b4 Winona fight, t=4279-4760: 16 of 17 turns. Peak 30.6 GB RSS, system memory free never under 78%. Prompt tuned against every turn's thinking; a jargon check refuses button names and KO/HP, retried up to 3 times.
 - [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
+### Piece 4: `just broadcast-commentary --follow`
+Coordinator brief 2026-11-07 for the operator ("whats stopping us from generating these live?"). Follower tails a live run read-only, writes each finished thought's wav then its line, skips a turn on any model or voice failure, drops turns more than 2 behind the newest, exits on run_end or after 30 minutes of silence.
+- [x] RED
+- [x] GREEN: 43 focused tests under the no-I/O guard
+- [x] Rehearsal: real Qwen and Kokoro tailing a replayed 37ca log at one turn per 4 s: 58 backlog turns dropped, 14 lines kept pace, exit 0 on run_end, nothing written beside the fake events.jsonl
+- [x] Gates on a9f440d1e: lint (mypy through main's venv; this worktree has no mgba binding), 2,684 agent, 1,200 viewer, 3,048 env, 38 gateway, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM
+- [x] Landed 10eba171d; post-main `just test`: 2,684 agent, 1,200 viewer, 3,051 env, 38 gateway
+- [x] Live: loopback Qwen3.6-35B-A3B Q4 on 18135 (nice 10, 8k, 1 slot) and follower on 37ca, detached under runs/broadcast/live-model/ with a memory watcher that stops both under 50% free. First lines from turn 158; a caption showed on the served page on a reload.
+
+### Piece 5: Broadcast link in the viewer
+Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
+- [x] RED
+- [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
+- [x] Gates on 7bdb2a62d: lint, 3 suites and floors via just test, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM (sha cb02e865)
+
 ### Piece 6: live captions and sound on /broadcast
 Follow mode only: new captions as they arrive, wavs queued one at a time, lines older than 30 s skipped, one click to turn sound on. The feed sends new lines on polls and a route serves the wavs. Replay and transparent stay silent. `?voice=0` turns sound off for a page: display-only, so no harness switch (feature-switch skill); anything else leaves it on, and a missing button, wav or speaker fails open to silent captions.
 - [x] RED
@@ -88,6 +105,9 @@ Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passin
 
 Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude and fallback LGTM before it. Post-main `just test`: 2,684 agent, 1,200 viewer, 3,032 env, 38 gateway.
 
+Piece 4, round 1 on 724bd5a1d (sha 7e359be9): fallback LGTM, GPT BLOCKING, Claude CLI default login expired (retried with ~/.claude-review). Fixed: a failed last save exited with success and lost the line (now retried, and a repeat failure stops loudly); turns recovered on a restart were appended after later ones (sorted by time). Rebutted: a follower started before the run log exists fails at once, which is the right answer.
+
+Piece 4, round 2 on a9f440d1e: Claude and fallback LGTM; GPT BLOCKING only on a wav write failure exiting 0 after a logged skip. Rebutted (incomplete commentary is the designed outcome; the brief says skip and carry on); GPT re-judged with the rebuttal: LGTM.
 Piece 6, round 1 on 4ebeba1b7 (sha 33b85991): Claude, GPT and fallback all BLOCKING on one bug: a click with no line waiting never played inside the gesture, so strict browsers stayed locked. Fixed by playing through Web Audio with the context resumed in the click. Rehearsal again, clicking before any line existed: context running, five wavs played in order with no overlap. Rebutted: an open page misplacing a line a restarted follower sorted into the middle (restart only, within the last two turns; a reload heals it); the run's last line missed by a page that stopped polling at run_end; the 15 s caption hold measured from the thought's end (rehearsal shows lines a few seconds behind).
 
 Piece 6, round 2 on f4b932af4: fallback BLOCKING on the new speaker: the stall limit began after the fetch, so a hung wav held the queue; a stalled line left its node running; stop missed a line in flight. Round 2 lanes: Claude LGTM; GPT BLOCKING on the same stall and stop bugs; GPT's third (a caption outliving its hold on a long turn) rebutted: it is still the current turn's line. All fixed with one limit over the whole line and a ticket. Rehearsal again: five lines, no overlap, button gone, replay and transparent silent.

@@ -284,7 +284,7 @@ fixed-run *args: build
 broadcast-render *args: build
     nice -n 10 node packages/viewer/dist/broadcast-render-cli.js "$@"
 
-# One spoken line per turn from a finished run, voiced with Kokoro, into runs/broadcast/<run>/. Needs a local
+# One spoken line per turn, voiced with Kokoro, into runs/broadcast/<run>/; --follow tails a live run. Needs a local
 # OpenAI-style --endpoint. Kokoro's two model files come from $KOKORO_MODELS or ~/.cache/pokebench/kokoro.
 [positional-arguments]
 broadcast-commentary *args:

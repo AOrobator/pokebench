@@ -631,6 +631,7 @@ describe("custom lanes are shown as heavily assisted", () => {
   it("names the assistance in the run details drawer, and only for an assisted run", () => {
     expect(runDetails(fastest("helped", { model: "x-edit-1" }), null)).toContain("HEAVILY ASSISTED");
     expect(runDetails(benchmark(), null)).not.toContain("HEAVILY ASSISTED");
+    expect(runDetails(benchmark(), null)).toContain(`href="/broadcast?run=${encodeURIComponent(benchmark().id)}"`);
   });
   it("leaves benchmark runs alone: a switch that is off, a recorded-unknown switch, or an id merely containing edit", () => {
     for (const run of [benchmark(), fastest("off", { config: config([{ id: "story-route-plan-v1", label: "", on: false }]) }), fastest("unknown", { config: config([{ id: "next-milestone-hint-v1", label: "", on: null }]) }), fastest("credit", { model: "credited-model" }), fastest("slash", { model: "vendor/edit/model" }), fastest("under", { model: "qwen_edit_control" }), fastest("none", { model: null, config: null })]) expect(customLane(run)).toBeNull();

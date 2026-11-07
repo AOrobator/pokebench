@@ -5,7 +5,7 @@ import { metricHistory } from "./metric-history.js";
 // Browser glue: picks a run, follows its event stream, and renders the Open
 // PokéNav layout either live (wall clock) or as a replay (cursor clock).
 import type { RunEvent } from "@pokebench/agent/events";
-import { esc, eventMs, hms } from "./format.js";
+import { broadcastUrl, esc, eventMs, hms } from "./format.js";
 import { gbaSvg, litButtons } from "./gba.js";
 import { RunView, isRunEvent } from "./model.js";
 import { syncPhoneFlag } from "./phone.js";
@@ -624,7 +624,7 @@ export class App {
   }
 
   private setupPhoneHeader(): void {
-    const movable = [".bar > .replay-controls", ".bar > .tb-ctl", ".bar > [data-ui=\"comparisons-link\"]", ".bar > .run-choice"];
+    const movable = [".bar > .replay-controls", ".bar > .tb-ctl", ".bar > [data-ui=\"comparisons-link\"]", ".bar > [data-ui=\"broadcast-link\"]", ".bar > .run-choice"];
     const elements = movable.map((selector) => this.doc.querySelector<HTMLElement>(selector)).filter((element): element is HTMLElement => element !== null);
     elements.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) === 0 ? 1 : -1);
     for (const element of elements) {
@@ -1318,6 +1318,8 @@ export class App {
     this.doc.location.hash = `${!automatic && this.runs.find((run) => run.id === runId)?.ended === true ? "replay" : "run"}=${encodeURIComponent(runId)}`;
     const comparisons = this.doc.querySelector<HTMLAnchorElement>('[data-ui="comparisons-link"]');
     if (comparisons !== null) comparisons.href = `/comparisons?from=${encodeURIComponent(runId)}`;
+    const broadcast = this.doc.querySelector<HTMLAnchorElement>('[data-ui="broadcast-link"]');
+    if (broadcast !== null) broadcast.href = broadcastUrl(runId);
     this.recording=null;this.recordingCurrent=null;this.currentApplied=null;this.currentHistory=new RunView();this.currentHistoryEvents=[];this.timelineFeed=new TimelineFeed(null);this.timelineHead=[];
   }
 

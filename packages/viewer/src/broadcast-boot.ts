@@ -37,7 +37,7 @@ mountBroadcast(document, {
   width: () => window.innerWidth,
   height: () => window.innerHeight,
   after: (ms, run) => { setTimeout(run, ms); },
-  show: async (image, src) => { image.src = src; await image.decode().catch(() => undefined); },
+  show: (image, src) => { image.src = src; return image.decode(); },
   laneWidth: lane => lane.offsetWidth,
   openFrames: frameSocket,
   frameUrl: data => {

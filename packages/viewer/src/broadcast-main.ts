@@ -68,7 +68,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   const timeline = new BroadcastTimeline();
   const game = part("game") as HTMLImageElement, lane = part("lane");
   let cursor = 0, ended = false, liveFrames = false;
-  let onScreen: string | null = null;
+  let onScreen: string | null = null, showing = Promise.resolve(), socket: FrameSocket | null = null;
 
   const fetchFeed = async (): Promise<BroadcastResponse> => parseBroadcast(await deps.fetchJson(`${base}/broadcast?after=${String(cursor)}`));
   const first = await fetchFeed();
@@ -81,16 +81,33 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     ended = feed.ended;
   };
   take(first);
+  // One read at a time: two answers from the same cursor would add the same items twice.
+  let reading = Promise.resolve();
+  const refresh = (): Promise<void> => {
+    reading = reading.catch(() => undefined).then(fetchFeed).then(take);
+    return reading;
+  };
 
   const paint = (el: HTMLElement, html: string): void => { if (el.dataset.was !== html) { el.dataset.was = html; el.innerHTML = html; } };
   const write = (el: HTMLElement, text: string): void => { if (el.textContent !== text) el.textContent = text; };
-  const showFrame = async (view: BroadcastView): Promise<void> => {
-    if (transparent || liveFrames || view.frame === null) return;
+  // A held moment waits for its frame, and a frame that fails is reported and can be tried again.
+  const showFrame = (view: BroadcastView): Promise<void> => {
+    if (transparent || liveFrames) return Promise.resolve();
+    if (view.frame === null) {
+      if (onScreen !== null) { onScreen = null; game.removeAttribute("src"); }
+      return Promise.resolve();
+    }
     const src = `${base}/frames/${view.frame}`;
-    if (src === onScreen) return;
+    if (src === onScreen) return showing;
     onScreen = src;
-    await deps.show(game, src);
+    showing = deps.show(game, src).catch((error: unknown) => {
+      if (onScreen === src) onScreen = null;
+      throw error;
+    });
+    return showing;
   };
+  // Following tolerates a failed frame: the next tick moves on, and a new src cancels a pending decode.
+  const showFollowing = (view: BroadcastView): void => { showFrame(view).catch(() => undefined); };
   const render = (t: number): BroadcastView => {
     const view = timeline.view(t, lines, rates);
     write(part("who"), modelTitle(header.model));
@@ -111,33 +128,47 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   const followTime = (): number => timeline.end ?? Math.max(0, (deps.now() - started) / 1000 - FOLLOW_DELAY_S);
   const tick = (): void => {
     if (moment !== null) return;
-    void showFrame(render(followTime()));
+    showFollowing(render(followTime()));
     if (timeline.end === null) deps.after(TICK_MS, tick);
   };
   const poll = (): void => {
     if (moment !== null) return;
-    fetchFeed().then(take).catch(() => undefined).finally(() => { if (!ended) deps.after(POLL_MS, poll); });
+    refresh().catch(() => undefined).finally(() => { if (!ended) deps.after(POLL_MS, poll); });
   };
   const streamFrames = (): void => {
     if (moment !== null || ended || transparent || deps.openFrames === undefined || deps.frameUrl === undefined) return;
-    const { frameUrl } = deps, socket = deps.openFrames(`${base}/frames`);
-    socket.on("message", data => {
+    const { frameUrl } = deps, stream = deps.openFrames(`${base}/frames`);
+    socket = stream;
+    stream.on("message", data => {
+      if (socket !== stream) return;
       liveFrames = true;
       const previous = onScreen;
       onScreen = frameUrl(data);
-      void deps.show(game, onScreen).then(() => { if (previous?.startsWith("blob:") === true) doc.defaultView?.URL.revokeObjectURL(previous); });
+      // A newer frame cancels a pending decode, so the old blob is retired either way.
+      const retire = (): void => { if (previous?.startsWith("blob:") === true) doc.defaultView?.URL.revokeObjectURL(previous); };
+      deps.show(game, onScreen).then(retire, retire);
     });
-    socket.on("close", () => { liveFrames = false; deps.after(FRAME_RETRY_MS, streamFrames); });
+    stream.on("close", () => {
+      if (socket !== stream) return;
+      socket = null;
+      liveFrames = false;
+      deps.after(FRAME_RETRY_MS, streamFrames);
+    });
   };
 
   if (moment !== null) await showFrame(render(moment));
   else {
-    await showFrame(render(followTime()));
+    showFollowing(render(followTime()));
     if (!first.ended) { deps.after(TICK_MS, tick); deps.after(POLL_MS, poll); streamFrames(); }
   }
   return {
     async setTime(t) {
       moment = t;
+      liveFrames = false;
+      socket?.close();
+      socket = null;
+      // A run still being written may have reached t since the last read.
+      if (!ended) await refresh();
       await showFrame(render(t));
     },
   };

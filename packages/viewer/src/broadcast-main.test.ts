@@ -122,6 +122,94 @@ describe("the broadcast page", () => {
     expect(s.timers.length).toBeGreaterThan(0);
   });
 
+  it("retires each live frame's blob even when a newer frame cancels its decode", async () => {
+    const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
+    const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close: vi.fn() };
+    let n = 0;
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, frameUrl: () => { n += 1; return `blob:${String(n)}`; }, show: () => Promise.reject(new Error("cancelled")) });
+    await s.mount();
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    handlers.message?.(new ArrayBuffer(1));
+    handlers.message?.(new ArrayBuffer(1));
+    await vi.waitFor(() => { expect(revoke).toHaveBeenCalledWith("blob:1"); });
+    revoke.mockRestore();
+  });
+
+  it("setTime leaves live frames for good and waits for the recorded frame", async () => {
+    const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
+    const close = vi.fn();
+    const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close };
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, frameUrl: () => "blob:1" });
+    const fetched = vi.fn(() => Promise.resolve(answer({ ended: false })));
+    s.deps.fetchJson = url => url.endsWith("after=0") ? Promise.resolve(answer({ ended: false, next: 7 })) : fetched();
+    const page = await s.mount();
+    handlers.message?.(new ArrayBuffer(1));
+    await page.setTime(6.5);
+    expect(close).toHaveBeenCalled();
+    expect(s.shown.at(-1)).toBe("/api/runs/r1/frames/000006_0.png");
+    handlers.message?.(new ArrayBuffer(1));
+    handlers.close?.();
+    expect(s.shown.at(-1)).toBe("/api/runs/r1/frames/000006_0.png");
+    expect(fetched).toHaveBeenCalled();
+  });
+
+  it("setTime during a poll waits its turn, so nothing is added twice", async () => {
+    const replies: (() => void)[] = [];
+    const more = [{ k: "think", t: 5, turn: 1, d: " again" }];
+    const s = setup("?run=r1", url => {
+      if (url.endsWith("after=0")) return Promise.resolve(answer({ ended: false }));
+      const after = Number(url.split("after=")[1]), items = after < ITEMS.length + 1 ? more : [];
+      return new Promise(done => { replies.push(() => { done(answer({ ended: false, items, next: ITEMS.length + 1 })); }); });
+    });
+    const page = await s.mount();
+    s.timers.splice(0).forEach(run => { run(); });
+    await vi.waitFor(() => { expect(replies).toHaveLength(1); });
+    const held = page.setTime(5.5);
+    await Promise.resolve();
+    expect(replies).toHaveLength(1);
+    replies[0]?.();
+    await vi.waitFor(() => { expect(replies).toHaveLength(2); });
+    replies[1]?.();
+    await held;
+    expect(s.part("think").textContent).toBe("Hello there again");
+  });
+
+  it("two setTime calls on one frame both wait for its decode", async () => {
+    let release = (): void => undefined;
+    const s = setup("?run=r1&t=1", () => Promise.resolve(answer()), { show: () => new Promise<void>(done => { release = done; }) });
+    const page = await s.mount();
+    let second = false;
+    void page.setTime(6.5);
+    const later = page.setTime(6.6).then(() => { second = true; });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(second).toBe(false);
+    release();
+    await later;
+  });
+
+  it("a frame that will not load fails the held moment, and can be tried again", async () => {
+    let fail = true;
+    const s = setup("?run=r1&t=1", () => Promise.resolve(answer()), { show: () => fail ? Promise.reject(new Error("no frame")) : Promise.resolve() });
+    const page = await s.mount();
+    await expect(page.setTime(6.5)).rejects.toThrow("no frame");
+    fail = false;
+    await expect(page.setTime(6.5)).resolves.toBeUndefined();
+  });
+
+  it("following rides over a frame that will not load", async () => {
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { show: () => Promise.reject(new Error("no frame")) });
+    await expect(s.mount()).resolves.toBeDefined();
+  });
+
+  it("clears the picture when stepping back before the first frame", async () => {
+    const s = setup("?run=r1&t=6.5", () => Promise.resolve(answer()));
+    const page = await s.mount();
+    s.part("game").setAttribute("src", "x");
+    await page.setTime(1);
+    expect(s.part("game").hasAttribute("src")).toBe(false);
+  });
+
   it("reports a bad t, a missing run and no live run instead of hanging", async () => {
     await expect(setup("?run=r1&t=abc", () => Promise.resolve(answer())).mount()).rejects.toThrow(/t must be/);
     await expect(setup("?run=r1", () => Promise.reject(new Error("HTTP 404"))).mount()).rejects.toThrow(/404/);

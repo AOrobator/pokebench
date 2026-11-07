@@ -195,3 +195,5 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Switch on in the lane overlay, off in current.
 - Frozen-recipe comparison uses the overlay as it stood at the freeze.
 - Reviews: a second test file resolved the overlay against the frozen recipe; OFF test now pins the exact note.
+- Landed rq-no-grind-note-v1 (3ac8226e6): Claude and GPT LGTM, Grok skipped; just test and just lint exit 0 (agent 2688, viewer 1221); memory free 86%. Live run 6056 keeps its frozen recipe.
+- e09e stop reason (not recorded in the run): restart on on-path catch fix, the operator 11/7.

@@ -205,31 +205,29 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <line class="grid" x1="48" x2="520" y1="16.0" y2="16.0"/>
 <text class="small" x="42" y="20.0" text-anchor="end">100%</text>
 <text class="small" x="48.0" y="276" text-anchor="middle">0</text>
-<text class="small" x="166.0" y="276" text-anchor="middle">6</text>
+<text class="small" x="166.0" y="276" text-anchor="middle">5</text>
 <text class="small" x="284.0" y="276" text-anchor="middle">11</text>
-<text class="small" x="402.0" y="276" text-anchor="middle">17</text>
-<text class="small" x="520.0" y="276" text-anchor="middle">22</text>
+<text class="small" x="402.0" y="276" text-anchor="middle">16</text>
+<text class="small" x="520.0" y="276" text-anchor="middle">21</text>
 <text class="small" x="284" y="294" text-anchor="middle">GPU-hours (cap 20 min, both arms)</text>
 <line class="target" x1="48" x2="520" y1="64.8" y2="64.8"/>
-<line class="budget" x1="279.2" x2="279.2" y1="16" y2="260"/>
-<text class="small" x="283.2" y="28">budget</text>
-<polyline class="curve c0" points="107.0,252.0 121.8,236.7 136.5,248.4 151.2,235.8 166.0,220.2 180.8,207.2 195.5,211.5 210.3,199.4 225.0,186.3 239.8,172.6 254.5,166.3 269.2,169.6 284.0,159.2 298.8,148.5 313.5,137.6 328.3,127.2 343.0,120.1 357.8,119.3 372.5,111.6 387.2,104.2 402.0,97.0 416.8,95.2 431.5,87.8 446.3,82.6 461.0,76.4 475.8,75.4 490.5,70.3 505.3,65.6 520.0,61.1"/>
+<polyline class="curve c0" points="107.0,252.0 121.8,236.7 136.5,248.4 151.2,235.8 166.0,220.2 180.8,207.2 195.5,211.5 210.2,199.4 225.0,186.3 239.8,172.6 254.5,166.3 269.2,169.6 284.0,159.2 298.8,148.5 313.5,137.6 328.2,127.2 343.0,120.1 357.8,119.3 372.5,111.6 387.3,104.2 402.0,97.0 416.8,95.2 431.5,87.8 446.2,82.6 461.0,76.4 475.7,75.4 490.5,70.3 505.3,65.6 520.0,61.1"/>
 <text class="small" x="528" y="32"><tspan class="key c0">━</tspan> +35 pts</text>
-<polyline class="curve c1" points="107.0,237.3 121.8,202.5 136.5,223.3 151.2,193.3 166.0,162.4 180.8,147.6 195.5,152.5 210.3,130.2 225.0,109.4 239.8,91.0 254.5,92.3 269.2,90.0 284.0,76.4 298.8,64.6 313.5,54.5 328.3,47.9 343.0,46.4 357.8,45.2 372.5,39.7 387.2,35.0 402.0,31.0 416.8,28.1 431.5,26.5 446.3,25.8 461.0,24.0 475.8,23.4 490.5,21.8 505.3,20.6 520.0,19.6"/>
+<polyline class="curve c1" points="107.0,237.3 121.8,202.5 136.5,223.3 151.2,193.3 166.0,162.4 180.8,147.6 195.5,152.5 210.2,130.2 225.0,109.4 239.8,91.0 254.5,92.3 269.2,90.0 284.0,76.4 298.8,64.6 313.5,54.5 328.2,47.9 343.0,46.4 357.8,45.2 372.5,39.7 387.3,35.0 402.0,31.0 416.8,28.1 431.5,26.5 446.2,25.8 461.0,24.0 475.7,23.4 490.5,21.8 505.3,20.6 520.0,19.6"/>
 <text class="small" x="528" y="50"><tspan class="key c1">━</tspan> +50 pts</text>
 </svg>
-<figcaption>Exact Fisher power against GPU-hours from <code>power.py plan</code>. Baseline 15% from Qwen3.8 lane fights: aeb8 won 1 of 6, 7442 lost 1, so 1 of 7, about 15%. Hand-counted from recorded events. Dashed line: target power. Chart counts one GPU per trial; the table doubles it for Qwen3.8. Red line: the operator's budget.</figcaption>
+<figcaption>Exact Fisher power against GPU-hours from <code>power.py plan</code>. Baseline 15% from Qwen3.8 lane fights: aeb8 won 1 of 6, 7442 lost 1, so 1 of 7, about 15%. Hand-counted from recorded events. Dashed line: target power. Chart counts one GPU per trial; the table doubles it for Qwen3.8.</figcaption>
 </figure>
 <div class="wrap"><table>
 <tr><th>True lift</th><th>Runs per arm for 80%</th><th>GPU-hours</th><th>Wall hours</th><th>Power at the planned N</th></tr>
-<tr><td>+50 points</td><td>17</td><td>24</td><td>12</td><td>80%</td></tr>
-<tr><td>+35 points</td><td>32</td><td>44</td><td>22</td><td>46%</td></tr>
+<tr><td>+50 points</td><td>17</td><td>22.7</td><td>11.3</td><td>80%</td></tr>
+<tr><td>+35 points</td><td>32</td><td>42.7</td><td>21.3</td><td>46%</td></tr>
 </table></div>
-<p><code>power.py plan --control 0.15 --lifts 0.35,0.5 --cap-min 20 --executors 1 --failure-rate 0.05 --budget-gpu-hours 11</code></p>
+<p><code>power.py plan --control 0.15 --lifts 0.35,0.5 --cap-min 20 --executors 1 --failure-rate 0</code></p>
 
 <h2>6. Order, executors and failures</h2>
 <p>Both arms run in randomized balanced blocks on one Qwen3.8 server that holds both GPUs, so each wall hour is 2 GPU-hours; the table above is doubled from power.py for that reason. Qwen3.6 runs after, one instance per GPU, each GPU running both arms. Stop anything only after checking no live run uses that server. e09e holds both GPUs until about 10:35 PM on Nov 7, unless the operator stops it.</p>
-<p>Every trial runs the full 20 minutes: the control base has no stop target, so a win carries on toward Mauville and a win is read from the milestone. Costs exclude a few minutes of start-up per trial. aeb8's quickest return after a loss was 19 minutes, so one fight per trial is close to guaranteed for Qwen3.8. Only trials with no run_start are re-run.</p>
+<p>Every trial runs the full 20 minutes: the control base has no stop target, so a win carries on toward Mauville and a win is read from the milestone. Costs exclude a few minutes of start-up per trial. aeb8's quickest return after a loss was 19 minutes, so one fight per trial is close to guaranteed for Qwen3.8. Only trials with no run_start are re-run, up to three per definition.</p>
 
 <h2>7. What could fool us, and what this cannot tell us</h2>
 <div class="wrap"><table>
@@ -247,7 +245,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><td>Build</td><td><code>Frozen at launch</code></td></tr>
 <tr><td>Start state</td><td>runs/route110-rival/near-fight/ROUTE_110_NEAR_RIVAL.state, SHA-1 f6a0d23c49a946e99c36db3d3e97fc4120fe690f. CPU replay of aeb8 from its ROUTE_110 save (662fcf40f) to frame 1063791 in 64 seconds, no GPU. Work RAM matched the recording at all 51 checks, with no clock corrections. Loaded on the real server: Route 110, (35,61), controllable, ROUTE_110 present at start, rival not yet beaten.</td></tr>
 <tr><td>Baseline cohort</td><td>Qwen3.8 lane fights: aeb8 won 1 of 6, 7442 lost 1, so 1 of 7, about 15%. Hand-counted from recorded events</td></tr>
-<tr><td>Grading code</td><td>Primary: the existing ROUTE_110_RIVAL_DEFEATED milestone. First-fight secondary: recorded battle events, with the script fixed before launch.</td></tr>
+<tr><td>Grading code</td><td>Primary: the existing ROUTE_110_RIVAL_DEFEATED milestone. First-fight secondary: recorded battle events, read by runs/route110-rival/first-fight.py, fixed before launch.</td></tr>
 <tr><td>Design review</td><td>Not yet reviewed; The operator has not set a budget.</td></tr>
 </table></div>
 </main>

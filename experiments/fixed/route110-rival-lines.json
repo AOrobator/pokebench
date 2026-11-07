@@ -624,7 +624,7 @@
     "contextTokens": 262144,
     "slots": 1
   },
-  "replacementReserveMs": 0,
+  "replacementReserveMs": 3600000,
   "terminalErrorsAsOutcomes": true,
   "bundleMaxTokens": 8192,
   "controlMaxTokens": 8192,

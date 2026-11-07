@@ -320,3 +320,4 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - COMMIT: `fix(agent): mach_dash survives the real path: release 0, warps and battles` (01b237c0d). 294 agent and 48 viewer focused tests pass; tsc on both packages and eslint on changed files clean. Full suites, review loop and merge not done. After a merge, `just viewer-main` is needed before a run from this pin: an older viewer rejects `release_frames: 0`.
 - Rebased mach dash onto the checkpoint rows; guide regenerated at 159 steps.
 - GPT: a huge count in a route was expanded before the cap. Now summed first.
+- Claude: a landing at 3F (6,4) shares the pocket with (7,4) but fires no row, and (11,1) is unreachable from it. Row now sends it to (7,4).

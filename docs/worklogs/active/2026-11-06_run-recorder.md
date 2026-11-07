@@ -29,3 +29,5 @@ COMMIT: `feat(env): the recorder logs a sync mark each minute` (1fdd1a42b). GPT 
 COMMIT: `fix(env): sound records from a save, and a stuck encoder cannot hang the recorder` (cd56ada2e).
 
 COMMIT: `style(env): segment options in one place` (247ce036b). Gates passed on cd56ada2e: 2,677 agent, 1,077 viewer, 3,003 env, 38 gateway; lint clean. GPT: index was wrong after a restart or reset; it now reads per-session marks.
+
+COMMIT: `fix(env): the segment index reads each recorder session's own marks` (8730400d8). GPT: a sync mark named the next position; it now names the frame it logged.

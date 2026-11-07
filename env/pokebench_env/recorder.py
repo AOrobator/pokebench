@@ -245,7 +245,7 @@ def record_frames(frames: Iterable[Frame], sink: Sink, anchor: Anchor, log: Log)
         before = anchor.frames
         anchor.add(plan.writes)
         if anchor.frames // SYNC_MARK_FRAMES != before // SYNC_MARK_FRAMES:
-            log("sync", frame_count=frame.frame_count, video_frames=anchor.frames)
+            log("sync", frame_count=frame.frame_count, video_frames=anchor.frames - 1)
 
 
 @dataclass(frozen=True)

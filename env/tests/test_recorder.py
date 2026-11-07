@@ -337,8 +337,8 @@ def test_a_sync_mark_ties_game_frame_to_file_position_each_minute() -> None:
     record_frames(frames, FakeSink(), anchor, events)
     marks = [fields for name, fields in events.seen if name == "sync"]
     assert marks == [
-        {"frame_count": 99 + SYNC_MARK_FRAMES, "video_frames": SYNC_MARK_FRAMES},
-        {"frame_count": 99 + SYNC_MARK_FRAMES * 2, "video_frames": SYNC_MARK_FRAMES * 2},
+        {"frame_count": 99 + SYNC_MARK_FRAMES, "video_frames": SYNC_MARK_FRAMES - 1},
+        {"frame_count": 99 + SYNC_MARK_FRAMES * 2, "video_frames": SYNC_MARK_FRAMES * 2 - 1},
     ]
 
 

@@ -9,3 +9,5 @@ Tested on a copy of the 80af recording: segments held until the recorder ended, 
 GPT round 1: fixed files missing a stream, a last pass that gave up on failure (now up to 12 tries, 5 minutes apart), events from an older run (only a run created after the job starts), and the model glob.
 
 GPT round 2: model glob now mirrors newRunId exactly.
+
+GPT LGTM on fd6a14ca0 after three rounds. Claude review waived by the operator 2026-11-06, 11:58 PM NY: "claude's review is waived, launch". No app code changed; script and launcher only.

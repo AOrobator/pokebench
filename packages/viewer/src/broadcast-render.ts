@@ -128,20 +128,58 @@ export function atempoChain(rate: number): string {
   return [...steps, `atempo=${left.toFixed(6)}`].join(",");
 }
 
+export interface Voice { readonly path: string; readonly delayMs: number }
 export interface EncoderPlan {
   readonly out: string;
   readonly fps: number;
   readonly seconds: number;
   readonly game: { readonly backdrop: string; readonly video: readonly Clip[]; readonly audio: readonly Clip[] } | null;
+  readonly voices?: readonly Voice[];
+}
+
+const Spoken = Type.Object({ t: Type.Number(), wav: Type.String({ pattern: "^[A-Za-z0-9_.-]+\\.wav$" }), seconds: Type.Number() });
+const VOICE_GAP = 0.2;
+const MOST_LATE = 3;
+
+// Lines with a voice inside the stretch. One voice at a time: a line waits for the last to finish, and is left
+// out if that would put it more than a few seconds behind the moment it is about.
+export function planVoices(commentary: string, from: number, to: number, folder: string): Voice[] {
+  const voices: Voice[] = [];
+  let free = from;
+  for (const text of commentary.split("\n")) {
+    let line: unknown;
+    try { line = JSON.parse(text); } catch { continue; }
+    if (!Value.Check(Spoken, line) || line.t < from || line.t >= to) continue;
+    const at = Math.max(line.t, free);
+    if (at - line.t > MOST_LATE || at + line.seconds > to) continue;
+    voices.push({ path: join(folder, line.wav), delayMs: Math.round((at - from) * 1000) });
+    free = at + line.seconds + VOICE_GAP;
+  }
+  return voices;
+}
+
+// Voices enter after the page's inputs; the game plays under them.
+function voiceFilters(voices: readonly Voice[], firstInput: number, sound: string): string[] {
+  const labels = voices.map((_, i) => `[w${String(i)}]`).join("");
+  return [
+    `${sound}volume=0.35[under]`,
+    ...voices.map((voice, i) => `[${String(firstInput + i)}:a]aresample=${String(SAMPLE_RATE)},aformat=channel_layouts=stereo,adelay=${String(voice.delayMs)}:all=1[w${String(i)}]`),
+    `[under]${labels}amix=inputs=${String(voices.length + 1)}:duration=first:normalize=0[a]`,
+  ];
 }
 
 const number = (value: number): string => String(Number(value.toFixed(3)));
 const OUTPUT = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart"];
 
-export function encoderArgs({ out, fps, seconds, game }: EncoderPlan): string[] {
+export function encoderArgs({ out, fps, seconds, game, voices = [] }: EncoderPlan): string[] {
   const start = ["-y", "-hide_banner", "-loglevel", "error", "-nostdin"];
   const page = ["-f", "image2pipe", "-framerate", String(fps), "-c:v", "png", "-i", "pipe:0"];
-  if (game === null) return [...start, ...page, ...OUTPUT, "-r", String(fps), out];
+  const voiceInputs = voices.flatMap(voice => ["-i", voice.path]);
+  if (game === null) {
+    if (voices.length === 0) return [...start, ...page, ...OUTPUT, "-r", String(fps), out];
+    const filter = [`anullsrc=r=${String(SAMPLE_RATE)}:cl=stereo:d=${number(seconds)}[silence]`, ...voiceFilters(voices, 1, "[silence]")].join(";");
+    return [...start, ...page, ...voiceInputs, "-filter_complex", filter, "-map", "0:v", "-map", "[a]", ...OUTPUT, "-r", String(fps), "-c:a", "aac", "-b:a", "192k", "-t", number(seconds), out];
+  }
   const inputs: string[] = [];
   let next = 2;
   const open = (clip: Clip): number => {
@@ -168,9 +206,10 @@ export function encoderArgs({ out, fps, seconds, game }: EncoderPlan): string[] 
     `${join("v", game.video.length)}concat=n=${String(game.video.length)}:v=1:a=0,fps=${String(OUTPUT_FPS)},scale=${String(GAME.width)}:${String(GAME.height)}:flags=neighbor[game]`,
     `[0:v][game]overlay=${String(GAME.x)}:${String(GAME.y)}[under]`,
     "[under][1:v]overlay=0:0,format=yuv420p[v]",
-    `${join("a", game.audio.length)}concat=n=${String(game.audio.length)}:v=0:a=1[a]`,
+    `${join("a", game.audio.length)}concat=n=${String(game.audio.length)}:v=0:a=1${voices.length === 0 ? "[a]" : "[sound]"}`,
+    ...(voices.length === 0 ? [] : voiceFilters(voices, next, "[sound]")),
   ].join(";");
-  return [...start, "-loop", "1", "-framerate", String(OUTPUT_FPS), "-i", game.backdrop, ...page, ...inputs, "-filter_complex", filter, "-map", "[v]", "-map", "[a]", ...OUTPUT, "-r", String(OUTPUT_FPS), "-c:a", "aac", "-b:a", "192k", "-t", number(seconds), out];
+  return [...start, "-loop", "1", "-framerate", String(OUTPUT_FPS), "-i", game.backdrop, ...page, ...inputs, ...voiceInputs, "-filter_complex", filter, "-map", "[v]", "-map", "[a]", ...OUTPUT, "-r", String(OUTPUT_FPS), "-c:a", "aac", "-b:a", "192k", "-t", number(seconds), out];
 }
 
 export interface RenderArgs { readonly run: string; readonly from: number; readonly to: number; readonly out: string; readonly gameVideo: string | null; readonly fps: number }
@@ -202,6 +241,7 @@ export interface Encoder { write(frame: Buffer): Promise<void>; finish(): Promis
 export interface RenderDeps {
   started(run: string): Promise<number>;
   readText(path: string): string | null;
+  commentaryFolder(run: string): string;
   listFiles(folder: string): readonly string[];
   openPage(path: string, transparent: boolean): Promise<RenderPage>;
   encode(args: string[]): Encoder;
@@ -231,7 +271,9 @@ export async function renderClip(deps: RenderDeps, args: RenderArgs): Promise<vo
   const page = await deps.openPage(path, transparent);
   try {
     const game = plan === null ? null : { ...plan, backdrop: await page.backdrop() };
-    const encoder = deps.encode(encoderArgs({ out: args.out, fps: args.fps, seconds, game }));
+    const folder = deps.commentaryFolder(args.run), commentary = deps.readText(join(folder, "commentary.jsonl"));
+    const voices = commentary === null ? [] : planVoices(commentary, args.from, args.to, folder);
+    const encoder = deps.encode(encoderArgs({ out: args.out, fps: args.fps, seconds, game, voices }));
     const frames = Math.round(seconds * args.fps);
     for (let i = 0; i < frames; i += 1) {
       await page.setTime(args.from + i / args.fps);

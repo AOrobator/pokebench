@@ -42,7 +42,8 @@ async function backdropFile(page: Page, folder: string): Promise<string> {
 
 async function main(): Promise<void> {
   const args = parseRenderArgs(process.argv.slice(2));
-  const viewer = await startViewer({ runsRoot: resolve(process.env.POKEBENCH_RUNS ?? "runs"), staticDir: here("../static"), appDir: here("./"), port: 0 });
+  const runsRoot = resolve(process.env.POKEBENCH_RUNS ?? "runs");
+  const viewer = await startViewer({ runsRoot, staticDir: here("../static"), appDir: here("./"), port: 0 });
   const browser = await chromium.launch();
   const folder = mkdtempSync(join(tmpdir(), "broadcast-render-"));
   try {
@@ -53,6 +54,7 @@ async function main(): Promise<void> {
         return Date.parse(parseBroadcast(await response.json()).header.started) / 1000;
       },
       readText: path => { try { return readFileSync(path, "utf8"); } catch { return null; } },
+      commentaryFolder: run => join(runsRoot, "broadcast", run),
       listFiles: path => readdirSync(path),
       openPage: async (path, transparent): Promise<RenderPage> => {
         const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });

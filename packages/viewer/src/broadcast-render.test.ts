@@ -218,7 +218,7 @@ describe("rendering a clip", () => {
   });
 
   it("picks up the run's commentary for the stretch", async () => {
-    const f = fakes({ readText: path => path === "/runs/broadcast/r/commentary.jsonl" ? JSON.stringify({ turn: 1, t: 10.5, text: "x", wav: "a.wav", seconds: 1 }) : null });
+    const f = fakes({ readText: path => path === "/runs/broadcast/r/commentary.jsonl" ? JSON.stringify({ turn: 1, t: 10.5, text: "x", wav: "a.wav", seconds: 0.25 }) : null });
     await renderClip(f.deps, { run: "r", from: 10, to: 11, out: "/o.mp4", gameVideo: null, fps: 1 });
     expect(f.encoder()).toContain("/runs/broadcast/r/a.wav");
   });

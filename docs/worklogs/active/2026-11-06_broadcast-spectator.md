@@ -43,8 +43,9 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 
 ### Piece 3: `just broadcast-commentary`
 - [x] Local model: none free (18020 serves e09e, LM Studio empty, 18100 paid). Coordinator put a temporary loopback Qwen3.6-35B-A3B to the operator; not started. Tool takes --endpoint.
-- [ ] RED: `test_broadcast_commentary.py` and voice tests in `broadcast-render.test.ts`
-- [ ] GREEN, proof, review, landing
+- [x] RED (1800fd9ca), GREEN: 20 env tests and 32 render tests
+- [ ] Real local model lines (waits on the operator's answer); rehearsed with a stub model and real Kokoro: 4 wavs on 80af t=225-265 in 8 s
+- [ ] Review, landing
 
 ## Closing the Loop
 

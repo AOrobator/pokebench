@@ -283,6 +283,11 @@ fixed-run *args: build
 broadcast-render *args: build
     nice -n 10 node packages/viewer/dist/broadcast-render-cli.js {{args}}
 
+# One spoken line per turn from a finished run, voiced with Kokoro, into runs/broadcast/<run>/. Needs a local
+# OpenAI-style --endpoint. Kokoro's two model files come from $KOKORO_MODELS or ~/.cache/pokebench/kokoro.
+broadcast-commentary *args:
+    PYTHONPATH="$PWD/env" nice -n 10 uv run --project env --with kokoro-onnx python -m pokebench_env.broadcast_commentary {{args}}
+
 # Manual validation probes are recorded like runs, excluded from benchmark results.
 # stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.
 probe saved="": build

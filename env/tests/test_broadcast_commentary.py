@@ -12,6 +12,7 @@ from pokebench_env.broadcast_commentary import (
     ask_model,
     clean_line,
     load_lines,
+    local_endpoint,
     read_turns,
     voice_lines,
     wav_bytes,
@@ -21,19 +22,25 @@ from pokebench_env.broadcast_commentary import (
 
 def event(seconds: int, kind: str, turn: int = 1, **rest: object) -> str:
     stamp = f"2026-11-06T12:00:{seconds:02d}.500-05:00"
-    return json.dumps({"v": 1, "seq": 1, "t": stamp, "type": kind, "turn": turn, **rest})
+    body = {"v": 1, "seq": 1, "t": stamp, "type": kind, "turn": turn, **rest}
+    return json.dumps(body, separators=(",", ":"))
 
 
 START = event(0, "run_start", 0)
 
 
 def test_turns_come_from_each_assistant_thought_timed_from_run_start() -> None:
-    turns = read_turns([START, event(5, "assistant", thinking="Go up."), "not json", event(7, "state")])
+    turns = read_turns(
+        [START, event(5, "assistant", thinking="Go up."), "not json", event(7, "state")]
+    )
     assert turns == [Turn(turn=1, t=5.0, thinking="Go up.")]
 
 
 def test_a_turn_with_no_thinking_has_nothing_to_say() -> None:
-    assert read_turns([START, event(5, "assistant", text="ok"), event(6, "assistant", thinking="  ")]) == []
+    assert (
+        read_turns([START, event(5, "assistant", text="ok"), event(6, "assistant", thinking="  ")])
+        == []
+    )
 
 
 def test_range_keeps_only_turns_inside_it() -> None:
@@ -94,7 +101,9 @@ def test_writes_a_line_per_turn_keeps_old_ones_and_retries_a_long_reply() -> Non
 
 def test_a_turn_the_model_never_gets_short_is_left_out_and_logged() -> None:
     logs: list[str] = []
-    out = write_lines([Turn(2, 5.0, "b")], [], lambda _t: "word " * 30, lambda _l: None, logs.append)
+    out = write_lines(
+        [Turn(2, 5.0, "b")], [], lambda _t: "word " * 30, lambda _l: None, logs.append
+    )
     assert out == []
     assert "turn 2" in logs[0]
 
@@ -136,6 +145,13 @@ def test_wav_bytes_is_a_real_mono_wav() -> None:
 def test_load_reads_the_file_the_viewer_reads() -> None:
     text = json.dumps({"turn": 3, "t": 2.5, "text": "Hi.", "wav": "t000003.wav", "seconds": 1.5})
     assert load_lines(f"{text}\nbad\n") == [Line(3, 2.5, "Hi.", "t000003.wav", 1.5)]
+
+
+def test_only_a_local_endpoint_is_accepted() -> None:
+    assert local_endpoint("http://127.0.0.1:8123/v1")
+    assert local_endpoint("http://localhost:8123/v1")
+    assert not local_endpoint("https://api.example.com/v1")
+    assert not local_endpoint("file:///etc/passwd")
 
 
 def test_wav_names_stay_inside_the_folder() -> None:

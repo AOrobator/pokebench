@@ -8,6 +8,8 @@ Readiness verdicts and supporting run IDs are recorded in the matching feature o
 
 <!-- Add one line per overview: - [Title](<experiment-id>.html) — tier, start, runs per arm -->
 
+- [Route 110 rival trials](route110-rival-trials.html) — screen; near-fight save; 8 per arm, design only
+- [Route 110 rival trials](route110-rival-trials.html) — screen; near-fight save; 17 per arm
 - [Battle effective damage](battle-effective-damage.html) — frontier behavior; Petalburg checkpoint; provisional 8 per arm; not approved or launched.
 
 - [JIT ten-minute screen](jit-10m.html) — screen; MAIN_MENU start; 12 per arm across both GPUs; launch held.

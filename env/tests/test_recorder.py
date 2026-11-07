@@ -17,10 +17,12 @@ from pokebench_env.recorder import (
     SoundWriter,
     VideoTimeline,
     audio_command,
+    next_part,
     parse_frame,
     parse_sound,
     plan_audio,
     record_frames,
+    supervise,
     video_command,
 )
 
@@ -222,3 +224,35 @@ def test_commands_are_argv_lists_that_name_their_part() -> None:
     assert video[-1] == "out dir/video-p02-%04d.mkv"
     assert audio[-1] == "out dir/audio-p02-%04d.mka"
     assert f"{GBA_FPS:.4f}" in video
+
+
+def test_next_part_follows_every_file_here() -> None:
+    assert next_part(["recording.jsonl"]) == 1
+    assert next_part(["video-p01-0000.mkv", "audio-p03-0001.mka", "ffmpeg.log"]) == 4
+
+
+def test_a_restart_part_starts_where_it_is_told() -> None:
+    parts: list[int] = []
+
+    def start(part: int) -> FakeSink:
+        parts.append(part)
+        return FakeSink()
+
+    Restarting(start, Events(), "video", 4).write(b"a")
+    assert parts == [4]
+
+
+def test_supervise_restarts_a_dead_recorder_until_it_exits_cleanly() -> None:
+    codes = iter([-9, 1, 0])
+    firsts: list[bool] = []
+    pauses: list[int] = []
+    events = Events()
+
+    def run_child(first: bool) -> int:
+        firsts.append(first)
+        return next(codes)
+
+    supervise(run_child, events, lambda: pauses.append(1))
+    assert firsts == [True, False, False]
+    assert len(pauses) == 2
+    assert events.names == ["recorder_restarted", "recorder_restarted", "supervisor_done"]

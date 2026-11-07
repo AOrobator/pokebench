@@ -7,6 +7,7 @@ failure cannot reach the run; it logs the failure and carries on or exits.
 
 import argparse
 import json
+import re
 import signal
 import subprocess  # noqa: S404 - ffmpeg, argv lists only
 import sys
@@ -87,12 +88,30 @@ class Log(Protocol):
     def __call__(self, event: str, **fields: object) -> None: ...
 
 
+def next_part(names: Iterable[str]) -> int:
+    """The part after every file already here, so a restart never touches an earlier one."""
+    return max((int(m[1]) for n in names if (m := re.search(r"-p(\d+)-", n))), default=0) + 1
+
+
+def supervise(run_child: Callable[[bool], int], log: Log, pause: Callable[[], None]) -> None:
+    """Keep the recorder going: it exits 0 only once the server has gone for good."""
+    first = True
+    while True:
+        code = run_child(first)
+        first = False
+        if code == 0:
+            log("supervisor_done")
+            return
+        log("recorder_restarted", exit_code=code)
+        pause()
+
+
 class Restarting:
     """A sink that starts a new part when its encoder dies, so one failure loses little."""
 
-    def __init__(self, start: Callable[[int], Sink], log: Log, name: str) -> None:
+    def __init__(self, start: Callable[[int], Sink], log: Log, name: str, part: int = 1) -> None:
         self.start, self.log, self.name = start, log, name
-        self.part = 0
+        self.part = part - 1
         self.sink: Sink | None = None
 
     def write(self, data: bytes) -> None:
@@ -312,20 +331,51 @@ def journal(path: Path) -> Log:  # pragma: no cover - the disk
     return log
 
 
+def run_supervised(
+    port: int, out: Path, wait: float, log: Log
+) -> int:  # pragma: no cover - processes
+    live: list[subprocess.Popen[bytes]] = []
+    stopping = threading.Event()
+
+    def stop(*_: object) -> None:
+        stopping.set()
+        for child in live:
+            child.terminate()
+
+    signal.signal(signal.SIGTERM, stop)
+
+    def run_child(first: bool) -> int:
+        if stopping.is_set():
+            return 0
+        patience = wait if first else 30.0
+        argv = [sys.executable, "-m", "pokebench_env.recorder", "--port", str(port)]
+        child = subprocess.Popen([*argv, "--out", str(out), "--wait", str(patience)])  # noqa: S603
+        live[:] = [child]
+        code = child.wait()
+        return 0 if stopping.is_set() else code
+
+    supervise(run_child, log, lambda: time.sleep(0.2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser = argparse.ArgumentParser(description="Record a run's picture and sound to files.")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--wait", type=float, default=900, help="seconds to wait for the server")
+    parser.add_argument("--supervise", action="store_true", help="restart the recorder if it dies")
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     log = journal(args.out / "recording.jsonl")
+    if args.supervise:
+        return run_supervised(args.port, args.out, args.wait, log)
     errors = (args.out / "ffmpeg.log").open("ab")
     stopping = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stopping.set())
     anchor = Anchor()
-    video = Restarting(lambda part: Encoder(video_command(args.out, part), errors), log, "video")
-    audio = Restarting(lambda part: Encoder(audio_command(args.out, part), errors), log, "audio")
+    part = next_part(path.name for path in args.out.iterdir())
+    video = Restarting(lambda n: Encoder(video_command(args.out, n), errors), log, "video", part)
+    audio = Restarting(lambda n: Encoder(audio_command(args.out, n), errors), log, "audio", part)
     log("started", port=args.port, fps=GBA_FPS, sample_rate=SAMPLE_RATE)
     writer = SoundWriter(audio, anchor, log)
     sound = threading.Thread(

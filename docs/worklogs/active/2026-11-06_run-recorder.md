@@ -13,3 +13,5 @@ Sync: the sound counter stays within 3 samples of frame_count times 803.65 minus
 Boot run: `experiments/fixed/deepseek-boot-24h.json`, `featureRecipe: current`, control arm, `controlMaxTokens` 32,768, 24 h. It launches through `launch.sh --definition`, because `just fixed-run run` would share `runner.json` with a live run. `rq-*` joined `offInBoth`, which also clears the control-base failure on `bundle-v-control` and `hyperqwen-bundle-24h-v5`. Launch waits for the operator's explicit go.
 
 COMMIT: `feat(env): record a run's picture and sound, and a boot run on the current pointer` (7d1579135). That commit's viewer build failed on a missing import; fixed in the next.
+
+COMMIT: `fix(viewer): import armPreset for the preset command` (58dcc51bf). Next: `--supervise` restarts a dead recorder, and each start takes the next part number, so nothing is overwritten. The operator approved one 10-minute test run from boot and a pre-mortem.

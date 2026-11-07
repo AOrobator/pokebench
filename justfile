@@ -124,7 +124,7 @@ run-claims:
 # Ask a live run to change course without a signal: pause, resume, stop, cancel_stop, abort.
 # Record a run's picture and sound to files, as a read-only client of its game server. Start before the run, detached.
 record port out:
-    cd env && PYTHONPATH="$PWD" .venv/bin/python -m pokebench_env.recorder --port {{port}} --out {{quote(out)}} --wait 3600
+    cd env && PYTHONPATH="$PWD" .venv/bin/python -m pokebench_env.recorder --supervise --port {{port}} --out {{quote(out)}} --wait 3600
 
 run-control id action:
     node scripts/run-control.mjs {{quote(id)}} {{quote(action)}}

@@ -77,7 +77,7 @@ LOG="$META/logs/play-$STAMP.log"
 PIDFILE="$META/logs/play-$STAMP.pid"
 RECORDER_PID=0
 if (( RECORD )); then
-  PYTHONPATH="$PWD/env" nohup env/.venv/bin/python -m pokebench_env.recorder --port "$PORT" --out "$META/recording" >"$META/logs/recorder-$STAMP.log" 2>&1 < /dev/null &
+  PYTHONPATH="$PWD/env" nohup env/.venv/bin/python -m pokebench_env.recorder --supervise --wait 3600 --port "$PORT" --out "$META/recording" >"$META/logs/recorder-$STAMP.log" 2>&1 < /dev/null &
   RECORDER_PID=$!
   disown
 fi

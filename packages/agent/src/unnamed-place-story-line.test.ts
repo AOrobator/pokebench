@@ -1,6 +1,8 @@
 import {expect,it} from "vitest";
 import {checkEvent,type RunEvent} from "./events.js";
-import {goalLine} from "./harness-trust.js";
+import {HarnessTrust,goalLine} from "./harness-trust.js";
+import {parseGameState} from "./game-state.js";
+import {IN_GAME} from "../test-support/events.js";
 import {featureInfo} from "./features.js";
 import {StoryDestinations,type Place} from "./story-destinations.js";
 
@@ -115,7 +117,7 @@ it("no open goal on: a reached line says plainly that none is open and keeps its
 });
 it("no open goal on: a done line says so with its reason",()=>{
  const g={...reachedGoal(heardThenArrived()),done:true,doneReason:"Pokédex received"};
- expect(goalLine(g,PLACES,true,undefined,false,false,true)).toContain("Story goal: none open (latest line done: Pokédex received)");
+ expect(goalLine(g,PLACES,true,undefined,false,false,true)).toBe("Story goal: none open (latest line done).");
 });
 it("no open goal on: an open goal is unchanged",()=>{
  const s=story(true);heard(s,146,"We're to move out to MT. PYRE!");
@@ -124,3 +126,30 @@ it("no open goal on: an open goal is unchanged",()=>{
 it("registers no-open-story-goal-v1 with an Off clause",()=>{
  expect(featureInfo("no-open-story-goal-v1").description).toContain(" Off: ");
 });
+
+// The real header path, with the recipe's options.
+function header(noOpenGoal:boolean,step:boolean,seen="body"):string {
+ const t=new HarnessTrust({supervisor:false,activity:true,retireLab:true,stageBound:true,omitEmptyGoal:true,goalOnce:true,retireReached:true,unnamedPlaces:true,noOpenGoal});
+ const body=(map:[number,number])=>({...IN_GAME,started:true,screen:"overworld",location:"X",map_id:map,position:{x:1,y:1},facing:"up",field_controls_locked:false,interaction_targets:[]});
+ t.observe(event({type:"state",turn:272,...body([24,22])}));
+ t.observe(event({...ADVANCE,type:"dialogue_auto_advance",turn:272,tool_call_id:"c",pages:[{...PAGE,text:"ARCHIE: The RED ORB preserved at MT. PYRE",speaker:"ARCHIE",speaker_source:"name_prefix",map_id:[24,22],state_seq:seq}]}));
+ t.observe(event({type:"tool_result",turn:272,id:"c",name:"press",is_error:false,duration_ms:1,text:"ok",frames:[]}));
+ t.observe(event({type:"state",turn:277,...body([24,15])}));
+ if(step)t.observe(event({type:"milestone",turn:300,name:"MAGMA_EMBLEM_RECEIVED",server_timestamp:0,kind:"story",origin:"observed"}));
+ return t.lines("body",parseGameState(body([24,15])),"z",PLACES,false,seen).header;
+}
+it("no open goal, through the header: a reached line prints the plain line above it",()=>{
+ expect(header(false,false)).not.toContain("none open");
+ expect(header(true,false)).toContain("Story goal: none open (latest line reached).\nStory line heard (ARCHIE");
+});
+it("no open goal, through the header: a done line prints the plain line alone, with no retired quote",()=>{
+ expect(header(false,true)).not.toContain("Story goal");
+ const on=header(true,true);
+ expect(on).toContain("Story goal: none open (latest line done).");
+ expect(on).not.toContain("RED ORB");
+});
+it("no open goal, through the header: a repeated story block does not drop the plain line",()=>{
+ const block='Latest story line naming a place (turn 272, ARCHIE): "The RED ORB preserved at MT. PYRE"';
+ expect(header(true,false,block)).toContain("Story goal: none open (latest line reached).");
+});
+

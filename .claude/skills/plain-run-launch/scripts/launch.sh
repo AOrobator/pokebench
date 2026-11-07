@@ -85,7 +85,7 @@ if (( RECORD )); then
   RECORDER_PID=$!
   disown
   if [[ -n "$BACKUP" ]]; then
-    MODEL_GLOB="*_${MODEL//[^A-Za-z0-9._-]/-}_*"
+    MODEL_GLOB="*_$(print -r -- "$MODEL" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//')_*"
     nohup scripts/recording-backup.sh "$META/recording" "$PWD/runs" "$MODEL_GLOB" "$BACKUP" "$RECORDER_PID" >"$META/logs/backup-$STAMP.log" 2>&1 < /dev/null &
     disown
   fi

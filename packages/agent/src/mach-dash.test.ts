@@ -1,14 +1,16 @@
 import {describe,expect,it} from "vitest";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
-import {ALL_ON,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES} from "./features.js";
+import {ALL_ON,type FeatureSet,featureInfo,playHarnessFeatures,SERVER_FEATURES,SWITCHABLE_FEATURES} from "./features.js";
 import {ALL_TOOL_SWITCHES,gameTools,type ToolSwitches} from "./game-tools.js";
 import type {GameStateSnapshot} from "./game-state.js";
 import {DASH_TIMING,MACH_DASH_ID,MACH_DASH_SECTION,MAX_DASH_BEATS,SETTLE_STEPS,SETTLE_TIMING,TURN_TIMING,dashReport,parseDash,withMachDash} from "./mach-dash.js";
 import {jitTools,playSystemPrompt,playTools,stableJitPrompts} from "./play-config.js";
 import {normalizeFeatures} from "./play-preset.js";
+import {playGameTools} from "./play-wiring.js";
 import {IN_GAME} from "../test-support/events.js";
 import {rayquazaLaneFeatures} from "../test-support/rayquaza-lane.js";
 
+const ALL_OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
 const running={permitted:false,controllable:true,reason:"not_on_foot",shoes:true,allow_running:true,avatar_flags:0x22,metatile:0,elevation:3,map_type:4,callback1:0x08085E05,callback2:0x08085E5D,diagnostic:null,raw_hex:null};
 const FLOOR2:readonly [number,number]=[24,80],FLOOR1:readonly [number,number]=[24,79],FLOOR3:readonly [number,number]=[24,81];
 const field=(over:Partial<GameStateSnapshot>={}):GameStateSnapshot=>({...IN_GAME,started:true,screen:"overworld",in_battle:false,active_ui:null,field_controls_locked:false,location:"SKY PILLAR 2F",map_id:[...FLOOR2] as [number,number],position:{x:10,y:2},facing:"down",running,...over});
@@ -34,7 +36,7 @@ function harness(start:GameStateSnapshot,script:readonly GameStateSnapshot[]=[],
  return {dash,posts,recorded,afterPresses:()=>after};
 }
 const text=(r:{content:readonly {type:string;text?:string}[]}):string=>r.content.flatMap(p=>p.type==="text"&&p.text!==undefined?[p.text]:[]).join("\n");
-const run=(tool:AgentTool,route:string)=>tool.execute("call",{route} as never);
+const run=(tool:AgentTool,route:string)=>tool.execute("call",{route});
 const ROUTE="D1 R4 D11 L10 U4 R2 U8";
 const landed=field({location:"SKY PILLAR 3F",map_id:[...FLOOR3] as [number,number],position:{x:3,y:2}});
 
@@ -79,7 +81,7 @@ describe("mach_dash refusals press nothing",()=>{
  it("an aborted run presses nothing",async()=>{
   const h=harness(field());
   const controller=new AbortController();controller.abort();
-  await expect(h.dash.execute("call",{route:ROUTE} as never,controller.signal)).rejects.toThrow();
+  await expect(h.dash.execute("call",{route:ROUTE},controller.signal)).rejects.toThrow();
   expect(h.posts).toEqual([]);
  });
 });
@@ -133,7 +135,7 @@ describe("mach_dash settles in emulated frames",()=>{
  it("stops once the same free tile reads twice",async()=>{
   const h=harness(field(),[landed,landed,landed,landed,landed,landed]);
   await run(h.dash,ROUTE);
-  expect(h.posts).toHaveLength(3);
+  expect(h.posts).toHaveLength(2);
   expect(h.posts.slice(1).every(p=>p.buttons.join()==="B"&&p.hold_frames===SETTLE_TIMING.hold_frames&&p.release_frames===SETTLE_TIMING.release_frames)).toBe(true);
  });
  it("waits out a fall: control held by the script, then the floor below",async()=>{
@@ -153,6 +155,14 @@ describe("mach_dash settles in emulated frames",()=>{
   expect(h.posts).toHaveLength(2);
   expect(text(result)).toContain("A battle started");
  });
+ it("a battle's opening transition, with no map or tile to read, is a battle and not a fall",async()=>{
+  const transition=field({in_battle:false,screen:"battle_transition",map_id:null,position:null,location:null,running:null});
+  const h=harness(field(),[field({position:{x:10,y:9}}),transition]);
+  const result=await run(h.dash,ROUTE);
+  expect(h.posts).toHaveLength(2);
+  expect(text(result)).toContain("A battle started");
+  expect(text(result)).not.toContain("fell");
+ });
  it("says so when control never comes back inside the bound",async()=>{
   const locked=field({field_controls_locked:true});
   const h=harness(field(),Array.from({length:40},()=>locked));
@@ -170,6 +180,12 @@ describe("dashReport",()=>{
   expect(report).toContain("still on the MACH BIKE");
   expect(report).not.toContain("fell");
  });
+ it("stairs onto a map without cycling are not a fall, though they leave you on foot",()=>{
+  const top=field({location:"SKY PILLAR TOP",map_id:[24,85],position:{x:16,y:15},running:onFoot,bike:{owned:[259],registered:259,riding:null,allow_cycling:false}});
+  const report=dashReport(before,top,46);
+  expect(report).toContain("SKY PILLAR TOP at (16,15), off the bike");
+  expect(report).not.toContain("fell");
+ });
  it("a stop on the same floor names the tile",()=>{
   expect(dashReport(before,field({position:{x:13,y:3}}),12)).toContain("SKY PILLAR 2F at (13,3)");
  });
@@ -181,15 +197,15 @@ describe("dashReport",()=>{
 
 describe("rq-mach-dash-v1 switch",()=>{
  const ON=rayquazaLaneFeatures(),OFF={...ON,[MACH_DASH_ID]:false};
- it("is the last switch registered, default off, with its OFF state in its copy",()=>{
-  expect(SWITCHABLE_FEATURES.at(-1)).toBe(MACH_DASH_ID);
+ it("is registered after the checkpoint switch, default off, with its OFF state in its copy",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf(MACH_DASH_ID)).toBe(SWITCHABLE_FEATURES.indexOf("rq-checkpoint-recovery-v1")+1);
   expect(featureInfo(MACH_DASH_ID).description).toContain(" Off: ");
   expect(featureInfo(MACH_DASH_ID).needs).toBeNull();
   expect(SERVER_FEATURES).not.toContain(MACH_DASH_ID);
   const {[MACH_DASH_ID]:omitted,...old}=normalizeFeatures({...ALL_ON,[MACH_DASH_ID]:false});
   expect(omitted).toBe(false);
   expect(normalizeFeatures(old)[MACH_DASH_ID]).toBe(false);
-  expect(playHarnessFeatures(ON,null).at(-1)).toBe(MACH_DASH_ID);
+  expect(playHarnessFeatures(ON,null)).toContain(MACH_DASH_ID);
   expect(playHarnessFeatures(OFF,null)).not.toContain(MACH_DASH_ID);
  });
  it("is on in the Rayquaza lane",()=>{expect(ON[MACH_DASH_ID]).toBe(true);});
@@ -215,6 +231,17 @@ describe("rq-mach-dash-v1 switch",()=>{
    expect(jitTools(tools,scene).map(t=>t.name)).not.toContain("mach_dash");
    expect(stableJitPrompts(ON,null,scene).guidance).not.toContain("mach_dash");
   }
+ });
+ it("factory: playGameTools offers the tool only with the switch on",()=>{
+  const names=(on:boolean):string[]=>{
+   const features={...ALL_OFF,[MACH_DASH_ID]:on};
+   const rec={subscribe:()=>undefined,recordState:()=>({seq:1,turn:1}),lowHpTrainerWarning:()=>undefined};
+   const base=gameTools("http://test",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()});
+   return playGameTools(base,features,{read:()=>Promise.reject(new Error("unused"))},rec as never).map(t=>t.name);
+  };
+  expect(names(true)).toContain("mach_dash");
+  expect(names(false)).not.toContain("mach_dash");
+  expect(names(true).filter(name=>name!=="mach_dash")).toEqual(names(false));
  });
  it("withMachDash adds nothing when off",()=>{
   const base=gameTools("http://test",{beforePress:()=>undefined,afterPress:()=>Promise.resolve()});

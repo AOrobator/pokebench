@@ -114,8 +114,10 @@ async function routeLine(state:GameStateSnapshot,entry:Entry,features:FeatureSet
  if(budget===null)return `- ${entry.label}: ${walk}.`;
  const sight=await budget.ask(route,entry.exclude);
  if("reason" in sight)return `- ${entry.label}: ${walk}, trainer sight not checked.`;
- if(sight.seen.length===0)return `- ${entry.label}: ${walk}, out of every unbeaten trainer's sight.`;
- return `- ${entry.label}: ${walk}, crosses the sight of ${seenBy(sight.seen)}; ${await sightFree(state,entry,features,budget)}.`;
+ // A way across water was checked only as far as the shore; the water itself was not.
+ const shore=route.launch===undefined?"":" as far as the shore; the water was not checked";
+ if(sight.seen.length===0)return `- ${entry.label}: ${walk}, out of every unbeaten trainer's sight${shore}.`;
+ return `- ${entry.label}: ${walk}, crosses the sight of ${seenBy(sight.seen)}${shore}; ${await sightFree(state,entry,features,budget)}.`;
 }
 
 export async function routeSummary(state:GameStateSnapshot,features:FeatureSet,check:TrainerSightPorts["check"]|null,guide:GuideRow|null,signal?:AbortSignal):Promise<string|null> {

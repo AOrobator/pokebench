@@ -96,6 +96,8 @@ Round 2, fix delta 84cd54e21..4aa65cd22, diff sha256 d8b95ecd98bf4fab49d36ba3288
 Round 3, the one extra check the coordinator asked for, fix delta 4aa65cd22..bd4bcd2c8, diff sha256 536f2841a5745e671711d89e03dd53c2311342b25433a21c0f2b6f17b1eb3a50: Claude CLI LGTM, N1 closed.
 GPT lane: The operator did not waive it (2026-11-07 9:41 AM). Final-head packet (1e26fed6c..fd87c4b03, sha256 6c01887c5823e0f4a39891a01eab17baf80665d366e9d2538e8df3d229b71756) queued to Codex thread "Compare Sol and Astra pricing"; waiting.
 
+GPT lane round 1, Codex, frozen 1e26fed6c..fd87c4b03, diff sha256 6c01887c5823e0f4a39891a01eab17baf80665d366e9d2538e8df3d229b71756: BLOCKING, one finding, Fix: a way across water said "out of every unbeaten trainer's sight" when only the walk to the shore was checked. The line now says "as far as the shore; the water was not checked".
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

@@ -3,7 +3,7 @@
 #
 #   launch.sh --meta runs/<meta-dir> --model <model id> [--preset <file>]
 #             [--endpoint <file>] [--commit <sha>] [--record]
-#             [--definition <fixed id>]
+#             [--definition <fixed id> [--arm <control|bundle>]]
 #
 # --definition resolves that experiments/fixed definition's arm to runs/<meta>/preset.json at launch,
 # so the run follows its recipe pointer (for example current) instead of a frozen preset.
@@ -24,6 +24,7 @@ ENDPOINT="$PWD/runs/orca-deepseek-control-24h/endpoint.json"
 COMMIT=""
 RECORD=0
 DEFINITION=""
+ARM=()
 while (( $# )); do
   case "$1" in
     --meta) META="$2"; shift 2 ;;
@@ -33,6 +34,7 @@ while (( $# )); do
     --commit) COMMIT="$2"; shift 2 ;;
     --record) RECORD=1; shift ;;
     --definition) DEFINITION="$2"; shift 2 ;;
+    --arm) ARM=(--arm "$2"); shift 2 ;;
     *) echo "launch: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -46,7 +48,7 @@ if [[ -n "$DEFINITION" ]]; then
   just build >/dev/null
   PRESET="$PWD/$META/preset.json"
   [[ "$META" == /* ]] && PRESET="$META/preset.json"
-  node packages/viewer/dist/fixed-cli.js preset "$DEFINITION" >"$PRESET"
+  node packages/viewer/dist/fixed-cli.js preset "$DEFINITION" "${ARM[@]}" >"$PRESET"
 fi
 [[ -f "$PRESET" ]] || { echo "launch: preset $PRESET does not exist" >&2; exit 2; }
 [[ -f "$ENDPOINT" ]] || { echo "launch: endpoint file $ENDPOINT does not exist" >&2; exit 2; }

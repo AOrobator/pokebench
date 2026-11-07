@@ -6,7 +6,7 @@ from pokebench_env.recorder import (
     AUDIO_LAG_SAMPLES,
     GBA_FPS,
     MAX_HELD_FRAMES,
-    MAX_SILENCE_SAMPLES,
+    SILENCE_CHUNK_SAMPLES,
     SAMPLE_BYTES,
     SAMPLES_PER_FRAME,
     Anchor,
@@ -102,9 +102,14 @@ def test_sound_wholly_before_the_end_is_skipped() -> None:
     assert plan_audio(0, 100, 500) == AudioPlan(0, 100, None)
 
 
-def test_a_wild_jump_is_bridged_only_so_far() -> None:
-    plan = plan_audio(MAX_SILENCE_SAMPLES * 4, 100, 0)
-    assert (plan.silence_samples, plan.event) == (MAX_SILENCE_SAMPLES, "audio_jump")
+def test_a_long_outage_keeps_later_sound_in_its_true_place() -> None:
+    anchor = anchored()
+    origin = round(8 * SAMPLES_PER_FRAME) - AUDIO_LAG_SAMPLES
+    writer, sink, _ = writer_for(anchor)
+    forty_minutes = 40 * 60 * 48000
+    writer.accept(sound(100, origin + forty_minutes + 100))
+    assert writer.written == forty_minutes + 100
+    assert max(len(c) for c in sink.chunks) == SILENCE_CHUNK_SAMPLES * SAMPLE_BYTES
 
 
 def anchored(frame_count: int = 8) -> Anchor:
@@ -245,14 +250,50 @@ def test_a_restart_part_starts_where_it_is_told() -> None:
 def test_supervise_restarts_a_dead_recorder_until_it_exits_cleanly() -> None:
     codes = iter([-9, 1, 0])
     firsts: list[bool] = []
-    pauses: list[int] = []
+    pauses: list[float] = []
     events = Events()
 
     def run_child(first: bool) -> int:
         firsts.append(first)
         return next(codes)
 
-    supervise(run_child, events, lambda: pauses.append(1))
+    supervise(run_child, events, pauses.append)
     assert firsts == [True, False, False]
-    assert len(pauses) == 2
+    assert pauses == [0.2, 0.4]
     assert events.names == ["recorder_restarted", "recorder_restarted", "supervisor_done"]
+
+
+def test_supervise_backs_off_to_a_limit() -> None:
+    codes = iter([1] * 12 + [0])
+    pauses: list[float] = []
+    supervise(lambda first: next(codes), Events(), pauses.append)
+    assert max(pauses) == 60.0
+
+
+def test_an_encoder_that_cannot_start_drops_data_and_retries_later() -> None:
+    now = [0.0]
+    attempts: list[int] = []
+    good = FakeSink()
+
+    def start(part: int) -> FakeSink:
+        attempts.append(part)
+        if len(attempts) == 1:
+            raise FileNotFoundError("ffmpeg")
+        return good
+
+    events = Events()
+    restarting = Restarting(start, events, "video", 1, lambda: now[0])
+    restarting.write(b"lost")
+    restarting.write(b"lost too")
+    now[0] = 6.0
+    restarting.write(b"kept")
+    assert good.chunks == [b"kept"]
+    assert attempts == [1, 1]
+    assert events.names == ["encoder_unstartable", "part_started"]
+
+
+def test_a_dead_encoder_is_closed_so_it_is_reaped() -> None:
+    dead = FakeSink(fail_after=0)
+    restarting = Restarting(lambda part: dead if part == 1 else FakeSink(), Events(), "video")
+    restarting.write(b"a")
+    assert dead.closed

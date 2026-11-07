@@ -15,3 +15,5 @@ Boot run: `experiments/fixed/deepseek-boot-24h.json`, `featureRecipe: current`, 
 COMMIT: `feat(env): record a run's picture and sound, and a boot run on the current pointer` (7d1579135). That commit's viewer build failed on a missing import; fixed in the next.
 
 COMMIT: `fix(viewer): import armPreset for the preset command` (58dcc51bf). Next: `--supervise` restarts a dead recorder, and each start takes the next part number, so nothing is overwritten. The operator approved one 10-minute test run from boot and a pre-mortem.
+
+COMMIT: `feat(env): a watchdog restarts a dead recorder without touching earlier files` (971c4d83b). Gates passed on 58dcc51bf except two test-file lint errors, fixed. GPT round 1 BLOCKING: a long sound outage misplaced later sound; an unstartable ffmpeg restarted in a tight loop; `--definition` could not name an arm. All fixed.

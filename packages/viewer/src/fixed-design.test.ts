@@ -276,8 +276,8 @@ it("stops the starter diagnostic without replacing its broad play goal",()=>{
  it("a control reply cap sets the control arm only, and the base still matches its control base",()=>{
  const original=definition();
  const def=parseFixedDefinition(JSON.stringify({...original,controlMaxTokens:32768})).definition;
- expect(armPreset(def,def.phases[0]!.id,"control").sampling.maxTokens).toBe(32768);
- expect(armPreset(def,def.phases[0]!.id,"bundle").sampling.maxTokens).toBe(original.base.sampling.maxTokens);
+ expect(armPreset(def,"cook","control").sampling.maxTokens).toBe(32768);
+ expect(armPreset(def,"cook","bundle").sampling.maxTokens).toBe(original.base.sampling.maxTokens);
  expect(controlBaseProblems(def,controlBaseText())).toEqual(controlBaseProblems(parseFixedDefinition(JSON.stringify(original)).definition,controlBaseText()));
  for(const invalid of [0,-1,1.5,"8192"])expect(()=>parseFixedDefinition(JSON.stringify({...original,controlMaxTokens:invalid}))).toThrow();
 });

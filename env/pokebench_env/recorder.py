@@ -27,8 +27,11 @@ SAMPLE_BYTES = 4
 SAMPLES_PER_FRAME = SAMPLE_RATE / GBA_FPS
 # Past this, a hole in the picture is left out rather than filled with a held frame.
 MAX_HELD_FRAMES = int(GBA_FPS * 600)
-# Past this, a jump in the sound counter is logged and bridged no further.
-MAX_SILENCE_SAMPLES = SAMPLE_RATE * 600
+# Silence is written in pieces this long, so a long outage needs no large buffer.
+SILENCE_CHUNK_SAMPLES = SAMPLE_RATE
+# After an encoder fails to start, how long to drop data before trying again.
+ENCODER_RETRY_SECONDS = 5.0
+MAX_RESTART_PAUSE_SECONDS = 60.0
 # The sound counter trails frame_count * SAMPLES_PER_FRAME by this much, within 3 samples
 # (measured 2026-11-06 over 45 s of a real server); both count from the same emulator.
 AUDIO_LAG_SAMPLES = 686
@@ -72,10 +75,7 @@ class AudioPlan:
 def plan_audio(start: int, pcm_samples: int, written: int) -> AudioPlan:
     """Place sound by where it belongs in the file: `start` is that position, `written` the end."""
     if start > written:
-        gap = start - written
-        if gap > MAX_SILENCE_SAMPLES:
-            return AudioPlan(MAX_SILENCE_SAMPLES, 0, "audio_jump")
-        return AudioPlan(gap, 0, "audio_gap")
+        return AudioPlan(start - written, 0, "audio_gap")
     return AudioPlan(0, min(pcm_samples, written - start), None)
 
 
@@ -93,39 +93,67 @@ def next_part(names: Iterable[str]) -> int:
     return max((int(m[1]) for n in names if (m := re.search(r"-p(\d+)-", n))), default=0) + 1
 
 
-def supervise(run_child: Callable[[bool], int], log: Log, pause: Callable[[], None]) -> None:
+def supervise(run_child: Callable[[bool], int], log: Log, pause: Callable[[float], None]) -> None:
     """Keep the recorder going: it exits 0 only once the server has gone for good."""
     first = True
+    wait = 0.2
     while True:
         code = run_child(first)
         first = False
         if code == 0:
             log("supervisor_done")
             return
-        log("recorder_restarted", exit_code=code)
-        pause()
+        log("recorder_restarted", exit_code=code, pause=wait)
+        pause(wait)
+        wait = min(wait * 2, MAX_RESTART_PAUSE_SECONDS)
 
 
 class Restarting:
     """A sink that starts a new part when its encoder dies, so one failure loses little."""
 
-    def __init__(self, start: Callable[[int], Sink], log: Log, name: str, part: int = 1) -> None:
-        self.start, self.log, self.name = start, log, name
+    def __init__(
+        self,
+        start: Callable[[int], Sink],
+        log: Log,
+        name: str,
+        part: int = 1,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.start, self.log, self.name, self.clock = start, log, name, clock
         self.part = part - 1
         self.sink: Sink | None = None
+        self.retry_at = 0.0
+
+    def _open(self) -> Sink | None:
+        if self.clock() < self.retry_at:
+            return None
+        self.part += 1
+        try:
+            sink = self.start(self.part)
+        except OSError as error:
+            self.log("encoder_unstartable", stream=self.name, part=self.part, error=str(error))
+            self.part -= 1
+            self.retry_at = self.clock() + ENCODER_RETRY_SECONDS
+            return None
+        self.log("part_started", stream=self.name, part=self.part)
+        return sink
 
     def write(self, data: bytes) -> None:
         for _attempt in range(2):
             if self.sink is None:
-                self.part += 1
-                self.sink = self.start(self.part)
-                self.log("part_started", stream=self.name, part=self.part)
+                self.sink = self._open()
+            if self.sink is None:
+                return
             try:
                 self.sink.write(data)
                 return
             except OSError as error:
                 self.log("encoder_failed", stream=self.name, part=self.part, error=str(error))
-                self.sink = None
+                dead, self.sink = self.sink, None
+                try:
+                    dead.close()
+                except (OSError, subprocess.SubprocessError) as closing:
+                    self.log("encoder_close_failed", stream=self.name, error=str(closing))
 
     def close(self) -> None:
         if self.sink is not None:
@@ -212,9 +240,12 @@ class SoundWriter:
         plan = plan_audio(sound.end - samples - origin, samples, self.written)
         if plan.event is not None:
             self.log(plan.event, silence=plan.silence_samples, at=self.written)
-        if plan.silence_samples > 0:
-            self.sink.write(bytes(plan.silence_samples * SAMPLE_BYTES))
-            self.written += plan.silence_samples
+        left = plan.silence_samples
+        while left > 0:
+            piece = min(left, SILENCE_CHUNK_SAMPLES)
+            self.sink.write(bytes(piece * SAMPLE_BYTES))
+            left -= piece
+        self.written += plan.silence_samples
         kept = samples - plan.skip_samples
         if kept > 0:
             self.sink.write(sound.pcm[plan.skip_samples * SAMPLE_BYTES :])
@@ -354,7 +385,7 @@ def run_supervised(
         code = child.wait()
         return 0 if stopping.is_set() else code
 
-    supervise(run_child, log, lambda: time.sleep(0.2))
+    supervise(run_child, log, time.sleep)
     return 0
 
 

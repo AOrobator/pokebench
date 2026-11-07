@@ -63,13 +63,15 @@ Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar f
 - [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
 - [x] Gates on 7bdb2a62d: lint, 3 suites and floors via just test, verify-vendor
 - [x] Review: Claude, GPT, fallback LGTM (sha cb02e865)
+- [x] Landed aef93554a; post-main `just test` passed (3,051 env)
 
 ### Piece 6: live captions and sound on /broadcast
 Follow mode only: new captions as they arrive, wavs queued one at a time, lines older than 30 s skipped, one click to turn sound on. The feed sends new lines on polls and a route serves the wavs. Replay and transparent stay silent. `?voice=0` turns sound off for a page: display-only, so no harness switch (feature-switch skill); anything else leaves it on, and a missing button, wav or speaker fails open to silent captions.
 - [x] RED
 - [x] GREEN: 128 focused tests
 - [x] Rehearsal: fake live run replaying 37ca with fresh times, real follower, Qwen and Kokoro, this page headless on 8797: button shown, one click, nine wavs played in order with no overlap (206 from the route), captions arrived on their own, button gone after the click and absent at ?t and transparent=1, no page errors. 1920x1080 screenshot viewed.
-- [ ] Review, landing
+- [x] Gates on 40947a3d5: lint, 2,684 agent, 1,218 viewer, 3,051 env, 38 gateway, verify-vendor
+- [x] Review: Claude, GPT, fallback LGTM on the final delta
 
 ### Piece 7: real badge sprites on /broadcast
 The operator 2026-11-07: "the broadcast view needs to use the actual sprites of the gym badges". The game's Trainer Card draws every badge grey (ROM palette at 0x56f4ec, one palette for all; the image-gen thread matched all 760 opaque pixels in a real game), so the files are grey. Read from the gitignored runs/sprites/rom-badges/, never in git; discs stay as the fallback when any file is missing.
@@ -117,6 +119,8 @@ Piece 4, round 2 on a9f440d1e: Claude and fallback LGTM; GPT BLOCKING only on a 
 Piece 6, round 1 on 4ebeba1b7 (sha 33b85991): Claude, GPT and fallback all BLOCKING on one bug: a click with no line waiting never played inside the gesture, so strict browsers stayed locked. Fixed by playing through Web Audio with the context resumed in the click. Rehearsal again, clicking before any line existed: context running, five wavs played in order with no overlap. Rebutted: an open page misplacing a line a restarted follower sorted into the middle (restart only, within the last two turns; a reload heals it); the run's last line missed by a page that stopped polling at run_end; the 15 s caption hold measured from the thought's end (rehearsal shows lines a few seconds behind).
 
 Piece 6, round 2 on f4b932af4: fallback BLOCKING on the new speaker: the stall limit began after the fetch, so a hung wav held the queue; a stalled line left its node running; stop missed a line in flight. Round 2 lanes: Claude LGTM; GPT BLOCKING on the same stall and stop bugs; GPT's third (a caption outliving its hold on a long turn) rebutted: it is still the current turn's line. All fixed with one limit over the whole line and a ticket. Rehearsal again: five lines, no overlap, button gone, replay and transparent silent.
+
+Piece 6, round 3 on 293ad2bd7: Claude, GPT and fallback LGTM.
 
 ## Boy Scout Log
 

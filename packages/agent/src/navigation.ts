@@ -73,7 +73,7 @@ export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonl
 export interface SurfLaunch extends SurfLaunchPoint {readonly goal:Point}
 // Starting Surf takes the model's own turns, so a launch search prefers a route with less of it.
 const LAUNCH_COST=4;
-export interface NavigationOptions {readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
+export interface NavigationOptions {readonly zeroPads?:boolean;readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
 // rotating-gate-navigation-v1: the current arms by the pair of tiles each separates. A step across one pushes the gate in the
 // game (rotating_gate.c CheckForRotatingGatePuzzleCollision), so the planner treats that edge as blocked and press stays the
 // only way to move a gate.
@@ -297,12 +297,15 @@ const standableTile=(options:NavigationOptions)=>{
 };
 // Replays the planner's moves along a path: the first matching trigger stepped on before its last tile, and the
 // walker's elevation at its end (a multi-level tile keeps the elevation the route brought, GAME_RULE.entered).
-function walked(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):{readonly crossed:MatchingTrigger|null;readonly elevation:number;readonly cost:number}|null {
+function walked(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions):{readonly crossed:MatchingTrigger|null;readonly elevation:number;readonly previous:number;readonly cost:number}|null {
  const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
  const start=state.position;if(geometry===null||start===null)return null;
  let first:MatchingTrigger|null=null;
  const {entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
  let p=start,here=geometry.tile(start)?.elevation??geometry.elevation,elevation=geometry.elevation,cost=0;
+ // ObjectEventUpdateElevation: previousElevation, which warps are matched against, ignores elevation-0 tiles and any step onto or off a multi-level tile.
+ let previous=geometry.elevation;
+ const settle=(from:number,to:number):void=>{if(from!==MULTI_LEVEL&&to!==MULTI_LEVEL&&to!==0)previous=to;};
  for(const [i,direction] of path.entries()){
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
@@ -313,15 +316,15 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
    cost+=pushed.length;p=end;
   }else if(slid!==null){
    const land=geometry.tile(slid);if(land===undefined)return null;
-   elevation=entered(elevation,land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
+   elevation=entered(elevation,land.elevation);settle(here,land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
   }else if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
    const landing={x:next.x+delta[1],y:next.y+delta[2]},land=geometry.tile(landing);if(land===undefined)return null;
-   elevation=jumped(elevation,here,tile.elevation,land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
-  }else{elevation=entered(elevation,tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
+   elevation=jumped(elevation,here,tile.elevation,land.elevation);settle(here,land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
+  }else{elevation=entered(elevation,tile.elevation);settle(here,tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
   const crossed=i<path.length-1?triggerAt(options.triggers,p,elevation):undefined;
   first??=crossed??null;
  }
- return {crossed:first,elevation,cost};
+ return {crossed:first,elevation,previous,cost};
 }
 // rotating-gate-navigation-v1: the first arm a route crosses and how many of its steps come before it.
 function firstArm(state:GameStateSnapshot,path:readonly Direction[],options:NavigationOptions,arms:GateArms):{readonly steps:number;readonly arm:GateArm}|null {
@@ -1183,6 +1186,11 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
  return {name:"navigate_to",label:"Walk to a coordinate",description,parameters:parameters as typeof Args,execute:(id,goal,signal)=>execute(id,goal,signal),executeChecked:(id,goal,check,signal,options)=>execute(id,goal,signal,check,options)};
 }
 
+// navigator-elevation-zero-pads-v1: the elevation a warp is matched against on arrival.
+export function plannedWarpElevation(state:GameStateSnapshot,goal:Point,options:NavigationOptions):number|null {
+ const path=planNavigation(state,goal,options);if(path===null)return null;
+ return walked(state,path,options)?.previous??null;
+}
 export function plannedArrivalElevation(state:GameStateSnapshot,goal:Point,options:NavigationOptions):number|null {
  const path=planNavigation(state,goal,options);if(path===null)return null;
  return walked(state,path,options)?.elevation??null;

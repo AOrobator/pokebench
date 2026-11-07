@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -45,7 +45,7 @@ const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
+ return {zeroPads:features["navigator-elevation-zero-pads-v1"],mode,ledges:features["ledge-hops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -111,6 +111,10 @@ function label(target:RequestTarget):string {
  if(target.kind==="warp")return `warp at (${String(target.x)},${String(target.y)})`;
  return `${target.interaction_kind.replaceAll("_"," ")} at (${String(target.x)},${String(target.y)})`;
 }
+// navigator-elevation-zero-pads-v1: whether the navigator's lookup finds this warp from this state.
+export function navigatorTakesWarp(state:GameStateSnapshot,x:number,y:number,features:FeatureSet):boolean {
+ return resolve(state,{kind:"warp",x,y},navigationOptions(features))!==null;
+}
 function resolve(state:GameStateSnapshot,target:RequestTarget,options:NavigationOptions):SnapshotTarget|null {
  if(target.kind==="static_object")return null;
  const listed=state.interaction_targets??[];
@@ -124,9 +128,10 @@ function resolve(state:GameStateSnapshot,target:RequestTarget,options:Navigation
   // still identifies the event; it does not make the warp disappear.
   const here=state.position;
   const standing=here===null?undefined:state.navigation_grid?.tiles.find(tile=>tile.x===here.x&&tile.y===here.y)?.elevation??state.navigation_grid?.elevation??state.map_grid?.elevation;
-  const elevation=plannedArrivalElevation(state,{x:target.x,y:target.y},options)??standing??null;
+  const elevation=(options.zeroPads===true?plannedWarpElevation:plannedArrivalElevation)(state,{x:target.x,y:target.y},options)??standing??null;
   if(elevation===null)return null;
-  const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation))??null;
+  // navigator-elevation-zero-pads-v1: on an elevation-0 tile the previous elevation is not known here, so it cannot rule a warp out.
+  const found=listed.find(item=>item.kind==="warp"&&item.x===target.x&&item.y===target.y&&(item.elevation===0||item.elevation===elevation||options.zeroPads===true&&elevation===0))??null;
   // An enrolled pad resolves canonically from the map's records, never from whichever source happens
   // to list it this read: navigate_to_target re-resolves before every step, and a target that flips
   // between the synthetic and the listed record reads as "changed during travel" mid-walk.

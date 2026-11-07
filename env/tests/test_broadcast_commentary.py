@@ -36,6 +36,11 @@ def test_turns_come_from_each_assistant_thought_timed_from_run_start() -> None:
     assert turns == [Turn(turn=1, t=5.0, thinking="Go up.")]
 
 
+def test_a_line_starts_when_its_turn_starts() -> None:
+    lines = [START, event(3, "turn_start"), event(5, "assistant", thinking="Go up.")]
+    assert read_turns(lines) == [Turn(turn=1, t=3.0, thinking="Go up.")]
+
+
 def test_a_turn_with_no_thinking_has_nothing_to_say() -> None:
     assert (
         read_turns([START, event(5, "assistant", text="ok"), event(6, "assistant", thinking="  ")])

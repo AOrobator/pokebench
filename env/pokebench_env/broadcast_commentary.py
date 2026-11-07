@@ -31,6 +31,8 @@ SYSTEM = (
     "are doing or deciding right now and why. Reply with the line alone."
 )
 
+WANTED = ("run_start", "turn_start", "assistant")
+
 Json = dict[str, object]
 Post = Callable[[str, Json], Json]
 
@@ -58,11 +60,12 @@ class Voiced:
 
 
 def read_turns(lines: Iterable[str], start: float = 0, end: float = float("inf")) -> list[Turn]:
-    """Each thought with the seconds since run_start at which it finished."""
+    """Each thought, timed from the start of its turn: the line plays while the model thinks."""
     started: float | None = None
+    turn_began: dict[int, float] = {}
     turns: list[Turn] = []
     for line in lines:
-        if '"type":"assistant"' not in line[:300] and '"type":"run_start"' not in line[:300]:
+        if not any(f'"type":"{kind}"' in line[:300] for kind in WANTED):
             continue
         try:
             event = json.loads(line)
@@ -72,10 +75,15 @@ def read_turns(lines: Iterable[str], start: float = 0, end: float = float("inf")
         if event.get("type") == "run_start":
             started = at
             continue
-        thinking = event.get("thinking")
-        if started is None or not isinstance(thinking, str) or thinking.strip() == "":
+        if started is None:
             continue
-        t = round(at - started, 2)
+        if event.get("type") == "turn_start":
+            turn_began[int(event["turn"])] = at
+            continue
+        thinking = event.get("thinking")
+        if not isinstance(thinking, str) or thinking.strip() == "":
+            continue
+        t = round(turn_began.get(int(event["turn"]), at) - started, 2)
         if start <= t < end:
             turns.append(Turn(turn=int(event["turn"]), t=t, thinking=thinking))
     return turns

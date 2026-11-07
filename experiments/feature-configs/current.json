@@ -105,7 +105,8 @@
     "no-open-story-goal-v1",
     "rq-milestone-guide-v1",
     "rq-battle-explainer-v1",
-    "rq-slim-prompt-v1"
+    "rq-slim-prompt-v1",
+    "rq-old-rival-line-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",
@@ -571,6 +572,7 @@
     "navigator-elevation-zero-pads-v1": true,
     "navigator-ledge-drops-v1": true,
     "navigator-surf-start-warps-v1": true,
-    "story-line-done-on-event-v1": true
+    "story-line-done-on-event-v1": true,
+    "rq-old-rival-line-v1": false
   }
 }

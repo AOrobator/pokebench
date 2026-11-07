@@ -25,6 +25,10 @@ export const CALL_NOTE="CALL: This call will not finish by itself. Press A sever
 // A whiteout moves Briney back to his house (EventScript_ResetMrBriney); run 7442 kept trying the empty boat.
 export const BRINEY_NOTE="BRINEY: Mr. Briney is inside his house on Route 104. Talk to him there to sail. The boat itself does nothing.";
 
+// rq-old-rival-line-v1: run aeb8's tactics, kept so the Route 110 trials can compare them with the current ones.
+export const OLD_RIVAL_LINE="Rock hits Wingull and Slugma x2. Grovyle's Absorb hits Marshtomp x4: no boosts on it; use a Flying, Fire or Bug move if you have one, else attack.";
+const CURRENT_RIVAL_LINE="X Attack and X Speed against Slugma if you have them, else aim for level 26. Grovyle's Absorb hits Marshtomp x4.";
+
 type MapId=readonly [number,number];
 export interface GuideStep {readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
@@ -161,9 +165,11 @@ export class GuidePosition {
 type Transform=(messages:AgentMessage[])=>Promise<AgentMessage[]>;
 type GuideRecorder=Pick<RunRecorder,"subscribe"|"recordMilestoneHint">&Partial<Pick<RunRecorder,"recordPurchaseMissed">>;
 
+const laneSteps=(features:FeatureSet):readonly GuideStep[]=>features["rq-old-rival-line-v1"]?RAYQUAZA_GUIDE_STEPS.map(step=>step.after==="ROUTE_110"?{...step,note:step.note.replace(CURRENT_RIVAL_LINE,OLD_RIVAL_LINE)}:step):RAYQUAZA_GUIDE_STEPS;
+
 // rq-milestone-guide-v1: the current step stays the request's final message until the next step, so it
 // is present on map entry and during a stall without separate triggers.
-export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=RAYQUAZA_GUIDE_STEPS):Transform {
+export function rayquazaGuideContext(features:FeatureSet,recorder:GuideRecorder,transform:Transform,steps:readonly GuideStep[]=laneSteps(features)):Transform {
  if(!features["rq-milestone-guide-v1"])return transform;
  const guide=new GuidePosition(steps);recorder.subscribe(event=>{guide.observe(event);},true,true);
  let recorded:string|null=null,told:readonly string[]=[],sectionsShown:readonly string[]=[];

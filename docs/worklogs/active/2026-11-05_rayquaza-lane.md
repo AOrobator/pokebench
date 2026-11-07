@@ -153,3 +153,23 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude review: no weakening (a KO wastes the encounter), Wingull only if met, level 26 as an aim, not a gate.
 - Catch rows gate green. Claude's findings applied as proposed; GPT LGTM on facts.
 - rayquaza-lane-24h: same pointer recipe as v3, 24-hour cap; The operator 2026-11-06 10:30 PM. Run aeb8 ended on budget at turn 913 with Dynamo, past the rival at T784.
+
+### 2026-11-06: rq-old-rival-line-v1 (for the Route 110 trials; coordinator-relayed prep)
+
+- Switch swaps the rival tactics on the ROUTE_110 row for aeb8's line. OFF is today's guide; default off, lane-only.
+- COMMIT: `test(guide): rival line switch swaps only the Route 110 tactics` (41c28af82), RED: the ON case failed. Agent 95, viewer 77 focused tests pass after the fix.
+- COMMIT: `feat(guide): rq-old-rival-line-v1 restores run aeb8's Route 110 rival tactics` (cb5a4192f). Wiring-removal check: the ON test is the RED above.
+- Landed rq-old-rival-line-v1 (f021b62cf): Claude and GPT lanes LGTM on the frozen diff, Grok skipped; just test and just lint exit 0 (env 3005 passed); memory free 96%. Default off, so no lane or live run changes. Coordinator relayed the go.
+
+### 2026-11-06: Route 110 rival trial definitions (prep; not launched)
+
+- `experiments/fixed/route110-rival-lines.json` (Qwen3.8, 17 per arm) and `route110-rival-lines-qwen36.json` (18 per arm over two GPUs), 20 minute cap, overview `docs/experiments/route110-rival-trials.html`. Budget and go await the operator.
+- Near-fight save: aeb8's ROUTE_110 save replayed on CPU to frame 1063791, Route 110 (35,61), EWRAM matched at 51 of 51 checks, SHA-1 `f6a0d23c49a946e99c36db3d3e97fc4120fe690f`, at `runs/route110-rival/near-fight/`.
+- The fixed tooling compares by `switches`, so these definitions are generated from the resolved lane recipe with the lane's bundle side in `onInBoth`; `runs/route110-rival/make-definitions.py` regenerates them. Arms differ only by rq-old-rival-line-v1; control features equal rayquaza-lane-24h's bundle features; tokens 8192 in both. No stop target, because the control base has none, so every trial runs the cap.
+- Real-server load: Route 110 (35,61), controllable, ₽8,440, Marshtomp 22 at 62 HP, ROUTE_110 present at start, rival not beaten. Fake-model rehearsal, real agent and server, scratch runs root: both arms' requests ended with the right line, 8192 tokens, and a 65,536 window read from the server, so no lane context change is needed.
+- Not rehearsed: the fixed runner's chaining with these definitions (runner unchanged).
+- Correction: aeb8's winning rival fight used no items. Its only X Attack in those fights was turn 746, in a loss.
+- GPT review: primary said first fight while the tooling scores the milestone within the cap, and a stale README line. Fixed: primary is the milestone within 20 minutes, first fight is a secondary read from events.
+- Claude review: a zero replacement reserve would leave a never-began trial paused forever, so both definitions reserve three trials (3,600,000 ms). Power table now uses no failure rate and no budget line, since the operator has set none. First-fight reader at `runs/route110-rival/first-fight.py`.
+- Claude recheck: the reserve allows three replacements as stated, but the runner also replaces mismatched and signalled trials; page now says so. Noted for later: fixed-run-launch section 4 says a SIGTERM'd trial is not replaced, while `classifyTrial` replaces it.
+- Landed the Route 110 definitions (fc670e951): Claude and GPT lanes LGTM, Grok skipped; just test and just lint exit 0 on the final head (agent 2680, viewer 1077); memory free 96%. Not launched; The operator's pick, N and GPU window pending.

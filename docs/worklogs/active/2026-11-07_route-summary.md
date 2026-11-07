@@ -36,8 +36,8 @@ No new input surface. Coordinates in guide notes are authored data; the server's
 - [x] COMMIT: `test(agent): route summary on recorded states (RED)` (87bf42a11)
 - [x] Implement, register the switch, prompt, wiring, explainer
 - [x] Cheap checks: agent and viewer `tsc --noEmit`, eslint on changed files, route-summary 28 tests, features, preset, frozen-switch, play-config, panels, next-run and recipe tests pass. Deleted once and watched go red, then restored: the production wiring, the locked-field check.
-- [ ] Full gates in a granted CPU window
-- [ ] COMMIT GREEN
+- [x] Full gates in the window the coordinator granted, at 84cd54e21: `just lint` and `just verify-vendor` pass; `just test`: agent 2773 tests, viewer 1235, env 3051, gateway 38, `no-io-proof` OK, floors held (agent 67.68 lines / 58.7 branches / 61.83 functions / 62.33 statements; viewer 42.35 / 44.19 / 46.91 / 41.7).
+- [x] COMMIT: `feat(agent): route-summary-v1 puts computed routes in the readout` (84cd54e21)
 - [ ] Review
 - [ ] Land
 
@@ -79,6 +79,12 @@ Offline only, on recorded states; no run launched, no request to any model serve
 - A locked-field readout made every line say no route; INV-2 came from that.
 
 ## Multi-Model Review Log
+
+Round 1, frozen 5ad4882bc..84cd54e21, diff sha256 77822961d8f53b7dc2d4d9d288cbb9f83d17070918fda9e9a635df783700362c.
+- Claude CLI: BLOCKING, three findings, all Fix: (B1) a listed step-on pad said no route because `plannedRoute` skipped the walk's `resolve`; (B2) a guide tile in sight could report steps out of sight, because the planner stopped beside it; (B3) a player who can Surf got "no route" where the walk goes to the shore. Also fixed from its and the fallback's notes: seen tiles kept per trainer, no check spent on a route of no steps, press and navigate_to wrapping asserted.
+- Fallback subagent (Sonnet, read-only): LGTM.
+- Rebut or follow-up: `semantic-navigation-v2` off leaves target words in the block (the boundary froze one dependency; scope), guide tiles on another floor of a same-named map (no failing row), sentence stronger than ledge and Surf switches guarantee (false only in a config with those off; both on in current).
+- GPT lane: packet queued to a Codex session; The operator is deciding through the coordinator whether to waive it. Not landed.
 
 ## Boy Scout Log
 

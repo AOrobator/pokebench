@@ -1,6 +1,7 @@
 import {describe,expect,it} from "vitest";
 import type {AgentTool} from "@mariozechner/pi-agent-core";
 import STATES from "./fixtures/route-summary-states.json" with {type:"json"};
+import {IN_GAME} from "../test-support/events.js";
 import {playSystemPrompt} from "./play-config.js";
 import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import {ALL_ON,FEATURES,SWITCHABLE_FEATURES,playHarnessFeatures,type FeatureSet} from "./features.js";
@@ -79,7 +80,7 @@ describe("route summary on recorded states",()=>{
   const server=sees(everyTile,map);
   const text=await routeSummary(ROUTE110,ON,server.check,null);
   expect(server.calls).toBe(SIGHT_CHECK_CAP);
-  expect(text).toContain("trainer sight not checked.");
+  expect(text).toMatch(/not checked\.$/m);
  });
 
  it("a route that dead-ends on sight keeps looking, and says when the checks ran out",async()=>{
@@ -87,6 +88,20 @@ describe("route summary on recorded states",()=>{
   const line=[...Array(45).keys()].map(y=>({x:here.x-3,y}));
   const text=await routeSummary(ROUTE102,ON,sees(line,[0,17]).check,null);
   expect(text?.split("\n").find(l=>l.startsWith("- WEST"))).toMatch(/no route out of sight|a route out of sight was not checked/);
+ });
+
+ it("a guide tile a trainer sees has no route out of sight, even with a free tile beside it",async()=>{
+  const text=await routeSummary(ROUTE102,ON,sees([{x:20,y:10}],[0,17]).check,{map:"Route102",note:"(20,10)"});
+  expect(text?.split("\n").find(l=>l.startsWith("- guide tile"))).toContain("no route out of sight.");
+ });
+
+ it("spends no check on a route of no steps",async()=>{
+  const server=sees([],[0,17]);
+  const text=await routeSummary(ROUTE102,ON,server.check,{map:"Route102",note:"(34,14)"});
+  expect(text).toContain("- guide tile (34,14): 0 steps, out of every unbeaten trainer's sight.");
+  const without=sees([],[0,17]);
+  await routeSummary(ROUTE102,ON,without.check,null);
+  expect(server.calls).toBe(without.calls);
  });
 
  it("reports a check the server could not make",async()=>{
@@ -131,6 +146,40 @@ describe("route summary on recorded states",()=>{
  });
 });
 
+describe("what navigate_to_target does on states the recordings lack",()=>{
+ const LOCAL={...ON,"full-map-navigation-v1":false,"visited-terrain-navigation-v1":false};
+ it("finds a listed step-on pad as the walk does",()=>{
+  const tiles=[0,1,2].flatMap(y=>[0,1,2,3,4].map(x=>({x,y,collision:0,behavior:x===2&&y===1?0x29:0,elevation:3})));
+  const pad={name:"Warp to map 4/1",kind:"warp",x:2,y:1,elevation:3,activation:"movement; activation depends on metatile (see local map)",availability:"conditional",facing:null,local_id:null,destination:[25,4,1] as [number,number,number]};
+  const gym={...IN_GAME,screen:"overworld",started:true,map_id:[4,2],position:{x:0,y:1},facing:"right",field_controls_locked:false,in_battle:false,interaction_targets:[pad],interaction_object_slots:[],navigation_grid:{elevation:3,tiles,objects:[],warps:[{x:2,y:1}]}} as unknown as GameStateSnapshot;
+  expect(plannedRoute(gym,{route:"listed",target:pad},LOCAL)?.steps).toBe(2);
+ });
+
+ // Land at 0-1, water at 2-5, land at 6-7; the north edge is at (4,0).
+ const cells=Array.from({length:8},(_,x)=>({x,y:0,collision:0,behavior:x>=2&&x<=5?0x15:0,elevation:x>=2&&x<=5?1:3}));
+ const hex=cells.map(c=>((c.collision<<12)|(c.elevation<<8)|c.behavior).toString(16).padStart(4,"0")).join("");
+ const shore={...IN_GAME,started:true,screen:"overworld",in_battle:false,field_controls_locked:false,active_ui:null,map_id:[0,33],position:{x:0,y:0},facing:"right",
+  navigation_grid:{elevation:3,tiles:cells,objects:[],warps:[]},map_grid:{width:8,height:1,elevation:3,rows:[hex],objects:[],warps:[]},
+  running:{shoes:true,allow_running:true,metatile:21,elevation:3,map_type:3,callback1:1,callback2:1,diagnostic:null,raw_hex:null,permitted:true,controllable:true,reason:"permitted",avatar_flags:1},
+  surf_gate:{can_surf:true,surfing:false},
+  topology:{width:8,height:1,connections:[{direction:"NORTH",destination:[0,1],offset:0,edges:[],water_edges:[{x:4,y:0}]}]},interaction_targets:[]} as unknown as GameStateSnapshot;
+
+ it("sends a player who can Surf to the shore instead of saying no route",()=>{
+  expect(plannedRoute(shore,{route:"connection",direction:"NORTH"},ON)).toMatchObject({point:{x:1,y:0},steps:1,launch:{water:{x:2,y:0},move:"Surf"}});
+  expect(plannedRoute(shore,{route:"tile",tile:{x:6,y:0}},ON)).toMatchObject({point:{x:1,y:0}});
+ });
+
+ it("says so on the line, and stays silent on Surf when it cannot be used",async()=>{
+  const text=await routeSummary(shore,ON,null,{map:"Route",note:"(6,0)"});
+  expect(text).toBeNull();
+  const named={...shore,location:"ROUTE"};
+  const line=(await routeSummary(named,ON,null,{map:"Route",note:"(6,0)"}))?.split("\n")[1];
+  expect(line).toBe("- guide tile (6,0): 1 step to (1,0), then press A facing (2,0) to use Surf.");
+  const walled=await routeSummary({...named,surf_gate:{...named.surf_gate,can_surf:false}} as GameStateSnapshot,ON,null,{map:"Route",note:"(6,0)"});
+  expect(walled).toContain("no route navigate_to_target can walk from here.");
+ });
+});
+
 describe("against the server's own flood",()=>{
  it.each([["6056 T120",ROUTE102],["aeb8 T319",ROUTE116],["aeb8 T416",ROUTE104],["aeb8 T654",ROUTE110]] as const)("%s: every map edge the flood reaches on foot has a route",(_name,state)=>{
   const reach=state.exit_reach;
@@ -170,8 +219,10 @@ describe("the switch",()=>{
 
  it("wraps navigate_to and press, and leaves other tools alone",()=>{
   const other=tool("battle_action");
-  const wrapped=withRouteSummary([tool("press"),tool("navigate_to"),other],ON,ports);
-  expect(wrapped[0]).not.toBe(undefined);
+  const press=tool("press"),navigate=tool("navigate_to");
+  const wrapped=withRouteSummary([press,navigate,other],ON,ports);
+  expect(wrapped[0]).not.toBe(press);
+  expect(wrapped[1]).not.toBe(navigate);
   expect(wrapped[2]).toBe(other);
  });
 

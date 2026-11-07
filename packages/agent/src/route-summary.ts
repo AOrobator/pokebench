@@ -76,19 +76,24 @@ class SightBudget {
  readonly seenTiles=new Map<string,Point&{readonly by:number}>();
  constructor(private readonly check:TrainerSightPorts["check"],private readonly state:GameStateSnapshot,private readonly map:readonly [number,number],private readonly signal?:AbortSignal) {}
  async ask(route:PlannedRoute,exclude:number|null):Promise<Sight> {
+  if(route.tiles.length===0)return {seen:[]};
   if(this.calls>=SIGHT_CHECK_CAP)return {reason:"check limit reached"};
   this.calls+=1;
   const answer=await askSight(this.check,this.state,[this.map[0],this.map[1]],route.tiles,this.signal);
   if("reason" in answer)return answer;
-  for(const s of answer.seen)this.seenTiles.set(key(s.tile),{...s.tile,by:s.local_id});
+  for(const s of answer.seen)this.seenTiles.set(`${key(s.tile)}:${String(s.local_id)}`,{...s.tile,by:s.local_id});
   return {seen:answer.seen.filter(s=>s.local_id!==exclude)};
  }
  avoid(exclude:number|null):Point[] {return [...this.seenTiles.values()].filter(t=>t.by!==exclude).map(({x,y})=>({x,y}));}
 }
 
 async function sightFree(state:GameStateSnapshot,entry:Entry,features:FeatureSet,budget:SightBudget):Promise<string> {
+ const goal=entry.goal;
  for(;;){
-  const route=plannedRoute(avoiding(state,budget.avoid(entry.exclude)),entry.goal,features);
+  const avoid=budget.avoid(entry.exclude);
+  // A guide tile in sight can only be reached in sight; the planner would stop beside it instead.
+  if(goal.route==="tile"&&avoid.some(t=>key(t)===key(goal.tile)))return "no route out of sight";
+  const route=plannedRoute(avoiding(state,avoid),goal,features);
   if(route===null)return "no route out of sight";
   const sight=await budget.ask(route,entry.exclude);
   if("reason" in sight)return "a route out of sight was not checked";
@@ -101,8 +106,9 @@ const seenBy=(seen:readonly SightSeen[]):string=>seen.map(s=>`object ${String(s.
 async function routeLine(state:GameStateSnapshot,entry:Entry,features:FeatureSet,budget:SightBudget|null):Promise<string> {
  const route=plannedRoute(state,entry.goal,features);
  if(route===null)return `- ${entry.label}: no route navigate_to_target can walk from here.`;
- const beside=entry.goal.route==="tile"&&key(route.point)!==key(entry.goal.tile)?` to ${at(route.point)} beside it`:"";
- const walk=`${steps(route.steps)}${beside}`;
+ const beside=route.launch===undefined&&entry.goal.route==="tile"&&key(route.point)!==key(entry.goal.tile)?` to ${at(route.point)} beside it`:"";
+ const launch=route.launch===undefined?"":` to ${at(route.point)}, then press A facing ${at(route.launch.water)} to use ${route.launch.move}`;
+ const walk=`${steps(route.steps)}${beside}${launch}`;
  if(budget===null)return `- ${entry.label}: ${walk}.`;
  const sight=await budget.ask(route,entry.exclude);
  if("reason" in sight)return `- ${entry.label}: ${walk}, trainer sight not checked.`;

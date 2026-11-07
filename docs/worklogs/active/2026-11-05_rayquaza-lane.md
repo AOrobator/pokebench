@@ -271,3 +271,9 @@ Seafloor Cavern:
 - Room 6: KI's track is interpolated over the water, so the row is from the map, not the track. Four presses, U D U L, ride the currents from (11,19) to (4,8) through stops (14,16), (19,11), (8,12). All 139 stops can still reach (4,8) except the exit tile (14,8), which leaves to the Entrance. Current rides not run on the emulator.
 - Room 7 bypass: a run that reaches Room 3 through Room 7 keeps the Room 2 row until SEAFLOOR_ARCHIE_CHAMBER, 4 steps on. HM_DIVE_RECEIVED to Archie is 7, inside REACH.
 - After a loss the guide stays on its room and the row gives the Dive tile and earlier rooms as waypoints only; there is no room for their buttons.
+- COMMIT: `feat(guide): checkpoint rows through the Seafloor Cavern rooms` (e2e05e3a3). 133 focused tests pass; tsc and eslint clean.
+
+Mossdeep Green switch (the open item from rq-checkpoint-recovery-v1):
+
+- New gated row AT:MossdeepCity_Gym:15:34, the first Green switch landing, between (23,20) and (8,12). An early L2 at the first (9,18) landing now holds on (23,20), because (8,12) is no longer the next row and recovery cannot cross the new gate. Tracker logic unchanged. Gym entry to MIND_BADGE is now 7 steps, inside REACH.
+- The string is the same presses, cut at the switch; the door route to (15,34) and on to (8,12) simulates clean. Statue rotation is still simulated only.

@@ -80,7 +80,7 @@ describe("rq-checkpoint-recovery-v1", () => {
   it("the real Mossdeep rows cannot skip the Green switch leg", () => {
     const MOSSDEEP = [14, 3];
     const atRows = RAYQUAZA_GUIDE_STEPS.filter((step) => step.at !== undefined && step.after.startsWith("AT:MossdeepCity_Gym"));
-    expect(atRows.filter((step) => step.gate === true).map((step) => step.after)).toEqual(["AT:MossdeepCity_Gym:23:20"]);
+    expect(atRows.filter((step) => step.gate === true).map((step) => step.after)).toEqual(["AT:MossdeepCity_Gym:23:20", "AT:MossdeepCity_Gym:15:34"]);
     const entered = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "MOSSDEEP_GYM_ENTERED");
     const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS, { checkpointRecovery: true });
     for (const step of RAYQUAZA_GUIDE_STEPS.slice(1, entered + 1)) guide.observe({ ...story(step.after), origin: "present_at_start" } as unknown as RunEvent);
@@ -90,6 +90,15 @@ describe("rq-checkpoint-recovery-v1", () => {
     expect(guide.current().after).toBe("MOSSDEEP_GYM_ENTERED");
     guide.observe(move(23, 20, id));
     expect(guide.current().after).toBe("AT:MossdeepCity_Gym:23:20");
+  });
+  it("an early L2 at the first (9,18) landing cannot fire (8,12) with the Green switch undone", () => {
+    const tile = onFloor("MossdeepCity_Gym");
+    const guide = new GuidePosition(rowsFrom("MOSSDEEP_GYM_ENTERED"), { checkpointRecovery: true });
+    for (const [x, y] of [[1, 23], [23, 20], [9, 18], [8, 12]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe("AT:MossdeepCity_Gym:23:20");
+    for (const [x, y] of [[15, 34], [9, 18], [8, 12]] as const) guide.observe(tile(x, y));
+    expect(guide.current().after).toBe("AT:MossdeepCity_Gym:8:12");
+    expect(span("MOSSDEEP_GYM_ENTERED", "MIND_BADGE")).toBeLessThanOrEqual(REACH);
   });
   it("does not jump from outside the checkpoint chain's reach", () => {
     const far: readonly GuideStep[] = [{ after: "RUN_START", map: null, note: "s" }, ...Array.from({ length: 10 }, (_, n) => at(n + 1, 1))];

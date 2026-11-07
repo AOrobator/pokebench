@@ -2,7 +2,7 @@
 # Launch one ordinary play run, detached, from the main checkout.
 #
 #   launch.sh --meta runs/<meta-dir> --model <model id> [--preset <file>]
-#             [--endpoint <file>] [--commit <sha>] [--record]
+#             [--endpoint <file>] [--commit <sha>] [--record [--backup <folder>]]
 #             [--definition <fixed id> [--arm <control|bundle>]]
 #
 # --definition resolves that experiments/fixed definition's arm to runs/<meta>/preset.json at launch,
@@ -25,6 +25,7 @@ COMMIT=""
 RECORD=0
 DEFINITION=""
 ARM=()
+BACKUP=""
 while (( $# )); do
   case "$1" in
     --meta) META="$2"; shift 2 ;;
@@ -33,6 +34,7 @@ while (( $# )); do
     --endpoint) ENDPOINT="$2"; shift 2 ;;
     --commit) COMMIT="$2"; shift 2 ;;
     --record) RECORD=1; shift ;;
+    --backup) BACKUP="$2"; shift 2 ;;
     --definition) DEFINITION="$2"; shift 2 ;;
     --arm) ARM=(--arm "$2"); shift 2 ;;
     *) echo "launch: unknown argument $1" >&2; exit 2 ;;
@@ -82,6 +84,11 @@ if (( RECORD )); then
   PYTHONPATH="$PWD/env" nohup env/.venv/bin/python -m pokebench_env.recorder --supervise --wait 3600 --port "$PORT" --out "$META/recording" >"$META/logs/recorder-$STAMP.log" 2>&1 < /dev/null &
   RECORDER_PID=$!
   disown
+  if [[ -n "$BACKUP" ]]; then
+    MODEL_GLOB="*_$(print -r -- "$MODEL" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//')_*"
+    nohup scripts/recording-backup.sh "$META/recording" "$PWD/runs" "$MODEL_GLOB" "$BACKUP" "$RECORDER_PID" >"$META/logs/backup-$STAMP.log" 2>&1 < /dev/null &
+    disown
+  fi
 fi
 nohup just run-agent --commit "$COMMIT" >"$LOG" 2>&1 < /dev/null &
 echo "$!" | tee "$PIDFILE"

@@ -98,6 +98,12 @@ The operator 2026-11-07: "it'd be nice to also have game music playing". The gam
 - [x] Review: Claude, GPT, fallback LGTM through 52d3ebed1
 - [x] Landed 6efad480a; post-main `just test`: 2,688 agent, 1,235 viewer, 3,051 env, 38 gateway
 
+### Piece 10: sound controls in the header
+The operator 2026-11-07: "i'd rather the music /sound toggle not be overlayed on the video, we have so much space in the header". Controls sit outside the scaled stage, placed by the stage's scale: in the header's empty middle on wide screens, under the stage on a phone, where a scaled header would make them too small to tap.
+- [x] RED
+- [ ] GREEN
+- [ ] Review, landing
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

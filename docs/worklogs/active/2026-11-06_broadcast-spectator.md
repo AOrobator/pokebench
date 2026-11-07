@@ -71,6 +71,12 @@ Follow mode only: new captions as they arrive, wavs queued one at a time, lines 
 - [x] Rehearsal: fake live run replaying 37ca with fresh times, real follower, Qwen and Kokoro, this page headless on 8797: button shown, one click, nine wavs played in order with no overlap (206 from the route), captions arrived on their own, button gone after the click and absent at ?t and transparent=1, no page errors. 1920x1080 screenshot viewed.
 - [ ] Review, landing
 
+### Piece 7: real badge sprites on /broadcast
+The operator 2026-11-07: "the broadcast view needs to use the actual sprites of the gym badges". The game's Trainer Card draws every badge grey (ROM palette at 0x56f4ec, one palette for all; the image-gen thread matched all 760 opaque pixels in a real game), so the files are grey. Read from the gitignored runs/sprites/rom-badges/, never in git; discs stay as the fallback when any file is missing.
+- [x] RED
+- [ ] GREEN
+- [ ] Review, landing
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

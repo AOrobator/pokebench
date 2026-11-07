@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { actionHtml, badgesHtml, laneHtml, laneMarks, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
+import { actionHtml, BADGE_FILES, badgesHtml, laneHtml, laneMarks, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
 
 const press = (t: number, ...b: string[]) => ({ t, b });
 const mark = (now: number, presses: { t: number; b: string[] }[], extra: Partial<Parameters<typeof laneMarks>[0]> = {}) => laneMarks({ now, width: 600, presses, tools: [], miles: [], ...extra });
@@ -84,6 +84,20 @@ describe("the panels", () => {
     expect(html.match(/class="bdg live"/g)).toHaveLength(1);
     expect(html.match(/class="bdg"/g)).toHaveLength(5);
     expect(badgesHtml(["STONE", "KNUCKLE", "DYNAMO", "HEAT", "BALANCE", "FEATHER", "MIND", "RAIN"])).not.toContain("live");
+  });
+
+  it("draws the game's own badge sprites when they loaded, in the same three states", () => {
+    const html = badgesHtml(["STONE", "KNUCKLE"], true);
+    expect(html.match(/class="bdg got spr"/g)).toHaveLength(2);
+    expect(html.match(/class="bdg live spr"/g)).toHaveLength(1);
+    expect(html.match(/class="bdg spr"/g)).toHaveLength(5);
+    expect(html).toContain('src="/sprites/badges/badge-1-stone.png"');
+    expect(html).toContain('src="/sprites/badges/badge-8-rain.png"');
+    expect(badgesHtml(["STONE"])).not.toContain("<img");
+  });
+
+  it("names the eight sprite files the server may serve", () => {
+    expect(BADGE_FILES).toEqual(["badge-1-stone.png", "badge-2-knuckle.png", "badge-3-dynamo.png", "badge-4-heat.png", "badge-5-balance.png", "badge-6-feather.png", "badge-7-mind.png", "badge-8-rain.png"]);
   });
 
   it("labels the run by how it started", () => {

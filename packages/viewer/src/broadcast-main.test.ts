@@ -222,6 +222,18 @@ describe("the broadcast page", () => {
     expect(document.querySelector<HTMLElement>("#stage")?.style.transform).toBe("scale(0.5)");
   });
 
+  it("uses the badge sprites when all of them load, and the discs otherwise", async () => {
+    const asked: string[][] = [];
+    const s = setup("?run=r1&t=5.5", () => Promise.resolve(answer()), { badgeSprites: urls => { asked.push([...urls]); return Promise.resolve(true); } });
+    await s.mount();
+    expect(asked[0]).toHaveLength(8);
+    expect(s.part("badges").querySelectorAll("img")).toHaveLength(8);
+    const missing = setup("?run=r1&t=5.5", () => Promise.resolve(answer()), { badgeSprites: () => Promise.resolve(false) });
+    await missing.mount();
+    expect(missing.part("badges").querySelectorAll("img")).toHaveLength(0);
+    expect(missing.part("badges").querySelectorAll(".got")).toHaveLength(1);
+  });
+
   describe("live captions and sound", () => {
     const said = { turn: 1, t: 2, text: "Going north.", wav: "t000001.wav", said: 6 };
     const later = { turn: 2, t: 6, text: "Heading home.", wav: "t000002.wav", said: 7 };

@@ -122,6 +122,19 @@ describe("the broadcast page", () => {
     expect(s.timers.length).toBeGreaterThan(0);
   });
 
+  it("retires each live frame's blob even when a newer frame cancels its decode", async () => {
+    const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
+    const socket: FrameSocket = { on: (name, run) => { handlers[name] = run; }, close: vi.fn() };
+    let n = 0;
+    const s = setup("?run=r1", () => Promise.resolve(answer({ ended: false })), { openFrames: () => socket, frameUrl: () => { n += 1; return `blob:${String(n)}`; }, show: () => Promise.reject(new Error("cancelled")) });
+    await s.mount();
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    handlers.message?.(new ArrayBuffer(1));
+    handlers.message?.(new ArrayBuffer(1));
+    await vi.waitFor(() => { expect(revoke).toHaveBeenCalledWith("blob:1"); });
+    revoke.mockRestore();
+  });
+
   it("setTime leaves live frames for good and waits for the recorded frame", async () => {
     const handlers: Partial<Record<"message" | "close", (data?: unknown) => void>> = {};
     const close = vi.fn();

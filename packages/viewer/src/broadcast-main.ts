@@ -144,7 +144,9 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
       liveFrames = true;
       const previous = onScreen;
       onScreen = frameUrl(data);
-      deps.show(game, onScreen).then(() => { if (previous?.startsWith("blob:") === true) doc.defaultView?.URL.revokeObjectURL(previous); }, () => undefined);
+      // A newer frame cancels a pending decode, so the old blob is retired either way.
+      const retire = (): void => { if (previous?.startsWith("blob:") === true) doc.defaultView?.URL.revokeObjectURL(previous); };
+      deps.show(game, onScreen).then(retire, retire);
     });
     stream.on("close", () => {
       if (socket !== stream) return;

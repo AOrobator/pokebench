@@ -61,6 +61,8 @@ Round 1, frozen 0bc415075..5eff8420d (sha 0e4069bc). Cursor out of usage until 1
 
 Round 2 on 79d6d2637: Claude and fallback BLOCKING, both reproduced: setTime's new read overlapping a poll added the same items twice (cost and thinking wrong for the page's life). Fixed by one read at a time, with a test holding a poll open. Round 1 fixes confirmed.
 
+Round 3 on d38ee902f: GPT LGTM. Claude and fallback BLOCKING on one regression from the round 1 fix: a cancelled decode skipped revoking the old blob, so a long follow page could leak under load (Claude measured it in real Chromium under CPU throttling). Fixed by retiring on both outcomes, with a test. Past the round cap, so reported to the coordinator: the fix covers only that listed bug.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

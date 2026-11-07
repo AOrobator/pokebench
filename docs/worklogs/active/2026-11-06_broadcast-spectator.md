@@ -79,6 +79,8 @@ Round 3 on b282100f1: Claude, GPT and fallback LGTM. Left as is: a range under 0
 
 Prompt patch 53144b2d3: Claude and fallback LGTM, GPT BLOCKING on `OHKOs` passing the jargon check. Inflections added.
 
+Commentary prompt landed at 2ab63c135: GPT LGTM on the inflection fix, Claude and fallback LGTM before it. Post-main `just test`: 2,684 agent, 1,200 viewer, 3,032 env, 38 gateway.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

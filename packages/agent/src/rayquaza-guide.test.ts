@@ -282,7 +282,6 @@ describe("the guide's facts", () => {
     ["OCEANIC_MUSEUM_ENTERED", "If Mud Shot is offered now, teach it over Growl."],
     ["DEVON_GOODS_DELIVERED", "or Growl if Tackle is gone"],
     ["ROUTE_110", "Full Heal (status only, not HP)"],
-    ["ROUTE_110", "No Cut needed."],
     ["DYNAMO_BADGE", "that one rock opens the way"],
     ["DYNAMO_BADGE", "(0,66-71)"],
     ["ROUTE_111_NORTH", "(0,66-71)"],

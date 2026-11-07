@@ -30,6 +30,9 @@ describe("rq-old-rival-line-v1", () => {
     expect(out).not.toContain("against Slugma");
     expect(out).toContain("Decline Foresight.");
   });
+  it("keeps the swapped row inside the guide's note limit", () => {
+    expect((AT_RIVAL.at(-1)?.note ?? "").replace(NEW_LINE, OLD_RIVAL_LINE).length).toBeLessThanOrEqual(300);
+  });
   it("the current row still holds the text the switch replaces", () => {
     expect(AT_RIVAL.at(-1)?.note).toContain(NEW_LINE);
   });

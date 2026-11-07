@@ -10,7 +10,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 | `OVERHEAT_RECEIVED` | `LavaridgeTown` | Leave the Gym to receive the Go-Goggles from your rival. | KI 27–28, ROM |
 | `GO_GOGGLES_RECEIVED` | `LavaridgeTown` | At the Herb Shop, buy in this order as funds allow: six Energy Powders, four Heal Powders, four Energy Roots. Use Repel if you have one, go east via Route 112 to Route 111 and stand at (35,65). | KI v0:58:04–0:58:38, U8, U21, ROM |
 | `AT:Route111:35:65` | `Route111` | Face south and press A for a hidden Rare Candy. | KI 28–30, ROM, OCR 0:58:38, audit U1 |
-| `GOT:RARE_CANDY` | `Route111` | Return to Mauville, Rock Smashing (19,100) if on foot. Bike to Slateport, board Briney’s boat at the Route 109 dock and enter Dewford Gym. | KI v0:58:44–0:59:36, ROM, audit U1, U21, TO:MauvilleCity |
+| `GOT:RARE_CANDY` | `Route111` | Return to Mauville, Rock Smashing (19,100) if walking or biking. Bike to Slateport, board Briney’s boat at the Route 109 dock and enter Dewford Gym. | KI v0:58:44–0:59:36, ROM, audit U1, U21, TO:MauvilleCity |
 | `MAP:DewfordTown_Gym` | `DewfordTown_Gym` | From (5,27), walk U R U4 R2 U R3 U7 R U9 L8 U to reach Brawly without trainers. If off this route, trust the map. Use bag items before Brawly if needed. Use Strength, as known, against Machop, Meditite and Makuhita. | KI v0:59:45–1:00:47, U22, C1, ROM |
 | `KNUCKLE_BADGE` | `DewfordTown` | Finish Brawly’s dialogue for Bulk Up. From (4,4), leave with D R8 D9 L D8 L5 D5, then take Briney’s boat to Route 104. If off this route, trust the map. Use any Rare Candy on your starter and go east to Petalburg Gym. | KI v1:00:47–1:02:06, U22, ROM |
 
@@ -80,7 +80,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Finish the cavern scene and surface on Route 128. Go south into Route 129, then west through 130–131 to Pacifidlog. Fly to Mossdeep (no Fly: Surf); Surf south on 127, turn west into 126. Dive at (45,66) and go north through the door at (45,65) to surface in Sootopolis. | KI v1:59:15–2:02:05, U7, ROM |
+| `SEAFLOOR_KYOGRE_RELEASE_CONFIRMED` | `Route129` | Finish the cavern scene and surface on Route 128. Go south into Route 129, then west through 130–131 to Pacifidlog. Fly to Mossdeep (no Fly: Surf and Dive); Surf south on 127, turn west into 126. Dive at (45,66) and go north through the door at (45,65) to surface in Sootopolis. | KI v1:59:15–2:02:05, U7, ROM |
 | `SOOTOPOLIS_CITY` | `CaveOfOrigin_1F` | Talk to Steven at (20,36) so he leads you to the Cave of Origin, then speak to Wallace inside. Choose Sky Pillar when he asks where Rayquaza is. | KI 48, WT 12 |
 | `WALLACE_SKY_PILLAR_DISCUSSION_COMPLETE` | `Route131` | Use an Escape Rope, or walk out if it is missing. Fly to Pacifidlog, Surf east on Route 131 and take the north opening to Sky Pillar. | KI v2:03:47–2:04:45, U32, ROM |
 | `SKY_PILLAR_OPENED` | `SkyPillar_1F` | Use the Mach Bike. From (6,13): 1F U R4 U11; 2F D L7 U; 3F D10 R8 U10; 4F D10 L8 U7 R4 U3 to drop, take the stairs back, then D L4 U; 5F D L D10 R9 U10 L U; top D L4 U4. Approach Rayquaza. | KI v2:04:45–2:05:45, U33, ROM |
@@ -94,7 +94,7 @@ The notes follow keepingiticy’s Emerald route. Use the Master Ball detour for 
 
 | After | Map | Note | Source |
 |---|---|---|---|
-| `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Drop to B1F to exit, then Fly to Mossdeep (no Fly: Surf). If you have Rayquaza, teach it Aerial Ace over ExtremeSpeed and Waterfall over Rest, as known, keeping Fly and Outrage; otherwise teach Waterfall to an able Pokémon. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
+| `RAIN_BADGE` | `SootopolisCity_Gym_B1F` | Drop to B1F to exit, then Fly to Mossdeep (no Fly: Surf and Dive). If you have Rayquaza, teach it Aerial Ace over ExtremeSpeed and Waterfall over Rest, as known, keeping Fly and Outrage; otherwise teach Waterfall to an able Pokémon. Surf through Routes 127–128 to Ever Grande and climb the waterfall. | KI v2:11:55–2:14:00, U6, U35, ROM |
 | `EVER_GRANDE_LANDING` | `EverGrandeCity` | Step inside the Pokémon Center at (27,48) to set your respawn; heal only if you need it. Then enter Victory Road at (18,41). Keep your Surf, Strength and Rock Smash users for the field moves. | KI v2:14:00, C1, U40, ROM, the operator 2026-11-07 |
 | `VICTORY_ROAD` | `VictoryRoad_1F` | Beat Wally near the entrance. As known, use Aerial Ace on Altaria, Waterfall on Delcatty and Magneton, and Outrage on Roselia and Gardevoir if safe. | KI 55, KI battle plans |
 | `VICTORY_ROAD_WALLY_DEFEATED` | `VictoryRoad_1F` | Max Repel if you have one. From Wally’s spot go up to (5,16), then U2 R4 to the ladder at (9,14), fighting Hope on the way. If off this route, trust the map. Keep the field moves available and save battle PP. | KI v2:14:50–2:15:55, U8, U36, ROM |

@@ -24,3 +24,5 @@ COMMIT: `test(agent): unused parameter in the drought test` (dbb8d6fd9). Gates f
 Claude (subagent) LGTM on 7133e1c1a; its wording note applied to both READMEs and the explainer.
 
 Gates on 7133e1c1a: `just test` 2,927 agent, 1,237 viewer, 3,051 env, 38 gateway; lint clean. GPT round 2 flagged the explainer label, already fixed in bd49d4d63.
+
+Landed on the operator's "Land both" 2026-11-07 11:31 AM NY. GPT and Claude LGTM on both switches.

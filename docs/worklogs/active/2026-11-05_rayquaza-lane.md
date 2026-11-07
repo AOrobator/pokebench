@@ -178,3 +178,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 
 - e09e ran from three wild Abra (turns 274, 283, 285) despite the Abra note: the guide row named only Taillow and came last. Audit of every row for only/catch wording: this row is the only conflict.
 - COMMIT: `test(guide): the Route 116 row names Abra beside Taillow` (de9c6ec75), RED: one failure. Row rewritten to 300 chars or under and regenerated.
+- COMMIT: `fix(guide): Route 116 names Abra beside Taillow so the Abra note has no rival` (0f298a9f3). The older guard banned Abra from every row; it now allows this one row, with "if met", and still bans any search.

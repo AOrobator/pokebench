@@ -341,7 +341,9 @@ describe("Abra notes", () => {
     expect(recorded.filter((r) => r.text === ABRA_NOTE)).toHaveLength(2);
   });
 
-  it("names no search for Abra anywhere in the guide", () => {
-    expect(RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note))).toEqual([]);
+  it("names Abra only where it may be met, never as a search", () => {
+    const named = RAYQUAZA_GUIDE_STEPS.filter((s) => /\babra\b|teleport/i.test(s.note));
+    expect(named.map((s) => s.after)).toEqual(["ROCK_TOMB_RECEIVED"]);
+    expect(named[0]?.note).toContain("if met");
   });
 });

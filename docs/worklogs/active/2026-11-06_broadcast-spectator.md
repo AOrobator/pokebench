@@ -85,7 +85,7 @@ The operator 2026-11-07: "the broadcast view needs to use the actual sprites of 
 ### Piece 8: the live page stops flashing
 The operator 2026-11-07: "why does the broadcast view flash? it looks bad". Measured on the served page: WebKit showed a black game box in 123 of 972 shots in 15 s, because live frames swapped the img src about 75 times a second and WebKit blanks between sources; Chromium did not show it, though 57 of 1,718 animation frames found the image incomplete. The caption box also vanished 15 s after each line and popped back, a white block about every turn.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 132 focused tests. Live frames draw on a canvas, newest frame wins; caption holds 120 s. WebKit against the live page, branch modules routed in: 0 black in 2,406 shots over 40 s, 35 distinct pictures, against 123 of 972 before. Shots viewed.
 - [ ] Review, landing
 
 ## Closing the Loop

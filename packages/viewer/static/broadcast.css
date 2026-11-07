@@ -44,3 +44,4 @@ html.transparent .gbox{background:transparent}
 .sound[hidden]{display:none}
 .bdg.spr{border:0;border-radius:0;background:none}.bdg.spr img{width:32px;height:32px;image-rendering:pixelated}
 .bdg.spr:not(.got) img{filter:brightness(0) invert(1);opacity:.16}.bdg.spr.live img{filter:none;opacity:.5}.bdg.spr.live{outline:2px dashed #ffd447;outline-offset:1px}
+.live{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated}.live[hidden]{display:none}

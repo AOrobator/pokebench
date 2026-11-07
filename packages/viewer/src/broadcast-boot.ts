@@ -80,9 +80,14 @@ mountBroadcast(document, {
   openFrames: frameSocket,
   speak: speaker(),
   badgeSprites: urls => Promise.all(urls.map(url => { const image = new Image(); image.src = url; return image.decode(); })).then(() => true, () => false),
-  frameUrl: data => {
+  paintFrame: async (canvas, data) => {
     if (!(data instanceof ArrayBuffer)) throw new Error("live frame was not binary");
-    return URL.createObjectURL(new Blob([data], { type: "image/png" }));
+    const frame = await createImageBitmap(new Blob([data], { type: "image/png" }));
+    // Setting a canvas's size clears it, so only a new size may touch it.
+    if (canvas.width !== frame.width) canvas.width = frame.width;
+    if (canvas.height !== frame.height) canvas.height = frame.height;
+    canvas.getContext("2d")?.drawImage(frame, 0, 0);
+    frame.close();
   },
 }).then(page => {
   window.broadcastSetTime = t => page.setTime(t);

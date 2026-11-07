@@ -1,7 +1,7 @@
 // The live /broadcast page's voice: one line at a time, in order, skipping anything too old to still be news.
 import type { CommentaryLine } from "./broadcast-feed.js";
 
-const STALE_S = 30, CAPTION_HOLD_S = 15;
+const STALE_S = 30, CAPTION_HOLD_S = 120;
 // A batch-written line has only its turn's start; a long thought would otherwise look stale the moment it lands.
 const spokenAt = (line: CommentaryLine): number => line.said ?? line.t;
 

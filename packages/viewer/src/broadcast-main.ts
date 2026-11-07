@@ -27,7 +27,7 @@ export interface BroadcastDeps {
   show(image: HTMLImageElement, src: string): Promise<void>;
   laneWidth(lane: HTMLElement): number;
   readonly openFrames?: (path: string) => FrameSocket;
-  readonly frameUrl?: (data: unknown) => string;
+  readonly paintFrame?: (canvas: HTMLCanvasElement, data: unknown) => Promise<void>;
   readonly speak?: Speaker;
   readonly badgeSprites?: (urls: readonly string[]) => Promise<boolean>;
 }
@@ -71,6 +71,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   const base = `/api/runs/${encodeURIComponent(run)}`;
   const timeline = new BroadcastTimeline();
   const game = part("game") as HTMLImageElement, lane = part("lane");
+  const canvas = doc.querySelector<HTMLCanvasElement>('[data-b="live"]');
   let cursor = 0, ended = false, liveFrames = false;
   let onScreen: string | null = null, showing = Promise.resolve(), socket: FrameSocket | null = null;
 
@@ -156,23 +157,31 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     if (moment !== null) return;
     refresh().catch(() => undefined).finally(() => { if (!ended) deps.after(POLL_MS, poll); });
   };
+  // Live frames go to a canvas: it keeps its picture until the next one is drawn, where WebKit blanks an img at every
+  // src change. Frames arrive faster than a screen shows them, so only the newest waits its turn.
   const streamFrames = (): void => {
-    if (moment !== null || ended || transparent || deps.openFrames === undefined || deps.frameUrl === undefined) return;
-    const { frameUrl } = deps, stream = deps.openFrames(`${base}/frames`);
+    if (moment !== null || ended || transparent || deps.openFrames === undefined || deps.paintFrame === undefined || canvas === null) return;
+    const { paintFrame } = deps, stream = deps.openFrames(`${base}/frames`);
     socket = stream;
+    let next: unknown = null, painting = false;
+    const paintNext = (): void => {
+      if (painting || next === null || socket !== stream) return;
+      const data = next;
+      next = null;
+      painting = true;
+      paintFrame(canvas, data).then(() => { if (socket === stream) canvas.hidden = false; }, () => undefined).finally(() => { painting = false; paintNext(); });
+    };
     stream.on("message", data => {
       if (socket !== stream) return;
       liveFrames = true;
-      const previous = onScreen;
-      onScreen = frameUrl(data);
-      // A newer frame cancels a pending decode, so the old blob is retired either way.
-      const retire = (): void => { if (previous?.startsWith("blob:") === true) doc.defaultView?.URL.revokeObjectURL(previous); };
-      deps.show(game, onScreen).then(retire, retire);
+      next = data;
+      paintNext();
     });
     stream.on("close", () => {
       if (socket !== stream) return;
       socket = null;
       liveFrames = false;
+      canvas.hidden = true;
       deps.after(FRAME_RETRY_MS, streamFrames);
     });
   };
@@ -192,6 +201,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
       liveFrames = false;
       socket?.close();
       socket = null;
+      if (canvas !== null) canvas.hidden = true;
       // A run still being written may have reached t since the last read.
       if (!ended) await refresh();
       await showFrame(render(t));

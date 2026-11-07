@@ -54,6 +54,8 @@ Coordinator brief 2026-11-07 for the operator ("whats stopping us from generatin
 - [x] Rehearsal: real Qwen and Kokoro tailing a replayed 37ca log at one turn per 4 s: 58 backlog turns dropped, 14 lines kept pace, exit 0 on run_end, nothing written beside the fake events.jsonl
 - [x] Gates on a9f440d1e: lint (mypy through main's venv; this worktree has no mgba binding), 2,684 agent, 1,200 viewer, 3,048 env, 38 gateway, verify-vendor
 - [x] Review: Claude, GPT, fallback LGTM
+- [x] Landed 10eba171d; post-main `just test`: 2,684 agent, 1,200 viewer, 3,051 env, 38 gateway
+- [x] Live: loopback Qwen3.6-35B-A3B Q4 on 18135 (nice 10, 8k, 1 slot) and follower on 37ca, detached under runs/broadcast/live-model/ with a memory watcher that stops both under 50% free. First lines from turn 158; a caption showed on the served page on a reload.
 
 ### Piece 5: Broadcast link in the viewer
 Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
@@ -61,6 +63,7 @@ Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar f
 - [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
 - [x] Gates on 7bdb2a62d: lint, 3 suites and floors via just test, verify-vendor
 - [x] Review: Claude, GPT, fallback LGTM (sha cb02e865)
+
 ### Piece 6: live captions and sound on /broadcast
 Follow mode only: new captions as they arrive, wavs queued, lines older than 30 s skipped, one-click sound on. Needs the feed to send new lines on polls and a route for the wavs. Replay and transparent stay silent.
 - [ ] Build, review, landing

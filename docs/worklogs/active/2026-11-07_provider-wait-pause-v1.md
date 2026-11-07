@@ -66,3 +66,14 @@ main's existing registry entries. The broadcast header changes are
 separate from the run controller. Focused integration reruns passed
 153 agent and 260 viewer tests. The viewer reruns still used source
 imports. Full branch gates require the pending CPU window.
+
+## Landing status
+
+GPT returned LGTM on integration head `197c6577d`, base `5ad4882bc`,
+diff SHA-256 `89df22b79caf9b76ebfa0325eb630a10a532f95788b6dd12a8c6430847193d46`.
+Agent type checking, changed-file lint and generated-schema comparison
+passed on that head. Claude's preliminary review of the corrected
+pre-integration packet has not yet returned a verdict. Grok is blocked
+by Cursor's usage limit, and the relay has not granted the requested
+CPU window. The relay acknowledged delivery of the blocked handoff.
+No changes landed on main.

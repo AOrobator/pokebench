@@ -55,8 +55,11 @@ describe(ID,()=>{
   expect(plannedWarpElevation(gym([tile(0,3),tile(1,0),tile(2,0)]),{x:2,y:0},options)).toBe(3);
   expect(plannedWarpElevation(gym([tile(0,3),tile(1,0),tile(2,4)]),{x:2,y:0},options)).toBe(4);
  });
- it("ObjectEventUpdateElevation: a step onto or off a multi-level tile leaves it unchanged",()=>{
-  expect(plannedWarpElevation(gym([tile(0,0),tile(1,15),tile(2,4)],[],0,0),{x:2,y:0},options)).toBe(0);
+ it("ObjectEventUpdateElevation: a step onto a multi-level tile leaves it unchanged",()=>{
+  expect(plannedWarpElevation(gym([tile(0,0),tile(1,3),tile(2,15)],[],0,0),{x:2,y:0},options)).toBe(3);
+ });
+ it("ObjectEventUpdateElevation: a step off a multi-level tile updates it, since the check runs after the step ends",()=>{
+  expect(plannedWarpElevation(gym([tile(0,0),tile(1,15),tile(2,4)],[],0,0),{x:2,y:0},options)).toBe(4);
  });
  it("on: from an elevation-0 tile the previous elevation is unknown, so the warp is not refused",()=>{
   expect(navigatorTakesWarp(gym([tile(0,0),tile(1,0),tile(2,0)],[warp(2,3)],0,0),2,0,features(true))).toBe(true);

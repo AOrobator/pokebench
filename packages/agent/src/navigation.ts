@@ -303,9 +303,9 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
  let first:MatchingTrigger|null=null;
  const {entered,jumped}=options.elevation==="legacy"?LEGACY_RULE:GAME_RULE;
  let p=start,here=geometry.tile(start)?.elevation??geometry.elevation,elevation=geometry.elevation,cost=0;
- // ObjectEventUpdateElevation: previousElevation, which warps are matched against, ignores elevation-0 tiles and any step onto or off a multi-level tile.
+ // ObjectEventUpdateElevation: previousElevation, which warps are matched against, ignores elevation-0 tiles and any step onto a multi-level tile. A step off one still counts: the update that matters runs when the step ends.
  let previous=geometry.elevation;
- const settle=(from:number,to:number):void=>{if(from!==MULTI_LEVEL&&to!==MULTI_LEVEL&&to!==0)previous=to;};
+ const settle=(to:number):void=>{if(to!==MULTI_LEVEL&&to!==0)previous=to;};
  for(const [i,direction] of path.entries()){
   const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return null;
   const next={x:p.x+delta[1],y:p.y+delta[2]},tile=geometry.tile(next);if(tile===undefined)return null;
@@ -316,11 +316,11 @@ function walked(state:GameStateSnapshot,path:readonly Direction[],options:Naviga
    cost+=pushed.length;p=end;
   }else if(slid!==null){
    const land=geometry.tile(slid);if(land===undefined)return null;
-   elevation=entered(elevation,land.elevation);settle(here,land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
+   elevation=entered(elevation,land.elevation);settle(land.elevation);here=land.elevation;cost+=slid.y-next.y+terrainStepCost(land,options);p=slid;
   }else if(options.ledges===true&&LEDGES.get(tile.behavior)===direction&&!geometry.warps.some(w=>w.x===next.x&&w.y===next.y)){
    const landing={x:next.x+delta[1],y:next.y+delta[2]},land=geometry.tile(landing);if(land===undefined)return null;
-   elevation=jumped(elevation,here,tile.elevation,land.elevation);settle(here,land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
-  }else{elevation=entered(elevation,tile.elevation);settle(here,tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
+   elevation=jumped(elevation,here,tile.elevation,land.elevation);settle(land.elevation);here=land.elevation;p=landing;cost+=1+terrainStepCost(land,options);
+  }else{elevation=entered(elevation,tile.elevation);settle(tile.elevation);here=tile.elevation;p=next;cost+=terrainStepCost(tile,options);}
   const crossed=i<path.length-1?triggerAt(options.triggers,p,elevation):undefined;
   first??=crossed??null;
  }

@@ -47,6 +47,12 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 - [x] Real lines (the operator approved via coordinator 2026-11-07): temporary loopback Qwen3.6-35B-A3B Q4, ctx 8k, 1 slot, nice 10, stopped after. a0b4 Winona fight, t=4279-4760: 16 of 17 turns. Peak 30.6 GB RSS, system memory free never under 78%. Prompt tuned against every turn's thinking; a jargon check refuses button names and KO/HP, retried up to 3 times.
 - [x] Review, landing (with piece 2): c6c0f004a; post-main `just test` passed
 
+### Piece 5: Broadcast link in the viewer
+Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
+- [x] RED
+- [ ] GREEN
+- [ ] Review, landing
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

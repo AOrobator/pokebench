@@ -302,4 +302,5 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - A 2-frame tap turns a stopped bike in place from any facing (hold 0 to 5 measured; hold 10 moves a tile). A tap towards the door at (6,13) on 1F leaves the map, and the tool then reports the failed turn.
 - COMMIT: `feat(agent): rq-mach-dash-v1 adds mach_dash, a whole MACH BIKE route in one POST` (d9d2ec8e2). 42 tests in its file; 177 agent and 48 viewer focused tests pass; tsc and eslint clean.
 - Guide rows: `GuidePosition.onMap` takes the first row that matches, so a first-climb row on an arrival tile, or any `MAP:` row on a Sky Pillar floor, would stop the second climb's row from ever firing. So the first climb keeps tiles only it uses, (5,4) on 4F and (6,4) on 3F, and the second climb owns the arrival tiles.
+- COMMIT RED: `test(guide): Sky Pillar rows give verified routes and fire per floor` (e9b75efa2).
 

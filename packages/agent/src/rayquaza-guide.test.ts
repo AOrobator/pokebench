@@ -229,7 +229,7 @@ describe("the guide's route rows", () => {
     return step;
   };
   const BUTTON_ROUTE = /\b[UDLR]\d*[ ,][UDLR]\d*\b/;
-  const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED"]);
+  const CLIMBS = new Set(["SKY_PILLAR_OPENED", "SOOTOPOLIS_CRISIS_RESOLVED", "AT:SkyPillar_2F:10:2", "AT:SkyPillar_3F:3:2", "AT:SkyPillar_4F:11:2", "AT:SkyPillar_5F:3:2"]);
 
   it("gives every button route but the climbs one recovery line", () => {
     const routes = RAYQUAZA_GUIDE_STEPS.filter((step) => BUTTON_ROUTE.test(step.note) && !CLIMBS.has(step.after));

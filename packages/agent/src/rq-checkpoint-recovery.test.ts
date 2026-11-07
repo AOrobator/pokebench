@@ -100,3 +100,54 @@ describe("rq-checkpoint-recovery-v1", () => {
     expect(guide.current().after).toBe("AT:8:1");
   });
 });
+
+const rowsFrom = (after: string): readonly GuideStep[] => RAYQUAZA_GUIDE_STEPS.slice(RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === after));
+const onFloor = (name: string): (x: number, y: number) => RunEvent => {
+  const id = RAYQUAZA_GUIDE_STEPS.find((step) => step.after.startsWith(`AT:${name}:`))?.at?.id ?? [];
+  return (x, y) => move(x, y, id);
+};
+const span = (from: string, to: string): number => RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === to) - RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === from);
+const REACH = 8;
+
+describe("the Lavaridge Gym vent rows", () => {
+  const top = onFloor("LavaridgeTown_Gym_1F");
+  const below = move(8, 9, [4, 2]);
+  const gym = (): GuidePosition => new GuidePosition(rowsFrom("LAVARIDGE_GYM_ENTERED"), { checkpointRecovery: true });
+  it("sit on 1F landings only, because recovery cannot cross a floor", () => {
+    const rows = RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("AT:LavaridgeTown_Gym"));
+    expect(rows.map((step) => step.after.split(":").slice(2).join(","))).toEqual(["5,14", "0,6", "7,2", "12,12"]);
+    expect(new Set(rows.map((step) => step.at?.id.join("/"))).size).toBe(1);
+    expect(rows.filter((step) => step.gate === true)).toEqual([]);
+  });
+  it("fire in order, and B1F landings move nothing", () => {
+    const guide = gym();
+    guide.observe(below);
+    expect(guide.current().after).toBe("LAVARIDGE_GYM_ENTERED");
+    for (const [x, y] of [[5, 14], [0, 6], [7, 2], [12, 12]] as const) {
+      guide.observe(top(x, y));
+      expect(guide.current().after).toBe(`AT:LavaridgeTown_Gym_1F:${String(x)}:${String(y)}`);
+    }
+  });
+  it("recover when a run takes the (1,14) vent and never lands on (5,14)", () => {
+    const guide = gym();
+    guide.observe(top(1, 14));
+    expect(guide.current().after).toBe("LAVARIDGE_GYM_ENTERED");
+    guide.observe(top(0, 6));
+    expect(guide.current().after).toBe("AT:LavaridgeTown_Gym_1F:0:6");
+  });
+  it("hold through a re-entry from the door, then the next landing fires", () => {
+    const guide = gym();
+    for (const [x, y] of [[5, 14], [0, 6]] as const) guide.observe(top(x, y));
+    guide.observe(move(5, 5, ELSE));
+    for (const [x, y] of [[13, 18], [5, 14], [0, 6]] as const) guide.observe(top(x, y));
+    expect(guide.current().after).toBe("AT:LavaridgeTown_Gym_1F:0:6");
+    guide.observe(top(7, 2));
+    expect(guide.current().after).toBe("AT:LavaridgeTown_Gym_1F:7:2");
+  });
+  it("leave Flannery's defeat inside REACH from the entry row", () => {
+    expect(span("LAVARIDGE_GYM_ENTERED", "FLANNERY_DEFEATED")).toBeLessThanOrEqual(REACH);
+    const guide = gym();
+    guide.observe(story("FLANNERY_DEFEATED"));
+    expect(guide.current().after).toBe("FLANNERY_DEFEATED");
+  });
+});

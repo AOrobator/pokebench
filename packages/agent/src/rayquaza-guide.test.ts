@@ -289,7 +289,7 @@ describe("the guide's facts", () => {
     ["FALLARBOR_TOWN", "2 Escape Ropes, a Super Potion, 10 X Attacks"],
     ["ROUTE_114", "Use a Super Repel if you have one"],
     ["LAVARIDGE_TOWN", "Use Potions now if you are hurt"],
-    ["LAVARIDGE_GYM_ENTERED", "Bag items before Flannery."],
+    ["AT:LavaridgeTown_Gym_1F:12:12", "Bag items before Flannery."],
     ["WEATHER_INSTITUTE_ENTERED", "If your party is full, Castform goes to the PC."],
     ["FEATHER_BADGE", "hideout door at (16,18)"],
     ["MASTER_BALL_OBTAINED", "You land at (3,20)."],

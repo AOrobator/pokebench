@@ -234,3 +234,14 @@ Unit 3, the remaining audit rows:
 - COMMIT RED: `test(guide): a later checkpoint recovers a skipped one on the same map` (8c1f9f139). Wiring test goes red with the option removed.
 - Claude review: an early (8,12) landing could skip Mossdeep's Green switch leg and strand the guide. Rows tagged GATE in the Source column now stop recovery; (23,20) is the one gate. Test on the real rows.
 - Landed rq-checkpoint-recovery-v1 (650005775): Claude and GPT LGTM, Grok skipped; just test and just lint exit 0 (agent 2745, viewer 1235); memory free 86%. Open, pre-existing: an early L2 at the first (9,18) landing still fires (8,12) as the plain next row with Green undone.
+
+### 2026-11-07: checkpoint rows (branch claude/rq-checkpoints; not merged)
+
+Order set by the operator: Lavaridge Gym, Fortree Gym, Sootopolis Gym, Seafloor Cavern. Sky Pillar waits for a bike tool. Simulations live in scratch, not the repo.
+
+Lavaridge Gym:
+
+- Rows sit on the four 1F landings, (5,14), (0,6), (7,2), (12,12), and each carries two legs. B1F landings get no row: recovery only skips rows on the landing's own map, so alternating floors could never recover, and all eight landings would put FLANNERY_DEFEATED 9 steps out, past REACH. Entry to defeat is 5.
+- No gates: vents are static and no leg holds a required action. Nothing resets on a loss or leaving, and the recovery line says so.
+- Simulated on map.bin with ledges, elevation-free walls, objects and buried trainers' sight 1: all 8 legs land where the rows say, no trainer sees the route, every recovery string ends on its row's tile. Vent graph: (0,6), (7,2) and (12,12) cannot be avoided; only (5,14) can, by the (1,14) or (0,17) vents, and the (0,6) row recovers it.
+- Tactics moved to the (12,12) row. Not run on the emulator.

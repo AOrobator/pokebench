@@ -29,7 +29,23 @@ Number 1 holds the slot for 30 minutes from the moment it takes it (operator dec
 
 Never merge into main while someone else is number 1. Never remove someone else's entry; the keeper moves an overdue number 1 back.
 
+## Asking Codex to do work: always through the Codex coordinator
+
+Operator decision 2026-11-07 (the operator): "u need to crud ur skills so u spin up a codex coordinator chat if there isn't an active one", and "the coordinator doesn't do work at all, it should spin up threads to do work". This applies to every job you hand to Codex: a GPT review lane, a fix, an investigation.
+
+1. Never send work to an ordinary Codex thread you picked from `just codex-sessions`. A queued letter there waits until that thread's turn ends, which may be never; on 2026-11-07 review packets sat for hours in "Compare Sol and Astra pricing" that way.
+2. Check for an active coordinator first. It is active when `pgrep -f mailbox-watch` finds its watcher (`just codex-wake-watch <coordinator thread id>`) and `just tell-codex` to it prints "Delivered to the Codex coordinator". "No Codex coordinator is listening" means none is active.
+3. If none is active, start one. A Codex thread can only be started from the Codex app or the `codex` CLI. Claude may not run a terminal `codex`, and opening the app takes the operator's desktop focus. So ask the operator in one message to do this:
+   - open a new Codex thread in `~/dev/pokebench`;
+   - say in it, in their own words, that it is the Codex coordinator, may start Codex worker threads and may message any PokeBench Codex thread (the coordinator skill needs that authorization);
+   - give you its thread id.
+   Then start its watcher detached, per `.claude/skills/detached-long-lived-processes/SKILL.md`: `just codex-wake-watch <id>`. Send nothing until both are up.
+4. Send the job to the coordinator thread by its own name or id: `just tell-codex "<coordinator>" -- "<job>"`. A letter addressed to the coordinator itself is a job for it to hand out. Write each job so a fresh thread can do it alone: what to do, read-only or not, the worktree, base and head, the packet and its SHA-256, the boundary and principles files, and how to answer. A worker answers with `just tell-claude --to <your branch> "<answer>"`, so listen on `just claude-mailbox --for <your branch>`.
+5. One job per task. For a GPT review lane, one job per branch, each to its own worker thread.
+
 ## Telling a Codex session something
+
+Plain notes to a Codex thread that is already doing its own work (main moved, your turn on the board, a conflict) still go straight to that thread:
 
 1. `just codex-sessions` lists recent Codex sessions by name, newest first, with times in New York time.
 2. `just tell-codex "<session name or id>" "<message>"`. A session name is turned into its thread id from `~/.codex/session_index.jsonl`. When the Codex coordinator thread is listening and the id is known, your letter goes to it and it forwards it into that session mid-turn (the command says "Delivered to the Codex coordinator"). Otherwise it falls back to `codex queue`, which the session reads only when its current turn ends.

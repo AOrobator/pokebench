@@ -157,3 +157,4 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 ### 2026-11-06: rq-old-rival-line-v1 (for the Route 110 trials; coordinator-relayed prep)
 
 - Switch swaps the rival tactics on the ROUTE_110 row for aeb8's line. OFF is today's guide; default off, lane-only.
+- COMMIT: `test(guide): rival line switch swaps only the Route 110 tactics` (41c28af82), RED: the ON case failed. Agent 95, viewer 77 focused tests pass after the fix.

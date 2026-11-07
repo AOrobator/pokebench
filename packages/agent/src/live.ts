@@ -435,10 +435,10 @@ async function playAgent(): Promise<void> {
         });
       }
       // Records the raw model stream beside each reply; passes every request through untouched (model-stream.ts).
-      const streamLog=new ModelStreamLog({url:chatCompletionsUrl(model.baseUrl),now:()=>Date.now(),turn:()=>recorder.currentTurn(),record:(turn,body)=>{recorder.recordModelStream(turn,body);},save:(name,raw)=>{const directory=join(RUNS_ROOT,runId,"model-stream");mkdirSync(directory,{recursive:true});const bytes=gzipSync(raw);writeFileSync(join(directory,name),bytes,{flag:"wx"});return bytes.byteLength;}});
+      const streamLog=new ModelStreamLog({url:chatCompletionsUrl(model.baseUrl),now:()=>Date.now(),turn:()=>recorder.currentTurn(),record:(turn,body)=>{recorder.recordModelStream(turn,body);},save:(name,raw)=>{const directory=join(RUNS_ROOT,runId,"model-stream");mkdirSync(directory,{recursive:true});const bytes=gzipSync(raw);writeFileSync(join(directory,name),bytes,{flag:"wx"});return bytes.byteLength;},sleep:ms=>new Promise(resolve=>{setTimeout(resolve,ms).unref();})});
       recorder.subscribe(event=>{streamLog.observe(event);});
       globalThis.fetch=streamLog.fetch(globalThis.fetch);
-      lifecycle.beforeRunEnd(()=>{streamLog.flush();return Promise.resolve();});
+      lifecycle.beforeRunEnd(()=>streamLog.flush());
       const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features, exact===undefined?undefined:payload=>exact.fit(payload));
       const loop = piLoop({
         systemPrompt,

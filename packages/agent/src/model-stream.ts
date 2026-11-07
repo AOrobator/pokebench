@@ -16,6 +16,9 @@ export const RAW_MIN_OUTPUT_TOKENS=512;
 // English text runs near 0.3 tokens per character; a reply at one or more per visible character hid most of itself.
 export const RAW_TOKENS_PER_VISIBLE_CHAR=1;
 const RAW_DIR="model-stream";
+// How long run end waits for a reply stream still being read: one that never ends must not hold the run open.
+export const FLUSH_WAIT_MS=2000;
+const ENCODER=new TextEncoder();
 const UNKNOWN_CAP=32,TOOL_CAP=32,SAMPLE_CHARS=200;
 
 const CHUNK_READ=new Set(["id","object","created","model","choices","usage","system_fingerprint"]);
@@ -76,7 +79,7 @@ export class StreamAccount {
 
  bytesIn(chunk:Uint8Array,at:number):void {this.read(this.decoder.decode(chunk,{stream:true}),at,chunk.byteLength);}
 
- read(text:string,at:number,size=new TextEncoder().encode(text).byteLength):void {
+ read(text:string,at:number,size=ENCODER.encode(text).byteLength):void {
   this.at=at-this.startedAt;
   this.bytes+=size;
   this.retain(text);
@@ -96,8 +99,9 @@ export class StreamAccount {
 
  private retain(text:string):void {
   const line=`${JSON.stringify({ms:this.at,text})}\n`;
-  if(this.capped||this.rawBytes+line.length>RAW_CAP_BYTES){this.capped=true;return;}
-  this.rawBytes+=line.length;
+  const size=ENCODER.encode(line).byteLength;
+  if(this.capped||this.rawBytes+size>RAW_CAP_BYTES){this.capped=true;return;}
+  this.rawBytes+=size;
   this.raw.push(line);
  }
 
@@ -236,6 +240,7 @@ export class StreamAccount {
  }
 
  rawLines():string {return this.raw.join("");}
+ sawDone():boolean {return this.done;}
  rawCapped():boolean {return this.capped;}
 }
 
@@ -246,6 +251,7 @@ export interface ModelStreamPorts {
  readonly record:(turn:number,body:ModelStreamBody)=>void;
  /** Writes the raw lines under the run's model-stream folder; returns the bytes written. */
  readonly save:(name:string,raw:string)=>number;
+ readonly sleep:(ms:number)=>Promise<void>;
 }
 
 export const chatCompletionsUrl=(baseUrl:string):string=>`${baseUrl.replace(/\/+$/,"")}/chat/completions`;
@@ -266,6 +272,7 @@ export class ModelStreamLog {
  private stream:Finished|null=null;
  private reply:Reply|null=null;
  private files=0;
+ private readonly reading=new Set<Promise<void>>();
  constructor(private readonly ports:ModelStreamPorts) {}
 
  fetch(base:typeof fetch):typeof fetch {
@@ -275,7 +282,7 @@ export class ModelStreamLog {
    const turn=this.ports.turn(),startedAt=this.ports.now();
    const response=await base(input,init);
    if(response.ok&&response.body!==null){
-    try{void this.consume(turn,startedAt,response.clone());}
+    try{const reading=this.consume(turn,startedAt,response.clone());this.reading.add(reading);void reading.finally(()=>{this.reading.delete(reading);});}
     catch(error){console.warn(`model stream: turn ${String(turn)} not read: ${error instanceof Error?error.message:String(error)}`);}
    }
    return response;
@@ -291,6 +298,8 @@ export class ModelStreamLog {
     const part=await reader?.read();
     if(part===undefined||part.done)break;
     account.bytesIn(part.value,this.ports.now());
+    // The SDK stops reading at [DONE]; a server can hold the connection open after it.
+    if(account.sawDone()){void reader?.cancel().catch(()=>undefined);break;}
    }
   }catch(error){failure=error instanceof Error?error.message:String(error);}
   account.close(this.ports.now(),failure);
@@ -313,8 +322,9 @@ export class ModelStreamLog {
   this.write(stream,reply);
  }
 
- /** At run end: a stream whose reply never came is still recorded. */
- flush():void {
+ /** At run end: waits up to FLUSH_WAIT_MS for streams still being read, then records a stream whose reply never came. */
+ async flush():Promise<void> {
+  if(this.reading.size>0)await Promise.race([Promise.allSettled([...this.reading]),this.ports.sleep(FLUSH_WAIT_MS)]);
   if(this.stream!==null)this.write(this.stream,null);
   this.stream=null;this.reply=null;
  }

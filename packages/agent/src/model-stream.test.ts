@@ -26,7 +26,7 @@ function sseResponse(parts:readonly string[],init:ResponseInit={headers:{"conten
 interface Harness {readonly log:ModelStreamLog;readonly recorded:{turn:number;body:ModelStreamBody}[];readonly saved:{name:string;raw:string}[];turn:number;clock:number;}
 function harness(over:Partial<ModelStreamPorts>={}):Harness {
  const h:Harness={log:null as never,recorded:[],saved:[],turn:1,clock:0};
- return Object.assign(h,{log:new ModelStreamLog({url:URL_,now:()=>h.clock,turn:()=>h.turn,record:(turn,body)=>{h.recorded.push({turn,body});},save:(name,raw)=>{h.saved.push({name,raw});return raw.length;},...over})});
+ return Object.assign(h,{log:new ModelStreamLog({url:URL_,now:()=>h.clock,turn:()=>h.turn,record:(turn,body)=>{h.recorded.push({turn,body});},save:(name,raw)=>{h.saved.push({name,raw});return raw.length;},sleep:()=>new Promise<void>(resolve=>{setImmediate(resolve);}),...over})});
 }
 const assistant=(turn:number,over:{thinking?:string;text?:string;args?:Record<string,unknown>;output?:number}={}):RunEvent=>({v:1,run:"r",seq:1,t:"2026-11-07T00:00:00.000-05:00",type:"assistant",turn,thinking:over.thinking??"",text:over.text??"",tool_calls:over.args===undefined?[]:[{id:"c",name:"observe",args:over.args}],usage:{input:1,output:over.output??10,cache_read:0},latency_ms:1,ttft_ms:1,stop_reason:"toolUse"});
 const drain=async(response:Response):Promise<string>=>response.text();
@@ -143,6 +143,14 @@ describe("StreamAccount reads the raw stream",()=>{
   expect(a.summary()).toMatchObject({ended:"error",error:"reader lost"});
  });
 
+ it("caps the raw stream in bytes, not characters",()=>{
+  const a=new StreamAccount(0);const wide="\u6f22".repeat(1024*1024);
+  for(let i=0;i<8;i++)a.read(wide,i);
+  a.close(9);
+  expect(new TextEncoder().encode(a.rawLines()).byteLength).toBeLessThanOrEqual(RAW_CAP_BYTES);
+  expect(a.rawCapped()).toBe(true);
+ });
+
  it("retains the raw reads with their times, up to the cap",()=>{
   const a=new StreamAccount(0);a.read("abc",5);a.read("x".repeat(RAW_CAP_BYTES),6);a.read("z",7);a.close(8);
   expect(a.rawLines()).toBe("{\"ms\":5,\"text\":\"abc\"}\n");
@@ -169,7 +177,7 @@ describe("ModelStreamLog taps the model's stream",()=>{
   await tapped("http://127.0.0.1:8000/state",{method:"GET"});
   await tapped(URL_,{method:"GET"});
   await tapped(new URL("http://127.0.0.1:8000/x"));
-  await settled();h.log.flush();
+  await settled();await h.log.flush();
   expect(h.recorded).toEqual([]);
  });
 
@@ -179,7 +187,7 @@ describe("ModelStreamLog taps the model's stream",()=>{
   await tapped(new Request(URL_,{method:"POST",body:"x"}));
   await settled();
   await tapped(new URL(URL_),{method:"POST"});
-  await settled();h.log.flush();
+  await settled();await h.log.flush();
   expect(h.recorded).toHaveLength(2);
  });
 
@@ -187,7 +195,7 @@ describe("ModelStreamLog taps the model's stream",()=>{
   const h=harness();
   const tapped=h.log.fetch(()=>Promise.resolve(new Response("{\"error\":\"x\"}",{status:500,headers:{"content-type":"application/json"}})));
   await tapped(URL_,{method:"POST"});
-  await settled();h.log.flush();
+  await settled();await h.log.flush();
   expect(h.recorded).toEqual([]);
  });
 
@@ -285,7 +293,7 @@ describe("ModelStreamLog taps the model's stream",()=>{
   h.turn=2;await tapped(URL_,{method:"POST"});await settled();
   expect(h.recorded.map(r=>r.turn)).toEqual([1]);
   expect(h.recorded[0]?.body.visible).toBeNull();
-  h.log.flush();
+  await h.log.flush();
   expect(h.recorded.map(r=>r.turn)).toEqual([1,2]);
  });
 
@@ -294,12 +302,31 @@ describe("ModelStreamLog taps the model's stream",()=>{
   const failing=new Response(new ReadableStream<Uint8Array>({async pull(c){pulls++;if(pulls===1){c.enqueue(encoder.encode(delta({content:"x"})));return;}await settled();c.error(new Error("connection lost"));}}),{headers:{"content-type":"text/event-stream"}});
   const response=await h.log.fetch(()=>Promise.resolve(failing))(URL_,{method:"POST"});
   await expect(response.text()).rejects.toThrow();
-  await settled();h.log.flush();
+  await settled();await h.log.flush();
   expect(h.recorded[0]?.body).toMatchObject({ended:"error",error:"connection lost",content_chars:1});
  });
 
- it("drops an assistant event with no stream of its own",()=>{
-  const h=harness();h.log.observe(assistant(1));h.log.observe(assistant(2));h.log.flush();
+ it("records the run's last reply when the server holds the stream open after [DONE]",async()=>{
+  const h=harness();const encoder=new TextEncoder();let close:()=>void=()=>undefined;
+  const held=new Response(new ReadableStream<Uint8Array>({start(c){c.enqueue(encoder.encode(delta({content:"last"})+finish("stop")+usage(3)+DONE));close=()=>{c.close();};}}),{headers:{"content-type":"text/event-stream"}});
+  await h.log.fetch(()=>Promise.resolve(held))(URL_,{method:"POST"});
+  h.log.observe(assistant(1,{text:"last",output:3}));
+  await h.log.flush();
+  expect(h.recorded).toHaveLength(1);
+  expect(h.recorded[0]?.body).toMatchObject({ended:"done",visible:{text_chars:4},output_tokens:3});
+  close();
+ });
+
+ it("waits only so long at run end for a stream that never ends",async()=>{
+  const h=harness();
+  const silent=new Response(new ReadableStream<Uint8Array>({start(){/* never sends, never closes */}}),{headers:{"content-type":"text/event-stream"}});
+  await h.log.fetch(()=>Promise.resolve(silent))(URL_,{method:"POST"});
+  await h.log.flush();
+  expect(h.recorded).toEqual([]);
+ });
+
+ it("drops an assistant event with no stream of its own",async()=>{
+  const h=harness();h.log.observe(assistant(1));h.log.observe(assistant(2));await h.log.flush();
   expect(h.recorded).toEqual([]);
  });
 

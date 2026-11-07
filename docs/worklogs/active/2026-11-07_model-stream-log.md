@@ -68,6 +68,8 @@ Round 2, fix delta 08c6b9ac7..853de22e6, diff sha256 069bd9de19cfae08d2238d6bce0
 - Claude CLI: LGTM, both blockers closed. Its display note fixed in the next commit ("nothing visible"). Non-conforming shapes pi reads are follow-ups; no evidence vLLM emits them.
 - GPT lane: packet queued to a Codex session; The operator is deciding through the coordinator whether to waive it. Not landed.
 
+GPT lane round 1 (the operator: not waived), Codex, frozen 1e26fed6c..82a440485, diff sha256 09621b2cc4f0a2f6f8939840ecb154795ad5c26390d41876099524079afb2e52: BLOCKING, two findings, both Fix. (1) A server that holds the stream open after [DONE] left the run's last reply with no event: the read waited for close and run end had already cleared the reply. Now the read stops at [DONE], and run end waits up to 2 s for streams still being read. (2) The raw cap counted UTF-16 units, so CJK text could retain about 24 MiB; it now counts UTF-8 bytes. Deleted each fix once and watched its test go red, then restored. Focused tests 37/37.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

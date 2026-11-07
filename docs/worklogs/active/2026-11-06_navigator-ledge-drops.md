@@ -17,3 +17,5 @@ GPT round 1 BLOCKING, two findings, both on the surf-start block from 11/4 that 
 COMMIT: `fix(agent): lint and wording for ledge drops` (78e2e3eff). GPT round 2 LGTM. Claude BLOCKING: `walked` and `routeTiles` had no Waterfall climb edge, so Meteor Falls 1F 1R (10,3) went from a surf start to not listed. Fix: shared `climbTop` in the planner and both replays, launch searches only. Reproduction now reaches the shore, Surf, and the foot of the falls; OFF is refused after Surf.
 
 COMMIT: `fix(agent): replays follow the Waterfall climb a launch search plans` (4477fcfbf). Gates: `just test` passed with 2,668 agent, 1,075 viewer, 2,965 env and 38 gateway tests; env mypy with the main venv and `just verify-vendor` clean; one test-file lint fix after. GPT LGTM on the delta.
+
+Final: GPT (Codex CLI) LGTM and Claude (subagent) LGTM on 4477fcfbf; the later commit is a test-file lint fix. Claude reran sweeps over every map: the only off-yes, on-no case is SeafloorCavern_Entrance (10,18), where on is right. 49,236 routes agree with an independent game-rule simulator, whose climb rule mirrors the planner's. No emulator run yet.

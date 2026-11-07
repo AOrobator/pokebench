@@ -161,13 +161,13 @@ export class GuidePosition {
   }
   return end;
  }
- // rq-checkpoint-recovery-v1: only checkpoints on one map may be skipped, so a story step can never be.
+ // rq-checkpoint-recovery-v1: only checkpoints on one map, or map rows in a row, may be skipped, so a story step can never be.
  private recovers(reached:number):boolean {
-  const id=this.steps[reached]?.at?.id;
-  if(this.options.checkpointRecovery!==true||id===undefined||reached-this.furthest>REACH)return false;
+  const target=this.steps[reached],id=target?.at?.id;
+  if(this.options.checkpointRecovery!==true||target===undefined||(id===undefined&&target.enter===undefined)||reached-this.furthest>REACH)return false;
   // A gate row holds a required action, such as Mossdeep's Green switch, that a later landing does not prove.
   const skipped=this.steps.slice(this.furthest+1,reached);
-  return reached>this.furthest&&skipped.every(step=>step.at!==undefined&&step.gate!==true&&mapKey(step.at.id)===mapKey(id));
+  return reached>this.furthest&&skipped.every(step=>step.gate!==true&&(id===undefined?step.enter!==undefined:step.at!==undefined&&mapKey(step.at.id)===mapKey(id)));
  }
  private onMap(id:MapId,position:{readonly x:number;readonly y:number}|null):number {
   return this.steps.findIndex(step=>(step.enter?.[0]===id[0]&&step.enter[1]===id[1])||(step.at!==undefined&&position!==null&&step.at.id[0]===id[0]&&step.at.id[1]===id[1]&&step.at.x===position.x&&step.at.y===position.y));

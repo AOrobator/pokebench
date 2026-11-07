@@ -263,11 +263,26 @@ describe("the Seafloor Cavern room rows", () => {
     }
     expect(RAYQUAZA_GUIDE_STEPS.filter((step) => step.after.startsWith("MAP:SeafloorCavern") && step.gate === true)).toEqual([]);
   });
-  it("hold on a room walked out of order", () => {
-    const guide = cavern();
+  it("off, a room walked out of order holds the guide", () => {
+    const guide = new GuidePosition(rowsFrom("SEAFLOOR_CAVERN"));
     guide.observe(enter(1));
     guide.observe(enter(3));
     expect(guide.current().after).toBe(row(1));
+  });
+  it("on, a later room recovers skipped rooms, but a gated one holds", () => {
+    const guide = cavern();
+    guide.observe(enter(1));
+    guide.observe(enter(3));
+    expect(guide.current().after).toBe(row(3));
+    const gated = rowsFrom("SEAFLOOR_CAVERN").map((step) => (step.after === row(6) ? { ...step, gate: true } : step));
+    const held = new GuidePosition(gated, { checkpointRecovery: true });
+    for (const n of [1, 2, 3]) held.observe(enter(n));
+    expect(held.current().after).toBe(row(2));
+  });
+  it("never crosses a story or item row to reach a map row", () => {
+    const guide = new GuidePosition(rowsFrom("HM_DIVE_RECEIVED"), { checkpointRecovery: true });
+    guide.observe(enter(1));
+    expect(guide.current().after).toBe("HM_DIVE_RECEIVED");
   });
   it("hold through a door reset or a loss, then the next room fires", () => {
     const guide = cavern();
@@ -278,13 +293,15 @@ describe("the Seafloor Cavern room rows", () => {
     guide.observe(enter(3));
     expect(guide.current().after).toBe(row(3));
   });
-  it("a run that bypasses Room 6 through Room 7 is caught at Archie's chamber", () => {
+  it("a run that bypasses Room 6 through Room 7 gets the Room 3 and Room 8 routes", () => {
     const guide = cavern();
     for (const n of [1, 2]) guide.observe(enter(n));
-    for (const event of [ROOM_7, enter(3), enter(8)]) guide.observe(event);
+    guide.observe(ROOM_7);
     expect(guide.current().after).toBe(row(2));
-    guide.observe(story("SEAFLOOR_ARCHIE_CHAMBER"));
-    expect(guide.current().after).toBe("SEAFLOOR_ARCHIE_CHAMBER");
+    guide.observe(enter(3));
+    expect(guide.current().after).toBe(row(3));
+    guide.observe(enter(8));
+    expect(guide.current().after).toBe(row(8));
   });
   it("leave Archie's chamber inside REACH from the Dive row", () => {
     expect(span("HM_DIVE_RECEIVED", "SEAFLOOR_ARCHIE_CHAMBER")).toBeLessThanOrEqual(REACH);

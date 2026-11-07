@@ -199,7 +199,7 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
   };
 
   // Unlocked inside the click, whether or not a line is waiting: stricter browsers allow it nowhere else.
-  sound?.addEventListener("click", () => { speak?.unlock(); setLevel(); music?.start(base); voice.enable(followTime()); sound.hidden = true; });
+  sound?.addEventListener("click", () => { if (ended) return; speak?.unlock(); setLevel(); music?.start(base); voice.enable(followTime()); sound.hidden = true; });
   levelSlider?.addEventListener("input", () => { muted = false; if (muteButton !== null) muteButton.textContent = "MUSIC ON"; setLevel(); });
   muteButton?.addEventListener("click", () => { muted = !muted; muteButton.textContent = muted ? "MUSIC OFF" : "MUSIC ON"; setLevel(); });
   if (moment !== null) await showFrame(render(moment));

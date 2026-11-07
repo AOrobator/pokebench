@@ -142,6 +142,8 @@ Piece 8, round 1 on 361eb7172: fallback BLOCKING on two real bugs: the canvas's 
 
 Piece 9, round 1 on ff020194c: Claude and fallback LGTM; GPT BLOCKING on one bug: music kept polling after the run ended. Fixed. Left: an operator pause drags the rate down for about 1.5 s after resume; it heals itself.
 
+Piece 9, round 2 on cf0a05fe5: Claude and fallback LGTM; GPT BLOCKING on a click in the 100 ms after the run ended. Fixed.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

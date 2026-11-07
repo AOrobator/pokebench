@@ -347,6 +347,16 @@ describe("the broadcast page", () => {
         expect(s.log.at(-1)).toBe("level 0.2");
       });
 
+      it("a click after the run ended starts nothing", async () => {
+        const s = mixed("?run=r1", [{ ended: true, items: [] }]);
+        await s.mount();
+        s.timers.find((_, index) => index === 1)?.();
+        await vi.waitFor(() => { expect(s.part("sound").hidden).toBe(false); });
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+        s.part("sound").click();
+        expect(s.log).toEqual([]);
+      });
+
       it("stops when the run ends", async () => {
         const s = mixed("?run=r1", [{ ended: true, items: [{ k: "end", t: 6.5 }] }]);
         await s.mount();

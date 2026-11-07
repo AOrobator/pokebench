@@ -50,7 +50,7 @@ GET only, behind the viewer's existing host check and CSP. Run ids go through `e
 ### Piece 5: Broadcast link in the viewer
 Coordinator brief 2026-11-07: no link existed. A BROADCAST link in the top bar follows the run being watched, moves into the phone sheet with RUNS & COMPARISONS, and each run's RUN DETAILS panel on Runs & Comparisons opens the same page. `/broadcast` with no run opens the newest live one.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 234 focused tests; headless proof on port 8797: desktop click, phone sheet click and RUN DETAILS click each landed on /broadcast?run=a0b4 with no page errors; screenshots viewed.
 - [ ] Review, landing
 
 ## Closing the Loop

@@ -9,6 +9,8 @@ export function hms(seconds: number): string {
 
 const ENTITIES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
+export function broadcastUrl(run: string | null): string { return run === null ? "/broadcast" : `/broadcast?run=${encodeURIComponent(run)}`; }
+
 export function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => ENTITIES[c] ?? c);
 }

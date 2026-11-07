@@ -58,6 +58,10 @@ describe("the broadcast reducer", () => {
     ]);
   });
 
+  it("spaces a route's name", () => {
+    expect(reduced(start(), line(1, "state", { ...STATE, location: "ROUTE116" })).items[0]).toMatchObject({ where: "ROUTE 116" });
+  });
+
   it("names the trainer or wild Pokémon being fought", () => {
     const trainer = reduced(start(), line(1, "state", { ...STATE, in_battle: true, trainer_opponent: { name: "WINONA", battle_active: true } }));
     expect(trainer.items[0]).toMatchObject({ foe: "WINONA" });

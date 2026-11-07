@@ -1,8 +1,8 @@
 """`just broadcast-commentary`: after a run, one short spoken line per turn, then its voice.
 
 Lines go to runs/broadcast/<run>/commentary.jsonl with the wavs beside them. Nothing is written
-under runs/<run>/. The file is rewritten after every line, so a stopped job keeps its work and
-the next one carries on from it.
+under runs/<run>/. The file is rewritten every few lines and on any stop, so a stopped job keeps
+its work and the next one carries on from it.
 """
 
 import argparse
@@ -21,6 +21,7 @@ from typing import cast
 from urllib.parse import urlsplit
 
 MAX_WORDS = 19
+SAVE_EVERY = 25
 TRIES = 2
 VOICE = "af_heart"
 VOICE_SPEED = 1.05
@@ -116,10 +117,12 @@ def ask_model(endpoint: str, model: str, post: Post, thinking: str) -> str:
         },
     )
     try:
-        choices = cast(list[dict[str, dict[str, str]]], answer["choices"])
-        return choices[0]["message"]["content"]
+        content = cast(list[dict[str, dict[str, object]]], answer["choices"])[0]["message"][
+            "content"
+        ]
     except (KeyError, IndexError, TypeError):
         return ""
+    return content if isinstance(content, str) else ""
 
 
 def write_lines(
@@ -131,14 +134,18 @@ def write_lines(
 ) -> list[Line]:
     lines = list(existing)
     done = {line.turn for line in lines}
-    for turn in turns:
-        if turn.turn in done:
-            continue
-        text = next(filter(None, (clean_line(ask(turn.thinking)) for _ in range(TRIES))), None)
-        if text is None:
-            log(f"turn {turn.turn}: no usable line")
-            continue
-        lines.append(Line(turn=turn.turn, t=turn.t, text=text, wav=f"t{turn.turn:06d}.wav"))
+    try:
+        for turn in turns:
+            if turn.turn in done:
+                continue
+            text = next(filter(None, (clean_line(ask(turn.thinking)) for _ in range(TRIES))), None)
+            if text is None:
+                log(f"turn {turn.turn}: no usable line")
+                continue
+            lines.append(Line(turn=turn.turn, t=turn.t, text=text, wav=f"t{turn.turn:06d}.wav"))
+            if len(lines) % SAVE_EVERY == 0:
+                save(sorted(lines, key=lambda line: line.t))
+    finally:
         lines.sort(key=lambda line: line.t)
         save(lines)
     return lines
@@ -161,12 +168,16 @@ def voice_lines(
     save: Callable[[list[Line]], None],
 ) -> list[Line]:
     out = list(lines)
-    for index, line in enumerate(out):
-        if line.seconds is not None:
-            continue
-        voiced = synth(line.text)
-        write(line.wav, wav_bytes(voiced))
-        out[index] = replace(line, seconds=round(len(voiced.pcm) / 2 / voiced.rate, 3))
+    try:
+        for index, line in enumerate(out):
+            if line.seconds is not None:
+                continue
+            voiced = synth(line.text)
+            write(line.wav, wav_bytes(voiced))
+            out[index] = replace(line, seconds=round(len(voiced.pcm) / 2 / voiced.rate, 3))
+            if index % SAVE_EVERY == 0:
+                save(out)
+    finally:
         save(out)
     return out
 

@@ -15,7 +15,7 @@ execute-worklog, viewer-e2e, close-the-loop, talk-to-codex (landing board), stea
 - `broadcast-view.ts`: lane geometry and HTML. `broadcast-main.ts`, `broadcast-boot.ts`: page boot.
 - `static/broadcast.html`, `static/broadcast.css`: fixed 1920x1080 stage, scaled to fit other windows.
 
-API COST has no source in the event log. Rates come from the gitignored `runs/broadcast/pricing.json` (USD per million tokens, by model id; no SKU in code). No entry shows a dash.
+API COST has no source in the event log and the repo had no API rates for local models. Rates come from the gitignored `runs/broadcast/pricing.json` (USD per million tokens, by model id; no SKU in code), filled from OrcaRouter's public catalog, local models included (the operator 2026-11-06: every model is priced at API rates). No entry shows a dash.
 
 ## Invariants
 
@@ -70,6 +70,8 @@ Round 2 on 79d6d2637: Claude and fallback BLOCKING, both reproduced: setTime's n
 Round 3 on d38ee902f: GPT LGTM. Claude and fallback BLOCKING on one regression from the round 1 fix: a cancelled decode skipped revoking the old blob, so a long follow page could leak under load (Claude measured it in real Chromium under CPU throttling). Fixed by retiring on both outcomes, with a test. Past the round cap, so reported to the coordinator: the fix covers only that listed bug.
 
 Round 4 on d7b7d1f16, the blob fix alone: Claude, GPT and fallback LGTM. Coordinator accepted the narrow round past the cap.
+
+Pieces 2 and 3, round 1 on 08069ac80 (sha 81c9d25c), Claude, GPT and fallback all BLOCKING. Fixed: a clip past its file's end dropped out of the concat and shifted later picture (every clip now plays over black of its own length); joined stretches averaged away a small lasting pace change (marks must stay within 6 frames of the joined line); a failed step left ffmpeg running and the command hung (Encoder.abort); `content: null` crashed the job; a session too short for a sync mark rendered black; page-only renders now carry a silent AAC track; `--fps Infinity`; report video reader closed on a dropped request; just recipes pass paths as arguments; commentary saves every 25 lines. Rebutted: GPT's missing report route (it was committed after the frozen head by a hook refusal; now reviewed). Left: `frames_lost` stretching frames across a hole longer than 10 minutes.
 
 ## Boy Scout Log
 

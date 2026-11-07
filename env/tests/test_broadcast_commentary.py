@@ -92,6 +92,8 @@ def test_the_model_gets_the_whole_thinking_with_its_own_thinking_off() -> None:
 
 def test_a_malformed_answer_says_nothing() -> None:
     assert ask_model("u", "m", lambda _u, _b: {"nope": 1}, "x") == ""
+    null = {"choices": [{"message": {"content": None}}]}
+    assert ask_model("u", "m", lambda _u, _b: null, "x") == ""
 
 
 def test_writes_a_line_per_turn_keeps_old_ones_and_retries_a_long_reply() -> None:

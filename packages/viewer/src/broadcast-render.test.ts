@@ -19,7 +19,7 @@ describe("reading the recorder's journal", () => {
     expect(sessions).toHaveLength(2);
     expect(sessions[0]?.marks.map(m => m.position).slice(0, 3)).toEqual([0, 3600, 7200]);
     expect(sessions[0]?.parts).toEqual([{ stream: "video", part: 1, position: 0 }, { stream: "audio", part: 1, position: 0 }]);
-    expect(sessions[1]?.marks).toEqual([{ position: 0, at: 301 }]);
+    expect(sessions[1]?.marks[0]).toEqual({ position: 0, at: 301 });
     expect(sessions[0]?.marks.at(-1)?.at).toBe(250);
   });
 
@@ -28,8 +28,9 @@ describe("reading the recorder's journal", () => {
     expect(stopped[0]?.marks.at(-1)).toEqual({ position: 4400, at: 55 });
     const killed = readJournal([line(0, "started"), line(0, "first_frame", { frame_count: 1 }), line(45, "sync", { frame_count: 2, video_frames: 3600 }), line(65, "started"), line(66, "first_frame", { frame_count: 9 })].join("\n"));
     expect(killed[0]?.marks.at(-1)).toEqual({ position: 5280, at: 66 });
-    const lone = readJournal(line(0, "first_frame", { frame_count: 1 }));
-    expect(lone[0]?.marks).toHaveLength(1);
+    const short = readJournal([line(0, "first_frame", { frame_count: 1 }), line(9, "stopped", { frames: 598 })].join("\n"));
+    expect(short[0]?.marks.at(-1)?.position).toBe(598);
+    expect(short[0]?.marks.at(-1)?.at).toBeCloseTo(598 / GBA_FPS);
     const ended = readJournal([line(0, "first_frame", { frame_count: 1 }), line(45, "sync", { frame_count: 2, video_frames: 3600 })].join("\n"));
     expect(ended[0]?.marks.at(-1)).toEqual({ position: 8400, at: 105 });
   });
@@ -53,6 +54,20 @@ describe("mapping wall time to the recording", () => {
   it("keeps a real change of pace as separate spans", () => {
     const uneven = readJournal([line(0, "first_frame", { frame_count: 1 }), line(10, "sync", { frame_count: 2, video_frames: 600 }), line(40, "sync", { frame_count: 3, video_frames: 1200 })].join("\n"));
     expect(spansFor(uneven, 5, 25).map(s => [s.wallStart, s.wallEnd])).toEqual([[5, 10], [10, 25]]);
+  });
+
+  it("keeps a small lasting change of pace: every mark stays on its own place", () => {
+    const marks = [line(0, "first_frame", { frame_count: 1 })];
+    let position = 0, at = 0;
+    for (const pace of [...Array<number>(80).fill(80), ...Array<number>(80).fill(80.7)]) {
+      position += 3600; at += 3600 / pace;
+      marks.push(line(at, "sync", { frame_count: 1, video_frames: position }));
+    }
+    const journal = readJournal(marks.join("\n"));
+    const step = 80 * 45;
+    const place = (t: number): number => { const span = spansFor(journal, t, t + 1)[0]; return span?.from ?? NaN; };
+    expect(place(step)).toBeCloseTo(288000, -1);
+    expect(spansFor(journal, 0, step).length).toBe(1);
   });
 
   it("fills time the recording does not cover with gaps", () => {
@@ -109,7 +124,7 @@ describe("the encoder command", () => {
   it("encodes the run's own frames straight from the page", () => {
     const args = encoderArgs({ out: "/o.mp4", fps: 10, seconds: 5, game: null });
     expect(args.slice(args.indexOf("-f"), args.indexOf("-f") + 2)).toEqual(["-f", "image2pipe"]);
-    expect(args).not.toContain("-filter_complex");
+    expect(args).toContain("aac");
     expect(args.at(-1)).toBe("/o.mp4");
   });
 
@@ -121,6 +136,8 @@ describe("the encoder command", () => {
     expect(args).toContain("/r/a b.mkv");
     expect(args).toContain("-ss");
     expect(filter).toContain("setpts=(PTS-STARTPTS)*0.750000,tpad=stop_mode=clone:stop_duration=45,trim=duration=45");
+    expect(filter).toContain("color=c=black:s=240x160:r=60:d=45[b0]");
+    expect(filter).toContain("[b0][c0]overlay=eof_action=pass[v0]");
     expect(filter).toContain("atempo=1.333333");
     expect(filter).toContain("color=c=black:s=240x160:r=60:d=5");
     expect(filter).toContain("anullsrc=r=48000:cl=stereo:d=5");
@@ -167,14 +184,14 @@ describe("the command line", () => {
     expect(parseRenderArgs(["--fps", "15", "r", "1", "2", "o.mp4", "--game-video", "/g"])).toMatchObject({ fps: 15, gameVideo: "/g" });
   });
 
-  it.each([[[]], [["r", "x", "2", "o"]], [["r", "5", "2", "o"]], [["r", "-1", "2", "o"]], [["r", "1", "2", "o", "--fps", "0"]], [["r", "1", "2", "o", "--fps"]], [["r", "1", "2", "o", "--nope", "1"]], [["r", "1", "2", "o", "x"]]])("refuses %j", argv => {
+  it.each([[[]], [["r", "x", "2", "o"]], [["r", "5", "2", "o"]], [["r", "-1", "2", "o"]], [["r", "1", "2", "o", "--fps", "0"]], [["r", "1", "2", "o", "--fps"]], [["r", "1", "2", "o", "--fps", "Infinity"]], [["r", "1", "2", "o", "--nope", "1"]], [["r", "1", "2", "o", "x"]]])("refuses %j", argv => {
     expect(() => parseRenderArgs(argv)).toThrow(/usage/);
   });
 });
 
 describe("rendering a clip", () => {
   function fakes(over: Partial<RenderDeps> = {}) {
-    const steps: number[] = [], written: string[] = [], urls: string[] = [];
+    const steps: number[] = [], written: string[] = [], urls: string[] = [], aborted: boolean[] = [];
     let encoder: string[] = [];
     const deps: RenderDeps = {
       started: () => Promise.resolve(Date.parse("2026-11-06T12:00:00.000Z") / 1000),
@@ -182,11 +199,11 @@ describe("rendering a clip", () => {
       commentaryFolder: run => `/runs/broadcast/${run}`,
       listFiles: () => FILES,
       openPage: url => { urls.push(url); return Promise.resolve({ setTime: t => { steps.push(t); return Promise.resolve(); }, shot: () => Promise.resolve(Buffer.from(`f${String(steps.length)}`)), backdrop: () => Promise.resolve("/tmp/b.png"), close: () => Promise.resolve() }); },
-      encode: args => { encoder = args; return { write: frame => { written.push(frame.toString()); return Promise.resolve(); }, finish: () => Promise.resolve() }; },
+      encode: args => { encoder = args; return { write: frame => { written.push(frame.toString()); return Promise.resolve(); }, finish: () => Promise.resolve(), abort: () => { aborted.push(true); } }; },
       log: () => undefined,
       ...over,
     };
-    return { deps, steps, written, urls, encoder: () => encoder };
+    return { deps, steps, written, urls, aborted, encoder: () => encoder };
   }
 
   it("steps the page at the asked rate and hands every frame to the encoder", async () => {
@@ -232,5 +249,6 @@ describe("rendering a clip", () => {
     const f = fakes({ openPage: () => Promise.resolve({ setTime: () => Promise.reject(new Error("boom")), shot: () => Promise.resolve(Buffer.alloc(0)), backdrop: () => Promise.resolve(""), close }) });
     await expect(renderClip(f.deps, { run: "r", from: 1, to: 2, out: "o", gameVideo: null, fps: 1 })).rejects.toThrow("boom");
     expect(close).toHaveBeenCalled();
+    expect(f.aborted).toEqual([true]);
   });
 });

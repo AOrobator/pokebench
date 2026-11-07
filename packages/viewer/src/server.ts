@@ -6,6 +6,7 @@ import { createBroadcastStore, type BroadcastDisk, type BroadcastStore } from ".
 import { createBagHistoryReader, type BagHistoryReader } from "./bag-history.js";
 import { bagPage, bagRange, NO_ART, parseBagArt } from "./bag.js";
 import { readTraceHistory } from "./trace-history.js";
+import { pipeline } from "node:stream";
 import { setImmediate as yieldImmediate } from "node:timers/promises";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import { Timing } from "./frame-diagnostics.js";
@@ -109,12 +110,15 @@ const REPORT_HEADERS = {
     "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation",
 };
 function sendReportVideo(req: IncomingMessage, res: ServerResponse, path: string, type: string): void {
-  const { size } = statSync(path);
+  let size: number;
+  try { ({ size } = statSync(path)); } catch { sendJson(res, 404, { error: "not found" }); return; }
+  if (size === 0) { sendJson(res, 404, { error: "not found" }); return; }
   const range = byteRange(req.headers.range, size);
   if (range === "unsatisfiable") { res.writeHead(416, { ...SECURITY_HEADERS, "content-range": `bytes */${String(size)}` }); res.end(); return; }
   const { start, end } = range ?? { start: 0, end: size - 1 };
   res.writeHead(range === null ? 200 : 206, { ...SECURITY_HEADERS, "accept-ranges": "bytes", "content-type": type, "content-length": String(end - start + 1), ...(range === null ? {} : { "content-range": `bytes ${String(start)}-${String(end)}/${String(size)}` }) });
-  createReadStream(path, { start, end }).on("error", () => { res.destroy(); }).pipe(res);
+  // pipeline closes the file too when a player drops a request, which players do all the time.
+  pipeline(createReadStream(path, { start, end }), res, () => undefined);
 }
 function sendReport(res: ServerResponse, path: string, type: string): void {
   let body: Buffer;

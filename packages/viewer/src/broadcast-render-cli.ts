@@ -17,11 +17,16 @@ function encoder(args: string[]): Encoder {
     child.on("error", fail);
     child.on("close", code => { if (code === 0) finish(); else fail(new Error(`ffmpeg exited ${String(code)}`)); });
   });
+  done.catch(() => undefined);
   // ffmpeg stops reading once it has -t seconds; a last frame or two can arrive after that.
   child.stdin.on("error", () => undefined);
   return {
-    write: frame => new Promise(ready => { if (child.stdin.write(frame)) ready(); else child.stdin.once("drain", ready); }),
+    write: frame => new Promise((ready, fail) => {
+      if (child.stdin.write(frame)) ready();
+      else { child.stdin.once("drain", ready); done.then(ready, fail); }
+    }),
     finish: () => { child.stdin.end(); return done; },
+    abort: () => { child.kill(); },
   };
 }
 

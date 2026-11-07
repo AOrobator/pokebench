@@ -9,7 +9,7 @@ export const GBA_FPS = 16777216 / 280896;
 const SAMPLE_RATE = 48000;
 const SEGMENT_FRAMES = 3600 * GBA_FPS;
 const OUTPUT_FPS = 60;
-const SAME_PACE = 0.01;
+const MARK_TOLERANCE_FRAMES = 6;
 // The game box's inside on the 1920x1080 stage, past its 6 px border.
 const GAME = { x: 46, y: 96, width: 1098, height: 728 };
 
@@ -29,11 +29,13 @@ const TAIL_SECONDS = 60;
 const MARK_EVENTS = new Set(["sync", "frame_counter_reset", "frames_lost"]);
 
 // Marks come once a minute of game time, so a session's last stretch has none: it runs on at the last pace, up to the
-// frame count the recorder stopped at, or, if killed, up to the next session or a minute on.
+// frame count the recorder stopped at, or, if killed, up to the next session or a minute on. That can pass the file's
+// real end, so every clip plays over black of its own length (encoderArgs).
 function addTail(session: Session, nextStart: number): void {
-  const [before, last] = session.marks.slice(-2);
-  if (before === undefined || last === undefined) return;
-  const pace = (last.position - before.position) / (last.at - before.at);
+  const last = session.marks.at(-1), before = session.marks.at(-2);
+  if (last === undefined) return;
+  // A session too short for a mark has no pace of its own, so it gets the game's.
+  const pace = before === undefined ? GBA_FPS : (last.position - before.position) / (last.at - before.at);
   if (!(pace > 0)) return;
   if (session.stopped !== undefined) {
     if (session.stopped > last.position) session.marks.push({ position: session.stopped, at: last.at + (session.stopped - last.position) / pace });
@@ -66,17 +68,25 @@ export function readJournal(text: string): Session[] {
 
 const gapSpan = (wallStart: number, wallEnd: number): Span => ({ wallStart, wallEnd, session: null, from: 0, to: 0 });
 
-// Stretches between marks, with neighbors at the same pace joined so a steady hour stays one clip.
-function pacedStretches(sessions: readonly Session[]): (Mark & { readonly end: Mark; readonly session: number })[] {
-  const stretches: (Mark & { end: Mark; session: number })[] = [];
+interface Stretch extends Mark { end: Mark; readonly session: number; readonly inside: Mark[] }
+
+// Whether a line from `start` to `end` passes close to every mark between them.
+function fits(start: Mark, inside: readonly Mark[], end: Mark): boolean {
+  const pace = (end.position - start.position) / (end.at - start.at);
+  return inside.every(mark => Math.abs(start.position + (mark.at - start.at) * pace - mark.position) <= MARK_TOLERANCE_FRAMES);
+}
+
+// Stretches between marks. Neighbors join only while the marks they swallow stay on the line, so a steady hour is one
+// clip and a slow change of pace is not averaged away.
+function pacedStretches(sessions: readonly Session[]): Stretch[] {
+  const stretches: Stretch[] = [];
   sessions.forEach((session, index) => {
     session.marks.forEach((mark, i) => {
       const end = session.marks[i + 1];
       if (end === undefined || end.at <= mark.at || end.position <= mark.position) return;
       const last = stretches.at(-1);
-      const pace = (end.position - mark.position) / (end.at - mark.at);
-      if (last?.session === index && last.end === mark && Math.abs((last.end.position - last.position) / (last.end.at - last.at) / pace - 1) < SAME_PACE) last.end = end;
-      else stretches.push({ ...mark, end, session: index });
+      if (last?.session === index && last.end === mark && fits(last, [...last.inside, mark], end)) { last.inside.push(mark); last.end = end; }
+      else stretches.push({ ...mark, end, session: index, inside: [] });
     });
   });
   return stretches.sort((a, b) => a.at - b.at);
@@ -176,7 +186,6 @@ export function encoderArgs({ out, fps, seconds, game, voices = [] }: EncoderPla
   const page = ["-f", "image2pipe", "-framerate", String(fps), "-c:v", "png", "-i", "pipe:0"];
   const voiceInputs = voices.flatMap(voice => ["-i", voice.path]);
   if (game === null) {
-    if (voices.length === 0) return [...start, ...page, ...OUTPUT, "-r", String(fps), out];
     const filter = [`anullsrc=r=${String(SAMPLE_RATE)}:cl=stereo:d=${number(seconds)}[silence]`, ...voiceFilters(voices, 1, "[silence]")].join(";");
     return [...start, ...page, ...voiceInputs, "-filter_complex", filter, "-map", "0:v", "-map", "[a]", ...OUTPUT, "-r", String(fps), "-c:a", "aac", "-b:a", "192k", "-t", number(seconds), out];
   }
@@ -192,7 +201,7 @@ export function encoderArgs({ out, fps, seconds, game, voices = [] }: EncoderPla
     const index = open(clip);
     return index < 0
       ? `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[v${String(i)}]`
-      : `[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)},tpad=stop_mode=clone:stop_duration=${number(clip.wall)},trim=duration=${number(clip.wall)},setpts=PTS-STARTPTS[v${String(i)}]`;
+      : `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[b${String(i)}];[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)},tpad=stop_mode=clone:stop_duration=${number(clip.wall)},trim=duration=${number(clip.wall)}[c${String(i)}];[b${String(i)}][c${String(i)}]overlay=eof_action=pass[v${String(i)}]`;
   });
   const sounds = game.audio.map((clip, i) => {
     const index = open(clip);
@@ -227,7 +236,7 @@ export function parseRenderArgs(argv: readonly string[]): RenderArgs {
     if (arg === "--fps") fps = Number(value); else gameVideo = value;
   }
   const [run, fromText, toText, out] = plain, from = Number(fromText), to = Number(toText);
-  if (plain.length !== 4 || run === undefined || out === undefined || !Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || !(fps > 0)) throw new Error(USAGE);
+  if (plain.length !== 4 || run === undefined || out === undefined || !Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || !Number.isFinite(fps) || fps <= 0) throw new Error(USAGE);
   return { run, from, to, out, gameVideo, fps };
 }
 
@@ -237,7 +246,7 @@ export interface RenderPage {
   backdrop(): Promise<string>;
   close(): Promise<void>;
 }
-export interface Encoder { write(frame: Buffer): Promise<void>; finish(): Promise<void> }
+export interface Encoder { write(frame: Buffer): Promise<void>; finish(): Promise<void>; abort(): void }
 export interface RenderDeps {
   started(run: string): Promise<number>;
   readText(path: string): string | null;
@@ -275,11 +284,13 @@ export async function renderClip(deps: RenderDeps, args: RenderArgs): Promise<vo
     const voices = commentary === null ? [] : planVoices(commentary, args.from, args.to, folder);
     const encoder = deps.encode(encoderArgs({ out: args.out, fps: args.fps, seconds, game, voices }));
     const frames = Math.round(seconds * args.fps);
-    for (let i = 0; i < frames; i += 1) {
-      await page.setTime(args.from + i / args.fps);
-      await encoder.write(await page.shot());
-      if (i % (args.fps * 30) === 0) deps.log(`${String(i)}/${String(frames)} frames`);
-    }
+    try {
+      for (let i = 0; i < frames; i += 1) {
+        await page.setTime(args.from + i / args.fps);
+        await encoder.write(await page.shot());
+        if (i % Math.ceil(args.fps * 30) === 0) deps.log(`${String(i)}/${String(frames)} frames`);
+      }
+    } catch (error) { encoder.abort(); throw error; }
     await encoder.finish();
   } finally { await page.close(); }
 }

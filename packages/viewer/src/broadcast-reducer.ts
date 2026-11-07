@@ -80,7 +80,7 @@ export function createBroadcastReducer(): BroadcastReducer {
     header = { run, model: event.model.id, started: event.t, kind: event.start_state.kind === "boot" ? "boot" : "save", save: null };
   };
   const stateOf = (state: Static<typeof State>): void => {
-    const where = state.location ?? null;
+    const where = state.location?.replace(/^ROUTE(?=\d)/, "ROUTE ") ?? null;
     if (header?.kind === "save" && header.save === null && where !== null) header = { ...header, save: where.replace(/\s+(CITY|TOWN)$/, "") };
     const view = { where, foe: foeOf(state), badges: state.badges ?? [], party: (state.party ?? []).map(monOf) };
     const key = JSON.stringify(view);

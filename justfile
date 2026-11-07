@@ -280,13 +280,15 @@ fixed-run *args: build
 
 # Render a stretch of a run as video through the /broadcast page. --game-video names a recorder folder;
 # its picture and sound go under the page, retimed onto the run's wall clock by the sync marks.
+[positional-arguments]
 broadcast-render *args: build
-    nice -n 10 node packages/viewer/dist/broadcast-render-cli.js {{args}}
+    nice -n 10 node packages/viewer/dist/broadcast-render-cli.js "$@"
 
 # One spoken line per turn from a finished run, voiced with Kokoro, into runs/broadcast/<run>/. Needs a local
 # OpenAI-style --endpoint. Kokoro's two model files come from $KOKORO_MODELS or ~/.cache/pokebench/kokoro.
+[positional-arguments]
 broadcast-commentary *args:
-    PYTHONPATH="$PWD/env" nice -n 10 uv run --project env --with kokoro-onnx python -m pokebench_env.broadcast_commentary {{args}}
+    PYTHONPATH="$PWD/env" nice -n 10 uv run --project env --with kokoro-onnx python -m pokebench_env.broadcast_commentary "$@"
 
 # Manual validation probes are recorded like runs, excluded from benchmark results.
 # stdin accepts {"action":"observe"}, {"action":"press","buttons":["A"]}, {"action":"end"}.

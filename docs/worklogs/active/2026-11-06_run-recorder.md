@@ -31,3 +31,5 @@ COMMIT: `fix(env): sound records from a save, and a stuck encoder cannot hang th
 COMMIT: `style(env): segment options in one place` (247ce036b). Gates passed on cd56ada2e: 2,677 agent, 1,077 viewer, 3,003 env, 38 gateway; lint clean. GPT: index was wrong after a restart or reset; it now reads per-session marks.
 
 COMMIT: `fix(env): the segment index reads each recorder session's own marks` (8730400d8). GPT: a sync mark named the next position; it now names the frame it logged.
+
+Final on 2da62c8bb: GPT (Codex CLI) LGTM and Claude (subagent) LGTM, Claude with real-server reruns: sound minus picture within one frame on boot and save starts, no false rebases, encoder and recorder kills recover. Gates on cd56ada2e: 2,677 agent, 1,077 viewer, 3,003 env, 38 gateway, lint clean; later commits touch only the recorder, its tests and this file, 40 recorder tests pass. Known low items: `frames_lost` when sound sees the gap first, `--index` wall time for a part after the last mark, an empty extra part on shutdown.

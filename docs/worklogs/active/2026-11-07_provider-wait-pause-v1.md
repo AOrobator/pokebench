@@ -111,3 +111,18 @@ pause, event schema and archived-continuation changes remain identical.
 Main advanced again to 9b3f537f2 during the first build. Cancelled that
 build and integrated the model-stream logging changes before rerunning.
 The shared live path now has both stream logging and the pause hooks.
+
+## Landed on local main
+
+Fast-forwarded main from `9b3f537f2` to `893dd4bd6` in landing slot 1.
+The final integration diff SHA-256 was
+`3bf350f822bb305c011bff3cee2f93bc9d867cc82368b9c19e27fe6f31d841ce`.
+Claude, GPT, and Astra returned LGTM on the integration. Astra served
+as the distinct fallback under the operator's standing Grok waiver, with reduced
+reviewer diversity and no local inference reviewer. The viewer fixture's
+one expectation change had separate operator approval.
+
+Pre-landing build, full test, full lint and vendor verification passed.
+The combined post-merge test on main passed, including coverage and
+no-I/O proof. CPU RELEASE was delivered after both windows. No runs
+were launched and the live viewer was not refreshed or exercised.

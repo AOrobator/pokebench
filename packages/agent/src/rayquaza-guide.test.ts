@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LEGACY_ALL_ON } from "../test-support/legacy-features.js";
 import type { RunEvent } from "./events.js";
 import { MILESTONES } from "./milestones.js";
+import { parseDash } from "./mach-dash.js";
 import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { ABRA_NOTE, BATTLE_EXPLAINER, FLYER_NOTE, GuidePosition, rayquazaGuideContext, type GuideStep } from "./rayquaza-guide.js";
 
@@ -247,28 +248,98 @@ describe("the guide's route rows", () => {
   });
 
   it("ends the climb at Rayquaza and names the talks that open Juan's Gym", () => {
-    const climb = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
-    const top = RAYQUAZA_GUIDE_STEPS[climb + 1];
-    expect(RAYQUAZA_GUIDE_STEPS[climb]?.note.endsWith("top D L4 U4 R2 U4.")).toBe(true);
-    expect(top?.after).toBe("AT:SkyPillar_Top:14:7");
+    const top = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "AT:SkyPillar_Top:14:7");
     expect(top?.note).toContain("Maxie at (33,35)");
     expect(top?.note).toContain("Archie at (34,35)");
     expect(top?.note).toContain("Wallace at the Gym door for HM07");
-    expect(RAYQUAZA_GUIDE_STEPS[climb + 2]?.after).toBe("HM_WATERFALL_RECEIVED");
+    const index = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "AT:SkyPillar_Top:14:7");
+    expect(RAYQUAZA_GUIDE_STEPS[index + 1]?.after).toBe("HM_WATERFALL_RECEIVED");
+  });
+});
+
+describe("the Sky Pillar climbs", () => {
+  const index = (after: string): number => RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === after);
+  const row = (after: string): GuideStep => {
+    const step = RAYQUAZA_GUIDE_STEPS.find((candidate) => candidate.after === after);
+    if (step === undefined) throw new Error(`no row ${after}`);
+    return step;
+  };
+  const at = (name: string, x: number, y: number): RunEvent => {
+    const tile = RAYQUAZA_GUIDE_STEPS.find((step) => step.at !== undefined && step.after.startsWith(`AT:${name}:`))?.at;
+    if (tile === undefined) throw new Error(`no row on ${name}`);
+    return { type: "state", map_id: tile.id, position: { x, y } } as unknown as RunEvent;
+  };
+  const SECOND = ["AT:SkyPillar_2F:10:2", "AT:SkyPillar_3F:3:2", "AT:SkyPillar_4F:11:2", "AT:SkyPillar_3F:7:4", "AT:SkyPillar_5F:3:2", "AT:SkyPillar_Top:16:15", "AT:SkyPillar_Top:14:7"];
+  // Each route ran through the real tool on a real game server (worklog, 2026-11-07).
+  const ROUTES = {
+    SOOTOPOLIS_CRISIS_RESOLVED: "U1 L9 U4 R2 U3 L1 U3 R3 D2 R5 U3",
+    "AT:SkyPillar_2F:10:2": "D1 R4 D11 L10 U4 R2 U8",
+    "AT:SkyPillar_3F:3:2": "D7 L2 D6 R1 D1 R10 U5 L1 U6",
+    "AT:SkyPillar_4F:11:2": "D14 L8 U8 R2",
+    "AT:SkyPillar_5F:3:2": "L5 D3 R1 D4 L1 D4 R5 D1 R7 U5 L1 U6 L2 U1",
+  };
+
+  it("gives each floor of the second climb its verified route, in a form mach_dash takes", () => {
+    for (const [after, route] of Object.entries(ROUTES)) {
+      const { note } = row(after);
+      expect(note).toContain(`mach_dash ${route}`);
+      expect(parseDash(route).ok).toBe(true);
+    }
   });
 
-  it("moves to the talks row only on the tile below Rayquaza", () => {
-    const from = RAYQUAZA_GUIDE_STEPS.findIndex((step) => step.after === "SOOTOPOLIS_CRISIS_RESOLVED");
-    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(from));
-    const tile = RAYQUAZA_GUIDE_STEPS[from + 1]?.at;
-    if (tile === undefined) throw new Error("the talks row has no tile");
-    const at = (x: number, y: number): RunEvent => ({ type: "state", map_id: tile.id, position: { x, y } }) as unknown as RunEvent;
-    guide.observe(at(14, 8));
-    expect(guide.current().after).toBe("SOOTOPOLIS_CRISIS_RESOLVED");
-    guide.observe(at(14, 7));
-    expect(guide.current().after).toBe("AT:SkyPillar_Top:14:7");
+  it("never tells the model to ride past the 4F pocket", () => {
+    const rows = RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED"), index("HM_WATERFALL_RECEIVED"));
+    expect(rows.filter((step) => /R4 U3/.test(step.note))).toEqual([]);
+  });
+
+  it("walks the first climb, with no bike and no dash", () => {
+    const rows = RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED"), index("RAYQUAZA_AWAKENED"));
+    expect(rows.map((step) => step.after)).toEqual(["SKY_PILLAR_OPENED", "AT:SkyPillar_4F:5:4", "AT:SkyPillar_3F:6:4"]);
+    expect(rows[0]?.note).toContain("No bike needed");
+    expect(rows.filter((step) => step.note.includes("mach_dash"))).toEqual([]);
+    expect(rows[1]?.note).toContain("Press RIGHT once");
+  });
+
+  it("first climb: its rows fire on the drop, and its stairs tiles move nothing", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SKY_PILLAR_OPENED")));
+    for (const tile of [at("SkyPillar_2F", 10, 2), at("SkyPillar_3F", 3, 2), at("SkyPillar_4F", 11, 2)]) guide.observe(tile);
+    expect(guide.current().after).toBe("SKY_PILLAR_OPENED");
+    guide.observe(at("SkyPillar_4F", 5, 4));
+    expect(guide.current().after).toBe("AT:SkyPillar_4F:5:4");
+    guide.observe(at("SkyPillar_3F", 6, 4));
+    expect(guide.current().after).toBe("AT:SkyPillar_3F:6:4");
+    for (const tile of [at("SkyPillar_4F", 7, 2), at("SkyPillar_5F", 3, 2), at("SkyPillar_Top", 16, 15)]) guide.observe(tile);
+    expect(guide.current().after).toBe("AT:SkyPillar_3F:6:4");
+  });
+
+  it("second climb: every floor's arrival tile moves the guide one row, though the first climb passed them", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SOOTOPOLIS_CRISIS_RESOLVED")));
+    const tiles: readonly (readonly [string, number, number])[] = [["SkyPillar_2F", 10, 2], ["SkyPillar_3F", 3, 2], ["SkyPillar_4F", 11, 2], ["SkyPillar_3F", 7, 4], ["SkyPillar_5F", 3, 2], ["SkyPillar_Top", 16, 15], ["SkyPillar_Top", 14, 7]];
+    tiles.forEach(([name, x, y], n) => {
+      if (x === 14) {
+        guide.observe(at(name, 14, 8));
+        expect(guide.current().after).toBe(SECOND[n - 1]);
+      }
+      guide.observe(at(name, x, y));
+      expect(guide.current().after).toBe(SECOND[n]);
+    });
     guide.observe(milestone("HM_WATERFALL_RECEIVED"));
     expect(guide.current().after).toBe("HM_WATERFALL_RECEIVED");
+  });
+
+  it("a fall holds the row, and the same row still stands after the walk back", () => {
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(index("SOOTOPOLIS_CRISIS_RESOLVED")));
+    guide.observe(at("SkyPillar_2F", 10, 2));
+    guide.observe(at("SkyPillar_4F", 11, 2));
+    expect(guide.current().after).toBe("AT:SkyPillar_2F:10:2");
+    guide.observe(at("SkyPillar_2F", 10, 2));
+    expect(guide.current().after).toBe("AT:SkyPillar_2F:10:2");
+    expect(guide.current().note).toContain("If you fall");
+  });
+
+  it("the next story step stays within reach of a climb with no checkpoint seen", () => {
+    expect(index("HM_WATERFALL_RECEIVED") - index("SOOTOPOLIS_CRISIS_RESOLVED")).toBeLessThanOrEqual(8);
+    expect(index("RAYQUAZA_AWAKENED") - index("SKY_PILLAR_OPENED")).toBeLessThanOrEqual(8);
   });
 });
 

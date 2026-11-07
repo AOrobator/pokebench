@@ -300,4 +300,6 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - Tool: `packages/agent/src/mach-dash.ts`, built from a new `executeTimed` on press, which is one `/action` POST at explicit timing past every press guard. Wiring test goes red with `withMachDash` removed from `playGameTools`.
 - WAIT cannot end the wait: a `WAIT` or `hold_frames:0` entry leaves `current_action` set, so `/queue_status` never empties. After the route the tool presses B with 28 release frames, up to 10 times, until the same free tile reads twice. That keeps the wait in emulated frames and needs no server change.
 - A 2-frame tap turns a stopped bike in place from any facing (hold 0 to 5 measured; hold 10 moves a tile). A tap towards the door at (6,13) on 1F leaves the map, and the tool then reports the failed turn.
+- COMMIT: `feat(agent): rq-mach-dash-v1 adds mach_dash, a whole MACH BIKE route in one POST` (d9d2ec8e2). 42 tests in its file; 177 agent and 48 viewer focused tests pass; tsc and eslint clean.
+- Guide rows: `GuidePosition.onMap` takes the first row that matches, so a first-climb row on an arrival tile, or any `MAP:` row on a Sky Pillar floor, would stop the second climb's row from ever firing. So the first climb keeps tiles only it uses, (5,4) on 4F and (6,4) on 3F, and the second climb owns the arrival tiles.
 

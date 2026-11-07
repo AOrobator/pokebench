@@ -171,6 +171,19 @@ describe(`${ID}: navigate_to (14,96) at turn 1089`,()=>{
   const both=(s:GameStateSnapshot)=>(s.map_grid?.objects.length??2)===0;
   expect(blockerNote(STATE,both,false)).toBe("BREAKABLE_ROCK object 15 at (18,101) stands in the way: ROCK SMASH it: face it and press A, answer YES");
  });
+ it("on: with two parallel ways each needing two rocks, no single rock stands in every way, so none is named",()=>{
+  const field=STATE.field_obstacles as Obstacles;
+  const [rock]=field.obstacles;if(rock===undefined)throw new Error("fixture");
+  const at=[{x:17,y:104},{x:18,y:104},{x:17,y:106},{x:18,y:106}];
+  const four:GameStateSnapshot={...STATE,field_obstacles:{...field,obstacles:at.map((t,i)=>({...rock,id:i,local_id:20+i,tiles:[t]}))},map_grid:STATE.map_grid==null?null:{...STATE.map_grid,objects:at.map(t=>({...t,elevation:3}))}};
+  const left=(s:GameStateSnapshot)=>new Set((s.map_grid?.objects??[]).map(o=>`${String(o.x)},${String(o.y)}`));
+  // Way 1 passes (17,104) and (18,104); way 2 passes (17,106) and (18,106).
+  const parallel=(s:GameStateSnapshot)=>{const l=left(s);return (!l.has("17,104")&&!l.has("18,104"))||(!l.has("17,106")&&!l.has("18,106"));};
+  expect(blockerNote(four,parallel,true)).toBeNull();
+  // One way through both (17,104) and (18,104): each of them stands in it.
+  const series=(s:GameStateSnapshot)=>{const l=left(s);return !l.has("17,104")&&!l.has("18,104");};
+  expect(blockerNote(four,series,true)).toBe('BREAKABLE_ROCK object 20 at (17,104) stands in the way: ROCK SMASH it: navigate_to_target target {"kind":"object","local_id":20}, answer YES');
+ });
 });
 
 describe(`${ID}: production wiring of the people list`,()=>{

@@ -181,3 +181,19 @@ def test_the_game_state_reader_keeps_the_flood_it_surveyed() -> None:
     found = state.field_obstacles
     assert found is not None and found.flood is not None
     assert found.flood.start == (11, 60) and found.flood.start in found.flood.tiles
+
+
+def test_a_way_past_a_boulder_the_party_cannot_move_is_not_said_to_pass_the_tree() -> None:
+    # Two parallel ways from (0,1) to the warp (4,1): the top one past a CUTTABLE_TREE the party
+    # can cut at (2,0), the bottom one past a PUSHABLE_BOULDER it cannot move at (2,2); (2,1) is a
+    # wall. Closing the tree cuts the warp off, but its blocker set is the tree and the boulder,
+    # so the tree alone is not every way there.
+    t = {(x, y): (0, 0) for x in range(5) for y in range(3)} | {(2, 1): (1, 0)}
+    tree = Obstacle("cut", "CUTTABLE_TREE", ((2, 0),), 7, True)
+    boulder = Obstacle("strength", "PUSHABLE_BOULDER", ((2, 2),), 8, True)
+    gates = MapGates(Capabilities((("cut", True), ("strength", False))), (tree, boulder))
+    none: dict[ConnectionKey, tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]] = {}
+    found = survey(t, (0, 1), gates, warps=((4, 1),), connections=none)
+    assert dict(found.gated.warps)[(4, 1)] == "foot"
+    f = FieldObstacles(gates, found, 5, 3, Flood(t, (0, 1), ((4, 1),), none))
+    assert f.clearable_lines(warp, name, semantic=True) == []

@@ -96,3 +96,5 @@ Navigator ledge drops and surf start warps (under the operator's 2026-11-06 rule
 Story line done on event (coordinator brief 2026-11-06, under the operator's rule that correctness fixes are on in both arms): `story-line-done-on-event-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. A place-naming line now finishes only on a story event the game confirms after the arrival, not on a place milestone.
 
 Badge resets cycles (the operator 2026-11-07, "this is a correctness fix so it goes on in both arms"): `badge-resets-cycles-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. A new badge or gym win clears the stall note's map-pair count.
+
+Drought counts turns only (the operator 2026-11-07, "this is a correctness issue"): `drought-turns-only-v1` is registered default OFF and onInBoth, base true, here and in `experiments/presets/current-control-24h-8k.json`. The drought note counts 30 actions; level-ups, wins and heals do not restart it.

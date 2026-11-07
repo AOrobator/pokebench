@@ -470,6 +470,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "navigator-surf-start-warps-v1":"navigator-ledge-drops-v1.html",
  "story-line-done-on-event-v1":"story-line-done-on-event-v1.html",
  "badge-resets-cycles-v1":"badge-resets-cycles-v1.html",
+ "drought-turns-only-v1":"drought-turns-only-v1.html",
  "rotating-gate-turn-reasons-v1":"rotating-gate-turns-log-v1.html",
  "rotating-gate-push-log-v1":"rotating-gate-turns-log-v1.html",
  "reasoning-effort-request-v1":"reasoning-effort-request-v1.html",

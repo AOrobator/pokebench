@@ -129,7 +129,9 @@ export class StallBriefing {
  // turn-drought-clock-v1: the result of the action that made the progress is not counted (stateSinceResult).
  private restart(seq:number):void {this.droughtClock++;this.progressAt=this.active();this.actions=0;this.skip=this.stateSinceResult;this.clockSeq=seq;this.droughts=0;this.heldLevel=0;}
  // turn-drought-clock-v1 counts actions; positive-supervisor-v1 keeps its retired wall-clock schedule.
- private turnClock():boolean {return this.features["turn-drought-clock-v1"]&&!this.features["positive-supervisor-v1"];}
+ private turnClock():boolean {return (this.features["turn-drought-clock-v1"]||this.features["drought-turns-only-v1"])&&!this.features["positive-supervisor-v1"];}
+ // drought-turns-only-v1: the turn clock counts every action; a level-up, trainer win or heal does not restart it.
+ private credits():boolean {return !this.features["drought-turns-only-v1"];}
  // turn-drought-clock-v1: progress the game shows besides a story milestone: a party member's level going up (same
  // POKéMON, a higher level), a trainer battle won (a trainer shown not defeated, then defeated: pokeemerald sets the
  // trainer flag only on a win) and the same party reaching full HP after being below full. Only identified POKéMON
@@ -212,7 +214,7 @@ export class StallBriefing {
   if(event.type==="state"&&"started"in event){
    this.stateSinceResult=true;
    this.last=event;
-   if(event.started&&this.turnClock()&&this.progressed(event))this.restart(event.seq);
+   if(event.started&&this.turnClock()&&this.progressed(event)&&this.credits())this.restart(event.seq);
    if(this.healTrip!==null&&(event.in_battle||fullParty(event))){
     // A heal the warning asked for, done (full HP), is a step forward: the drought clock starts again from it.
     // positive-supervisor-v1 retires drought briefings, so nothing is held and its retired schedule stays as it was.
@@ -333,13 +335,13 @@ export class StallBriefing {
    if(level>this.heldLevel){
     this.heldLevel=level;
     const why=holding==="battle"?"a battle is on screen":holding==="trainer"?"a trainer battle is starting":`the party is on its way to heal after a heal warning${this.healTrip===null?"":` (#${String(this.healTrip.seq)})`}`;
-    const what=this.features["drought-progress-facts-v1"]&&holding==="battle"?`the active drought clock reached ${turns?`${String(level*STALL_DROUGHT_ACTIONS)} actions`:`${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`}`:turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
+    const what=this.features["drought-progress-facts-v1"]&&holding==="battle"?`the active drought clock reached ${turns?`${String(level*STALL_DROUGHT_ACTIONS)} actions`:`${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`}`:turns?`no new story milestone${this.credits()?", level-up, trainer win or full heal":""} in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
     this.heldDrought?.(`Not sent (${this.features["drought-progress-facts-v1"]&&holding==="battle"?"drought-progress-facts-v1":"drought-battle-heal-hold-v1"}): ${what}, but ${why}.`,[from??seq,seq]);
    }
    return;
   }
   if(this.firstVisit!==null){
-   const what=turns?`no new story milestone, level-up, trainer win or full heal in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
+   const what=turns?`no new story milestone${this.credits()?", level-up, trainer win or full heal":""} in the last ${String(level*STALL_DROUGHT_ACTIONS)} actions`:`no new story milestone for ${String(level*STALL_DROUGHT_MS/60_000)} minutes of play`;
    const clock=this.droughtClock;
    this.holdForFirstVisit(this.firstVisit,{kind:"milestone_drought",owner:clock,level,what,due:()=>clock===this.droughtClock&&this.droughtLevel()>this.droughts},[from??seq,seq]);
    return;

@@ -2,7 +2,7 @@ import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {describe,expect,it} from "vitest";
 import {attachLoopGuard,Governor} from "./harness.js";
 import {loopSupervisor,stallBriefing} from "./play-wiring.js";
-import {INTERFACE_DWELL_CALLS,STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
+import {INTERFACE_DWELL_CALLS,STALL_DROUGHT_ACTIONS,STALL_DROUGHT_MS,STALL_ROUND_TRIPS,StallBriefing} from "./stall-briefing.js";
 import {SupervisorBriefing} from "./loop-supervisor.js";
 import {featureInfo,type FeatureSet} from "./features.js";
 import {checkEvent,parseEvent,type RunEvent} from "./events.js";
@@ -517,5 +517,39 @@ describe("badge-resets-cycles-v1",()=>{
  });
  it("registers with an Off clause",()=>{
   expect(featureInfo("badge-resets-cycles-v1").description).toContain(" Off: ");
+ });
+});
+
+// drought-turns-only-v1: 41 of 165 drought notes in five DeepSeek runs were false on the 5-minute clock (about 11 turns).
+describe("drought-turns-only-v1",()=>{
+ const play=(on:boolean,actions:number,level=(i:number)=>5)=>{
+  const r=rig({...ON,"drought-turns-only-v1":on});
+  r.milestone("GAME_RUNNING","observed");
+  r.state({party:[MEMBER("a","MUDKIP",5,0)]});
+  for(let i=0;i<actions;i++)r.press(["A"],{party:[MEMBER("a","MUDKIP",level(i),i)]},1_000);
+  return r.guards().filter(g=>g.kind==="milestone_drought"&&g.phase==="supervisor");
+ };
+ it("off: a quick player gets no drought note before 5 minutes, as before",()=>{
+  expect(play(false,STALL_DROUGHT_ACTIONS+5)).toEqual([]);
+ });
+ it("on: the note comes after 30 actions with no story milestone, whatever the wall clock",()=>{
+  const notes=play(true,STALL_DROUGHT_ACTIONS+1);
+  expect(notes).toHaveLength(1);
+  expect(notes[0]?.message).toMatch(new RegExp(`no new story milestone in the last ${String(STALL_DROUGHT_ACTIONS)} actions`,"i"));
+  expect(notes[0]?.message).not.toContain("level-up");
+ });
+ it("on: a level-up does not restart the clock",()=>{
+  expect(play(true,STALL_DROUGHT_ACTIONS+1,i=>i<20?5:6)).toHaveLength(1);
+ });
+ it("on: a story milestone still does",()=>{
+  const r=rig({...ON,"drought-turns-only-v1":true});
+  r.milestone("GAME_RUNNING","observed");
+  for(let i=0;i<20;i++)r.press(["A"],{},1_000);
+  r.milestone("LITTLEROOT_TOWN","observed");
+  for(let i=0;i<20;i++)r.press(["A"],{},1_000);
+  expect(r.guards().filter(g=>g.kind==="milestone_drought")).toEqual([]);
+ });
+ it("registers with an Off clause",()=>{
+  expect(featureInfo("drought-turns-only-v1").description).toContain(" Off: ");
  });
 });

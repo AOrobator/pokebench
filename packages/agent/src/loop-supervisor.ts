@@ -608,7 +608,7 @@ export class SupervisorBriefing {
 - Party at that battle: ${stall.before}
 - Party now: ${stall.now}`,true,true);
   if(this.features["drought-progress-facts-v1"]&&(stall.kind==="milestone_drought"||stall.kind==="action_drought")){
-   const interval=stall.kind==="milestone_drought"?`milestone counted by the active drought clock for ${String(stall.minutes)} minutes of play`:`milestone, level-up, trainer win or full heal counted by the active drought clock in the last ${String(stall.actions)} actions`;
+   const interval=stall.kind==="milestone_drought"?`milestone counted by the active drought clock for ${String(stall.minutes)} minutes of play`:`milestone${this.features["drought-turns-only-v1"]?"":", level-up, trainer win or full heal"} counted by the active drought clock in the last ${String(stall.actions)} actions`;
    return this.bearings(`SUPERVISOR: No new ${interval} (stall briefing, ${String(calls)} calls into the run).`,true,true);
   }
   if(stall.kind==="action_drought")return this.droughtFacts(stall.actions,calls);
@@ -639,7 +639,7 @@ export class SupervisorBriefing {
  // turn-drought-clock-v1: what the game shows, never that the plan is failing (the model may be healing or training).
  // objective-graph-supervisor-v1 is the only switch that adds a next-milestone line here.
  private droughtFacts(actions:number,calls:number):string {
-  return [`SUPERVISOR: No new story milestone, level-up, trainer win or full heal in the last ${String(actions)} actions (stall briefing, ${String(calls)} calls into the run).`,
+  return [`SUPERVISOR: No new story milestone${this.features["drought-turns-only-v1"]?"":", level-up, trainer win or full heal"} in the last ${String(actions)} actions (stall briefing, ${String(calls)} calls into the run).`,
    ...(this.nextLine()===""?[]:[this.nextLine().slice(0,-1)]),
    `- Last story progress: ${this.lastProgress()}`,
    `- Where you are: ${this.where()}`,

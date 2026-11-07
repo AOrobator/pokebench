@@ -226,9 +226,11 @@
     "navigator-ledge-drops-v1",
     "navigator-surf-start-warps-v1",
     "story-line-done-on-event-v1",
-    "badge-resets-cycles-v1"
+    "badge-resets-cycles-v1",
+    "drought-turns-only-v1"
   ],
   "features": {
+    "drought-turns-only-v1": true,
     "badge-resets-cycles-v1": true,
     "screenshot-button-baseline-v1": false,
     "native-task-goal-retirement-v1": false,

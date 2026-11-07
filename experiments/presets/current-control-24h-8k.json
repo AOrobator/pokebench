@@ -13,6 +13,7 @@
     "maxTokens": 8192
   },
   "features": {
+    "drought-turns-only-v1": true,
     "badge-resets-cycles-v1": true,
     "screenshot-button-baseline-v1": false,
     "native-task-goal-retirement-v1": false,

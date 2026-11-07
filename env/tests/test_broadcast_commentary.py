@@ -336,6 +336,36 @@ def test_a_failed_save_keeps_the_line_for_the_next_save() -> None:
     assert tried == [1, 2]
 
 
+def test_a_last_save_that_failed_is_tried_again_before_stopping() -> None:
+    run = FakeRun(HEAD + thought(1, 1, "a") + END)
+    tried: list[int] = []
+
+    def disk(lines: list[Line]) -> None:
+        tried.append(len(lines))
+        if len(tried) == 1:
+            raise OSError("no space")
+
+    assert len(follow(replace(run.deps(), save=disk), [])) == 1
+    assert tried == [1, 1]
+
+
+def test_a_last_save_that_keeps_failing_stops_loudly() -> None:
+    run = FakeRun(HEAD + thought(1, 1, "a") + END)
+
+    def disk(_lines: list[Line]) -> None:
+        raise OSError("no space")
+
+    with pytest.raises(OSError, match="no space"):
+        follow(replace(run.deps(), save=disk), [])
+
+
+def test_a_recovered_older_turn_is_saved_in_time_order() -> None:
+    later = Line(turn=3, t=3.0, text="Later.", wav="t000003.wav", seconds=1.0)
+    run = FakeRun(HEAD + thought(1, 1, "a") + thought(3, 3, "c") + END)
+    assert [line.turn for line in follow(run.deps(), [later])] == [1, 3]
+    assert [line.turn for line in run.saves[-1]] == [1, 3]
+
+
 def test_no_usable_line_skips_the_turn() -> None:
     run = FakeRun(HEAD + thought(1, 1, "a") + END)
     run.ask = lambda thinking: "word " * 30

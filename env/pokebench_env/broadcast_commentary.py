@@ -272,6 +272,7 @@ def follow(deps: Follow, existing: Sequence[Line]) -> list[Line]:
     tail = LogTail(deps.read)
     waiting: list[Turn] = []
     heard = deps.now()
+    unsaved = False
     while True:
         for raw in tail.lines():
             heard = deps.now()
@@ -287,14 +288,19 @@ def follow(deps: Follow, existing: Sequence[Line]) -> list[Line]:
             line = say_turn(waiting.pop(0), deps)
             if line is not None:
                 lines.append(line)
+                # A restart can recover turns older than ones already saved.
+                lines.sort(key=lambda saved: saved.t)
+                unsaved = True
+            if unsaved:
                 try:
                     deps.save(lines)
+                    unsaved = False
                 except OSError as error:
-                    deps.log(f"turn {line.turn}: not saved yet: {error}")
-        elif reader.ended:
-            return lines
-        elif deps.now() - heard >= IDLE_END_S:
-            deps.log("run log silent, stopping")
+                    deps.log(f"lines not saved yet: {error}")
+        elif reader.ended or deps.now() - heard >= IDLE_END_S:
+            deps.log("run ended" if reader.ended else "run log silent, stopping")
+            if unsaved:
+                deps.save(lines)
             return lines
         else:
             deps.wait(POLL_S)

@@ -12,3 +12,5 @@ Review round 1, GPT: BLOCKING. Fix: `interactionRecipient` still compared the ar
 Replay through the real tool on recorded refusals: 274b, 19 refusals, 10 now walk, 7 now say "no walkable route" from where the player stood, 2 stay (70,5). 5f0f, 6 refusals, 4 walk, 1 "no walkable route", 1 stays (Fortree Gym 15,4). So 14 walk and 8 get a true reason in place of "not listed".
 
 Claude review LGTM on 1af3f18e5 with one rule error, unreachable on any Emerald map: a step off a multi-level tile does update previousElevation. Fixed with its test, comment and explainer. Follow-up, harmless: Sootopolis Gym B1F ladder (11,22) from (11,21) resolves but will not fire; the server reads only currentElevation, and exposing previousElevation would remove the fallback.
+
+Merged main 4057ad9f4: no-open-story-goal-v1 stays off, this switch stays on in both arms.

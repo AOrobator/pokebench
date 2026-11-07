@@ -101,7 +101,8 @@
     "map-cycle-recovery-v1",
     "authored-scene-labels-v1",
     "player-map-visibility-v2",
-    "dark-area-flash-reminder-v1"
+    "dark-area-flash-reminder-v1",
+    "no-open-story-goal-v1"
   ],
   "onInBoth": [
     "gym-door-label-v1",
@@ -213,7 +214,6 @@
     "story-line-campaign-flags-v1",
     "junk-filter-leader-lines-v1",
     "story-line-start-steps-v1",
-    "no-open-story-goal-v1",
     "navigator-elevation-zero-pads-v1"
   ],
   "features": {
@@ -561,7 +561,7 @@
     "story-line-campaign-flags-v1": true,
     "junk-filter-leader-lines-v1": true,
     "story-line-start-steps-v1": true,
-    "no-open-story-goal-v1": true,
+    "no-open-story-goal-v1": false,
     "navigator-elevation-zero-pads-v1": true
   }
 }

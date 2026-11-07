@@ -188,3 +188,7 @@ Curriculum delivered just in time through the harness, for Qwen3.8-27B. The oper
 - Claude: the Fly note could tell a Ball-less run on Route 103 to throw a Ball; it now needs a Ball in the bag. Source cell and a dead test assertion fixed.
 - Rebased onto a8f723dfc (worklog-only upstream).
 - Landed the on-path catch fix and rayquaza-lane-24h-v2 (01b0dcda4): Claude and GPT LGTM after three rounds of real findings, Grok skipped; just test and just lint exit 0 (agent 2684, viewer 1200); memory free 96%.
+
+### 2026-11-07: rq-no-grind-note-v1
+
+- Audit: the battle note told a run to catch a second type or gain levels after a loss. The operator approved replacing it, behind a switch that is on in the lane.

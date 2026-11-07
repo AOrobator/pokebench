@@ -18,12 +18,11 @@ async function battleNote(features: typeof ON): Promise<string> {
 describe("rq-no-grind-note-v1", () => {
   it("off keeps the earlier battle note", async () => {
     const out = await battleNote({ ...ON, "rq-no-grind-note-v1": false });
-    expect(out).toContain("gain levels");
-    expect(out).toContain(BATTLE_EXPLAINER.slice(0, 40));
+    expect(JSON.parse(out)).toContainEqual(expect.objectContaining({ content: BATTLE_EXPLAINER }));
   });
   it("on tells the model never to grind or hunt", async () => {
     const out = await battleNote({ ...ON, "rq-no-grind-note-v1": true });
-    expect(out).toContain(NO_GRIND_EXPLAINER);
+    expect(JSON.parse(out)).toContainEqual(expect.objectContaining({ content: NO_GRIND_EXPLAINER }));
     expect(out).not.toMatch(/gain levels|second type/);
   });
   it("only the after-a-loss sentence changes", () => {

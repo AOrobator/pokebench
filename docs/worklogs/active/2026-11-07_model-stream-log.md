@@ -59,6 +59,11 @@ Offline rehearsal only: replay a production-shaped SSE stream through `ModelStre
 
 ## Multi-Model Review Log
 
+Round 1, frozen 5ad4882bc..08c6b9ac7, diff sha256 6e5b56b3e56e4036c2540c0deb22dd387137e07271e9fa340caf395bff146268.
+- Claude CLI: BLOCKING, two findings, both Fix. (1) the raw threshold counted blanks inside tool arguments; (2) `reasoning_details` and non-string reasoning vanished and read as an empty delta.
+- Cursor GPT and Grok: not run, both models at the monthly usage limit until 11/17. Grok is waived for this work. GPT lane asked of a Codex session through `just tell-codex`.
+- Fallback subagent (Sonnet, read-only): LGTM. Its `clone()` containment note is a Fix under INV-3; the rest are follow-ups or speculation. Observer order, quadratic parse on huge args, and the unflushed decoder do not change a recorded result.
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

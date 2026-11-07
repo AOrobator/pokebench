@@ -95,6 +95,12 @@ describe("StreamAccount reads the raw stream",()=>{
   expect(s.extra_choice_frames).toBe(1);
  });
 
+ it("reports reasoning pi drops instead of calling the delta empty",()=>{
+  const s=account([[1,delta({reasoning_details:[{type:"reasoning.text",text:"hidden"}]})],[2,delta({reasoning:{text:"hidden"}})]]);
+  expect(s.unknown_fields.map(f=>f.path)).toEqual(["delta.reasoning_details","delta.reasoning"]);
+  expect(s.empty_deltas).toBe(0);
+ });
+
  it("counts deltas after the finish reason",()=>{
   const s=account([[1,finish("stop")],[2,delta({content:"late"})],[3,usage(1)],[4,DONE]]);
   expect(s.after_finish_chars).toBe(4);
@@ -211,6 +217,20 @@ describe("ModelStreamLog taps the model's stream",()=>{
   expect(h.saved[0]?.name).toBe("turn-000047-1.jsonl.gz");
   expect(h.saved[0]?.raw).toContain("observe");
   expect(h.recorded[0]?.body.raw).toMatchObject({file:"model-stream/turn-000047-1.jsonl.gz",capped:false});
+ });
+
+ it("does not count blanks inside tool arguments as visible",async()=>{
+  const h=harness();
+  const tapped=h.log.fetch(()=>Promise.resolve(sseResponse([usage(525),DONE])));
+  await tapped(URL_,{method:"POST"});await settled();
+  h.log.observe(assistant(1,{thinking:"x".repeat(500),args:{text:"a b c d e f g h i j"},output:525}));
+  expect(h.saved).toHaveLength(1);
+ });
+
+ it("hands pi its response when the copy cannot be made",async()=>{
+  const h=harness();const original=sseResponse([DONE]);
+  original.clone=()=>{throw new Error("locked");};
+  expect(await h.log.fetch(()=>Promise.resolve(original))(URL_,{method:"POST"})).toBe(original);
  });
 
  it("leaves a normal long reply's raw stream out",async()=>{

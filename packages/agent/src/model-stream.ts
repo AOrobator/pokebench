@@ -20,7 +20,8 @@ const UNKNOWN_CAP=32,TOOL_CAP=32,SAMPLE_CHARS=200;
 
 const CHUNK_READ=new Set(["id","object","created","model","choices","usage","system_fingerprint"]);
 const CHOICE_READ=new Set(["index","delta","finish_reason","usage"]);
-const DELTA_READ=new Set(["role","content","tool_calls","reasoning_details"]);
+// reasoning_details stays out: pi-ai keeps only encrypted details that match a tool call.
+const DELTA_READ=new Set(["role","content","tool_calls"]);
 const TOOL_READ=new Set(["index","id","type","function"]);
 const FUNCTION_READ=new Set(["name","arguments"]);
 // pi-ai takes the first non-empty one of these and drops the rest.
@@ -172,7 +173,8 @@ export class StreamAccount {
   let used=false;
   for(const field of REASONING_FIELDS){
    const value=delta[field];
-   if(typeof value!=="string"||value==="")continue;
+   if(typeof value!=="string"){if(present(value))this.noteValue(`delta.${field}`,value);continue;}
+   if(value==="")continue;
    this.reasoning[field]=(this.reasoning[field]??0)+value.length;
    if(used)this.reasoningDropped+=value.length;
    else{used=true;reasoningChars=value.length;chars+=value.length;visible=visible||nonBlank(value)>0;}
@@ -181,7 +183,7 @@ export class StreamAccount {
   chars+=toolChars.chars;
   visible=visible||toolChars.visible;
   if(finished)this.afterFinishChars+=chars;
-  if(chars===0)this.emptyDeltas++;
+  if(!Object.entries(delta).some(([key,value])=>key!=="role"&&present(value)))this.emptyDeltas++;
   if(visible){this.firstVisible??=this.at;this.lastVisible=this.at;}
   if(before!==null&&this.afterTool!==null)this.afterTool={frames:this.afterTool.frames+1,content_chars:this.afterTool.content_chars+(typeof content==="string"?content.length:0),reasoning_chars:this.afterTool.reasoning_chars+reasoningChars,tool_args_chars:this.afterTool.tool_args_chars+toolChars.chars};
  }
@@ -254,7 +256,7 @@ function requestOf(input:Parameters<typeof fetch>[0],init:Parameters<typeof fetc
 }
 
 function visibleOf(event:Extract<RunEvent,{type:"assistant"}>):Visible {
- return {thinking_chars:nonBlank(event.thinking),text_chars:nonBlank(event.text),tool_args_chars:event.tool_calls.reduce((sum,call)=>sum+JSON.stringify(call.args).length,0),tool_calls:event.tool_calls.length};
+ return {thinking_chars:nonBlank(event.thinking),text_chars:nonBlank(event.text),tool_args_chars:event.tool_calls.reduce((sum,call)=>sum+nonBlank(JSON.stringify(call.args)),0),tool_calls:event.tool_calls.length};
 }
 
 interface Finished {readonly turn:number;readonly account:StreamAccount}
@@ -272,7 +274,10 @@ export class ModelStreamLog {
    if(url!==this.ports.url||method!=="POST")return base(input,init);
    const turn=this.ports.turn(),startedAt=this.ports.now();
    const response=await base(input,init);
-   if(response.ok&&response.body!==null)void this.consume(turn,startedAt,response.clone());
+   if(response.ok&&response.body!==null){
+    try{void this.consume(turn,startedAt,response.clone());}
+    catch(error){console.warn(`model stream: turn ${String(turn)} not read: ${error instanceof Error?error.message:String(error)}`);}
+   }
    return response;
   };
  }

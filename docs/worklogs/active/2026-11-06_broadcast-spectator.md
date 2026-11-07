@@ -53,6 +53,8 @@ Per piece: tests, real headless browser screenshots at 1920x1080, then landing a
 
 Piece 1 browser proof, headless on port 8797 from a scratch runs root symlinking finished runs (the 8790 viewer and e09e untouched): a0b4 at t=4656.3 and 4700 matches the mock with real data (`FIGHT → ROCK TOMB`, 24/159, vs WINONA, $0.83 at OrcaRouter's public rates). 5f0f boot run at 2:10:50 shows FROM BOOT and a full lane with no overlap. transparent=1 clears the page and game box and keeps the caption. Fake live run (log replayed from a0b4 with fresh times, fake game server with health and frame socket): the default run picked it, clock ticked, 15 chips arrived, frames came through the socket as blobs, and the clock held once run_end landed; no console errors. Cold read: 1.8 s for a0b4's 516 MB, 7.3 s for 5f0f's 2.3 GB, in bounded steps; feed 5.8 MB and 7.1 MB.
 
+Piece 2 proof on 80af, t=225-265, across the recorder's kill and restart at t=246.8: 1920x1080 at 60 fps, 40.00 s, sound at -23.8 dB mean. The composite frame viewed. Saved game frames at t=226, 231 and 246 match the render's game box within 0.22 s. A session's last stretch has no sync mark, so it runs on at its last pace. Own-frames path: a0b4 t=4650-4656 rendered in 6 s.
+
 ## Surprises
 
 ## Multi-Model Review Log

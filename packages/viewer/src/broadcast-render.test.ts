@@ -17,9 +17,21 @@ describe("reading the recorder's journal", () => {
   it("collects each session's marks and parts, skipping what it cannot read", () => {
     const sessions = readJournal(`${JOURNAL}\nnot json\n${line(1, "sync", { video_frames: "x" })}\n${line(300, "started")}\n${line(301, "first_frame", { frame_count: 9000 })}`);
     expect(sessions).toHaveLength(2);
-    expect(sessions[0]?.marks.map(m => m.position)).toEqual([0, 3600, 7200]);
+    expect(sessions[0]?.marks.map(m => m.position).slice(0, 3)).toEqual([0, 3600, 7200]);
     expect(sessions[0]?.parts).toEqual([{ stream: "video", part: 1, position: 0 }, { stream: "audio", part: 1, position: 0 }]);
     expect(sessions[1]?.marks).toEqual([{ position: 0, at: 301 }]);
+    expect(sessions[0]?.marks.at(-1)?.at).toBe(250);
+  });
+
+  it("carries a session past its last mark at its own pace: to the frames it stopped at, or until the next one began", () => {
+    const stopped = readJournal([line(0, "first_frame", { frame_count: 1 }), line(45, "sync", { frame_count: 2, video_frames: 3600 }), line(60, "server_gone"), line(70, "stopped", { frames: 4400 })].join("\n"));
+    expect(stopped[0]?.marks.at(-1)).toEqual({ position: 4400, at: 55 });
+    const killed = readJournal([line(0, "started"), line(0, "first_frame", { frame_count: 1 }), line(45, "sync", { frame_count: 2, video_frames: 3600 }), line(65, "started"), line(66, "first_frame", { frame_count: 9 })].join("\n"));
+    expect(killed[0]?.marks.at(-1)).toEqual({ position: 5280, at: 66 });
+    const lone = readJournal(line(0, "first_frame", { frame_count: 1 }));
+    expect(lone[0]?.marks).toHaveLength(1);
+    const ended = readJournal([line(0, "first_frame", { frame_count: 1 }), line(45, "sync", { frame_count: 2, video_frames: 3600 })].join("\n"));
+    expect(ended[0]?.marks.at(-1)).toEqual({ position: 8400, at: 105 });
   });
 
   it("puts sound parts on the picture's frame scale", () => {
@@ -45,8 +57,9 @@ describe("mapping wall time to the recording", () => {
 
   it("fills time the recording does not cover with gaps", () => {
     const spans = spansFor(sessions, 50, 200);
-    expect(spans.map(s => s.session)).toEqual([null, 0, null]);
-    expect(spans.map(s => [s.wallStart, s.wallEnd])).toEqual([[50, 100], [100, 190], [190, 200]]);
+    expect(spans.map(s => s.session)).toEqual([null, 0]);
+    expect(spans.map(s => [s.wallStart, s.wallEnd])).toEqual([[50, 100], [100, 200]]);
+    expect(spansFor(sessions, 240, 260).map(s => s.session)).toEqual([0, null]);
     expect(spansFor([], 1, 2)).toEqual([{ wallStart: 1, wallEnd: 2, session: null, from: 0, to: 0 }]);
   });
 
@@ -107,7 +120,7 @@ describe("the encoder command", () => {
     const filter = args[args.indexOf("-filter_complex") + 1] ?? "";
     expect(args).toContain("/r/a b.mkv");
     expect(args).toContain("-ss");
-    expect(filter).toContain("setpts=(PTS-STARTPTS)*0.750000");
+    expect(filter).toContain("setpts=(PTS-STARTPTS)*0.750000,tpad=stop_mode=clone:stop_duration=45,trim=duration=45");
     expect(filter).toContain("atempo=1.333333");
     expect(filter).toContain("color=c=black:s=240x160:r=60:d=5");
     expect(filter).toContain("anullsrc=r=48000:cl=stereo:d=5");

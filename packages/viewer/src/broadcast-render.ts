@@ -16,16 +16,32 @@ const GAME = { x: 46, y: 96, width: 1098, height: 728 };
 type Stream = "video" | "audio";
 export interface Mark { readonly position: number; readonly at: number }
 export interface Part { readonly stream: Stream; readonly part: number; readonly position: number }
-export interface Session { readonly marks: Mark[]; readonly parts: Part[] }
+export interface Session { readonly marks: Mark[]; readonly parts: Part[]; stopped?: number }
 export interface Span { readonly wallStart: number; readonly wallEnd: number; readonly session: number | null; readonly from: number; readonly to: number }
 export interface Clip { readonly file: string | null; readonly start: number; readonly length: number; readonly wall: number }
 
 const Entry = Type.Object({
   at: Type.Number(), event: Type.String(),
   stream: Type.Optional(Type.Union([Type.Literal("video"), Type.Literal("audio")])),
-  part: Type.Optional(Type.Integer()), position: Type.Optional(Type.Number()), video_frames: Type.Optional(Type.Number()),
+  part: Type.Optional(Type.Integer()), position: Type.Optional(Type.Number()), video_frames: Type.Optional(Type.Number()), frames: Type.Optional(Type.Number()),
 });
+const TAIL_SECONDS = 60;
 const MARK_EVENTS = new Set(["sync", "frame_counter_reset", "frames_lost"]);
+
+// Marks come once a minute of game time, so a session's last stretch has none: it runs on at the last pace, up to the
+// frame count the recorder stopped at, or, if killed, up to the next session or a minute on.
+function addTail(session: Session, nextStart: number): void {
+  const [before, last] = session.marks.slice(-2);
+  if (before === undefined || last === undefined) return;
+  const pace = (last.position - before.position) / (last.at - before.at);
+  if (!(pace > 0)) return;
+  if (session.stopped !== undefined) {
+    if (session.stopped > last.position) session.marks.push({ position: session.stopped, at: last.at + (session.stopped - last.position) / pace });
+    return;
+  }
+  const at = Math.min(nextStart, last.at + TAIL_SECONDS);
+  if (at > last.at) session.marks.push({ position: last.position + (at - last.at) * pace, at });
+}
 
 // Each `started` begins a session whose positions count from zero (recorder.py's segment_rows reads it the same way).
 export function readJournal(text: string): Session[] {
@@ -39,10 +55,12 @@ export function readJournal(text: string): Session[] {
     if (session === undefined) continue;
     if (entry.event === "first_frame") session.marks.push({ position: 0, at: entry.at });
     else if (MARK_EVENTS.has(entry.event) && entry.video_frames !== undefined) session.marks.push({ position: entry.video_frames, at: entry.at });
+    else if (entry.event === "stopped" && entry.frames !== undefined) session.stopped = entry.frames;
     else if (entry.event === "part_started" && entry.stream !== undefined && entry.part !== undefined && entry.position !== undefined) {
       session.parts.push({ stream: entry.stream, part: entry.part, position: entry.stream === "audio" ? entry.position / (SAMPLE_RATE / GBA_FPS) : entry.position });
     }
   }
+  sessions.forEach((session, i) => { addTail(session, sessions[i + 1]?.marks[0]?.at ?? Infinity); });
   return sessions;
 }
 
@@ -136,7 +154,7 @@ export function encoderArgs({ out, fps, seconds, game }: EncoderPlan): string[] 
     const index = open(clip);
     return index < 0
       ? `color=c=black:s=240x160:r=${String(OUTPUT_FPS)}:d=${number(clip.wall)}[v${String(i)}]`
-      : `[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)}[v${String(i)}]`;
+      : `[${String(index)}:v]setpts=(PTS-STARTPTS)*${(clip.wall / clip.length).toFixed(6)},tpad=stop_mode=clone:stop_duration=${number(clip.wall)},trim=duration=${number(clip.wall)},setpts=PTS-STARTPTS[v${String(i)}]`;
   });
   const sounds = game.audio.map((clip, i) => {
     const index = open(clip);

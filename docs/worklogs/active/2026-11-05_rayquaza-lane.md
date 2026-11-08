@@ -362,3 +362,7 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - Review packet: base 874611c74dd78b8ae8ab6cf2c16f923011eb000b, head 0f56d38e463c7f85ff625bc9dde6c2df3c75995b, binary diff SHA-256 6d659a1041478d5391fe0fa224a451258b73e72afeff9174eaeea4d91e0d3a5e. Independent GPT reviewer returned VERDICT: LGTM and reproduced the generated row and RED/GREEN assertion. Claude CLI OAuth expired; Cursor Claude Opus and Sonnet and both tried Cursor Grok models were usage-limited. Required Claude cloud verdict remains unavailable. CPU slot released; landing board not joined.
 - The operator explicitly waived the unavailable Claude and Grok verdicts for this patch in chat after the GPT LGTM and full gates. Proceed through the landing board.
 - Landed on main at e30b08cdc after the landing board granted the slot. The post-merge just test passed at that pin (agent 2961, viewer 1240, environment 3061, gateway 38; no-I/O guard proof passed).
+
+### 2026-11-07: guide corrections from run 6056
+
+- RED: focused guide tests failed at the missing Dock interaction, Nugget retirement, and the new Route 110 rival line. The five failing assertions are all within those changes.

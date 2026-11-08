@@ -28,11 +28,7 @@ describe("catches stay on the path", () => {
   it("uses the Repel after the grass, so it blocks no meeting", () => {
     expect(row("ROCK_TOMB_RECEIVED")).toContain("Repel at about x=35");
   });
-  it("Route 110 leaves Wingull to the battle note and sets no level target", () => {
-    const note = row("ROUTE_110");
-    expect(note).not.toMatch(/Wingull|aim for level/);
-    expect(note).toContain("X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.");
-  });
+
 });
 
 describe("GuidePosition", () => {
@@ -203,12 +199,11 @@ describe("the shipped guide", () => {
     expect(note.indexOf("Repel at about")).toBeGreaterThan(note.indexOf("If you meet Taillow"));
   });
 
-  it("tells the rival fight to boost before Grovyle, without assuming the party", () => {
+  it("gives Route 110 the observed winning moves without a catch or level target", () => {
     const note = RAYQUAZA_GUIDE_STEPS.find((step) => step.after === "ROUTE_110")?.note ?? "";
-    expect(note).toMatch(/X Attack and X Speed against Slugma/);
-    expect(note).toMatch(/if you have them/);
-    expect(note).toMatch(/Absorb took a Level 22 Marshtomp out in two hits/);
-    expect(note).not.toMatch(/Taillow/);
+    expect(note).toContain("If known, Mud Shot Slugma and Rock Tomb Grovyle and Wingull.");
+    expect(note).toContain("Grovyle's Absorb hits Marshtomp x4.");
+    expect(note).not.toMatch(/Taillow|catch|aim for level/i);
   });
 
   it("names only real milestones, uses each milestone once, and keeps short notes", () => {
@@ -236,6 +231,29 @@ describe("the guide's route rows", () => {
     expect(routes.map((step) => step.after)).toEqual(expect.arrayContaining(["MAP:DewfordTown_Gym", "KNUCKLE_BADGE", "FORTREE_GYM_ENTERED", "MOSSDEEP_GYM_ENTERED", "SOOTOPOLIS_GYM_ENTERED", "VICTORY_ROAD_WALLY_DEFEATED"]));
     expect(routes.filter((step) => !step.note.includes("If off this route, trust the map."))).toEqual([]);
     for (const after of CLIMBS) expect(row(after).note).not.toContain("trust the map");
+  });
+
+  it("names the Dock interaction that opens the Oceanic Museum", () => {
+    expect(row("SLATEPORT_CITY").note).toContain("Talk to Dock at (5,5)");
+  });
+
+  it("retires the Fallarbor pickup after the Nugget is collected and sold", () => {
+    const start = RAYQUAZA_GUIDE_STEPS.indexOf(row("FALLARBOR_TOWN"));
+    const guide = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
+    const bag = (quantity: number): RunEvent => ({
+      type: "state", started: true, screen: "overworld", active_ui: null,
+      in_battle: false, map_id: [0, 13], party: [],
+      resources: { bag: quantity === 0 ? [] : [{ name: "NUGGET", quantity }] },
+    }) as unknown as RunEvent;
+    guide.observe(bag(0));
+    expect(guide.current().note).toContain("hidden Nugget");
+    guide.observe(bag(1));
+    expect(guide.current().after).toBe("GOT:NUGGET");
+    guide.observe(bag(0));
+    expect(guide.current().after).toBe("GOT:NUGGET");
+    expect(guide.current().note).not.toContain("hidden Nugget");
+    guide.observe(milestone("ROUTE_114"));
+    expect(guide.current().after).toBe("ROUTE_114");
   });
 
   it("walks a run without Teleport back to Mauville and heals there", () => {

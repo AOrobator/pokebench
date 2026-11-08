@@ -7,7 +7,7 @@ import { RAYQUAZA_GUIDE_STEPS } from "./rayquaza-guide-data.js";
 import { OLD_RIVAL_LINE } from "./rayquaza-guide.js";
 
 const ON = rayquazaLaneFeatures();
-const NEW_LINE = "X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.";
+const NEW_LINE = "If known, Mud Shot Slugma and Rock Tomb Grovyle and Wingull. X Attack and X Speed on Slugma if safe. Grovyle's Absorb hits Marshtomp x4.";
 const AT_RIVAL = RAYQUAZA_GUIDE_STEPS.slice(0, RAYQUAZA_GUIDE_STEPS.findIndex(step => step.after === "ROUTE_110") + 1);
 const milestone = (name: string) => ({ type: "milestone", name, origin: "present_at_start" }) as unknown as RunEvent;
 
@@ -27,7 +27,7 @@ describe("rq-old-rival-line-v1", () => {
   it("on, only the rival tactics change", async () => {
     const out = await guideAtRival({ ...ON, "rq-old-rival-line-v1": true });
     expect(out).toContain(OLD_RIVAL_LINE);
-    expect(out).not.toContain("against Slugma");
+    expect(out).not.toContain("Mud Shot Slugma");
     expect(out).toContain("Decline Foresight.");
   });
   it("keeps the swapped row inside the guide's note limit", () => {

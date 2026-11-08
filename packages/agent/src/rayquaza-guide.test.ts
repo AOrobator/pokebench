@@ -244,7 +244,7 @@ describe("the guide's route rows", () => {
     expect(note).toContain("Heal at the Center.");
     expect(note).toContain("Rock Smash (19,100)");
     expect(note).not.toContain("(18,101)");
-    expect(note).not.toMatch(/in place of Mud-Slap now/);
+    expect(note).toContain("Teach Strength over Growl, else Mud-Slap. Keep Mud Shot. If neither, skip.");
   });
 
   it("ends the climb at Rayquaza and names the talks that open Juan's Gym", () => {

@@ -351,3 +351,8 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 - COMMIT RED: `test(agent,env): a clearable obstacle is named only when it is every way` — env: tree plus unmovable boulder on parallel ways (expects no line; fails, the tree is named); agent: four rocks on two parallel ways (expects no note; fails, rock 20 is named) and two rocks in series (expects the nearest).
 - GREEN: `clearable_lines` emits a line only when the clearable rocks and trees are the exit's whole blocker set (turn 1090 keeps its line: the set is objects 15 and 16). `blockerNote`'s fallback names the nearest rock or tree that is still needed once the others are cleared, so parallel ways each needing other rocks name nothing. Focused: agent field-obstacle-respawn 17 pass plus navigation and features files; env 114 pass (respawn, field-move flood and claims, feature switches, map observation wiring); tsc, eslint, ruff, mypy clean on changed files.
 - Landed field-obstacle-respawn-v1 and the Route 111 guide lines (878e09e83): on in both arms as a correctness fix. Claude and GPT LGTM after one GPT finding (mixed blockers) fixed; Grok skipped; build, test, lint exit 0 in the granted window (agent 2950, viewer 1239, env 3061). Not run on the emulator; viewer not restarted.
+
+### 2026-11-07: Strength move replacement
+
+- Run 6056 chose to forget Mud Shot for Strength at turn 1401 and completed the swap at turn 1404, leaving Growl in the moveset. The later Norman row calls for Mud Shot.
+- RED: the existing Strength row test now checks Growl first, Mud-Slap as fallback, and keeping Mud Shot. It failed on the old row as expected (86 other guide tests passed).

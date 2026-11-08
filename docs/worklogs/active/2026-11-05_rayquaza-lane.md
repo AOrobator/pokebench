@@ -366,3 +366,8 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 ### 2026-11-07: guide corrections from run 6056
 
 - RED: focused guide tests failed at the missing Dock interaction, Nugget retirement, and the new Route 110 rival line. The five failing assertions are all within those changes.
+- GREEN: Slateport names Dock at (5,5) in Shipyard 1F. The ROM-owned Dock script clears the Aqua line, and 6056 entered the museum after speaking to him at turns 518–521.
+- Fallarbor uses the existing GOT item transition. Acquisition advances to shopping, and selling the Nugget cannot restore the pickup row. If the pickup is unavailable, the guide points west to Route 114 so the run can continue.
+- Route 110 names the known moves from 6056's winning attempt (Mud Shot on Slugma, Rock Tomb on Grovyle and Wingull, turns 902–905). The old rival-line switch still substitutes its original tactics. This is an observed tactic to test, not a replicated gain. Follow-up design is under runs/probe-preparation/rq-strength-norman-20261107/route110-followup.md; existing frozen studies were not repinned.
+- Route 111 already inherits field-obstacle-respawn-v1 through the current base. No separate Route 111 change in this patch.
+- Regenerated 160 guide rows. Five focused suites, 133 tests, agent type check, changed-file ESLint, and git diff --check passed. Full landing gates and cloud review are pending.

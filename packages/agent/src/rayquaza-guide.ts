@@ -33,7 +33,7 @@ export const BRINEY_NOTE="BRINEY: Mr. Briney is inside his house on Route 104. T
 
 // rq-old-rival-line-v1: run aeb8's tactics, kept so the Route 110 trials can compare them with the current ones.
 export const OLD_RIVAL_LINE="Rock hits Wingull and Slugma x2. Grovyle's Absorb hits Marshtomp x4: no boosts on it; use a Flying, Fire or Bug move if you have one, else attack.";
-const CURRENT_RIVAL_LINE="X Attack and X Speed against Slugma if you have them. Grovyle's Absorb took a Level 22 Marshtomp out in two hits.";
+const CURRENT_RIVAL_LINE="If known, Mud Shot Slugma and Rock Tomb Grovyle and Wingull. X Attack and X Speed on Slugma if safe. Grovyle's Absorb hits Marshtomp x4.";
 
 type MapId=readonly [number,number];
 export interface GuideStep {readonly gate?:boolean;readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}

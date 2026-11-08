@@ -28,3 +28,6 @@ RED: the production `finalGuide` test observed only the original input and no Ma
 
 - Round 1 on `a1c2c76c9`, base `3b65eadfc`, diff SHA-256 `1ae2dd36aa5bc51494bdad6e5b4d64a17ce3a49bf497eb49fc6326a519caee63`. Claude BLOCKING on the missing in-battle delivery regression test. Accepted the test gap. The added test checks the real factory with a schema-valid summit encounter and rejects the wrong floor, missing ball, inactive battle and player-side Rayquaza. Mutating the position check from 1 to 0 failed the new assertion and restoring it passed all seven focused tests.
 - Cursor Grok 4.5 and Grok 4.7 both returned an account usage-limit error. The operator explicitly waived Grok for this landing.
+
+- Round 2 on `1cbcf5b68`, unchanged base `3b65eadfc`, diff SHA-256 `137b39cf75d7769a832d156d619703521f699324a5cae6514acbdfdbe8bde29a`. Claude and independent GPT both returned `VERDICT: LGTM`. The Grok waiver applies to this landing. No production changes since the full branch gates.
+- Fast-forwarded local main to `1cbcf5b68` in the landing slot on November 8, 2026. The required post-merge `just test` is pending the relay's CPU START grant. Activation and gameplay have not been requested.

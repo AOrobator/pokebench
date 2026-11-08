@@ -383,6 +383,7 @@ export const SWITCHABLE_FEATURES = [
   "drought-turns-only-v1",
   "drought-hold-screens-v1",
   "field-obstacle-respawn-v1",
+  "gym-puzzle-supervisor-hold-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -887,6 +888,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("drought-turns-only-v1", "guard", "DROUGHT COUNTS TURNS ONLY", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). The drought note ran on a 5-minute wall clock, about 11 DeepSeek turns, and 41 of 165 notes in five DeepSeek runs were false; turn-drought-clock-v1 credits level-ups, wins and heals and stays silent through long gym stalls. On: the drought clock counts 30 actions and a level-up, trainer win or heal no longer restarts it; a story milestone does, and so does the end of a battle or heal trip that held back a due note, as before. The note no longer lists those credits. Off: the clock is as configured by turn-drought-clock-v1."),
   on("drought-hold-screens-v1", "guard", "DROUGHT HOLDS ON BATTLE SCREENS", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). Run 37ca got the drought note on the evolution screen right after beating Flannery. On: while an evolution or move screen that a battle handed control to is up, a due drought note is held, like one due during the battle itself. Off: the note can be sent on those screens."),
   on("field-obstacle-respawn-v1", "observation", "CLEARED OBSTACLES COME BACK", "field-move-gates-v1", "Default off; on in both arms of the current recipe as a correctness fix. A BREAKABLE_ROCK or CUTTABLE_TREE the player cleared is back after the map reloads, a whiteout included, and a pushed STRENGTH boulder is back where it started with STRENGTH off (pokeemerald ClearTempFieldEventData clears the temp flags that hide them on every map load). Run 6056 smashed Route 111's rocks at turns 993-995, whited out at 1068 and spent 45 minutes failing to go north: the people list said the rocks were last talked to on turn 993 and navigate_to said only that no path existed. On: the people list says a cleared rock, tree or boulder the party can clear is back since you left the map and how to clear it (ROCK SMASH it or CUT it: navigate_to_target that object, answer YES; STRENGTH: use it again, answer YES, then walk into it); when navigate_to finds no route and clearing a rock or tree the party can clear would let it reach the goal, it names the nearest such one the same way; and the readout's field obstacles block names a rock or tree the party can clear that stands in every way on foot to an exit. Off: the people list says when the object was last talked to, navigate_to says only that no path exists, and the field obstacles block names only the obstacles the party cannot clear."),
+  on("gym-puzzle-supervisor-hold-v1", "guard", "GYM PUZZLE SUPERVISOR HOLD", "stall-briefing-v1", "Default off; on in both arms of the current recipe as a correctness fix (the operator 2026-11-07). Run 37ca entered the FORTREE CITY GYM, came close to its last gate, and left for good after the stall notes told it to stop: \"You have walked between FORTREE CITY and FORTREE CITY GYM 4 times ... What you have been trying is not working, so do not try it again\" (turns 1902 and 1937, and the town and its POKéMON CENTER at 1895), and drought notes inside the gym listing exits to maps not entered (2014-2039). On: while a gym this run has entered (its gym-entry milestone was recorded) lacks its badge, walking between that gym and any map, or between a map the gym opens onto and a POKéMON CENTER, is not counted as a map back-and-forth stall; each note it would have sent is recorded as a diagnostic loop_guard would_warn event that starts Not sent (gym-puzzle-supervisor-hold-v1). A stall note given on the gym map leaves out the exits to maps not entered, the untried targets on other maps and the ways off across the map's edge. Which maps are gyms stays inside the harness: no note names a gym, a badge or a reason. The hold ends when that badge is recorded. Off: those trips count like any other pair, and stall notes on the gym map list the ways off it."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1379,6 +1381,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("drought-turns-only-v1"),
     ...when("drought-hold-screens-v1"),
     ...when("field-obstacle-respawn-v1"),
+    ...when("gym-puzzle-supervisor-hold-v1"),
   ];
 }
 

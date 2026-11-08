@@ -17,6 +17,7 @@
     "field-obstacle-respawn-v1": true,
     "drought-turns-only-v1": true,
     "badge-resets-cycles-v1": true,
+    "gym-puzzle-supervisor-hold-v1": true,
     "screenshot-button-baseline-v1": false,
     "native-task-goal-retirement-v1": false,
     "active-field-message-buffer-v1": true,

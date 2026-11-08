@@ -585,6 +585,10 @@ it("links the elevation transitions card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["elevation-transitions-v1"]).toBe("elevation-transitions.html");
 });
 
+it("links the gym puzzle hold card to its tracked explainer",()=>{
+ expect(FEATURE_EXPLAINERS["gym-puzzle-supervisor-hold-v1"]).toBe("gym-puzzle-supervisor-hold-v1.html");
+});
+
 it("links the battle details v2 card to its tracked explainer",()=>{
  expect(FEATURE_EXPLAINERS["battle-details-v2"]).toBe("battle-details-v2.html");
  expect(FEATURE_EXPLAINERS["route-summary-v1"]).toBe("route-summary-v1.html");

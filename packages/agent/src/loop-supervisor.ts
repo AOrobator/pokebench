@@ -17,6 +17,7 @@ import type {RunEvent,SemanticReceipt} from "./events.js";
 import type {FeatureSet} from "./features.js";
 import type {LoopKind} from "./loop-detection.js";
 import {listedArgument,semanticWalk,targetSuffix} from "./semantic-targets.js";
+import {GymPuzzle} from "./gym-puzzle-hold.js";
 
 export type Stall=
  | {readonly kind:"map_cycle";readonly from:string;readonly to:string;readonly roundTrips:number;readonly consecutive:boolean}
@@ -162,8 +163,10 @@ export class SupervisorBriefing {
  private readonly gate:StoryCharacterGate|null;
  // unfinished-activity-v1: the open items its recorded events carry, by trainer id.
  private readonly unfinished=new Map<number,string>();
- constructor(private readonly features:FeatureSet){this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.objective=features["objective-graph-supervisor-v1"]?new NextObjective():null;this.route=features["story-route-plan-v1"]?new RoutePlan():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
+ private readonly gymPuzzle:GymPuzzle|null;
+ constructor(private readonly features:FeatureSet){this.gymPuzzle=features["gym-puzzle-supervisor-hold-v1"]?new GymPuzzle():null;this.dialogue=new DialogueLog(features);this.hint=features["next-milestone-hint-v1"]?new NextMilestoneHint():null;this.objective=features["objective-graph-supervisor-v1"]?new NextObjective():null;this.route=features["story-route-plan-v1"]?new RoutePlan():null;this.exits=features["briefing-exits-v1"]?new ExitHistory():null;this.battles=features["briefing-battle-outcomes-v1"]?new BattleOutcomes(features):null;this.gate=features["story-character-stall-gate-v1"]||features["positive-supervisor-v1"]?new StoryCharacterGate({recordStallGate:()=>undefined}):null;}
  observe(event:RunEvent):void {
+   this.gymPuzzle?.observe(event);
    this.objective?.observe(event);this.route?.observe(event);
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
@@ -583,12 +586,14 @@ export class SupervisorBriefing {
   if(Math.abs(p.x-x)+Math.abs(p.y-y)<=1)this.touch(this.room(after),at(x,y));
  }
  private staying():boolean {return this.features["story-character-stall-gate-v1"]&&this.gate?.holds()!=null;}
+ // gym-puzzle-supervisor-hold-v1: on the map of a gym entered this run without its badge, no line points off the map.
+ private onMap():boolean {return this.staying()||this.gymPuzzle?.openGym((this.measured??this.latest)?.map_id)===true;}
  private untalked():string {
   const names=this.staying()||this.features["positive-supervisor-v1"]?this.gate?.untalked()??[]:[];
   return names.length===0?"":`- Story characters on this map you have not talked to since your last story milestone: ${names.join("; ")}\n`;
  }
  private edges():string {
-  if(this.staying())return "";
+  if(this.onMap())return "";
   const latest=this.latest,topology=latest?.topology;
   // surf-gated-exits-v1: an edge reachable only across water is not a way off while Surf cannot be used.
   const block=latest==null?null:exitReach(this.features,latest);
@@ -683,7 +688,7 @@ export class SupervisorBriefing {
   const tried=this.tried.length===0?"nothing recorded":this.tried.slice().reverse().map(t=>`${t.label}${t.count>1?` ×${String(t.count)}`:""} in ${t.room} → ${t.outcome}`).join("; ");
   const recall=this.features["dialogue-log-v1"]?" (use recall_dialogue to check exactly what characters said)":"";
   const instruction=`- Dialogue shown with your latest story step that came with dialogue${this.instructionText()}\n`;
-  const exits=this.staying()?"":`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
+  const exits=this.onMap()?"":`- Exits to maps you have not entered since your last story progress: ${this.unentered()}\n`;
   // briefing-exits-v1: the stall briefing leads with the unentered exits and the latest story step's dialogue.
   const first=stall&&this.exits!==null;
   return `${headline}${factual?"":" What you have been trying is not working, so do not try it again."}
@@ -695,7 +700,7 @@ ${this.hint===null?"":`- Next milestone (hint): ${this.hint.describe()}\n`}${thi
 ${this.kept()}- Recent dialogue you were shown, newest first: ${this.told()}
 ${stall&&!first?instruction:""}- What you tried recently, newest first: ${tried}
 - Listed here that you have not tried yet: ${this.untried()}
-${this.untalked()}${stall?`${this.staying()?"":`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n`}${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. ${factual?"Choose your next action from the current game readout.":"Make a new plan that is different from what you have been trying, and say which untried option you will try first."} The run continues.`;
+${this.untalked()}${stall?`${this.onMap()?"":`- Not tried yet on other maps you have been on since your last story progress: ${this.untriedElsewhere()}\n`}${first?"":exits}`:""}${this.edges()}Before your next action, look back at your goal and at what the game has told you${recall}. If anything you believe disagrees with the dialogue or the readout above, believe the game. ${factual?"Choose your next action from the current game readout.":"Make a new plan that is different from what you have been trying, and say which untried option you will try first."} The run continues.`;
  }
 
  // stall-briefing-v1 inside an owned interface: what the interface shows and how the game lets you finish it.

@@ -413,3 +413,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Drought counts turns only](drought-turns-only-v1.html): the no-milestone note counts 30 actions; level-ups, wins and heals no longer restart it.
 - [Drought holds on battle screens](drought-hold-screens-v1.html): the no-milestone note waits while an evolution or move screen from a battle is up.
 - [Cleared obstacles come back](field-obstacle-respawn-v1.html): a smashed rock or cut tree is back after the map reloads; the people list, navigate_to and the field obstacles block say so and how to clear it.
+- [Gym puzzle supervisor hold](gym-puzzle-supervisor-hold-v1.html): while a gym entered this run lacks its badge, trips between it and its town, or the town and a POKéMON CENTER, are not a stall, and stall notes on the gym map list no ways off it.

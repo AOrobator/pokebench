@@ -10,6 +10,7 @@ import type {FeatureSet} from "./features.js";
 import type {LoopDetector} from "./loop-detection.js";
 import {interfaceOf,type Stall} from "./loop-supervisor.js";
 import type {StoryCharacterGate} from "./stall-gate.js";
+import {GymPuzzle} from "./gym-puzzle-hold.js";
 
 // A pair of maps briefs on this many round trips between them, then again every as many more.
 export const STALL_ROUND_TRIPS=2;
@@ -91,6 +92,8 @@ export class StallBriefing {
  private firstVisit:FirstVisit|null=null;
  private heldNotes:HeldNote[]=[];
  private droughtClock=0;
+ // gym-puzzle-supervisor-hold-v1: the gyms this run entered without their badge yet.
+ private readonly gymPuzzle:GymPuzzle|null;
  constructor(
   private readonly features:FeatureSet,
   private readonly active:()=>number,
@@ -103,7 +106,7 @@ export class StallBriefing {
   private readonly suppressed:((text:string,evidence:readonly number[])=>void)|null=null,
   // drought-battle-heal-hold-v1: a due drought briefing held during a battle or a heal trip, recorded with the text it would have sent.
   private readonly heldDrought:((text:string,evidence:readonly number[])=>void)|null=null,
- ){this.progressCycles=features["progress-aware-cycles-v1"]?new ProgressAwareCycles():null;this.outcomes=new BattleOutcomes(features);}
+ ){this.progressCycles=features["progress-aware-cycles-v1"]?new ProgressAwareCycles():null;this.outcomes=new BattleOutcomes(features);this.gymPuzzle=features["gym-puzzle-supervisor-hold-v1"]?new GymPuzzle():null;}
 
  // drought-battle-heal-hold-v1: the open heal trip (from the warning's seq), the hold in force, the drought level already recorded as held.
  private healTrip:{readonly seq:number;calls:number}|null=null;
@@ -194,6 +197,7 @@ export class StallBriefing {
  private retireOpen():void {this.openLoss=null;this.openActions=0;this.openBriefed=0;}
 
  observe(event:RunEvent):void {
+   this.gymPuzzle?.observe(event);
    this.trackOpenMilestone(event);
    if(event.type==="milestone"&&this.features["campaign-progress-clock-v1"]&&OPTIONAL_PROGRESS_NAMES.has(event.name))return;
    if(event.type==="milestone"&&EXTENDED_PROGRESS_NAMES.has(event.name)){
@@ -294,6 +298,12 @@ export class StallBriefing {
    if(level<=pair.briefed)continue;
    if(retired){
     this.retiredNote?.("map_cycle",`You have walked between ${pair.from} and ${pair.to} ${String(Math.floor(pair.moves/2))} times with no new story milestone.`,[pair.lastSeq,seq]);
+    pair.briefed=level;continue;
+   }
+   // gym-puzzle-supervisor-hold-v1: going in and out of an unfinished gym, or healing in its town, is the gym's own work.
+   const gym=this.gymPuzzle?.heldPair(...pairId.split("\n") as [string,string])??null;
+   if(gym!==null){
+    this.suppressed?.(`Not sent (gym-puzzle-supervisor-hold-v1): walked between ${pair.from} and ${pair.to} ${String(Math.floor(pair.moves/2))} times, but the gym on map ${gym} was entered this run and its badge is not earned yet.`,[pair.lastSeq,seq]);
     pair.briefed=level;continue;
    }
    if(this.firstVisit!==null){

@@ -229,7 +229,8 @@
     "badge-resets-cycles-v1",
     "drought-turns-only-v1",
     "drought-hold-screens-v1",
-    "field-obstacle-respawn-v1"
+    "field-obstacle-respawn-v1",
+    "gym-puzzle-supervisor-hold-v1"
   ],
   "features": {
     "drought-hold-screens-v1": true,
@@ -589,6 +590,7 @@
     "rq-old-rival-line-v1": false,
     "rq-no-grind-note-v1": false,
     "rq-checkpoint-recovery-v1": false,
-    "rq-mach-dash-v1": false
+    "rq-mach-dash-v1": false,
+    "gym-puzzle-supervisor-hold-v1": true
   }
 }

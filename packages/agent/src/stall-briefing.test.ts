@@ -579,3 +579,82 @@ describe("drought-hold-screens-v1",()=>{
   expect(featureInfo("drought-hold-screens-v1").description).toContain(" Off: ");
  });
 });
+
+// gym-puzzle-supervisor-hold-v1: 37ca was told to stop the Fortree Gym at T1902 and T1937 (gym and town) and T1895
+// (town and POKéMON CENTER), and its in-gym drought notes listed exits off the map (T2014-T2039).
+describe("gym-puzzle-supervisor-hold-v1",()=>{
+ const GYM={location:"FORTREE CITY GYM",map_id:[12,1]};
+ const CITY={location:"FORTREE CITY",map_id:[0,4]};
+ const CENTER={location:"FORTREE CITY POKEMON CENTER 1F",map_id:[12,2]};
+ const ROUTE={location:"ROUTE120",map_id:[0,35]};
+ const HOLD="Not sent (gym-puzzle-supervisor-hold-v1):";
+ const walk=(r:ReturnType<typeof rig>,a:Record<string,unknown>,b:Record<string,unknown>,moves:number)=>{
+  for(let i=0;i<moves;i++)r.press(["UP"],i%2===0?{...b,position:{x:5,y:5}}:{...a,position:{x:6,y:6}},10_000,[LOADING]);
+ };
+ const play=(on:boolean,setup:(r:ReturnType<typeof rig>)=>void,a=GYM,b=CITY)=>{
+  const r=rig({...ON,"gym-puzzle-supervisor-hold-v1":on,"badge-resets-cycles-v1":true});
+  r.state(CITY);
+  setup(r);
+  r.state(a);
+  walk(r,a,b,2*STALL_ROUND_TRIPS);
+  return {sent:r.guards().filter(g=>g.kind==="map_cycle"&&g.phase==="supervisor"),held:r.guards().filter(g=>g.message.startsWith(HOLD))};
+ };
+ const entered=(r:ReturnType<typeof rig>)=>{r.state(GYM);r.milestone("FORTREE_GYM_ENTERED","observed");r.state(CITY);};
+ it("off: the gym and its town walked twice is a map-cycle note, as before",()=>{
+  const {sent,held}=play(false,entered);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]?.message).toContain("What you have been trying is not working, so do not try it again.");
+  expect(held).toEqual([]);
+ });
+ it("on: the gym and its town are not a cycle while the badge is missing, and the held note is recorded",()=>{
+  const {sent,held}=play(true,entered);
+  expect(sent).toEqual([]);
+  expect(held).toHaveLength(1);
+  expect(held[0]).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
+  expect(held[0]?.message).toContain("walked between FORTREE CITY (map 0/4) and FORTREE CITY GYM (map 12/1) 2 times");
+ });
+ it("on: the town and its POKéMON CENTER are held too while the gym is open",()=>{
+  const {sent,held}=play(true,entered,CITY,CENTER);
+  expect(sent).toEqual([]);
+  expect(held).toHaveLength(1);
+ });
+ it("on: the town and a route still count",()=>{
+  expect(play(true,entered,CITY,ROUTE).sent).toHaveLength(1);
+ });
+ it("on: a gym map with no entry milestone this run still counts",()=>{
+  expect(play(true,()=>undefined).sent).toHaveLength(1);
+ });
+ it("on: the badge from the save means the gym is not open",()=>{
+  expect(play(true,r=>{r.milestone("FEATHER_BADGE","present_at_start");entered(r);}).sent).toHaveLength(1);
+ });
+ it("on: once the badge is earned the gym and its town count again",()=>{
+  expect(play(true,r=>{entered(r);r.milestone("FEATHER_BADGE","observed");}).sent).toHaveLength(1);
+ });
+ const drought=(on:boolean,where:Record<string,unknown>)=>{
+  const r=rig({...ON,"gym-puzzle-supervisor-hold-v1":on});
+  r.state(CITY);
+  r.state(GYM);r.milestone("FORTREE_GYM_ENTERED","observed");
+  r.press(["UP"],{...where,position:{x:5,y:5}},10_000,[LOADING]);
+  for(let i=0;i<6;i++)r.press(["RIGHT"],{...where,position:{x:6+i,y:5}},60_000);
+  return r.guards().filter(g=>g.kind==="milestone_drought"&&g.phase==="supervisor");
+ };
+ it("off: a drought note in the gym lists exits to maps not entered, as before",()=>{
+  const [note]=drought(false,GYM);
+  expect(note?.message).toContain("- Exits to maps you have not entered since your last story progress:");
+  expect(note?.message).toContain("- Not tried yet on other maps you have been on since your last story progress:");
+ });
+ it("on: a drought note in the open gym leaves out the lines that point off the map",()=>{
+  const [note]=drought(true,GYM);
+  expect(note?.message).toMatch(/^SUPERVISOR: You are stalling\. There has been no new story milestone/);
+  expect(note?.message).not.toContain("Exits to maps you have not entered");
+  expect(note?.message).not.toContain("Not tried yet on other maps");
+  expect(note?.message).not.toMatch(/\bgym\b.*(puzzle|badge)/i);
+ });
+ it("on: outside the gym the drought note keeps its exits line",()=>{
+  const [note]=drought(true,CITY);
+  expect(note?.message).toContain("- Exits to maps you have not entered since your last story progress:");
+ });
+ it("registers with an Off clause",()=>{
+  expect(featureInfo("gym-puzzle-supervisor-hold-v1").description).toContain(" Off: ");
+ });
+});

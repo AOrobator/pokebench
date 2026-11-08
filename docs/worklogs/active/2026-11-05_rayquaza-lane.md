@@ -356,3 +356,5 @@ Review of the checkpoint rows (branch rebased, head 4903caee9):
 
 - Run 6056 chose to forget Mud Shot for Strength at turn 1401 and completed the swap at turn 1404, leaving Growl in the moveset. The later Norman row calls for Mud Shot.
 - RED: the existing Strength row test now checks Growl first, Mud-Slap as fallback, and keeping Mud Shot. It failed on the old row as expected (86 other guide tests passed).
+- GREEN: the Strength row names Growl first, Mud-Slap as fallback, and says to keep Mud Shot and skip the swap if neither fallback is present. Regenerated all 159 rows with only that runtime row changed. Focused guide, lane opening, and preset checks passed (112 tests). Agent type check, changed-file ESLint, and git diff --check passed.
+- Landing pending full gates and cloud review. This change is scoped to the existing lane guide; the live run keeps its launch build.

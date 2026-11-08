@@ -31,3 +31,5 @@ RED: the production `finalGuide` test observed only the original input and no Ma
 
 - Round 2 on `1cbcf5b68`, unchanged base `3b65eadfc`, diff SHA-256 `137b39cf75d7769a832d156d619703521f699324a5cae6514acbdfdbe8bde29a`. Claude and independent GPT both returned `VERDICT: LGTM`. The Grok waiver applies to this landing. No production changes since the full branch gates.
 - Fast-forwarded local main to `1cbcf5b68` in the landing slot on November 8, 2026. The required post-merge `just test` is pending the relay's CPU START grant. Activation and gameplay have not been requested.
+
+- Post-merge `just test` passed on main `752b6302a` (executable head `1cbcf5b68`) in the relay-granted window. Agent 2,970, viewer 1,242, environment 3,061, gateway 38. Coverage floors and no-I/O guard proofs passed. Receipt `runs/proofs/opus-rayquaza-lane/post-merge-just-test.log`. CPU RELEASE delivered.

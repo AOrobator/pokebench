@@ -113,3 +113,29 @@ it("gates move guidance on the Rain Badge, party, item availability and confirme
   h.feed(milestone("ELITE_FOUR_CHALLENGE_ENTERED"),state({badges:["RAIN"],party:[initial],resources:resources(328,345)}));
   expect(await h.output()).toBe(input);
 });
+
+it("delivers the Master Ball instruction only during the active summit encounter with the ball available",async()=>{
+  const h=harness(CATCH);
+  const battler={battler:1,position:1,party_slot:0,identity:"wild-rayquaza",species_id:406,species:"RAYQUAZA",
+    level:70,hp:240,max_hp:240,status1:0,status2:0,status3:0,stat_stages:Array(8).fill(6),
+    stats:Array(5).fill(140),types:[16,2],ability:76,held_item:0,absent:false,
+    moves:Array.from({length:4},(_,slot)=>({slot,move_id:0,name:null,pp:0,max_pp:0,
+      move_type:null,power:null,accuracy:null,effect:null}))};
+  const battle={active:true,initialized:true,phase:"action",ready:true,main_func:null,script_pc:null,
+    battle_type:0,turn:1,outcome_code:0,outcome:"ongoing",battlers:[battler],player_inputs:[],
+    controller_exec_flags:0,signals:[],current_execution:null,diagnostic:null,raw_hex:null};
+  const encounter={map_id:[24,85],screen:"battle",in_battle:true,resources:resources(1),battle};
+  h.feed(milestone("SOOTOPOLIS_CRISIS_RESOLVED"));
+  for(const wrong of [
+    {map_id:[24,84]},
+    {resources:resources()},
+    {battle:{...battle,active:false}},
+    {battle:{...battle,battlers:[{...battler,position:0}]}},
+  ]){
+    h.feed(state({...encounter,...wrong}));
+    expect(await h.output()).toBe(input);
+  }
+  h.feed(state(encounter));
+  expect(await h.note()).toBe("OPUS RAYQUAZA LANE: Use the MASTER BALL on RAYQUAZA now.");
+  expect(h.hints).toEqual([CATCH]);
+});

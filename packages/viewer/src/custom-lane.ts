@@ -1,6 +1,6 @@
 import type { WorkbenchRun } from "./workbench-data.js";
 // Switches that hand the model the route or its next story step, which the benchmark asks it to find for itself.
-export const KNOWLEDGE_SWITCHES: ReadonlySet<string> = new Set(["next-milestone-hint-v1", "objective-graph-supervisor-v1", "story-route-plan-v1", "rq-milestone-guide-v1"]);
+export const KNOWLEDGE_SWITCHES: ReadonlySet<string> = new Set(["next-milestone-hint-v1", "objective-graph-supervisor-v1", "story-route-plan-v1", "rq-milestone-guide-v1", "opus-rq-mach-bike-v1", "opus-rq-master-ball-v1", "opus-rq-catch-v1", "opus-rq-moveset-v1"]);
 export const CUSTOM_EXPERIMENT_PREFIX = "custom-";
 // Pinned builds can record neither a lane field nor a weight hash, so the launcher's model id is the marker.
 const WEIGHT_EDIT = /-edit-/i;

@@ -1441,3 +1441,15 @@ it("links the provider wait pause card and defaults the next run to on", async (
  doc.body.innerHTML = harnessConfig(view(bare()), currentFeatures);
  expect(must(doc.querySelector(`[data-feature="${id}"]`)).querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
 });
+
+it("links the four Opus Rayquaza decision cards and keeps them OFF for new runs",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ for(const id of ["opus-rq-mach-bike-v1","opus-rq-master-ball-v1","opus-rq-catch-v1","opus-rq-moveset-v1"] as const){
+  expect(DEFAULT_NEXT_RUN.features[id]).toBe(false);
+  const card=must(doc.querySelector(`[data-feature="${id}"]`));
+  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+  expect(card.textContent).toContain("NOT RECORDED");
+ }
+});

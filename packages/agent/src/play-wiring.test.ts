@@ -1,3 +1,5 @@
+import {IN_GAME} from "../test-support/events.js";
+
 import {LEGACY_ALL_ON as ALL_ON} from "../test-support/legacy-features.js";
 import {expect,it,vi} from "vitest";
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
@@ -128,4 +130,13 @@ it("keeps the guide after anything a wrapped transform appends",async()=>{
  const out=await finalGuide({...OFF,"rq-milestone-guide-v1":true},{...r.api,recordMilestoneHint:()=>undefined},autoTalk)([task]);
  expect(out).toHaveLength(3);
  expect(JSON.stringify(out.at(-1))).toContain("GUIDE: Press START");
+});
+
+it("delivers the Opus bike decision through the final request factory",async()=>{
+ const r=recorder(),input:AgentMessage[]=[{role:"user",content:"observation",timestamp:1}];
+ const features={...OFF,"opus-rq-mach-bike-v1":true};
+ const transform=finalGuide(features,r.api,base);
+ for(const subscriber of r.subscribers)subscriber(checkEvent({...IN_GAME,v:1,run:"r",seq:1,t:"2026-11-07T12:00:00.000-05:00",turn:1,type:"state",map_id:[0,2],field_controls_locked:false,bike:{owned:[],registered:0,riding:null,allow_cycling:true}}));
+ expect((await transform(input)).at(-1)?.content).toContain("Get the MACH BIKE");
+ expect(r.delivered).toEqual(["hint"]);
 });

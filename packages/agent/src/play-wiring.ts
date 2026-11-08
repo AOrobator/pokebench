@@ -32,6 +32,7 @@ import {instructionLedger} from "./instruction-ledger.js";
 import {disprovedBeliefs} from "./disproved-beliefs.js";
 import {SamePlanBreaker} from "./same-plan.js";
 import {nextMilestoneHint} from "./milestone-hint.js";
+import {opusRayquazaContext} from "./opus-rayquaza.js";
 import {rayquazaGuideContext} from "./rayquaza-guide.js";
 import type {LoopDetector,LoopKind} from "./loop-detection.js";
 import {loopEvidence} from "./loop/types.js";
@@ -114,7 +115,7 @@ export function contextTools(features:FeatureSet,recorder:WiringRecorder,base:Tr
 
 // rq-milestone-guide-v1: outermost, so nothing a wrapped transform appends can land after the guide.
 export function finalGuide(features:FeatureSet,recorder:Parameters<typeof rayquazaGuideContext>[1],transform:Transform):Transform {
- return rayquazaGuideContext(features,recorder,transform);
+ return rayquazaGuideContext(features,recorder,opusRayquazaContext(features,recorder,transform));
 }
 
 // context-token-budget-v1: fit each request to the served context; each trim is recorded as a compaction.

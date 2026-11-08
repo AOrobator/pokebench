@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALL_ON, playHarnessFeatures, type FeatureSet, type SwitchableFeature } from "@pokebench/agent/features";
 import { Log, START } from "../test-support/events.js";
+import { KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { configOf, poolableConfig } from "./history.js";
 
 const off = (...ids: SwitchableFeature[]): FeatureSet => ({ ...ALL_ON, ...Object.fromEntries(ids.map((id) => [id, false])) });
@@ -43,7 +44,7 @@ it("rejects human controller identity even when model and feature settings match
 it("keeps custom lanes out of the per-switch history", () => {
   const start = new Log().add(0, { ...START, harness_features: playHarnessFeatures(ALL_ON, null) });
   if (start.type !== "run_start") throw new Error("fixture");
-  const plain = { ...start, harness_features: start.harness_features.filter((id) => id !== "rq-milestone-guide-v1" && id !== "story-route-plan-v1" && id !== "next-milestone-hint-v1" && id !== "objective-graph-supervisor-v1") };
+  const plain = { ...start, harness_features: start.harness_features.filter((id) => !KNOWLEDGE_SWITCHES.has(id)) };
   expect(poolableConfig(plain)).toEqual(configOf(plain));
   expect(poolableConfig({ ...plain, model: { ...plain.model, id: "qwen-edit-e1" } })).toBeNull();
   expect(poolableConfig({ ...plain, harness_features: [...plain.harness_features, "story-route-plan-v1"] })).toBeNull();

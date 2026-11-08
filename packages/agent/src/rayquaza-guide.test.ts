@@ -245,6 +245,16 @@ describe("the guide's route rows", () => {
       in_battle: false, map_id: [0, 13], party: [],
       resources: { bag: quantity === 0 ? [] : [{ name: "NUGGET", quantity }] },
     }) as unknown as RunEvent;
+    const resumed = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
+    resumed.observe(bag(1));
+    expect.soft(resumed.current().after).toBe("GOT:NUGGET");
+
+    const skipped = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
+    skipped.observe(bag(0));
+    skipped.observe(milestone("ROUTE_114"));
+    expect(skipped.current().after).toBe("ROUTE_114");
+    expect(skipped.takeMisses()).toEqual([]);
+
     guide.observe(bag(0));
     expect(guide.current().note).toContain("hidden Nugget");
     guide.observe(bag(1));
@@ -254,6 +264,9 @@ describe("the guide's route rows", () => {
     expect(guide.current().note).not.toContain("hidden Nugget");
     guide.observe(milestone("ROUTE_114"));
     expect(guide.current().after).toBe("ROUTE_114");
+    expect(guide.takeMisses()).toEqual([
+      { after: "GOT:NUGGET", items: ["GUARD SPEC", "SUPER REPEL", "X ATTACK", "X SPEED"] },
+    ]);
   });
 
   it("walks a run without Teleport back to Mauville and heals there", () => {

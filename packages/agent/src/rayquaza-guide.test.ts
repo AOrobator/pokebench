@@ -245,8 +245,9 @@ describe("the guide's route rows", () => {
       in_battle: false, map_id: [0, 13], party: [],
       resources: { bag: quantity === 0 ? [] : [{ name: "NUGGET", quantity }] },
     }) as unknown as RunEvent;
-    const resumed = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));
+    const resumed = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start - 1));
     resumed.observe(bag(1));
+    resumed.observe(milestone("FALLARBOR_TOWN", "present_at_start"));
     expect.soft(resumed.current().after).toBe("GOT:NUGGET");
 
     const skipped = new GuidePosition(RAYQUAZA_GUIDE_STEPS.slice(start));

@@ -36,7 +36,7 @@ export const OLD_RIVAL_LINE="Rock hits Wingull and Slugma x2. Grovyle's Absorb h
 const CURRENT_RIVAL_LINE="If known, Mud Shot Slugma and Rock Tomb Grovyle and Wingull. X Attack and X Speed on Slugma if safe. Grovyle's Absorb hits Marshtomp x4.";
 
 type MapId=readonly [number,number];
-export interface GuideStep {readonly gate?:boolean;readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly needs?:readonly string[]}
+export interface GuideStep {readonly gate?:boolean;readonly after:string;readonly map:string|null;readonly note:string;readonly enter?:MapId;readonly at?:{readonly id:MapId;readonly x:number;readonly y:number};readonly to?:{readonly map:string;readonly id:MapId};readonly got?:string;readonly heldOk?:boolean;readonly needs?:readonly string[]}
 export interface SituationNote {readonly text:string;readonly milestone:string}
 
 const TELEPORT_MOVE=100;
@@ -80,7 +80,7 @@ export class GuidePosition {
  private optionsDone=false;
  private optionsReady=false;
  private inOptions=false;
- latest:GameStateSnapshot|null=null;
+ latest:(GameStateSnapshot&RunEvent)|null=null;
  constructor(private readonly steps:readonly GuideStep[],private readonly options:{readonly checkpointRecovery?:boolean}={}) {}
  observe(event:RunEvent):void {
   if(event.type==="state"&&"screen" in event){
@@ -97,6 +97,8 @@ export class GuidePosition {
   // A place or tile counts only from the step before it, so an early visit moves nothing.
   if(reached>=0&&(event.type==="milestone"||reached===this.furthest+1||this.recovers(reached)))this.advance(event,reached);
   if(event.type==="state"&&"screen" in event)this.followOptions(event);
+  // On a save load the bag snapshot can precede the milestone that exposes the held-item row.
+  if(event.type==="milestone"&&this.steps[this.furthest+1]?.heldOk&&this.latest!==null)this.followItem(this.latest);
   // A press that changes a value and leaves in one batch ends with values no state showed.
   if(event.type==="button_press"&&this.inOptions&&event.buttons.some(button=>button==="LEFT"||button==="RIGHT"))this.optionsReady=false;
   const to=this.current().to;
@@ -118,12 +120,12 @@ export class GuidePosition {
   this.inOptions=opened;
  }
  private followItem(event:GameStateSnapshot&RunEvent):void {
-  const step=this.furthest+1,item=this.steps[step]?.got,bag=event.resources?.bag;
+  const step=this.furthest+1,next=this.steps[step],item=next?.got,bag=event.resources?.bag;
   if(item===undefined||bag==null)return;
   const count=bag.filter(entry=>entry.name===item).reduce((sum,entry)=>sum+entry.quantity,0);
   const gained=this.gotCount?.step===step&&count>this.gotCount.count;
   this.gotCount={step,count};
-  if(gained)this.advance(event,step);
+  if(gained||(next?.heldOk&&count>0))this.advance(event,step);
  }
  private reach(name:string,event:RunEvent):void {
   const index=this.steps.findIndex(step=>step.after===name);
@@ -140,7 +142,7 @@ export class GuidePosition {
  }
  private noteMisses(from:number):void {
   const step=this.steps[from],bag=this.latest?.resources?.bag;
-  if(step?.needs===undefined||bag==null)return;
+  if(step?.needs===undefined||bag==null||(step.got!==undefined&&!this.earned.has(from)))return;
   const items=step.needs.filter(item=>!bag.some(entry=>entry.name?.replace(/\.$/,"")===item&&entry.quantity>0));
   if(items.length>0)this.misses.push({after:step.after,items});
  }

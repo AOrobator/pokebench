@@ -48,6 +48,8 @@ def rows(text: str, ids: dict[str, list[int]], types: dict[str, str]) -> list[di
             step["at"] = {"id": ids[name], "x": int(x), "y": int(y)}
         if match["after"].startswith("GOT:"):
             step["got"] = match["after"].split(":")[1].replace("_", " ")
+            if re.search(r"\bHELD_OK\b", match["source"]):
+                step["heldOk"] = True
         if re.search(r"\bGATE\b", match["source"]):
             step["gate"] = True
         needs = NEEDS.search(match["source"])

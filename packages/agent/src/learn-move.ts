@@ -136,7 +136,7 @@ const stateOf=(r:AgentToolResult<unknown>):GameStateSnapshot=>{
 
 class Stop extends Error {}
 
-export function learnMoveTool(ports:LearnMovePorts,offerIdentity=false):AgentTool<typeof LearnMoveArgs|typeof GuardedLearnMoveArgs> {
+export function learnMoveTool(ports:LearnMovePorts,offerIdentity=false,tmhmLearning=false):AgentTool<typeof LearnMoveArgs|typeof GuardedLearnMoveArgs> {
  const parameters=offerIdentity?GuardedLearnMoveArgs:LearnMoveArgs;
  return {name:"learn_move",label:"Learn a move",description:LEARN_MOVE_DESCRIPTION+(offerIdentity?OFFER_IDENTITY_INSTRUCTION:""),parameters,
  execute:async(id:string,args:Args,signal?:AbortSignal)=>{
@@ -150,10 +150,13 @@ export function learnMoveTool(ports:LearnMovePorts,offerIdentity=false):AgentToo
    const key=`${v.identity??""}|${v.page}`;
    if(key!==lastPage){printed.push(v.page);lastPage=key;}
   };
-  const finish=async(status:string,refused:boolean,verified:boolean|null)=>{
+  const finish=async(status:string,refused:boolean,verified:boolean|null,
+   check?: (state:GameStateSnapshot)=>{status:string;verified:boolean|null})=>{
    const seen=await ports.observe(id,signal);
+   const observed=stateOf(seen);
+   if(check!==undefined)({status,verified}=check(observed));
    const said=printed.length===0?"":`\nThe game printed: ${printed.map(page=>`"${page}"`).join(" / ")}`;
-   return {content:[{type:"text" as const,text:`Learn move: ${status}${said}\n`},...seen.content],details:{state:stateOf(seen),learn_move:{forget:args.forget,...(offerIdentity?{decline_move:args.decline_move??null}:{}),presses:[...presses],refused,verified,status}}};
+   return {content:[{type:"text" as const,text:`Learn move: ${status}${said}\n`},...seen.content],details:{state:observed,learn_move:{forget:args.forget,...(offerIdentity?{decline_move:args.decline_move??null}:{}),presses:[...presses],refused,verified,status}}};
   };
   let wait=await ports.wait(signal);
   let s=wait.state;
@@ -235,6 +238,21 @@ export function learnMoveTool(ports:LearnMovePorts,offerIdentity=false):AgentToo
    if(v.kind==="hm")return finish(`${buttons}; the game shows "${v.message}"; ${shown}.`,false,false);
    const slot=learner.moves.indexOf(goal);
    const verified=after!==null&&after.length===learner.moves.length&&after.every((move,i)=>i===slot?move===learner.newMove:move===learner.moves[i]);
+   if(tmhmLearning&&s.active_ui?.phase.startsWith("party_tmhm_")===true&&s.active_ui.diagnostic===null){
+    return finish("",false,null,current=>{
+     const moves=partyMoves(current,learner.slot);
+     const sameMon=current.party[learner.slot]?.identity===learnerIdentity;
+     const nowVerified=sameMon&&moves!==null&&moves.length===learner.moves.length&&
+      moves.every((move,i)=>i===slot?move===learner.newMove:move===learner.moves[i]);
+     const nowShown=moves===null?`${learner.name}'s moves could not be read`:`${learner.name}'s moves: ${moves.join(", ")}`;
+     if(nowVerified)return {status:`${learner.name} forgot ${goal} and learned ${learner.newMove} (checked in the party's moves); ${buttons}; ${nowShown}.`,verified:true};
+     const pending=sameMon&&moves?.join("|")===learner.moves.join("|")&&
+      current.active_ui?.phase==="party_tmhm_replacement_pending"&&current.active_ui.diagnostic===null;
+     return pending
+      ?{status:`${buttons}; selected ${goal} for replacement by ${learner.newMove}. Replacement pending while the game finishes its move-learning messages; ${nowShown}.`,verified:null}
+      :{status:`${buttons}; the party's moves do not show ${learner.newMove} in place of ${goal}; ${nowShown}.`,verified:false};
+    });
+   }
    return finish(verified?`${learner.name} forgot ${goal} and learned ${learner.newMove} (checked in the party's moves); ${buttons}; ${shown}.`:`${buttons}; the party's moves do not show ${learner.newMove} in place of ${goal}; ${shown}.`,false,verified);
   }
   const unchanged=after!==null&&after.join("|")===learner.moves.join("|");
@@ -253,5 +271,5 @@ export function withLearnMove(tools:readonly AgentTool[],features:FeatureSet,sta
   press:(id,params,signal,check)=>press.executeChecked(id,params,check,signal),
   observe:(id,signal)=>observe.execute(id,{},signal),
   ...(gate===undefined?{}:{gate}),
- },features[OFFER_IDENTITY_ID])];
+ },features[OFFER_IDENTITY_ID],features["tmhm-learning-visibility-v1"])];
 }

@@ -388,6 +388,7 @@ export const SWITCHABLE_FEATURES = [
   "opus-rq-master-ball-v1",
   "opus-rq-catch-v1",
   "opus-rq-moveset-v1",
+  "tmhm-learning-visibility-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -897,6 +898,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("opus-rq-master-ball-v1", "guidance", "OPUS RAYQUAZA MASTER BALL", "ram-state-v1", "Default off; assisted Opus Rayquaza lane only. In AQUA HIDEOUT B1F, tells Opus to collect the MASTER BALL. Off: no Master Ball decision prompt."),
   on("opus-rq-catch-v1", "guidance", "OPUS RAYQUAZA CAPTURE", "ram-state-v1", "Default off; assisted Opus Rayquaza lane only. After the Sootopolis crisis, tells Opus to return to SKY PILLAR and use the MASTER BALL on RAYQUAZA. Off: no capture decision prompt."),
   on("opus-rq-moveset-v1", "guidance", "OPUS RAYQUAZA MOVESET", "ram-state-v1", "Default off; assisted Opus Rayquaza lane only. After the RAIN BADGE, tells Opus to teach the available speedrun moves to RAYQUAZA. Off: no Rayquaza moveset prompt."),
+  on("tmhm-learning-visibility-v1", "observation", "TM/HM LEARNING VISIBILITY", null, "Correctness switch for both arms. Identifies native TM/HM move-learning messages and readiness. Reports the verified move selection as pending until the party slot changes. Off: previous message and tool feedback."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1022,6 +1024,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "shop-shelf-hidden-v1",
   "field-call-input-v1",
   "field-obstacle-respawn-v1",
+  "tmhm-learning-visibility-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1394,6 +1397,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("opus-rq-master-ball-v1"),
     ...when("opus-rq-catch-v1"),
     ...when("opus-rq-moveset-v1"),
+    ...when("tmhm-learning-visibility-v1"),
   ];
 }
 

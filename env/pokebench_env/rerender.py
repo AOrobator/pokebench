@@ -140,6 +140,7 @@ def read_state(
         party_item_confirmation_enabled="party-item-confirmation-v1" not in off,
         party_menu_message_enabled="party-menu-message-v1" not in off,
         interface_guidance_enabled="interface-guidance-v1" not in off,
+        tmhm_learning_enabled="tmhm-learning-visibility-v1" not in off,
         bag_pocket_truth_enabled="bag-pocket-truth-v1" not in off,
         pokenav_short_list_enabled="pokenav-short-list-v1" not in off,
         pokenav_call_advance_enabled="pokenav-call-auto-advance-v1" not in off,

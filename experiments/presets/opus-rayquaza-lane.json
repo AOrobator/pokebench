@@ -391,6 +391,7 @@
     "opus-rq-mach-bike-v1": true,
     "opus-rq-master-ball-v1": true,
     "opus-rq-catch-v1": true,
-    "opus-rq-moveset-v1": true
+    "opus-rq-moveset-v1": true,
+    "tmhm-learning-visibility-v1": true
   }
 }

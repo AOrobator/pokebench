@@ -368,6 +368,7 @@ def read_active_ui(
     party_item_confirmation: bool = False,
     party_menu_message: bool = False,
     bag_pocket_truth: bool = False,
+    tmhm_learning: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
     pokenav_short_list: bool = False,
@@ -518,6 +519,7 @@ def read_active_ui(
         party_item_confirmation=party_item_confirmation,
         party_menu_message=party_menu_message,
         bag_pocket_truth=bag_pocket_truth,
+        tmhm_learning=tmhm_learning,
     )
     if menu_family is not None:
         return menu_family

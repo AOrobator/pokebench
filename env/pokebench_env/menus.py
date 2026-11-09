@@ -217,6 +217,7 @@ def read_menu_family(
     party_item_confirmation: bool = False,
     party_menu_message: bool = False,
     bag_pocket_truth: bool = False,
+    tmhm_learning: bool = False,
 ) -> "ActiveUi | None":
     from pokebench_env.ui_state import ActiveUi, _window_drawn, read_menu
 
@@ -346,6 +347,60 @@ def read_menu_family(
                     "UP/DOWN selects; A confirms; B declines",
                     details=details,
                 )
+            if tmhm_learning:
+                learning_tasks = {
+                    0x081B6FF5: "party_tmhm_replace_intro",
+                    0x081B7089: "party_tmhm_opening_forget",
+                    0x081B71D5: "party_tmhm_replacement_pending",
+                    0x081B6F61: "party_tmhm_learned_printing",
+                    0x081B6F99: "party_tmhm_learned_acknowledgement",
+                }
+                learning_owners = [task for task in tasks if task[1] in learning_tasks]
+                if learning_owners:
+                    if (
+                        len(learning_owners) != 1
+                        or slot not in range(6)
+                        or not _window_drawn(read, 6)
+                    ):
+                        raise ValueError("invalid Party move-learning message owner")
+                    owner, function, _ = learning_owners[0]
+                    from pokebench_env.battle_text import AUTO_SCROLL, PRINTERS, TEXT_FLAGS
+                    from pokebench_env.ui_state import STRING_VAR4, STRING_VAR4_SIZE, decode_message
+
+                    details.update({"party_slot": slot, "owner_task": owner})
+                    phase = learning_tasks[function]
+                    printer = read(PRINTERS + 6 * 0x24, 0x24)
+                    if len(printer) != 0x24:
+                        raise ValueError("short Party move-learning printer read")
+                    ready = False
+                    if printer[0x1B] == 1:
+                        cursor = struct.unpack_from("<I", printer)[0]
+                        if printer[4] != 6 or printer[0x1C] not in range(7):
+                            raise ValueError("invalid Party move-learning printer")
+                        if function == 0x081B7089:
+                            if not 0x08000000 <= cursor < 0x0A000000:
+                                raise ValueError("Party move-learning handoff text is outside ROM")
+                        else:
+                            message = read(STRING_VAR4, STRING_VAR4_SIZE)
+                            if not 0 <= cursor - STRING_VAR4 <= message.find(b"\xff"):
+                                raise ValueError("invalid Party move-learning message cursor")
+                            details["message"] = decode_message(message)
+                        waiting_for_button = printer[0x1C] in (1, 2, 3)
+                        ready = waiting_for_button and not read(TEXT_FLAGS, 1)[0] & AUTO_SCROLL
+                    elif function == 0x081B6F99:
+                        # The game waits for the fanfare task to exit before accepting A/B.
+                        ready = len(tasks) == 1
+                        details["message"] = decode_message(read(STRING_VAR4, STRING_VAR4_SIZE))
+                    ready = ready and not fading
+                    return ActiveUi(
+                        phase,
+                        "A/B: CONTINUE" if ready else None,
+                        ready,
+                        "A or B continues the message"
+                        if ready
+                        else "Move-learning text or transition in progress",
+                        details=details,
+                    )
             passive_phases = {
                 0x081B1E61: "party_hp_animation",
                 0x081B672D: "party_healed_message_transition",

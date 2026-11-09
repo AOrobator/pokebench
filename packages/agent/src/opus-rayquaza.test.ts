@@ -32,7 +32,7 @@ function harness(...ids:string[]){
 it("keeps the four treatments append-only and OFF in legacy and flag-only presets",async()=>{
   const legacy=Object.fromEntries(Object.entries(featuresOf([])).filter(([id])=>!OPUS_RAYQUAZA_SWITCHES.some(value=>value===id)));
   const fallback=flagFeatures({loopGuard:false,activeUi:false,interfaceDocs:false,objectives:false});
-  expect(SWITCHABLE_FEATURES.slice(-4)).toEqual(OPUS_RAYQUAZA_SWITCHES);
+  expect(SWITCHABLE_FEATURES.filter(id=>OPUS_RAYQUAZA_SWITCHES.some(value=>value===id))).toEqual(OPUS_RAYQUAZA_SWITCHES);
   for(const id of OPUS_RAYQUAZA_SWITCHES){
     expect(featureInfo(id).description).toContain(" Off: ");
     expect(normalizeFeatures(legacy as Parameters<typeof normalizeFeatures>[0])[id]).toBe(false);
@@ -47,7 +47,7 @@ it("parses the Opus lane as a boot preset with separate bike execution and four 
   const preset=parsePlayPreset(lane),features=presetFeatures(preset);
   expect(preset.id).toBe("opus-rayquaza-lane");
   expect(presetStart(preset,()=>{throw new Error("expected boot");})).toEqual({kind:"boot"});
-  expect(playHarnessFeatures(features,null).slice(-4)).toEqual(OPUS_RAYQUAZA_SWITCHES);
+  expect(playHarnessFeatures(features,null).filter(id=>OPUS_RAYQUAZA_SWITCHES.some(value=>value===id))).toEqual(OPUS_RAYQUAZA_SWITCHES);
   for(const id of ["bike-navigation-v1","bike-register-v1","bike-auto-mount-v1","rq-mach-dash-v1"] as const)expect(features[id]).toBe(true);
   for(const id of ["rq-milestone-guide-v1","rq-battle-explainer-v1","rq-slim-prompt-v1"] as const)expect(features[id]).toBe(false);
 });

@@ -692,6 +692,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "caught-nickname-prompt-v2":"caught-nickname-prompt-v2.html",
  "party-item-confirmation-v1":"party-item-confirmation-v1.html",
  "party-menu-message-v1":"party-menu-message-v1.html",
+ "tmhm-learning-visibility-v1":"tmhm-learning-visibility-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",

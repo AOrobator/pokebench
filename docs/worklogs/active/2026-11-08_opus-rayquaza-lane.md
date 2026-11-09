@@ -47,3 +47,6 @@ RED: the production `finalGuide` test observed only the original input and no Ma
 - The operator selected the exact-route wording. The existing Master Ball switch delivers the tested wording verbatim and retains its scope and retirement conditions. The probe measures the first action on one frozen snapshot. Checkpoint execution through pickup is unverified.
 - RED: the focused prompt delivery test failed because the original note omitted the ordered panels.
 - GREEN: all seven focused Opus lane tests, affected-package TypeScript, changed-file ESLint, explainer page validator, and diff whitespace check passed.
+
+- The prelanding `just lint`, `just test` (including build), and `just verify-vendor` passed. Claude and GPT independently returned `VERDICT: LGTM` on base `d5f03c3a1`, head `8c1c39363`, diff SHA-256 `0ecc0b027257892386af96b3d5890f83008dcb43df2374544e4c98a49ff243dd`. Grok returned an account usage-limit error. The operator explicitly waived that lane for this prompt update.
+- Fast-forwarded main to `8c1c39363` in the landing slot. Post-merge `just test` passed at that pin, including coverage and no-I/O proofs. Receipts are under `runs/proofs/opus-master-ball-route-landing/`. The updated explainer was inspected in headless Chromium at 375 and 1280 pixels. Gameplay pickup remains unverified.

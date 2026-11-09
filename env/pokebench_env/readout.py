@@ -194,7 +194,6 @@ SERVER_FEATURES = (
     "blackout-transition-v1",
     "player-elevation-readout-v1",
     "party-menu-message-v1",
-    "tmhm-learning-visibility-v1",
     "interface-guidance-v1",
     "active-warp-exits-v1",
     "available-exits-presentation-v1",
@@ -230,6 +229,7 @@ SERVER_FEATURES = (
     SHOP_SHELF_SWITCH,
     FIELD_CALL_SWITCH,
     OBSTACLE_RESPAWN,
+    "tmhm-learning-visibility-v1",
 )
 
 

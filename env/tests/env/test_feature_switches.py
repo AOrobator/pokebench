@@ -186,6 +186,7 @@ LATER_SERVER_FEATURES = frozenset(SERVER_FEATURES[len(FROZEN_SERVER_FEATURES) :]
 
 
 def test_env_list_is_validated() -> None:
+    assert "tmhm-learning-visibility-v1" in features_off_from_env({})
     assert features_off_from_env({}) <= frozenset(SERVER_FEATURES)
     assert features_off_from_env({}) - LATER_SERVER_FEATURES == frozenset(
         {
@@ -193,7 +194,6 @@ def test_env_list_is_validated() -> None:
             "blackout-transition-v1",
             "player-elevation-readout-v1",
             "party-menu-message-v1",
-            "tmhm-learning-visibility-v1",
             "interface-guidance-v1",
             "active-warp-exits-v1",
             "available-exits-presentation-v1",

@@ -139,3 +139,29 @@ it("delivers the Master Ball instruction only during the active summit encounter
   expect(await h.note()).toBe("OPUS RAYQUAZA LANE: Use the MASTER BALL on RAYQUAZA now.");
   expect(h.hints).toEqual([CATCH]);
 });
+
+it("gives a Sky Pillar dash only at its starting tile with the tool and registered bike",async()=>{
+  const bike={owned:[259],registered:259,riding:null,allow_cycling:true};
+  const entry={map_id:[24,80],position:{x:10,y:2},resources:resources(1),bike};
+  const crisis=milestone("SOOTOPOLIS_CRISIS_RESOLVED");
+  const toolOff=harness(CATCH);
+  toolOff.feed(crisis,state(entry));
+  expect(await toolOff.note()).not.toContain("mach_dash");
+
+  const h=harness(CATCH,"rq-mach-dash-v1");
+  h.feed(crisis,state({...entry,bike:{...bike,registered:0}}));
+  expect(await h.note()).not.toContain("mach_dash");
+  h.feed(state({...entry,field_controls_locked:true}));
+  expect(await h.output()).toBe(input);
+  h.feed(state({...entry,position:{x:10,y:3}}));
+  expect(await h.note()).not.toContain("mach_dash");
+  h.feed(state(entry));
+  expect(await h.note()).toContain("Press SELECT");
+  expect(await h.note()).toContain("D1 R4 D11 L10 U4 R2 U8");
+  h.feed(state({...entry,map_id:[24,82],position:{x:11,y:2},bike:{...bike,riding:"MACH BIKE"}}));
+  expect(await h.note()).not.toContain("Press SELECT");
+  expect(await h.note()).toContain("D14 L8 U8 R2");
+  expect(await h.note()).toContain("deliberately drops");
+  h.feed(state({...entry,map_id:[24,81],position:{x:7,y:4}}));
+  expect(await h.note()).toContain("(7,1)");
+});

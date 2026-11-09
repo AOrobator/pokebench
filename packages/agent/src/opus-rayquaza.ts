@@ -44,6 +44,26 @@ function decision(features: FeatureSet, s: State, reached: ReadonlySet<string>):
   if (catching) {
     if (stored) return ["opus-rq-catch-v1", "RAYQUAZA is in Pokémon storage. Withdraw it into your party."];
     if (!reached.has("RAYQUAZA_ENCOUNTER_RETIRED") && inBag(s, MASTER_BALL)) {
+      if (features["rq-mach-dash-v1"] && s.bike?.registered === MACH_BIKE &&
+          s.map_id?.[0] === 24 && s.position !== null) {
+        const {x, y} = s.position;
+        const floor = s.map_id[1];
+        const routes = [
+          {floor:79, x:6, y:13, route:"U1 L9 U4 R2 U3 L1 U3 R3 D2 R5 U3", after:"If stopped short, navigate to the stairs at (10,1)."},
+          {floor:80, x:10, y:2, route:"D1 R4 D11 L10 U4 R2 U8", after:"This crosses the cracks to 3F. If you fall, return to the 1F stairs at (10,1) and retry."},
+          {floor:81, x:3, y:2, route:"D7 L2 D6 R1 D1 R10 U5 L1 U6", after:"If stopped short, navigate to the stairs at (11,1)."},
+          {floor:82, x:11, y:2, route:"D14 L8 U8 R2", after:"The last crack deliberately drops you to the 3F pocket at (7,4)."},
+          {floor:84, x:3, y:2, route:"L5 D3 R1 D4 L1 D4 R5 D1 R7 U5 L1 U6 L2 U1", after:"If stopped short, navigate to the summit stairs at (10,1)."},
+        ];
+        const dash = routes.find(row => row.floor === floor && row.x === x && row.y === y);
+        if (dash !== undefined) {
+          const mount = s.bike.riding === "MACH BIKE" ? "" : "Press SELECT to mount the registered MACH BIKE without moving. ";
+          return ["opus-rq-catch-v1", mount + "From this tile, call mach_dash with route exactly " + dash.route + ". " + dash.after];
+        }
+        if (floor === 79) return ["opus-rq-catch-v1", "On Sky Pillar 1F, use the stairs at (10,1)."];
+        if (floor === 81 && (x === 6 || x === 7) && y === 4) return ["opus-rq-catch-v1", "This is the intentional drop pocket. From (6,4), first navigate to (7,4). Then take the stairs at (7,1)."];
+        if (floor === 82 && x === 7 && y === 2) return ["opus-rq-catch-v1", "From the 3F pocket return, take the stairs at (3,1) to 5F."];
+      }
       const direction = onMap(s, 24, 85)
         ? "Approach (14,7) on the summit, face north, and interact with RAYQUAZA. Use the MASTER BALL."
         : "Return to SKY PILLAR off ROUTE 131 and catch RAYQUAZA with the MASTER BALL before entering the League. The post-crisis climb needs the MACH BIKE at speed on cracked floors.";

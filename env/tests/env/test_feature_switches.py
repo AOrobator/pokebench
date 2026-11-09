@@ -193,6 +193,7 @@ def test_env_list_is_validated() -> None:
             "blackout-transition-v1",
             "player-elevation-readout-v1",
             "party-menu-message-v1",
+            "tmhm-learning-visibility-v1",
             "interface-guidance-v1",
             "active-warp-exits-v1",
             "available-exits-presentation-v1",

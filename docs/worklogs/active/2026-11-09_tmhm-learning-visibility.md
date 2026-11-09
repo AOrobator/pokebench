@@ -12,3 +12,5 @@
 - Follow-up to ecfce03e1: full lint found a mypy collision between the new byte buffer and a later string local. Renamed the byte buffer without changing the readout. V2 independent Claude and GPT approved. Full gates rerun against the rename.
 
 - Follow-up to 57c2dd610: lint passed. Full test exposed a stale viewer preset expectation. The current recipe intentionally enables TM/HM visibility, so update the test fixture to expect true. No runtime delta.
+
+- Follow-up to 16f5eeb49: agent and viewer suites passed. The Python suite found one stale default-off server fixture. Add the TM/HM switch to that fixture to verify the server stays off without an explicit run recipe. No runtime delta.

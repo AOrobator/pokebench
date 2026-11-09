@@ -428,3 +428,36 @@ def test_blackout_exact_callback_owner_even_without_valid_save(callback, expecte
     state = read_game_state(m.read, MAPS)
     assert state_json(state)["blackout_active"] is expected
     assert state.game_stats is None
+
+
+@pytest.mark.parametrize("fault", [None, "duplicate_owner", "wrong_window", "busy_printer"])
+def test_tmhm_pending_readout_requires_native_owner_and_ready_printer(fault: str | None) -> None:
+    from pokebench_env.battle_text import PRINTERS
+    from pokebench_env.menus import PARTY_CALLBACK
+    from pokebench_env.ui_state import STRING_VAR4
+    from tests.env.test_menus import put_task
+    from tests.env.test_ui_state import window
+
+    memory = game((0, PARTY_CALLBACK))
+    put_task(memory, 0, 0x081B71D5, [])
+    window(memory, 6, 0, 27, 4, True)
+    memory.put(STRING_VAR4, text("ONE TWO AND POOF") + b"\xff")
+    printer = bytearray(0x24)
+    struct.pack_into("<I", printer, 0, STRING_VAR4)
+    printer[4] = 5 if fault == "wrong_window" else 6
+    printer[0x1B] = 1
+    printer[0x1C] = 0 if fault == "busy_printer" else 1
+    memory.put(PRINTERS + 6 * 0x24, printer)
+    if fault == "duplicate_owner":
+        put_task(memory, 1, 0x081B6FF5, [])
+
+    legacy = read_game_state(memory.read, MAPS).active_ui
+    assert legacy is None or not legacy.phase.startswith("party_tmhm_")
+    active = read_game_state(memory.read, MAPS, tmhm_learning_enabled=True).active_ui
+    assert active is not None
+    if fault in ("duplicate_owner", "wrong_window"):
+        assert active.diagnostic and not active.ready
+    else:
+        assert active.phase == "party_tmhm_replacement_pending"
+        assert active.diagnostic is None
+        assert active.ready is (fault is None)

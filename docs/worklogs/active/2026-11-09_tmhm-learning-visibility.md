@@ -10,3 +10,5 @@
 - Follow-up to e083aeec6 after independent GPT review: 11 focused TypeScript cases and four production game-state fixture cases pass. The fixtures exercise stale observations, wrong Pokémon identity, duplicate task ownership, wrong printer window, and a busy printer. Cursor Grok hit its usage limit and the operator waived that review for the TM/HM fix. Claude review and full CPU gates are pending.
 
 - Follow-up to ecfce03e1: full lint found a mypy collision between the new byte buffer and a later string local. Renamed the byte buffer without changing the readout. V2 independent Claude and GPT approved. Full gates rerun against the rename.
+
+- Follow-up to 57c2dd610: lint passed. Full test exposed a stale viewer preset expectation. The current recipe intentionally enables TM/HM visibility, so update the test fixture to expect true. No runtime delta.

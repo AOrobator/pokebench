@@ -39,7 +39,7 @@ function decision(features: FeatureSet, s: State, reached: ReadonlySet<string>):
   }
   if (features["opus-rq-master-ball-v1"] && onMap(s, 24, 24) && s.resources?.bag != null &&
       !inBag(s, MASTER_BALL) && !reached.has("MASTER_BALL_OBTAINED") && !reached.has("AQUA_HIDEOUT_ESCAPE_COMPLETE")) {
-    return ["opus-rq-master-ball-v1", "Before pursuing the submarine, pick up the MASTER BALL at (15,9) in AQUA HIDEOUT B1F. The two balls on the right are traps."];
+    return ["opus-rq-master-ball-v1", "Before pursuing the submarine, pick up the MASTER BALL at (15,9) in AQUA HIDEOUT B1F. The two balls on the right are traps. From (3,15), take the warp panel at (3,20) first. Then take the panels at (42,5), (45,9), (42,13), and (42,17). Approach the Master Ball at (15,9) from below."];
   }
   if (catching) {
     if (stored) return ["opus-rq-catch-v1", "RAYQUAZA is in Pokémon storage. Withdraw it into your party."];

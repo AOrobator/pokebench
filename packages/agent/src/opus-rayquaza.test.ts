@@ -72,7 +72,7 @@ it("limits the Master Ball prompt to B1F with known inventory and retires it aft
   h.feed(state({map_id:[24,24]}));
   expect(await h.output()).toBe(input);
   h.feed(state({map_id:[24,24],resources:resources()}));
-  expect(await h.note()).toContain("(15,9)");
+  expect(await h.note()).toContain("From (3,15), take the warp panel at (3,20) first. Then take the panels at (42,5), (45,9), (42,13), and (42,17). Approach the Master Ball at (15,9) from below.");
   h.feed(state({map_id:[24,24],resources:resources(1)}));
   expect(await h.output()).toBe(input);
   h.feed(milestone("MASTER_BALL_OBTAINED"),state({map_id:[24,24],resources:resources()}));

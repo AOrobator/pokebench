@@ -8,3 +8,5 @@
 - Offline replay of the recorded native inputs saved and reloaded the final moveset from `runs/launch-receipts/opus-rayquaza-final-moveset-save-20261109/`, SHA-1 `18c197cf1e92005fcee28500bd978edfa4b2d06b`. No model calls or state edits.
 
 - Follow-up to e083aeec6 after independent GPT review: 11 focused TypeScript cases and four production game-state fixture cases pass. The fixtures exercise stale observations, wrong Pokémon identity, duplicate task ownership, wrong printer window, and a busy printer. Cursor Grok hit its usage limit and the operator waived that review for the TM/HM fix. Claude review and full CPU gates are pending.
+
+- Follow-up to ecfce03e1: full lint found a mypy collision between the new byte buffer and a later string local. Renamed the byte buffer without changing the readout. V2 independent Claude and GPT approved. Full gates rerun against the rename.

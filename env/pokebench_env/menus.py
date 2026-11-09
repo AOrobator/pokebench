@@ -381,10 +381,10 @@ def read_menu_family(
                             if not 0x08000000 <= cursor < 0x0A000000:
                                 raise ValueError("Party move-learning handoff text is outside ROM")
                         else:
-                            message = read(STRING_VAR4, STRING_VAR4_SIZE)
-                            if not 0 <= cursor - STRING_VAR4 <= message.find(b"\xff"):
+                            message_bytes = read(STRING_VAR4, STRING_VAR4_SIZE)
+                            if not 0 <= cursor - STRING_VAR4 <= message_bytes.find(b"\xff"):
                                 raise ValueError("invalid Party move-learning message cursor")
-                            details["message"] = decode_message(message)
+                            details["message"] = decode_message(message_bytes)
                         waiting_for_button = printer[0x1C] in (1, 2, 3)
                         ready = waiting_for_button and not read(TEXT_FLAGS, 1)[0] & AUTO_SCROLL
                     elif function == 0x081B6F99:

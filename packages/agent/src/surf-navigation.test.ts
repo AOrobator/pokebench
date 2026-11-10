@@ -112,6 +112,24 @@ describe("climbing and second crossings",()=>{
   expect(surfLaunch(foot,[{x:0,y:0}],ON)).toBeNull();
   expect(surfLaunch(foot,[{x:0,y:0}],{...ON,climb:true})).toMatchObject({at:{x:0,y:2},water:{x:0,y:1},facing:"UP",move:"Waterfall"});
  });
+ it.each([
+  {verify:false, facing:"down", movement:1, expected:"press A"},
+  {verify:true, facing:"down", movement:1, expected:"The game shows facing down"},
+  {verify:true, facing:"up", movement:1, expected:"has not confirmed northward Surf movement"},
+  {verify:true, facing:"up", movement:2, expected:"press A"},
+ ] as const)("verifies the settled handoff $verify $facing $movement",async({verify,facing,movement,expected})=>{
+  const state={...foot,facing:"down" as const,
+   running:{...SURF.running,movement_direction:1},
+   field_obstacles:{capabilities:{waterfall:true},obstacles:[]},
+  } as GameStateSnapshot;
+  const w=walker(state,()=>({...state,facing,running:{...SURF.running,movement_direction:movement}}),verify);
+  const out=await w.tool.execute("n",{x:0,y:0,map_id:[0,33]});
+  expect(w.presses.map(p=>p.buttons)).toEqual([["UP"]]);
+  const text=out.content[0];
+  const status=text?.type==="text"?text.text:"";
+  expect(status).toContain(expected);
+  if(expected!=="press A")expect(status).not.toContain("press A");
+ });
  it("while surfing lands and stops at the next water",async()=>{
   const tiles=row({6:{},7:{behavior:POND,elevation:1}},9);
   const w=walker(field(5,true,tiles),stepWith(tiles));
@@ -151,10 +169,10 @@ describe("launch point",()=>{
 });
 
 type Press={buttons:string[];stride?:unknown};
-function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot){
+function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot,waterfallHandoffVerification=false){
  let state=start;const presses:Press[]=[];
  const result=(extra:Record<string,unknown>={}):AgentToolResult<unknown>=>({content:[{type:"text",text:"state"}],details:{state,...extra}});
- const tool=navigationTool({surfNavigation:true,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
+ const tool=navigationTool({surfNavigation:true,waterfallHandoffVerification,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
   press:(_id,params,_signal,check,options)=>{check?.(state);const press:Press={buttons:params.buttons,...(options?.stride===undefined?{}:{stride:options.stride})};presses.push(press);state=moved(state,press);
    return Promise.resolve(result(options?.stride===undefined?{}:{stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}));}});
  return {tool,presses,now:()=>state};

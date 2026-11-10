@@ -113,3 +113,13 @@ def test_invalid_save_pointer_cannot_claim_running_shoes():
     state = read_running_permission(m.read)
     assert state.permitted is None and state.shoes is None
     assert "SaveBlock1 pointer" in state.diagnostic
+
+
+def test_waterfall_handoff_reads_native_movement_independently_of_facing():
+    m = fixture()
+    m.put(PLAYER_AVATAR, b"\x08")
+    m.put(OBJECT_EVENTS + 0x18, b"\x12")  # facing north, movement south
+    assert "movement_direction" not in read_running_permission(m.read).json()
+    assert read_running_permission(m.read, waterfall_handoff=True).json()["movement_direction"] == 1
+    m.put(OBJECT_EVENTS + 0x18, b"\x21")
+    assert read_running_permission(m.read, waterfall_handoff=True).json()["movement_direction"] == 2

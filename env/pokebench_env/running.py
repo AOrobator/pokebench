@@ -34,12 +34,18 @@ class RunningPermission:
     callback2: int | None = None
     diagnostic: str | None = None
     raw_hex: str | None = None
+    movement_direction: int | None = None
 
     def json(self) -> dict[str, object]:
-        return asdict(self)
+        result = asdict(self)
+        if self.movement_direction is None:
+            del result["movement_direction"]
+        return result
 
 
-def read_running_permission(read: ReadMemory) -> RunningPermission:
+def read_running_permission(
+    read: ReadMemory, *, waterfall_handoff: bool = False
+) -> RunningPermission:
     """Unknown permission stays unknown; callers may append B only for True.
 
     IsRunningDisallowed checks map allowRunning, prohibited tiles and Fortree
@@ -99,6 +105,7 @@ def read_running_permission(read: ReadMemory) -> RunningPermission:
             reason = "metatile_disallows_running"
         elif metatile == 0x78 and not elevation & 1:
             reason = "fortree_bridge_lower_level"
+        movement = obj[0x18] >> 4  # ObjectEvent.movementDirection, distinct from facingDirection.
         return RunningPermission(
             reason == "permitted",
             controllable,
@@ -111,6 +118,9 @@ def read_running_permission(read: ReadMemory) -> RunningPermission:
             map_type,
             cb1,
             cb2,
+            movement_direction=movement
+            if waterfall_handoff and flags & 8 and 1 <= movement <= 8
+            else None,
         )
     except (ValueError, OSError, IndexError) as error:
         return RunningPermission(

@@ -426,6 +426,7 @@ def read_game_state(
     interface_guidance_enabled: bool = False,
     bag_pocket_truth_enabled: bool = False,
     tmhm_learning_enabled: bool = False,
+    waterfall_handoff_enabled: bool = False,
     pokenav_short_list_enabled: bool = False,
     pokenav_call_advance_enabled: bool = False,
     field_call_input_enabled: bool = False,
@@ -753,7 +754,7 @@ def read_game_state(
         )
         if battle_details_enabled
         else None,
-        running=read_running_permission(read),
+        running=read_running_permission(read, waterfall_handoff=waterfall_handoff_enabled),
         bike=read_bike_state(read) if bike_enabled else None,
         screen=label,
         started=True,

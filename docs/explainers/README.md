@@ -426,3 +426,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Verified warp reachability](verified-warp-reach-v1.html)
 
 - [Surf movement and refusals](surf-navigation-correctness-v1.html)
+
+- [Verified Waterfall handoff](waterfall-handoff-verification-v1.html)

@@ -230,6 +230,7 @@ SERVER_FEATURES = (
     FIELD_CALL_SWITCH,
     OBSTACLE_RESPAWN,
     "tmhm-learning-visibility-v1",
+    "waterfall-handoff-verification-v1",
 )
 
 
@@ -264,7 +265,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
         "rotating-gate-regions-v1,shop-shelf-hidden-v1,field-call-input-v1,"
-        "field-obstacle-respawn-v1",
+        "field-obstacle-respawn-v1,waterfall-handoff-verification-v1",
     )
     if raw == "":
         return frozenset()

@@ -393,6 +393,7 @@
     "opus-rq-catch-v1": true,
     "opus-rq-moveset-v1": true,
     "tmhm-learning-visibility-v1": true,
+    "waterfall-handoff-verification-v1": true,
     "surf-navigation-correctness-v1": true,
     "verified-warp-reach-v1": true
   }

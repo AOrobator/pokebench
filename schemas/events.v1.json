@@ -8791,6 +8791,11 @@
                     }
                   ]
                 },
+                "movement_direction": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                },
                 "metatile": {
                   "anyOf": [
                     {

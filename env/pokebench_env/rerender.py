@@ -146,6 +146,7 @@ def read_state(
         pokenav_call_advance_enabled="pokenav-call-auto-advance-v1" not in off,
         field_call_input_enabled=FIELD_CALL_SWITCH not in off,
         # field-move-gates-v1 gates exit-reachability-v1's flood, so it needs that switch.
+        waterfall_handoff_enabled="waterfall-handoff-verification-v1" not in off,
         field_moves_enabled=FIELD_MOVES not in off and EXIT_REACH not in off,
         move_learning_enabled=not {MOVE_QUESTION, MOVE_COMPARISON, "move-learn-type-matchup-v1"}
         <= off,

@@ -151,10 +151,10 @@ describe("launch point",()=>{
 });
 
 type Press={buttons:string[];stride?:unknown};
-function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot){
+function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot,surfCorrectness=false){
  let state=start;const presses:Press[]=[];
  const result=(extra:Record<string,unknown>={}):AgentToolResult<unknown>=>({content:[{type:"text",text:"state"}],details:{state,...extra}});
- const tool=navigationTool({surfNavigation:true,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
+ const tool=navigationTool({surfNavigation:true,surfCorrectness,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
   press:(_id,params,_signal,check,options)=>{check?.(state);const press:Press={buttons:params.buttons,...(options?.stride===undefined?{}:{stride:options.stride})};presses.push(press);state=moved(state,press);
    return Promise.resolve(result(options?.stride===undefined?{}:{stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}));}});
  return {tool,presses,now:()=>state};
@@ -191,6 +191,13 @@ describe("walker",()=>{
   expect(text).toContain("from the water");expect(text).not.toContain("on foot");
   expect(w.presses).toEqual([]);
  });
+ it("returns the solid-tile reason from the coordinate navigation tool",async()=>{
+  const tiles=row({6:{collision:1}});
+  const w=walker(field(5,true,tiles),stepWith(tiles),true);
+  const out=await w.tool.execute("n",{x:6,y:0,map_id:[0,33]});
+  expect(out.details).toMatchObject({navigation:{status:"(6,0) is a solid tile"}});
+  expect(w.presses).toEqual([]);
+ });
  it("with the switch off a surfer still gets the old refusal",async()=>{
   const tiles=row();let pressed=0;
   const s=field(2,true,tiles);
@@ -224,16 +231,22 @@ describe("semantic navigation",()=>{
  const features=(on:boolean):FeatureSet=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"bounded-navigation-v1":true,"walkable-floor-v1":true,"semantic-navigation-v1":true,"surf-navigation-v1":on});
  const north={direction:"NORTH",offset:0,destination:[0,34],destination_name:"ROUTE 119",edges:[],water_edges:[{x:4,y:0}]};
  const start=(x:number,surfing:boolean):GameStateSnapshot=>({...field(x,surfing),topology:{width:8,height:1,connections:[north]},interaction_targets:[]} as unknown as GameStateSnapshot);
- function fixture(initial:GameStateSnapshot,on=true){
+ function fixture(initial:GameStateSnapshot,on=true,surfCorrectness=false){
   let current=initial;const navigations:unknown[]=[],buttons:string[][]=[];
   const done=(status:string):AgentToolResult<unknown>=>({content:[{type:"text",text:`Navigation: ${status}`}],details:{state:current,navigation:{status,commands:1}}});
   const go=(args:{x:number;y:number}):Promise<AgentToolResult<unknown>>=>{navigations.push(args);current={...current,position:{x:args.x,y:args.y}};return Promise.resolve(done("arrived at requested coordinate"));};
   const navigate={name:"navigate_to",label:"nav",description:"nav",parameters:Type.Object({}),execute:(_id:string,args:{x:number;y:number})=>go(args),executeChecked:(_id:string,args:{x:number;y:number})=>go(args)} as unknown as CheckedNavigationTool;
   const press={name:"press",label:"press",description:"press",parameters:Type.Object({buttons:Type.Array(Type.String())}),execute:(_id:string,args:{buttons:string[]})=>{buttons.push(args.buttons);return Promise.resolve({content:[],details:{state:current}});},executeChecked:(_id:string,args:{buttons:string[]})=>{buttons.push(args.buttons);current={...current,map_id:[0,34]};return Promise.resolve({content:[],details:{state:current}});}} as unknown as CheckedPressTool;
-  const tools=withSemanticNavigation([navigate,press],features(on),{read:()=>Promise.resolve(current)});
+  const tools=withSemanticNavigation([navigate,press],{...features(on),"surf-navigation-correctness-v1":surfCorrectness},{read:()=>Promise.resolve(current)});
   const tool=tools.find(t=>t.name==="navigate_to_target");if(tool===undefined)throw new Error("missing semantic tool");
   return {tool,navigations,buttons};
  }
+ it("names an unverified map edge instead of a route to the player's own tile",async()=>{
+  const f=fixture({...start(2,true),topology:{width:8,height:1,connections:[]}},true,true);
+  const out=await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
+  expect(out.content[0]).toMatchObject({text:expect.stringContaining("No verified Surf route from (2,0) to this map edge")});
+  expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
+ });
  it("takes a map exit from a water edge tile while surfing",async()=>{
   const f=fixture(start(2,true));
   await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
@@ -288,4 +301,14 @@ it("uses native Surf mode for guarded batches and gives terrain-backed refusals"
  expect(verifiedSurfRefusal(riding,{x:4,y:0},ON)).toBe("(4,0) is a solid tile");
  expect(verifiedSurfRefusal(riding,{x:5,y:0},ON)).toContain("tile pushes right");
  expect(verifiedSurfRefusal(riding,{x:3,y:0},ON)).toBe("No verified Surf route from (0,0) to (3,0)");
+});
+
+it("does not fall back to a held press under a bridge when the stride is unverified",()=>{
+ const bridge=row({3:{behavior:0x70,elevation:15}});
+ const s=field(2,true,bridge,{world_context:{objects:[],dialogue:null,triggers:[
+  {x:3,y:0,elevation:15,variable:1,required_value:1,current_value:0,condition_met:false,script_pointer:1},
+ ]}});
+ expect(planNavigation(s,{x:3,y:0},ON)).toEqual(["RIGHT"]);
+ expect(requestedStep(s,"RIGHT",{surf:true,ledges:true,oneWay:true,floor:true,elevation:"game",fieldMoveGates:false}))
+  .toEqual({ok:false,reason:"no verified single-tile Surf stride onto (3,0); use navigate_to for this transition"});
 });

@@ -343,6 +343,7 @@ export function pressTool(
   const walkPrefix=async(toolCallId:string,buttons:readonly Button[],before:GameStateSnapshot,rules:PrefixRules,signal?:AbortSignal,update?:Parameters<AgentTool<typeof PressArgs>["execute"]>[3]):Promise<AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>>=>{
     const requested=buttons.flatMap(b=>b==="UP"||b==="DOWN"||b==="LEFT"||b==="RIGHT"?[b]:[]),submitted:Button[]=[];
     const trail=switches.gatePressFeedback===true?new GateStepTrail(switches.position,switches.gateTurnReasons===true):null;
+    let walked=0;
     let previous=before,expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
     for(const [i,direction] of requested.entries()){
       const planned:{step:RequestedStepOk|null;refusal:string}={step:null,refusal:"walking was interrupted"};
@@ -358,6 +359,8 @@ export function pressTool(
       } catch(error){if(!(error instanceof PrefixStop))throw error;stop=`Stopped before step ${String(i+1)}: ${planned.refusal}`;break;}
       submitted.push(direction);
       const receipt=last.details.stride;
+      if(checked.stride!==undefined&&receipt?.surfing!==true)throw new Error("Guarded Surf stride lacks a matching mode receipt");
+      walked+=checked.stride===undefined?1:receipt?.completed??0;
       if(checked.stride!==undefined&&receipt?.reason!=="completed"){stop=`Stopped after step ${String(i+1)}: Surf stride interrupted (${receipt?.reason??"receipt unavailable"})`;break;}
       const after=last.details.state,step=planned.step;
       if(step===null)throw new Error("Requested movement step lacks its checked landing");
@@ -367,7 +370,7 @@ export function pressTool(
       if(step.warp){stop=`Stopped after step ${String(i+1)}: stepped onto a warp at ${point(step.landing)}`;break;}
       expected=step.landing;previous=after;
     }
-    const head=`Requested movement: walked ${String(submitted.length)} of ${String(requested.length)} directions by navigate_to's rules, one press each; remaining inputs were not sent. ${JSON.stringify({requested,submitted,dropped:requested.slice(submitted.length)})}\n${stop===null?"":`${stop}\n`}`;
+    const head=`Requested movement: walked ${String(walked)} of ${String(requested.length)} directions by navigate_to's rules, one press each; remaining inputs were not sent. ${JSON.stringify({requested,submitted,dropped:requested.slice(submitted.length)})}\n${stop===null?"":`${stop}\n`}`;
     if(last===undefined){const result=await observation(gameServerUrl,fetchFn,signal,head);shown.record(result.state,before);return {content:result.content,details:{state:result.state}};}
     return {...last,content:[{type:"text",text:head},...last.content]};
   };

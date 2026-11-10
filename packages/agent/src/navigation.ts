@@ -917,7 +917,7 @@ export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:Pr
   const arrived=walked(state,[direction],options)?.elevation??geometry.elevation;
   if(triggerAt(triggers,landing,arrived)!==undefined)return {ok:false,reason:`${at(landing)} is a script tile whose condition matches now; stepping on it runs a script, so press ${direction} on its own to step on it on purpose`};
   const stride=surfing?planStride(state,[direction],options):null;
-  if(surfing&&WATER.has(tile.behavior)&&stride===null)return {ok:false,reason:`no verified single-tile Surf stride onto ${at(next)}; use navigate_to for this transition`};
+  if(surfing&&(SURF_TRAVEL.has(tile.behavior)||WATER.has(tile.behavior))&&stride===null)return {ok:false,reason:`no verified single-tile Surf stride onto ${at(next)}; use navigate_to for this transition`};
   return {ok:true,landing,warp:geometry.warps.some(w=>samePoint(w,landing)),...(stride===null?{}:{stride})};
  }
  const arrow=LEDGES.get(tile.behavior);

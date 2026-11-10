@@ -130,6 +130,25 @@ describe("climbing and second crossings",()=>{
   expect(status).toContain(expected);
   if(expected!=="press A")expect(status).not.toContain("press A");
  });
+ it("returns the fresh interrupted state without submitting the planned turn",async()=>{
+  const state={...foot,facing:"down" as const,running:{...SURF.running,movement_direction:1},
+   field_obstacles:{capabilities:{waterfall:true},obstacles:[]}} as GameStateSnapshot;
+  const w=walker(state,s=>s,true,s=>({...s,map_id:[0,34]}));
+  const out=await w.tool.execute("n",{x:0,y:0,map_id:[0,33]});
+  expect(w.presses).toEqual([]);
+  expect(out.details).toMatchObject({state:{map_id:[0,34]},navigation:{commands:0}});
+  const text=out.content[0];
+  expect(text?.type==="text"?text.text:"").toContain("Waterfall handoff interrupted");
+ });
+ it("honors a checked caller before turning at the foot",async()=>{
+  const state={...foot,facing:"down" as const,running:{...SURF.running,movement_direction:1},
+   field_obstacles:{capabilities:{waterfall:true},obstacles:[]}} as GameStateSnapshot;
+  const w=walker(state,s=>s,true);
+  let checks=0;
+  const out=await w.tool.executeChecked("n",{x:0,y:0,map_id:[0,33]},()=>++checks===1?null:"warp target changed");
+  expect(w.presses).toEqual([]);
+  expect(out.details).toMatchObject({navigation:{commands:0,status:"Waterfall handoff interrupted. warp target changed",stop_requested:true}});
+ });
  it("while surfing lands and stops at the next water",async()=>{
   const tiles=row({6:{},7:{behavior:POND,elevation:1}},9);
   const w=walker(field(5,true,tiles),stepWith(tiles));
@@ -169,11 +188,11 @@ describe("launch point",()=>{
 });
 
 type Press={buttons:string[];stride?:unknown};
-function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot,waterfallHandoffVerification=false){
+function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot,waterfallHandoffVerification=false,beforePress?:(state:GameStateSnapshot)=>GameStateSnapshot){
  let state=start;const presses:Press[]=[];
  const result=(extra:Record<string,unknown>={}):AgentToolResult<unknown>=>({content:[{type:"text",text:"state"}],details:{state,...extra}});
  const tool=navigationTool({surfNavigation:true,waterfallHandoffVerification,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
-  press:(_id,params,_signal,check,options)=>{check?.(state);const press:Press={buttons:params.buttons,...(options?.stride===undefined?{}:{stride:options.stride})};presses.push(press);state=moved(state,press);
+  press:(_id,params,_signal,check,options)=>{state=beforePress?.(state)??state;check?.(state);const press:Press={buttons:params.buttons,...(options?.stride===undefined?{}:{stride:options.stride})};presses.push(press);state=moved(state,press);
    return Promise.resolve(result(options?.stride===undefined?{}:{stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}));}});
  return {tool,presses,now:()=>state};
 }

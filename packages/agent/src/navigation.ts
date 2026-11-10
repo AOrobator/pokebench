@@ -767,7 +767,7 @@ export function waterfallHandoffStatus(state:GameStateSnapshot,launch:SurfLaunch
    ||state.field_obstacles?.capabilities.waterfall!==true||tile?.behavior!==WATERFALL
    ||launch.water.x!==here.x||launch.water.y!==here.y-1)return `${stopped} could not be verified from the current game state`;
  if(state.facing!=="up")return `${stopped} is not ready. The game shows facing ${state.facing??"unavailable"}. Waterfall at ${at(launch.water)} requires surfing north`;
- if(state.running?.movement_direction!==2)return `${stopped} is not ready. The game has not confirmed northward Surf movement`;
+ if(state.running.movement_direction!==2)return `${stopped} is not ready. The game has not confirmed northward Surf movement`;
  return `stopped at ${at(here)}, facing the waterfall at ${at(launch.water)}: the way to ${at(goal)} climbs it, and navigate_to does not use Waterfall; press A while facing it to use it`;
 }
 type Goal={readonly x:number;readonly y:number;readonly map_id:readonly [number,number];readonly walking?:boolean;readonly confirm_trainer_sight?:boolean;readonly confirm?:boolean};
@@ -999,14 +999,26 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
   if(walked!==null&&navigationStatus(walked)!=="arrived at requested coordinate")return walked;
   let last=walked??await ports.observe(id,signal),state=resultState(last),commands=(walked?.details as {navigation?:{commands?:number}}|undefined)?.navigation?.commands??0;
   const verify=ports.waterfallHandoffVerification===true&&launch.move==="Waterfall";
-  const fieldCanTurn=!verify||(state.map_id?.[0]===goal.map_id[0]&&state.map_id[1]===goal.map_id[1]&&ready(state)&&state.active_ui==null&&state.running?.controllable===true&&isSurfing(state));
-  if(fieldCanTurn&&state.facing!==launch.facing.toLowerCase()&&state.position!==null&&samePoint(state.position,launch.at)){
-   last=await ports.press(id,{buttons:[launch.facing]},signal,actual=>{if(actual===undefined||!ready(actual)||actual.position===null||!samePoint(actual.position,launch.at)||(verify&&(actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.active_ui!=null||actual.running?.controllable!==true||!isSurfing(actual))))throw new NavigationPreconditionError("position or field input changed before facing the water; no command submitted");},{automaticRunning:false});
-   state=resultState(last);commands++;
+  const canTurn=(actual:GameStateSnapshot):boolean=>ready(actual)&&actual.position!==null&&samePoint(actual.position,launch.at)&&
+   (!verify||(actual.map_id?.[0]===goal.map_id[0]&&actual.map_id[1]===goal.map_id[1]&&actual.active_ui==null&&actual.running?.controllable===true&&isSurfing(actual)));
+  let interrupted=verify?stop?.(state)??null:null;
+  if(interrupted===null&&(!verify||canTurn(state))&&state.position!==null&&samePoint(state.position,launch.at)&&state.facing!==launch.facing.toLowerCase()){
+   try{
+    last=await ports.press(id,{buttons:[launch.facing]},signal,actual=>{
+     if(actual===undefined||!canTurn(actual))throw new NavigationPreconditionError("position or field input changed before facing the water; no command submitted");
+     const reason=verify?stop?.(actual):null;
+     if(reason!=null)throw new NavigationPreconditionError(reason);
+    },{automaticRunning:false});
+    state=resultState(last);commands++;
+    if(verify)interrupted=stop?.(state)??null;
+   }catch(error){
+    if(!verify||!(error instanceof NavigationPreconditionError))throw error;
+    interrupted=error.message;last=await ports.observe(id,signal);state=resultState(last);
+   }
   }
-  const status=verify?waterfallHandoffStatus(state,launch,goal,goal.map_id):launch.move==="Surf"?`stopped at the shore at ${at(launch.at)}, facing the water at ${at(launch.water)}: the way to ${at(goal)} crosses water, and navigate_to does not start Surf; press A while facing the water to use it`:`stopped at ${at(launch.at)}, facing the waterfall at ${at(launch.water)}: the way to ${at(goal)} climbs it, and navigate_to does not use Waterfall; press A while facing it to use it`;
+  const status=interrupted!==null?`Waterfall handoff interrupted. ${interrupted}`:verify?waterfallHandoffStatus(state,launch,goal,goal.map_id):launch.move==="Surf"?`stopped at the shore at ${at(launch.at)}, facing the water at ${at(launch.water)}: the way to ${at(goal)} crosses water, and navigate_to does not start Surf; press A while facing the water to use it`:`stopped at ${at(launch.at)}, facing the waterfall at ${at(launch.water)}: the way to ${at(goal)} climbs it, and navigate_to does not use Waterfall; press A while facing it to use it`;
   const rest=walked===null?last.content:last.content.filter(part=>part.type!=="text"||!part.text.startsWith("Navigation: "));
-  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...rest],details:{state,navigation:{status,commands,target:goal,unready:false}}};
+  return {content:[{type:"text",text:`Navigation: ${status}; ${String(commands)} ${ports.safeStrides===true?"bounded movement actions":"ordinary button attempts"}.`},...rest],details:{state,navigation:{status,commands,target:goal,...(verify&&stop!==undefined?{stop_requested:interrupted!==null}:{}),unready:false}}};
  };
  // bike-register-v1: the SELECT registrations already tried; a new registration value earns one more try.
  const registrationsTried=new Set<number>();

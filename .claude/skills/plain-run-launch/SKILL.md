@@ -70,8 +70,11 @@ telemetry. A reservation or estimate does not authorize any extra stop.
 
 ### Prepared checkpoints and subscription gateways
 
-Use `scripts/launch-pinned.sh <built checkout> <full commit SHA> <existing receipt directory>` for
-an isolated checkpoint with a prebuilt pin and a reserved game port. Provision the model gateway
+Use `scripts/launch-pinned.sh --prepare <detached checkout> <full commit SHA>` after setting up the
+pinned checkout's Node and Python dependencies, including mGBA. Coordinate any needed build before
+running preparation. It checks the build stamp and compiles the agent when needed.
+Then run `scripts/launch-pinned.sh <detached checkout> <full commit SHA> <existing receipt directory>`
+with a reserved game port. Provision the model gateway
 separately and keep its lease through agent exit. For a subscription gateway, keep its process
 detached and verify the authenticated session lane before play. The launcher starts the agent
 directly and records its PID, run ID, pin and log under `<receipt directory>/play/`.

@@ -2,13 +2,44 @@
 # Run an already-built pinned harness against an independently owned model endpoint.
 set -euo pipefail
 
-if (( $# != 3 )); then
-  echo "usage: launch-pinned.sh <runtime checkout> <full commit SHA> <receipt directory>" >&2
+prepare=0
+if [[ ${1:-} == --prepare ]]; then
+  prepare=1
+  shift
+fi
+if (( ($prepare && $# != 2) || (!$prepare && $# != 3) )); then
+  echo "usage: launch-pinned.sh [--prepare] <detached checkout> <full commit SHA> [<receipt directory>]" >&2
   exit 2
 fi
 runtime=${1:A}
 pin=$2
-receipt=${3:A}
+if (( !prepare )); then
+  receipt=${3:A}
+fi
+cd "$runtime"
+if [[ "$(git rev-parse HEAD)" != "$pin" || -n "$(git status --porcelain)" ]] || git symbolic-ref -q HEAD >/dev/null; then
+  echo "launch-pinned: expected a clean detached checkout at $pin" >&2
+  exit 2
+fi
+agent="$runtime/packages/agent/dist/live.js"
+stamp="${agent:h}/.fixed-tree"
+python="$runtime/env/.venv/bin/python"
+# Match the fixed-run source identity and build stamp.
+sources=$(git ls-tree --full-tree "$pin" -- packages/agent env package.json pnpm-lock.yaml pnpm-workspace.yaml | shasum -a 256)
+expected="$pin ${sources%% *}"
+if [[ ! -f "$stamp" || "$(<"$stamp")" != "$expected" || ! -f "$agent" || ! -x "$python" ]]; then
+  if (( !prepare )); then
+    echo "launch-pinned: missing build for $pin; prepare the detached checkout first" >&2
+    exit 2
+  fi
+  (cd env && "$python" -c 'import mgba.core')
+  (cd packages/agent && node node_modules/typescript/bin/tsc -p tsconfig.build.json --noEmitOnError)
+  [[ -f "$agent" && -z "$(git status --porcelain)" && "$(git rev-parse HEAD)" == "$pin" ]]
+  printf '%s\n' "$expected" >"$stamp"
+fi
+if (( prepare )); then
+  exit 0
+fi
 : "${POKEBENCH_RUN_ID:?Set the reserved run ID}"
 : "${POKEBENCH_RUNS_ROOT:?Set the absolute runs root}"
 : "${POKEBENCH_GAME_SERVER_URL:?Set the reserved game URL}"
@@ -33,18 +64,12 @@ if [[ ! "$POKEBENCH_GAME_SERVER_URL" =~ '^http://127[.]0[.]0[.]1:([0-9]{1,5})$' 
   exit 2
 fi
 port=$match[1]
-if (( 10#$port < 1 || 10#$port > 65535 )) || lsof -nP -t -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+if (( 10#$port < 1024 || 10#$port > 65535 )) || lsof -nP -t -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
   echo "launch-pinned: game port $port is invalid or taken" >&2
   exit 2
 fi
-cd "$runtime"
-if [[ "$(git rev-parse HEAD)" != "$pin" ]] || ! git diff --quiet HEAD --; then
-  echo "launch-pinned: expected clean tracked files at $pin" >&2
-  exit 2
-fi
-agent="$runtime/packages/agent/dist/live.js"
-if [[ ! -f "$agent" || ! -r "$POKEBENCH_PLAY_PRESET" || ! -r "$POKEBENCH_ROM" ]]; then
-  echo "launch-pinned: missing built agent, preset or ROM" >&2
+if [[ ! -r "$POKEBENCH_PLAY_PRESET" || ! -r "$POKEBENCH_ROM" ]]; then
+  echo "launch-pinned: missing preset or ROM" >&2
   exit 2
 fi
 mkdir "$receipt/play"

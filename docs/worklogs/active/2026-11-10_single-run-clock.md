@@ -25,3 +25,10 @@ agent control reader, with accelerated time and simulated game health. The
 viewer extension changed 500,000 ms to 2,300,000 ms, gameplay remained active
 past 500,000 ms, and the agent ended for budget at 2,300,698 ms. No model calls,
 game server, shared viewer changes or live-run controls were used.
+
+Independent GPT review caught two launch preflight gaps: a stale ignored build
+could pass the Git check, and a privileged port could normalize to automatic
+allocation. The revised launcher checks the existing fixed-tree build stamp
+and requires a clean detached checkout. It validates the same unprivileged
+port range as the game server. The saved rehearsal driver rejects a stale
+stamp and port 80, then passes the extension and terminal-budget assertions.

@@ -23,3 +23,8 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 - Focused agent suites 72 tests and environment suites 106 tests passed. Agent type checking and changed-file lint passed. Full gates, independent review and landing are pending.
 - The Dive semantic-routing regression failed when its production switch wiring was removed, then passed after restoration.
 - The existing structured state/tool events carry corrected screen and menu facts. No event schema, timeline, stop conditions, or historical traces change.
+
+## Landing status
+
+- Candidate commit `f289782c5`. Agent and viewer type checks and changed-file lint passed. The vendor pin check passed. Model-facing archived readout replay verified all three UI repairs with original run feature settings and the correction toggled on/off.
+- Requested the required shared CPU window for full lint and coverage through `just tell-claude`. The mailbox reported that no Claude session was listening and saved the request. Full gates and independent review are pending. Main remains at `710665101`.

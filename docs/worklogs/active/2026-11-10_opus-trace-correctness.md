@@ -49,3 +49,7 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 - Final full lint, build, test, no-I/O proof and vendor verification passed. Materialized every phase of the two current bundle-v-control definitions and verified the switch ON for all six arm presets.
 - Fast-forwarded local main to `520ab159f` while holding landing slot 1. Post-main `just test` passed 2,999 agent, 1,252 viewer, 3,071 environment and 39 gateway tests plus coverage and no-I/O gates. Main's Dive and model-facing readout replay matched the reviewed receipts byte for byte.
 - Scratch viewer click-through and the local explainer preview passed. Shared viewer refresh is separate from source landing and has not been coordinated. No gameplay runs were started.
+
+## Dedicated Opus launch preset
+
+The dedicated `experiments/presets/opus-rayquaza-lane.json` is independent of the current arm recipe. Its previously omitted switch normalized to OFF. Explicitly enable the landed four corrections for future launches using this preset. Preserve its existing sampling, limits, and other features.

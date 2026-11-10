@@ -244,7 +244,8 @@ describe("semantic navigation",()=>{
  it("names an unverified map edge instead of a route to the player's own tile",async()=>{
   const f=fixture({...start(2,true),topology:{width:8,height:1,connections:[]}},true,true);
   const out=await f.tool.execute("s",{map_id:[0,33],target:{kind:"connection",direction:"NORTH"}});
-  expect(out.content[0]).toMatchObject({text:expect.stringContaining("No verified Surf route from (2,0) to this map edge")});
+  const result=out.content[0];
+  expect(result?.type==="text"?result.text:"").toContain("No verified Surf route from (2,0) to this map edge");
   expect(f.navigations).toEqual([]);expect(f.buttons).toEqual([]);
  });
  it("takes a map exit from a water edge tile while surfing",async()=>{

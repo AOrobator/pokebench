@@ -9,3 +9,5 @@
 - Focused tests passed for confirmed Surf, walking, unknown mode, terrain facts, and a guarded stride interrupted by battle. Raw replay is offline and does not resume the model.
 - Independent review of 076ba857 caught two cases. Surf bridge steps now also require a verified stride. An interrupted stride counts actual completed movement separately from submitted directions, including zero-tile receipts.
 - The correction bit is on in both current arms. Existing Surf navigation and guarded prefix prerequisites retain each arm's existing configuration.
+
+- Follow-up to 3020736c6 uses a typed text assertion for semantic refusal. No runtime change.

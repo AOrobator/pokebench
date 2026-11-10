@@ -8,8 +8,8 @@ Branch `claude/operator-stop-conditions`. Prose-only (CLAUDE.md, talk-to-codex s
 - [x] Claude lane re-review of 300c840ed: CHANGES — talk-to-codex "applies none" contradicted CLAUDE.md for turns/time; one limit + no named preset unspecified. Addressed in the next commit.
 - [x] Claude lane re-review of 6ded0333e: LGTM.
 - [x] GPT lane (codex exec gpt-5.6-sol, read-only) on 300c840ed: CHANGES — relay wording (already fixed in 6ded0333e); preset feature-driven terminal guards (loop guard `stuck`, milestone stall `stalled`) missing. Addressed in the next commit.
-- [ ] GPT and Claude lanes on the final head
-- [ ] Land (Grok waived until 11/17)
+- [x] Final head 75b22a2bf: Claude lane (subagent) VERDICT: LGTM; GPT lane (codex exec gpt-5.6-sol, read-only) VERDICT: LGTM, `git diff --check` clean. Grok waived until 11/17. Prose-only: no app gates.
+- [ ] Land
 
 ## Proposed, awaiting the operator
 - Native save on every run end (extend `packages/agent/src/checkpoint-capture.ts`).

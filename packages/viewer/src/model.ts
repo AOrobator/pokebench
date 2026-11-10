@@ -182,6 +182,7 @@ export class ControlView {
   lastExtensionRequest: number | null = null;
   state: ControlState = "running";
   emulatorFrozen: boolean | null = null;
+  pauseReason: "claude_quota" | null = null;
   readonly pauses: { startMs: number; endMs: number | null }[] = [];
 
   apply(event: Of<"operator_control">, ms: number): void {
@@ -195,11 +196,14 @@ export class ControlView {
     }
     if (event.status === "ignored" || event.status === "failed") return;
     if (event.status === "pending") {
+      if (event.action === "resume" && event.reason === "claude_quota") return;
       this.state = event.action === "pause" ? "pause_pending" : "stop_pending";
       return;
     }
     if (event.action === "pause") {
       this.state = "paused";
+      this.pauseReason = event.reason ?? null;
+      if (event.reason === "claude_quota" && this.pauses.at(-1)?.endMs === null) return;
       this.emulatorFrozen = event.emulator_frozen ?? null;
       this.pauses.push({ startMs: ms - (event.freeze_wait_ms ?? 0), endMs: null });
       return;
@@ -209,6 +213,7 @@ export class ControlView {
   }
 
   close(ms: number): void {
+    this.pauseReason = null;
     const open = this.pauses.at(-1);
     if (open !== undefined && open.endMs === null) open.endMs = ms;
   }

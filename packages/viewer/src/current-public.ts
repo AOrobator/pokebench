@@ -45,7 +45,7 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
  if(!only(v["context"],["estimated","measured"])||!object(v["context"]))return fail();
  for(const reading of [v["context"]["estimated"],v["context"]["measured"]])if(reading!==null&&!only(reading,["tokens","turn","seq","at"]))return fail();
  if(v["totals"]!==null&&!only(v["totals"],["input","output","retries","modelErrors","toolErrors","compactions","requests","latencyMs"]))return fail();
- if(v["control"]!==null&&!only(v["control"],["state","pausedMs","pauseAt","maxWallMs","maxTurns","lastExtensionRequest","emulatorFrozen"]))return fail();
+ if(v["control"]!==null&&!only(v["control"],["state","pausedMs","pauseAt","maxWallMs","maxTurns","lastExtensionRequest","emulatorFrozen","pauseReason"]))return fail();
  if(v["retry"]!==null&&!only(v["retry"],["count","attempt","limit"]))return fail();
  const s=value as unknown as CurrentSummary;if(s.header.system_prompt!=="")return fail();publicCheckpoint(s);return s;
 }

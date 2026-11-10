@@ -362,6 +362,7 @@ async function playAgent(): Promise<void> {
       const cutOffNotice = cutOffReplyNotice(features,maxTokens);
       const cutOff = cutOffNotice === undefined ? undefined : (repeats: number) => cutOffReplyNotice(features,maxTokens,repeats) ?? cutOffNotice;
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
+      const quotaFile = features["provider-wait-pause-v1"] ? new ControlFile(join(RUNS_ROOT, runId, "quota-control.jsonl")) : undefined;
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
@@ -388,6 +389,7 @@ async function playAgent(): Promise<void> {
       }, {
         providerWaitPause: features["provider-wait-pause-v1"],
         poll: () => controlFile.poll(),
+        ...(quotaFile === undefined ? {} : { pollQuota: () => quotaFile.poll() }),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
         now: () => Date.now(),
@@ -412,7 +414,7 @@ async function playAgent(): Promise<void> {
       });
       const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), loopDetector);
       stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
-      const stopWatching = watchControl(controlFile, runControl);
+      const stopWatching = watchControl(controlFile, runControl, undefined, quotaFile);
       signals.onAbort((signal) => {
         console.log(`operator abort (${signal}): finishing the run record`);
         operatorAbort = signal;

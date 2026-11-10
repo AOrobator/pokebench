@@ -41,3 +41,11 @@ it("keeps milestones that were already true at a checkpoint out of the provision
 it("trusts older rows without provenance only on a boot start",()=>{const f=currentFixture({extra:[{type:"milestone",turn:1,name:"A",origin:"observed",server_timestamp:1,evidence:[1]}]}),old={...f.summary,progress:{...f.summary.progress,recorded:f.summary.progress.recorded.map(row=>({name:row.name,seq:row.seq,turn:row.turn,at:row.at}))}};expect(currentSplits(old).map(split=>split.name)).toEqual(["A"]);const saved={...old,header:{...old.header,start_state:{...old.header.start_state,kind:"save_state" as const}}};expect(currentSplits(saved as typeof old)).toEqual([]);});
 it("never dates a split after the run's own clock",()=>{const f=currentFixture({extra:[{type:"milestone",turn:1,name:"A",origin:"observed",server_timestamp:1,evidence:[1]}]}),summary={...f.summary,run:{...f.summary.run,elapsedMs:1}};expect(currentSplits(summary)[0]?.elapsedMs).toBe(1);});
 it("gives a probe run no provisional story",()=>{const f=currentFixture({start:{harness_features:["probe"]},extra:[{type:"milestone",turn:1,name:"A",origin:"observed",server_timestamp:1,evidence:[1]}]});expect(currentSplits(f.summary)).toEqual([]);});
+
+it("publishes the quota reason through the browser display protocol",()=>{
+ const {current,aux}=fixture();
+ current.control={...current.control,state:"paused",pauseAt:1,pauseReason:"claude_quota"};
+ const snapshot=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,2,aux).detail) as unknown);
+ expect(publicCurrentView(snapshot).control.pauseReason).toBe("claude_quota");
+ expect(snapshot.phase.kind).toBe("paused");
+});

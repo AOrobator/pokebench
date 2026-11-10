@@ -91,6 +91,7 @@ export interface RunControlDeps {
   // Reads requests appended since the last poll, so a request that landed
   // just before a turn boundary is applied at that boundary.
   poll?(): readonly ControlRequest[];
+  pollQuota?(): readonly ControlRequest[];
 }
 
 export type ControlState = "running" | "pause_pending" | "paused" | "stop_pending" | "ended";
@@ -102,6 +103,7 @@ export class RunControl {
   private current: ControlState = "running";
   private pauseRequest = 0;
   private inCall = false;
+  private quotaHeld = false;
   private freezing = false;
   private stopRequest = 0;
   private stopApplied = false;
@@ -153,6 +155,22 @@ export class RunControl {
     }
   }
 
+  // Only the gateway writes this separate journal. Viewer Resume authorizes a retry,
+  // while the gateway releases the clock only after delivering the held reply.
+  applyQuota(request: ControlRequest): void {
+    const { action, seq } = request;
+    if (action === "pause" && this.inCall && this.deps.providerWaitPause &&
+        (this.current === "running" || this.current === "paused" || this.current === "pause_pending")) {
+      this.quotaHeld = true;
+      this.pauseRequest = seq;
+      if (this.current !== "paused") void this.pauseDuringCall();
+      else if (!this.freezing && !this.resuming) this.deps.record({ action: "pause", status: "applied", request: seq, reason: "claude_quota" });
+    } else if (action === "resume" && this.quotaHeld && this.current === "paused") {
+      this.quotaHeld = false;
+      this.applyRequest(request, false);
+    }
+  }
+
   private applyRequest(request: ControlRequest, cancelledInBatch: boolean): void {
     const { action, seq } = request;
     const ignore = (): void => { this.deps.record({ action, status: "ignored", request: seq }); };
@@ -182,6 +200,10 @@ export class RunControl {
       return;
     }
     if (action === "resume") {
+      if (this.quotaHeld) {
+        this.deps.record({ action, status: "pending", request: seq, reason: "claude_quota" });
+        return;
+      }
       if (this.current === "pause_pending") {
         this.current = "running";
         this.deps.record({ action, status: "applied", request: seq });
@@ -214,6 +236,7 @@ export class RunControl {
       () => {
         this.resuming = false;
         if (this.current !== "paused") return;
+        if (this.quotaHeld) { void this.pauseDuringCall(); return; }
         const paused = this.closePause();
         this.current = "running";
         this.deps.record({ action: "resume", status: "applied", request: seq, paused_ms: paused });
@@ -227,8 +250,14 @@ export class RunControl {
   }
 
   // The governor asks at each turn end whether an operator stop is due.
+  applyJournals(operator: readonly ControlRequest[], quota: readonly ControlRequest[]): void {
+    for (const request of quota) if (request.action === "pause") this.applyQuota(request);
+    this.applyBatch(operator);
+    for (const request of quota) if (request.action === "resume") this.applyQuota(request);
+  }
+
   private catchUp(): void {
-    this.applyBatch(this.deps.poll?.() ?? []);
+    this.applyJournals(this.deps.poll?.() ?? [], this.deps.pollQuota?.() ?? []);
   }
 
   takeStop(): boolean {
@@ -255,7 +284,7 @@ export class RunControl {
   private async pauseDuringCall(): Promise<void> {
     this.current = "paused";
     const started = this.deps.now();
-    this.pausedSince = started;
+    this.pausedSince ??= started;
     this.freezing = true;
     this.notify();
     let frozen = true;
@@ -268,6 +297,7 @@ export class RunControl {
     if (!this.stillPaused()) return;
     this.deps.record({
       action: "pause", status: "applied", request: this.pauseRequest, emulator_frozen: frozen,
+      ...(this.quotaHeld ? { reason: "claude_quota" as const } : {}),
       during_call: true, freeze_wait_ms: Math.max(0, this.deps.now() - started),
     });
     this.applyDeferredResume();
@@ -456,9 +486,9 @@ export async function freezeGame(gameServerUrl: string, paused: boolean, fetchFn
 }
 
 // Poll the control file and apply new requests until stopped.
-export function watchControl(file: ControlFile, control: RunControl, intervalMs = 250): () => void {
+export function watchControl(file: ControlFile, control: RunControl, intervalMs = 250, quotaFile?: ControlFile): () => void {
   const timer = setInterval(() => {
-    control.applyBatch(file.poll());
+    control.applyJournals(file.poll(), quotaFile?.poll() ?? []);
   }, intervalMs);
   return () => { clearInterval(timer); };
 }

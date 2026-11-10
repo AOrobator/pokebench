@@ -267,3 +267,14 @@ def test_schema_hint_describes_options_from_the_schema() -> None:
     )
     assert cg.schema_hint('{"name": "other"}', [tool], "arguments.mode matches") == ""
     assert cg.schema_hint("not json", [tool], "x") == ""
+
+
+def test_quota_commands_require_a_new_complete_resume_and_prioritize_stop() -> None:
+    old = '{"v":1,"seq":2,"action":"resume"}\n'
+    fresh = '{"v":1,"seq":3,"action":"resume"}\n'
+    stop = '{"v":1,"seq":4,"action":"stop"}\n'
+    assert cg.quota_command(old, 2) is None
+    assert cg.quota_command(old + fresh.rstrip(), 2) is None
+    assert cg.quota_command(old + fresh, 2) == "resume"
+    assert cg.quota_command(old + fresh + stop, 2) == "stop"
+    assert cg.quota_command(old + fresh + stop.replace("stop", "abort"), 2) == "stop"

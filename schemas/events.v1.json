@@ -69,6 +69,10 @@
           "type": "integer",
           "minimum": 1
         },
+        "reason": {
+          "type": "string",
+          "const": "claude_quota"
+        },
         "previous_max_turns": {
           "type": "integer",
           "minimum": 0

@@ -86,6 +86,13 @@ stop, use preset `stopAt: "GAME_CLEAR_CONFIRMED"` and leave `target: null` for t
 Read the agent's `run_start` and terminal event. Release the gateway only after the owned agent exits.
 An extension is effective when the trace records the applied control and new wall budget.
 
+For a Claude quota hold with operator-controlled retry, start the gateway with
+`--manual-quota-resume`. The recorded preset must enable `provider-wait-pause-v1`, and the gateway,
+agent and viewer must point at the same run directory. A quota rejection freezes the active clock.
+Each viewer Resume requests one retry of the held turn. The clock stays paused through failed
+retries and resumes after the held reply is delivered. Check Activity History and the gateway
+journal for the hold and retry receipts. Keep the gateway attached to the same run and session.
+
 ## 3. Launch detached, from `just`
 
 `just run-agent` expands to `just build` + `node packages/viewer/dist/fixed-cli.js play`, which

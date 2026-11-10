@@ -55,9 +55,9 @@ Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not ge
 
 ## M4: Carry into the public copy
 
-- [ ] Decide with the operator: refresh the public copy from the latest private `main` (picks up everything landed since the Nov 7 snapshot, needs the same scrub again), or apply only these commits on top of `~/dev/pokebench-public-v9`. The operator leans toward latest main (2026-11-10).
-- [ ] Whichever route, commit through the protected-data guard (hooks wired in v9 2026-11-10).
-- [ ] Re-run the full-history privacy sweep and gitleaks on the result.
+- [x] Decide with the operator: refresh the public copy from the latest private `main` (picks up everything landed since the Nov 7 snapshot, needs the same scrub again), or apply only these commits on top of `~/dev/pokebench-public-v9`. The operator leans toward latest main (2026-11-10).
+- [x] Whichever route, commit through the protected-data guard (hooks wired in v9 2026-11-10).
+- [x] Re-run the full-history privacy sweep and gitleaks on the result.
 
 ## Multi-Model Review Log
 
@@ -76,3 +76,5 @@ Round 3 packet: base f8ee5f034, head 2235ffc98, SHA-256 1b0f176cb3f60d8bfb7cb75f
 Integration: merged main 362f1078d into the branch (daa5f73b4, clean). Main's overlap is the verified-warp-reach-v1 feature (viewer panels/next-run tests, server.ts lines unrelated to `NO_ENDPOINT`); classified unaffected. Focused post-merge checks: agent and viewer `tsc --noEmit` clean; agent config 18 passed; viewer next-run-endpoint + next-run 6 passed after rebuilding the agent dist (first run used a dist built before the merge and lacked the new switch).
 
 Rollout 2026-11-10 11:28 AM: `.env` gained `POKEBENCH_ENDPOINT_FILE` (Hermes's router file, as the old viewer used implicitly); `just viewer-main` exit 0, "1 live gameplay process(es) kept running", viewer at 5780cec90. New viewer log: `next runs: local models from <Hermes server.json>`, same as before. Live run 2026-11-10T11-25-21_opus-post-juan-hof_12bf (pid 46542) still running and listed live; `/` 200. `/api/models` answers `fetch failed` because the Hermes server is not running (Hermes kept off on this Mac); queuing from the viewer works again once it is.
+
+M4 2026-11-10 (the operator: "rebuild from the latest main"): `~/dev/pokebench-public-v10` from main deacfe82c, 6,458 commits, no remote, hooks wired. Built with the private export tooling (pass 1, rules as for v8), then the v9 worklog/message scrub pass Codex wrote (now kept with the export tooling as `pass2/`), then the public licence/citation/README/CLAUDE.md commit (guard pre-commit passed). The v9-only move of worklogs into `archived/` was not repeated, since archiving is on hold in the private repo. Checks: all 44 blocklist patterns 0 hits across every blob (gunzipped) and commit message; gitleaks 19 hits, all allowlisted false positives; the same 8 viewed images; identity only name + Gmail; `just test` 0 (agent 2978, viewer 1247, env 3065, gateway 38), `verify-vendor` OK; dry guard push check reaches the human-confirmation step. Low-risk leftovers as in v9: `~/.hermes/cache/scratch` paths in old worklogs, "Mac Studio", one `ssh GPU host` alias, loopback ports.

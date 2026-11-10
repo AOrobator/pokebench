@@ -43,7 +43,9 @@ No new network surface; saves go through the existing loopback `/pokebench/check
 - [x] Gates (coordinator CPU window, head 48e6d2131): just test exit 0 (agent 246 files/3004, viewer 114/1250, env 3083 + gateway 38, all floors, no-I/O proof OK); just lint exit 0 (first try failed only on the missing native mGBA binding in the fresh venv, fixed by symlinking main's build); pnpm -r build exit 0; just verify-vendor OK
 - [x] Explainer: docs/explainers/game-clear-completion-v1.html, mapped in FEATURE_EXPLAINERS; pages-check clean
 - [x] Review on frozen packet base 7106651 head 48e6d2131 diff sha256 a6426c5f…ad2: Codex gpt-5.6-sol round 1 BLOCKING (gate evidence only), round 2 LGTM; Claude lane (claude -p OAuth expired, so read-only Claude subagent per standing rule) LGTM; fallback subagent (sonnet) LGTM
-- ASK USER: show the operator before landing
+- [x] Shown to the operator; The operator said "land it" (2026-11-10 3:13 PM) and asked it be on for the Opus Rayquaza lane (verified: preset resolves ON, in harness_features, not in server off list)
+- [x] Integration delta: rebased onto 6b6ed6dee (opus-trace-correctness-v1 credits readout); head 0a82f48a7. Gates: just test exit 0 (agent 3011, viewer 1253, env 3088, gateway 39, floors, no-I/O OK), just lint exit 0. Codex gpt-5.6-sol delta review of diff sha256 c3a20b85… plus range-diff: LGTM
+- [x] Landing: fast-forward of local main to this head
 
 ## Closing the Loop
 

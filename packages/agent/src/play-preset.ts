@@ -401,7 +401,7 @@ export function parsePlayPreset(value:unknown):PlayPreset{
  if(preset.target!==null&&!MILESTONES.some(item=>item.name===preset.target&&item.kind!=="legacy"))throw new Error(`Invalid play preset: target ${preset.target} is not a native milestone`);
  if(preset.target!==null&&MEASUREMENT_ONLY_MILESTONES.has(preset.target))throw new Error(`Invalid play preset: target ${preset.target} is measurement-only; a target is written into the model's goal`);
  if(preset.stopAt!==undefined){
-  if(!MILESTONES.some(item=>item.name===preset.stopAt&&item.kind!=="legacy")||MEASUREMENT_ONLY_MILESTONES.has(preset.stopAt))throw new Error("Invalid play preset: stopAt must be a native target milestone");
+  if(!MILESTONES.some(item=>item.name===preset.stopAt&&item.kind!=="legacy")||(MEASUREMENT_ONLY_MILESTONES.has(preset.stopAt)&&preset.stopAt!=="GAME_CLEAR_CONFIRMED"))throw new Error("Invalid play preset: stopAt must be a native target milestone");
   if(preset.target!==null&&preset.target!==preset.stopAt)throw new Error("Invalid play preset: target and stopAt conflict");
  }
  if(preset.version===2){const problems=[...dependencyProblems(preset.features),...stateOnlyProblems(preset.features)];if(problems.length>0)throw new Error(`Invalid play preset: ${problems.join("; ")}`);}

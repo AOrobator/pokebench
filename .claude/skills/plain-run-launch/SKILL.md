@@ -63,7 +63,25 @@ it, so a `max_tokens 8192` sampling cap is what actually bounds replies.
 
 Before starting, compare the authorized limits with the effective preset, gateway, and any wrapper or supervisor. Write the comparison to a separate preflight receipt under the run’s ignored artifacts so the launcher can write its own receipt independently. Verify all turn, wall-clock, milestone, token, and spend stops, including defaults inherited from a previous run. Apply the [run-limit authorization rules](../pokebench-run-coordination/SKILL.md#run-limits-belong-to-the-operator) to resolve any mismatch.
 
-For example, for an Opus Max run authorized for 600 turns or two hours, the supervisor's API-equivalent spend threshold must be disabled. The gateway may still record its estimate. Confirm the effective stop settings before the detached process starts because some supervisors read them only once.
+The gameplay agent is the sole owner of the preset's wall and turn budgets. Viewer extensions update
+those budgets and pause freezes the active wall clock. Do not copy a wall or turn limit into a
+launcher, scheduler, shell timeout, or watchdog. A Max gateway may record API-equivalent cost as
+telemetry. A reservation or estimate does not authorize any extra stop.
+
+### Prepared checkpoints and subscription gateways
+
+Use `scripts/launch-pinned.sh <built checkout> <full commit SHA> <existing receipt directory>` for
+an isolated checkpoint with a prebuilt pin and a reserved game port. Provision the model gateway
+separately and keep its lease through agent exit. For a subscription gateway, keep its process
+detached and verify the authenticated session lane before play. The launcher starts the agent
+directly and records its PID, run ID, pin and log under `<receipt directory>/play/`.
+
+Pass absolute `POKEBENCH_RUNS_ROOT`, `POKEBENCH_PLAY_PRESET` and `POKEBENCH_ROM` paths and set the
+reserved `POKEBENCH_RUN_ID`, `POKEBENCH_GAME_SERVER_URL`, `POKEBENCH_MODEL`, and gateway URL or endpoint
+file. Verify the checkpoint hash and preset before launch. If native game clear is an authorized
+stop, use preset `stopAt: "GAME_CLEAR_CONFIRMED"` and leave `target: null` for the ordinary model goal.
+Read the agent's `run_start` and terminal event. Release the gateway only after the owned agent exits.
+An extension is effective when the trace records the applied control and new wall budget.
 
 ## 3. Launch detached, from `just`
 

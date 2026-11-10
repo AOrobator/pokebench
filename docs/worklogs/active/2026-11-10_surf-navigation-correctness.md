@@ -11,3 +11,5 @@
 - The correction bit is on in both current arms. Existing Surf navigation and guarded prefix prerequisites retain each arm's existing configuration.
 
 - Follow-up to 3020736c6 uses a typed text assertion for semantic refusal. No runtime change.
+
+- Final regression fixtures exercise the production navigation factory, malformed Surf receipts, zero-tile battle interruptions and the under-bridge guard. The six separate deletion checks each failed the intended test, and 89 focused tests passed after restoration.

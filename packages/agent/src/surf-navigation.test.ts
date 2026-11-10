@@ -151,10 +151,10 @@ describe("launch point",()=>{
 });
 
 type Press={buttons:string[];stride?:unknown};
-function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot,surfCorrectness=false){
+function walker(start:GameStateSnapshot,moved:(state:GameStateSnapshot,press:Press)=>GameStateSnapshot){
  let state=start;const presses:Press[]=[];
  const result=(extra:Record<string,unknown>={}):AgentToolResult<unknown>=>({content:[{type:"text",text:"state"}],details:{state,...extra}});
- const tool=navigationTool({surfNavigation:true,surfCorrectness,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
+ const tool=navigationTool({surfNavigation:true,safeStrides:true,floor:true,truth:true,fullMap:false,read:()=>Promise.resolve(state),observe:()=>Promise.resolve(result()),
   press:(_id,params,_signal,check,options)=>{check?.(state);const press:Press={buttons:params.buttons,...(options?.stride===undefined?{}:{stride:options.stride})};presses.push(press);state=moved(state,press);
    return Promise.resolve(result(options?.stride===undefined?{}:{stride:{id:"s",...options.stride,automatic_running:false,completed:options.stride.path.length,frames:8,reason:"completed",stopped:true}}));}});
  return {tool,presses,now:()=>state};
@@ -191,12 +191,16 @@ describe("walker",()=>{
   expect(text).toContain("from the water");expect(text).not.toContain("on foot");
   expect(w.presses).toEqual([]);
  });
- it("returns the solid-tile reason from the coordinate navigation tool",async()=>{
-  const tiles=row({6:{collision:1}});
-  const w=walker(field(5,true,tiles),stepWith(tiles),true);
-  const out=await w.tool.execute("n",{x:6,y:0,map_id:[0,33]});
-  expect(out.details).toMatchObject({navigation:{status:"(6,0) is a solid tile"}});
-  expect(w.presses).toEqual([]);
+ it("returns the solid-tile reason through the production coordinate tool",async()=>{
+  const state=field(5,true,row({6:{collision:1}}));
+  const answer=()=>Promise.resolve({content:[],details:{state}});
+  const input=()=>{throw new Error("refusal must send no input");};
+  const press={name:"press",label:"press",description:"press",parameters:Type.Object({}),execute:input,executeChecked:input};
+  const observe={name:"observe",label:"observe",description:"observe",parameters:Type.Object({}),execute:answer};
+  const features={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),
+   "bounded-navigation-v1":true,"surf-navigation-v1":true,"surf-navigation-correctness-v1":true};
+  const tool=withNavigation([press,observe],features,{read:()=>Promise.resolve(state)}).find(t=>t.name==="navigate_to");
+  expect(await tool?.execute("n",{x:6,y:0,map_id:[0,33]})).toMatchObject({details:{navigation:{status:"(6,0) is a solid tile"}}});
  });
  it("with the switch off a surfer still gets the old refusal",async()=>{
   const tiles=row();let pressed=0;

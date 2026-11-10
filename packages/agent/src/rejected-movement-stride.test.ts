@@ -10,7 +10,7 @@ const field:GameStateSnapshot={...IN_GAME,started:true,screen:"overworld",in_bat
 const urlOf=(input:Parameters<typeof fetch>[0])=>typeof input==="string"?input:input instanceof URL?input.href:input.url;
 const grid=field.navigation_grid;if(grid==null)throw new Error("missing grid");
 const features=()=>({...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"navigation-tool-use-guard-v1":true,"safe-navigation-strides-v1":true,"rejected-movement-step-v1":true,"rejected-movement-stride-v1":true});
-function server(initial=field,completed?:number){
+function server(initial=field,completed?:number,omitSurfMode=false){
  let state=initial,plan:StridePlan|undefined;
  const png=Buffer.alloc(24);Buffer.from([137,80,78,71,13,10,26,10]).copy(png);png.write("IHDR",12);png.writeUInt32BE(240,16);png.writeUInt32BE(160,20);
  const fetchFn=vi.fn<typeof fetch>((input,init)=>{
@@ -23,7 +23,7 @@ function server(initial=field,completed?:number){
  if(url.endsWith("/pokebench/state"))body=state;
  else if(url.endsWith("/pokebench/observation"))body={state,state_text:"field",screenshot_base64:png.toString("base64")};
  else if(url.endsWith("/queue_status"))body={queue_empty:true};
- else if(url.includes("/pokebench/stride/")&&plan!==undefined)body={...plan,automatic_running:false,completed:completed??plan.path.length,frames:20,reason:completed===undefined?"completed":"battle",stopped:true};
+ else if(url.includes("/pokebench/stride/")&&plan!==undefined)body={...plan,...(omitSurfMode?{surfing:undefined}:{}),automatic_running:false,completed:completed??plan.path.length,frames:20,reason:completed===undefined?"completed":"battle",stopped:true};
  return Promise.resolve(new Response(JSON.stringify(body)));
  });
  const hooks={beforePress:vi.fn(),afterPress:()=>Promise.resolve()};
@@ -100,15 +100,19 @@ it("production stride-OFF prompt retains generic wording with either prefix stat
  expect(prior).not.toContain("one checked straight plain-floor prefix");expect(prior).not.toContain("A terminal native receipt");expect(playSystemPrompt({...f,"rejected-movement-prefix-v1":true},null)).toBe(prior);
 });
 
-it.each([0,1])("uses a frame-owned Surf step and stops after an interrupted receipt with %i completed",async completed=>{
+it.each([false,true])("checks a zero-step Surf interruption (mode receipt omitted: %s)",async omitSurfMode=>{
  const running=field.running;if(running==null)throw new Error("missing native mode");
  const surfing:GameStateSnapshot={...field,navigation_grid:{...grid,elevation:1,tiles:tiles.map(t=>({...t,elevation:1,behavior:0x15}))},
   running:{...running,avatar_flags:8,elevation:1,metatile:0x15}};
- const s=server(surfing,completed);
+ const s=server(surfing,0,omitSurfMode);
  const switches=toolSwitches({...features(),"rejected-movement-prefix-v1":true,"surf-navigation-v1":true,"surf-navigation-correctness-v1":true});
- const result=await pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},switches).execute("m",{buttons:["RIGHT","RIGHT"]});
+ const pending=pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},switches).execute("m",{buttons:["RIGHT","RIGHT"]});
+ if(omitSurfMode)await expect(pending).rejects.toThrow("Guarded Surf stride lacks a matching mode receipt");
+ else {
+  const result=await pending;
+  expect(text(result)).toContain("Surf stride interrupted (battle)");
+  expect(text(result)).toContain("walked 0 of 2 directions");
+  expect(text(result)).toContain('"dropped":["RIGHT"]');
+ }
  expect(s.posts()).toMatchObject([{url:"http://game/pokebench/stride",body:{surfing:true,path:[{x:1,y:0}]}}]);
- expect(text(result)).toContain("Surf stride interrupted (battle)");
- expect(text(result)).toContain(`walked ${String(completed)} of 2 directions`);
- expect(text(result)).toContain('"dropped":["RIGHT"]');
 });

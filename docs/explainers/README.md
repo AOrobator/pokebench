@@ -424,3 +424,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Teach the speedrun moveset](opus-rq-moveset-v1.html)
 
 - [Verified warp reachability](verified-warp-reach-v1.html)
+
+- [Surf movement and refusals](surf-navigation-correctness-v1.html)

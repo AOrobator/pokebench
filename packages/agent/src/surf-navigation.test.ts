@@ -1,6 +1,6 @@
 import {describe,expect,it} from "vitest";
 import type {AgentToolResult} from "@mariozechner/pi-agent-core";
-import {navigationTool,withNavigation,planNavigation,planStride,routeTiles,surfLaunch,gatedState,type NavigationOptions} from "./navigation.js";
+import {navigationTool,withNavigation,planNavigation,planStride,routeTiles,surfLaunch,gatedState,requestedStep,verifiedSurfRefusal,type NavigationOptions} from "./navigation.js";
 import {exitsLine} from "./harness-trust.js";
 import {Type} from "typebox";
 import type {GameStateSnapshot} from "./game-state.js";
@@ -275,4 +275,17 @@ describe("production wiring",()=>{
   expect(await walk(false)).toBe(0);
   expect(await walk(true)).toBeGreaterThan(0);
  });
+});
+
+it("uses native Surf mode for guarded batches and gives terrain-backed refusals",()=>{
+ const rules={ledges:true,oneWay:true,floor:true,elevation:"game",fieldMoveGates:true} as const;
+ const tiles=row({0:{behavior:OCEAN,elevation:1},1:{behavior:OCEAN,elevation:1},4:{behavior:0,elevation:3,collision:1},5:{behavior:CURRENT_EAST}});
+ const riding=field(0,true,tiles);
+ expect(requestedStep(riding,"RIGHT",rules)).toEqual({ok:false,reason:"(1,0) is water"});
+ expect(requestedStep(riding,"RIGHT",{...rules,surf:true})).toMatchObject({ok:true,landing:{x:1,y:0},stride:{surfing:true,path:[{x:1,y:0}]}});
+ expect(requestedStep(field(0,false,tiles),"RIGHT",{...rules,surf:true}).ok).toBe(false);
+ expect(requestedStep({...riding,running:null},"RIGHT",{...rules,surf:true}).ok).toBe(false);
+ expect(verifiedSurfRefusal(riding,{x:4,y:0},ON)).toBe("(4,0) is a solid tile");
+ expect(verifiedSurfRefusal(riding,{x:5,y:0},ON)).toContain("tile pushes right");
+ expect(verifiedSurfRefusal(riding,{x:3,y:0},ON)).toBe("No verified Surf route from (0,0) to (3,0)");
 });

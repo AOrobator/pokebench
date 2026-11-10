@@ -99,3 +99,15 @@ it("production stride-OFF prompt retains generic wording with either prefix stat
  const f={...features(),"rejected-movement-stride-v1":false,"rejected-movement-prefix-v1":false},prior=playSystemPrompt(f,null);
  expect(prior).not.toContain("one checked straight plain-floor prefix");expect(prior).not.toContain("A terminal native receipt");expect(playSystemPrompt({...f,"rejected-movement-prefix-v1":true},null)).toBe(prior);
 });
+
+it("uses frame-owned single Surf steps and stops the batch on an interrupted receipt",async()=>{
+ const running=field.running;if(running==null)throw new Error("missing native mode");
+ const surfing:GameStateSnapshot={...field,navigation_grid:{...grid,elevation:1,tiles:tiles.map(t=>({...t,elevation:1,behavior:0x15}))},
+  running:{...running,avatar_flags:8,elevation:1,metatile:0x15}};
+ const s=server(surfing,1);
+ const switches=toolSwitches({...features(),"rejected-movement-prefix-v1":true,"surf-navigation-v1":true,"surf-navigation-correctness-v1":true});
+ const result=await pressTool("http://game",s.hooks,s.fetchFn,{now:()=>0,sleep:()=>Promise.resolve()},switches).execute("m",{buttons:["RIGHT","RIGHT"]});
+ expect(s.posts()).toMatchObject([{url:"http://game/pokebench/stride",body:{surfing:true,path:[{x:1,y:0}]}}]);
+ expect(text(result)).toContain("Surf stride interrupted (battle)");
+ expect(text(result)).toContain('"dropped":["RIGHT"]');
+});

@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,routeTiles,surfLaunch,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,routeTiles,surfLaunch,verifiedSurfRefusal,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -642,7 +642,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
       return withStatus(walked,navigationStatus(walked)??"stopped at the water",selected,request.target,false);
      }
     }
-    if(isSurfing(planned)&&here!==null)return withStatus({content:[],details:{state:before}},`no supported route to a valid approach: ${waterReason(planned,target??here)}`,selected,request.target,false);
+    if(isSurfing(planned)&&here!==null)return withStatus({content:[],details:{state:before}},`no supported route to a valid approach: ${features["surf-navigation-correctness-v1"]?verifiedSurfRefusal(planned,target,options):waterReason(planned,target??here)}`,selected,request.target,false);
    }
    if(choice===undefined){
     const base=request.target.kind==="warp"&&goalOnlyTile(planned,{x:request.target.x,y:request.target.y},options)?`no supported route to the step-on warp at (${String(request.target.x)},${String(request.target.y)})`:"no supported route to a valid approach";

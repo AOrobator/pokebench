@@ -1,0 +1,9 @@
+# Surf movement and refusals
+
+**Status:** Candidate, pending full checks and independent review.
+
+- Opus 12bf turn 39 refused all manual RIGHT inputs from (60,6) because the next tile was water. Turn 40 navigated through the same tile. The guarded prefix used the land-only planner options despite native Surf mode. The generic Surf refusal also attributed failed searches to generic mechanics without evidence.
+- The correctness switch uses the native avatar flag and existing Surf planner for each guarded input. The game server's existing frame-owned stride stops an ordinary water step at one tile. An interrupted receipt ends the batch. Foot and unknown-mode states keep the conservative behavior. Forced transitions without a verified stride can use the existing destination tools.
+- Both current arms and Opus Rayquaza opt in. Old presets omit the switch and retain prior behavior. No runtime changes to the active run.
+- Four hash-validated raw snapshots from run 12bf replayed via production GameState. Sequence 1494 authorizes the exact Surf stride to (61,6). Sequence 1486 reports an unverified route to (70,6), and 1713 identifies the solid tile at (72,11). Sequence 1544 independently shows native passage to (63,6). Proof under `runs/proofs/surf-navigation-correctness/`. Native source reference `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` (`CanStopSurfing` and `DoForcedMovement`).
+- Focused tests passed for confirmed Surf, walking, unknown mode, terrain facts, and a guarded stride interrupted by battle. Raw replay is offline and does not resume the model.

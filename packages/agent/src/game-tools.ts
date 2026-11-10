@@ -346,15 +346,19 @@ export function pressTool(
     let previous=before,expected=before.position,last:AgentToolResult<{state:GameStateSnapshot|undefined;stride?:StrideReceipt;starterPick?:true}>|undefined,stop:string|null=null;
     for(const [i,direction] of requested.entries()){
       const planned:{step:RequestedStepOk|null;refusal:string}={step:null,refusal:"walking was interrupted"};
+      const checked:CheckedPressOptions&{stride?:StrideCorridor}={automaticRunning:false,...(trail===null?{}:{pressNote:after=>trail.add(previous,after,direction)})};
       try {
         last=await execute(toolCallId,{buttons:[direction]},signal,update,actual=>{
           if(actual===undefined||!freeToWalk(actual)||!sameMapId(actual.map_id,before.map_id)||expected===null||actual.position===null||actual.position.x!==expected.x||actual.position.y!==expected.y)throw new PrefixStop();
           const step=requestedStep(actual,direction,rules);
           if(!step.ok){planned.refusal=step.reason;throw new PrefixStop();}
           planned.step=step;
-        },{automaticRunning:false,...(trail===null?{}:{pressNote:after=>trail.add(previous,after,direction)})});
+          if(step.stride!==undefined)checked.stride=step.stride;
+        },checked);
       } catch(error){if(!(error instanceof PrefixStop))throw error;stop=`Stopped before step ${String(i+1)}: ${planned.refusal}`;break;}
       submitted.push(direction);
+      const receipt=last.details.stride;
+      if(checked.stride!==undefined&&receipt?.reason!=="completed"){stop=`Stopped after step ${String(i+1)}: Surf stride interrupted (${receipt?.reason??"receipt unavailable"})`;break;}
       const after=last.details.state,step=planned.step;
       if(step===null)throw new Error("Requested movement step lacks its checked landing");
       if(after===undefined||!sameMapId(after.map_id,before.map_id)){stop=`Stopped after step ${String(i+1)}: the map changed`;break;}

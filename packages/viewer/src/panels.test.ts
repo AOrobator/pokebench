@@ -1452,3 +1452,13 @@ it("links the four Opus Rayquaza decision cards and keeps them OFF for new runs"
   expect(card.textContent).toContain("NOT RECORDED");
  }
 });
+
+it("links the Dive and native screen correctness card",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="opus-trace-correctness-v1";
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card.textContent).toContain("NOT RECORDED");
+});

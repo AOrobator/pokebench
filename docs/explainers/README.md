@@ -428,3 +428,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Surf movement and refusals](surf-navigation-correctness-v1.html)
 
 - [Verified Waterfall handoff](waterfall-handoff-verification-v1.html)
+- [Dive and native screen correctness](opus-trace-correctness-v1.html)

@@ -12,7 +12,7 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from pokebench_env.game_screen import ReadMemory, Screen
+from pokebench_env.game_screen import CB2_CREDITS, WARP_HANDOFF_CALLBACKS, ReadMemory, Screen
 from pokebench_env.gba_text import GBA_TEXT
 from pokebench_env.menus import MenuValue
 from pokebench_env.transition_coherence import CB2_WHITE_OUT, HANDOFF_CALLBACKS
@@ -369,6 +369,7 @@ def read_active_ui(
     party_menu_message: bool = False,
     bag_pocket_truth: bool = False,
     tmhm_learning: bool = False,
+    opus_trace_correctness: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
     pokenav_short_list: bool = False,
@@ -442,6 +443,30 @@ def read_active_ui(
                 "Wild/trainer battle animation is automatic",
                 details=owner_details(read, screen.callback2),
             )
+
+    if opus_trace_correctness:
+        from pokebench_env.menus import PALETTE_FADE, read_party_field_move_refusal, task_snapshot
+
+        if screen.callback2 in WARP_HANDOFF_CALLBACKS:
+            return ActiveUi("field_transition", None, False, "Field transition in progress")
+        if screen.callback2 == CB2_CREDITS:
+            # Task_CreditsTheEnd6 owns the visible end card and watches new keys.
+            end = any(function == 0x08175C35 for _, function, _ in task_snapshot(read))
+            if end:
+                fading = bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
+                return ActiveUi(
+                    "credits_the_end",
+                    None,
+                    not fading,
+                    "THE END. A button press restarts the game"
+                    if not fading
+                    else "THE END is fading in",
+                )
+            return ActiveUi("credits", None, False, "The credits are rolling")
+        if screen.kind == "party_menu":
+            refusal = read_party_field_move_refusal(read)
+            if refusal is not None:
+                return refusal
 
     lifecycle_ui = read_pokemon_lifecycle_menu(
         read, screen.callback2, evolution_decision=evolution_decision

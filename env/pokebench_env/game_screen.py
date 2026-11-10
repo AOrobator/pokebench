@@ -137,6 +137,11 @@ SCREENS: dict[int, str] = {
 }
 
 
+# US Emerald callbacks seen in the archived Route 116, Sky Pillar and Dive handoffs.
+WARP_HANDOFF_CALLBACKS = frozenset({0x081371D5, 0x081D67D1})
+CB2_CREDITS = 0x081754DD
+
+
 @dataclass(frozen=True)
 class Screen:
     kind: str
@@ -150,7 +155,9 @@ class Screen:
         return self.kind
 
 
-def read_screen(read: ReadMemory, *, blackout_transition: bool = False) -> Screen:
+def read_screen(
+    read: ReadMemory, *, blackout_transition: bool = False, opus_trace_correctness: bool = False
+) -> Screen:
     raw = read(GMAIN, 8)
     if len(raw) != 8:
         raise ValueError(f"short read of gMain callbacks: {len(raw)} bytes")
@@ -164,6 +171,11 @@ def read_screen(read: ReadMemory, *, blackout_transition: bool = False) -> Scree
     kind = SCREENS.get(callback2, "unknown")
     if blackout_transition and callback2 == 0x08085F59:
         kind = "field_transition"
+    if opus_trace_correctness:
+        if callback2 in WARP_HANDOFF_CALLBACKS:
+            kind = "field_transition"
+        elif callback2 == CB2_CREDITS:
+            kind = "credits"
     if kind == "menu_program":
         tasks = read(TASKS, 16 * 0x28)
         if len(tasks) != 16 * 0x28:

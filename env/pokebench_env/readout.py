@@ -230,6 +230,7 @@ SERVER_FEATURES = (
     FIELD_CALL_SWITCH,
     OBSTACLE_RESPAWN,
     "tmhm-learning-visibility-v1",
+    "opus-trace-correctness-v1",
     "waterfall-handoff-verification-v1",
 )
 
@@ -260,7 +261,7 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "shop-interface-v1,map-wide-triggers-v1,"
         "birch-intro-pages-v1,post-battle-readout-v1,move-learn-early-comparison-v1,poison-readout-v1,berry-readout-v1,battle-move-learn-input-v1,coherent-battle-observation-v1,"
         "window-escape-route-v1,"
-        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,tmhm-learning-visibility-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
+        "elevation-aware-map-v1,screen-center-player-v1,blackout-transition-v1,player-elevation-readout-v1,party-menu-message-v1,tmhm-learning-visibility-v1,opus-trace-correctness-v1,interface-guidance-v1,active-warp-exits-v1,available-exits-presentation-v1,bag-pocket-truth-v1,cutscene-journal-v1,scene-journal-safe-capture-v1,"
         "type-gap-team-v1,pokenav-short-list-v1,neutral-yes-no-readout-v1,pokenav-call-auto-advance-v1,player-map-visibility-v2,compact-map-grid-v1,compact-map-base-glyph-v1,authored-scene-labels-v1,warp-target-navigation-v1,stable-map-codes-v1,solid-tile-leads-v1,deep-south-warp-label-v1,moving-npc-intercept-v1,warp-areas-v1,"
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
@@ -458,7 +459,14 @@ def format_readout(
         *((BIRCH_PAGE,) if BIRCH_PAGES not in off else ()),
         *((INTRO_PHASE,) if INTRO_SWITCH not in off else ()),
     }
-    omitted_ui = not expanded and ui is not None and ui.phase not in incumbent_phases
+    native_opus_ui = (
+        "opus-trace-correctness-v1" not in off
+        and ui is not None
+        and ui.phase in {"credits", "credits_the_end", "party_field_move_refusal"}
+    )
+    omitted_ui = (
+        not expanded and not native_opus_ui and ui is not None and ui.phase not in incumbent_phases
+    )
     if omitted_ui:
         lines = [
             f"Screen: {state.screen}",
@@ -478,7 +486,7 @@ def format_readout(
         if box is not None:
             lines.append(box)
         elif ui is not None:
-            lines.append((ui if expanded else replace(ui, details=None)).text())
+            lines.append((ui if expanded or native_opus_ui else replace(ui, details=None)).text())
         # yes-no-answer-readout-v1: how to answer the other option of the open YES/NO box.
         answer = (
             answer_line(state, neutral="neutral-yes-no-readout-v1" not in off)

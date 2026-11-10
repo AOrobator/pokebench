@@ -391,6 +391,7 @@ export const SWITCHABLE_FEATURES = [
   "tmhm-learning-visibility-v1",
   "verified-warp-reach-v1",
   "surf-navigation-correctness-v1",
+  "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -904,6 +905,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("tmhm-learning-visibility-v1", "observation", "TM/HM LEARNING VISIBILITY", null, "Correctness switch for both arms. Identifies native TM/HM move-learning messages and readiness. Reports the verified move selection as pending until the party slot changes. Off: previous message and tool feedback."),
   on("verified-warp-reach-v1", "observation", "VERIFIED WARP REACHABILITY", null, "Checks a warp against the navigation planner before calling it reachable. Keeps known warps without a verified route separate. Off: the exit header uses the original terrain flood."),
   on("surf-navigation-correctness-v1", "observation", "SURF MOVEMENT AND REFUSALS", null, "Uses native Surf mode for guarded direction batches and reports known destination obstacles without guessing at why a Surf route failed. Off: guarded batches use land rules and Surf refusals use the legacy explanation."),
+  on("opus-trace-correctness-v1", "observation", "DIVE AND NATIVE SCREEN CORRECTNESS", null, "Recognizes Dive movement and underwater doors, warp and surfacing transitions, credits and party field-move refusals. Off: previous routes and readouts."),
   on("waterfall-handoff-verification-v1", "observation", "VERIFIED WATERFALL HANDOFF", null, "Checks the settled game state before reporting a Waterfall handoff or suggesting A. Off: navigation reports the planned facing after its turn attempt."),
 ];
 
@@ -1031,6 +1033,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "field-call-input-v1",
   "field-obstacle-respawn-v1",
   "tmhm-learning-visibility-v1",
+  "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
 ];
 
@@ -1407,6 +1410,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("tmhm-learning-visibility-v1"),
     ...when("verified-warp-reach-v1"),
     ...when("surf-navigation-correctness-v1"),
+    ...when("opus-trace-correctness-v1"),
     ...when("waterfall-handoff-verification-v1"),
   ];
 }

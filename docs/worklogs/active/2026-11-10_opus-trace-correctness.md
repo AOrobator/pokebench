@@ -1,0 +1,25 @@
+# Opus trace correctness
+
+The operator requested the four open defects from the Opus 5.5 audit be landed as correctness fixes in both current arms.
+
+## Milestone
+
+- Underwater Sootopolis door. Restore the native Dive path proven by run 69d8 states 31298 and 31327 and results 31328 and 31341.
+- Credits and THE END. Identify the distinct native phases in b5a8 states 3024 and 3366. Preserve run termination policy and game-clear accounting.
+- Warp and surfacing transitions. Identify callback 0x081371D5 and callback 0x081D67D1 while keeping field input locked.
+- Party-menu field move refusal. Read the native message and acknowledgment owner in 69d8 states 20259 and 20266.
+
+Use a registered switch with historical OFF behavior and activate in both current arms. Verify with checksum-validated raw RAM, production factories, focused regressions, full gates, independent review and the shared landing board.
+
+## Status
+
+Isolated worktree created at main 710665101. Implementation and landing in progress.
+
+## Candidate evidence
+
+- Current recipe explicitly enables `opus-trace-correctness-v1` in `onInBoth`. Older presets that omit it preserve OFF.
+- Production warp verification replay on three hash-validated 69d8 observations from the underwater approach: OFF rejected all three, ON accepted all three. The expected native path is present in the original input trace.
+- Production environment replay with the switch OFF and ON confirms the warp and surfacing handoffs, rolling credits, THE END and the ready party-menu refusal. Hall of Fame state 2932 remains Hall of Fame. See `runs/proofs/opus-trace-correctness/`.
+- Focused agent suites 72 tests and environment suites 106 tests passed. Agent type checking and changed-file lint passed. Full gates, independent review and landing are pending.
+- The Dive semantic-routing regression failed when its production switch wiring was removed, then passed after restoration.
+- The existing structured state/tool events carry corrected screen and menu facts. No event schema, timeline, stop conditions, or historical traces change.

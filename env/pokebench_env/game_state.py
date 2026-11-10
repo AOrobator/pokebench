@@ -426,6 +426,7 @@ def read_game_state(
     interface_guidance_enabled: bool = False,
     bag_pocket_truth_enabled: bool = False,
     tmhm_learning_enabled: bool = False,
+    opus_trace_correctness_enabled: bool = False,
     waterfall_handoff_enabled: bool = False,
     pokenav_short_list_enabled: bool = False,
     pokenav_call_advance_enabled: bool = False,
@@ -445,7 +446,11 @@ def read_game_state(
     move_matchup_enabled: bool = False,
     respawn_links: LinkCache | None = None,
 ) -> GameState:
-    screen = read_screen(read, blackout_transition=blackout_transition_enabled)
+    screen = read_screen(
+        read,
+        blackout_transition=blackout_transition_enabled,
+        opus_trace_correctness=opus_trace_correctness_enabled,
+    )
     coherent = transition_coherence_enabled
     # transition-coherence-v1: CB2_HandleStartBattle is the battle start, not an unknown screen.
     label = (
@@ -475,6 +480,7 @@ def read_game_state(
         party_menu_message=party_menu_message_enabled,
         bag_pocket_truth=bag_pocket_truth_enabled,
         tmhm_learning=tmhm_learning_enabled,
+        opus_trace_correctness=opus_trace_correctness_enabled,
         pokenav_short_list=pokenav_short_list_enabled,
         pokenav_call_advance=pokenav_call_advance_enabled,
         field_call_input=field_call_input_enabled,

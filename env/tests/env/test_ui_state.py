@@ -483,3 +483,45 @@ def test_wild_battle_entry_qualifies_native_start_task():
     put_task(m, 0, 0x080B05F1, [1, 0])
     ui = read_active_ui(m.read, Screen("transition", 0, 0x08085E51))
     assert ui.phase == "battle_transition" and not ui.ready and ui.diagnostic is None
+
+
+def test_opus_credits_uses_the_native_end_task() -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.menus import PALETTE_FADE
+    from pokebench_env.ui_state import read_active_ui
+
+    memory = Memory()
+    screen = Screen("credits", 0x08085E05, 0x081754DD)
+    rolling = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert rolling is not None and rolling.phase == "credits" and rolling.ready is False
+
+    memory.put(TASKS, struct.pack("<IB", 0x08175C35, 1))
+    end = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert end is not None and end.phase == "credits_the_end" and end.ready is True
+    memory.put(PALETTE_FADE + 7, b"\x80")
+    fading = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert fading is not None and fading.ready is False
+
+
+def test_opus_party_field_move_refusal_requires_the_drawn_owner_window() -> None:
+    from pokebench_env.game_screen import TASKS, Screen
+    from pokebench_env.menus import PARTY_INTERNAL
+    from pokebench_env.ui_state import WINDOW_SIZE, read_active_ui
+
+    memory = Memory()
+    screen = Screen("party_menu", 0, 0x081B01B1)
+    internal, window = 0x02000010, 8
+    memory.put(TASKS, struct.pack("<IB", 0x081B57B5, 1))
+    memory.put(PARTY_INTERNAL, struct.pack("<I", internal))
+    memory.put(internal + 13, bytes([window]))
+    message(memory, text("Can't use that here."))
+    memory.put(
+        WINDOWS + WINDOW_SIZE * window, struct.pack("<BBBBBBHI", 0, 1, 1, 3, 2, 0, 0, TILE_DATA)
+    )
+    memory.put(TILE_DATA, b"\x01\x00")
+    ui = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert ui is not None and ui.phase == "party_field_move_refusal" and ui.ready is True
+    assert ui.details is not None and ui.details["message"] == "Can't use that here."
+    memory.put(TILE_DATA, b"\x00")
+    unknown = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert unknown is not None and unknown.phase != "party_field_move_refusal"

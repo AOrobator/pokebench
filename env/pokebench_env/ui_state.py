@@ -450,12 +450,12 @@ def read_active_ui(
         if screen.callback2 in WARP_HANDOFF_CALLBACKS:
             return ActiveUi("field_transition", None, False, "Field transition in progress")
         if screen.callback2 == CB2_CREDITS:
-            functions = {function for _, function, _ in task_snapshot(read)}
+            credits_tasks = {function for _, function, _ in task_snapshot(read)}
             # Task_CreditsTheEnd6 installs Task_CreditsSoftReset before the fade.
             # US ROM 0x08175C7A loads 0x08175CC9 and stores it to gTasks[taskId].func.
-            if 0x08175CC9 in functions:
+            if 0x08175CC9 in credits_tasks:
                 return ActiveUi("credits_restart", None, False, "Restarting after THE END")
-            if 0x08175C35 in functions:
+            if 0x08175C35 in credits_tasks:
                 fading = bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
                 return ActiveUi(
                     "credits_the_end",
@@ -467,7 +467,7 @@ def read_active_ui(
                 )
             controls = (
                 "The credits are rolling"
-                if 0x08175775 in functions
+                if 0x08175775 in credits_tasks
                 else "Credits sequence in progress"
             )
             return ActiveUi("credits", None, False, controls)

@@ -35,3 +35,18 @@ ends immediately at quota acquisition because the blocked turn cannot finish.
 An older deferred Resume is retired as quota takes ownership. The isolated
 browser rehearsal passed again on the revision with two successful operator
 retry authorizations, one continuous hold, and unchanged Claude session/prompt.
+
+## Landing evidence
+
+The operator directly cleared the full checks and local main landing. Claude and
+independent GPT approved frozen candidate f1c175e8a on base 710665101 with
+binary diff SHA-256 fa02acd58c1d84e0436d062cec2c18fba721cc8c8768ef2bf5f5c1271ed305ae.
+Grok was waived under the standing all-branch waiver of 2026-10-22.
+
+Prelanding lint, test/build/coverage and vendor verification passed. Fast-forwarded
+main to f1c175e8a. Post-main test/build/coverage passed, and the headless viewer
+rehearsal against main passed with two manual clicks, the same prompt and session,
+and 6,029 ms of continuous paused time. The prior browser Stop rehearsal verified
+operator_stop with no quota retry. Logs are in
+`runs/proofs/manual-claude-quota/landing/round-2/`. No boot run or served viewer
+restart.

@@ -61,7 +61,7 @@ it, so a `max_tokens 8192` sampling cap is what actually bounds replies.
 
 ## Preflight every stop condition
 
-Before starting, compare the authorized limits with the effective preset, gateway, and any wrapper or supervisor. Record the comparison in the launch receipt. Verify all turn, wall-clock, milestone, token, and spend stops, including defaults inherited from a previous run. Apply the [run-limit authorization rules](../pokebench-run-coordination/SKILL.md#run-limits-belong-to-the-operator) to resolve any mismatch.
+Before starting, compare the authorized limits with the effective preset, gateway, and any wrapper or supervisor. Write the comparison to a separate preflight receipt under the run’s ignored artifacts so the launcher can write its own receipt independently. Verify all turn, wall-clock, milestone, token, and spend stops, including defaults inherited from a previous run. Apply the [run-limit authorization rules](../pokebench-run-coordination/SKILL.md#run-limits-belong-to-the-operator) to resolve any mismatch.
 
 For example, for an Opus Max run authorized for 600 turns or two hours, the supervisor's API-equivalent spend threshold must be disabled. The gateway may still record its estimate. Confirm the effective stop settings before the detached process starts because some supervisors read them only once.
 

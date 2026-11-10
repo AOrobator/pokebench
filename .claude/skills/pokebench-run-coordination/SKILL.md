@@ -59,4 +59,4 @@ This is an operator workflow requirement, not an implemented universal bridge, b
 
 ## Minimum receipt
 
-Record user authorization, recipients, exact reservation proposal, acknowledgments, endpoint/owner snapshot, planned and actual counts, operator-authorized stop conditions, effective preset and supervisor stop conditions, and release/stop status under the study's ignored `runs/` artifacts. Report messages as **queued** versus **delivered** versus **acknowledged** according to evidence. No acknowledgment means coordination remains pending.
+Record user authorization, recipients, exact reservation proposal, acknowledgments, endpoint/owner snapshot, planned and actual counts, operator-authorized stop conditions, effective preset, gateway, and wrapper or supervisor stop conditions, and release/stop status under the study's ignored `runs/` artifacts. Report messages as **queued** versus **delivered** versus **acknowledged** according to evidence. No acknowledgment means coordination remains pending.

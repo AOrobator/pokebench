@@ -50,8 +50,8 @@ Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not ge
 
 ## M3: Rollout (no feature code)
 
-- [ ] Operator `.env` gains `POKEBENCH_ENDPOINT_FILE` (the Hermes file it used implicitly) so viewer-queued runs keep working; `just viewer-main`; confirm the served viewer reports the same endpoint as before.
-- [ ] Land on main per execute-worklog (landing board, ff-only), report merge SHA.
+- [ ] HELD (coordinator 2026-11-10: `just viewer-main` needs the operator's own OK; a live run may be on 8790). Operator `.env` gains `POKEBENCH_ENDPOINT_FILE` (the Hermes file it used implicitly) so viewer-queued runs keep working; `just viewer-main`; confirm the served viewer reports the same endpoint as before.
+- [x] Land on main per execute-worklog (landing board, ff-only), report merge SHA. Landed 2026-11-10 11:24 AM: `main` fast-forwarded to 3ea864c1b. Post-merge `just test` on main exit 0: agent 2978 passed (63.97/60.15/63.39/69.42), viewer 1247 passed (41.77/44.26/47.01/42.45), env 3065, Claude gateway 38.
 
 ## M4: Carry into the public copy
 

@@ -492,8 +492,10 @@ def test_opus_credits_uses_the_native_end_task() -> None:
 
     memory = Memory()
     screen = Screen("credits", 0x08085E05, 0x081754DD)
+    memory.put(TASKS, struct.pack("<IB", 0x08175775, 1))
     rolling = read_active_ui(memory.read, screen, opus_trace_correctness=True)
     assert rolling is not None and rolling.phase == "credits" and rolling.ready is False
+    assert rolling.controls == "The credits are rolling"
 
     memory.put(TASKS, struct.pack("<IB", 0x08175C35, 1))
     end = read_active_ui(memory.read, screen, opus_trace_correctness=True)
@@ -501,6 +503,14 @@ def test_opus_credits_uses_the_native_end_task() -> None:
     memory.put(PALETTE_FADE + 7, b"\x80")
     fading = read_active_ui(memory.read, screen, opus_trace_correctness=True)
     assert fading is not None and fading.ready is False
+
+    memory.put(TASKS, struct.pack("<IB", 0x08175CC9, 1))
+    restart = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert restart is not None and restart.phase == "credits_restart" and restart.ready is False
+
+    memory.put(TASKS, struct.pack("<IB", 0x08175B91, 1))
+    transition = read_active_ui(memory.read, screen, opus_trace_correctness=True)
+    assert transition is not None and transition.controls == "Credits sequence in progress"
 
 
 def test_opus_party_field_move_refusal_requires_the_drawn_owner_window() -> None:

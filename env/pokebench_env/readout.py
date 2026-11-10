@@ -462,7 +462,8 @@ def format_readout(
     native_opus_ui = (
         "opus-trace-correctness-v1" not in off
         and ui is not None
-        and ui.phase in {"credits", "credits_the_end", "party_field_move_refusal"}
+        and ui.phase
+        in {"credits", "credits_the_end", "credits_restart", "party_field_move_refusal"}
     )
     omitted_ui = (
         not expanded and not native_opus_ui and ui is not None and ui.phase not in incumbent_phases

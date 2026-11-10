@@ -32,3 +32,9 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 - The operator explicitly cleared full checks and reviews. The first full lint reached Python type checking and stopped because the isolated checkout lacked the mGBA binding. Installed the verified local mGBA package into the isolated environment and confirmed import. Synced with main at f1c175e8a before retrying.
 - Full lint, build, coverage, no-I/O proof, and vendor verification passed on 13d782ff4. Subsequent main update 05b63718c contains only quota landing notes. The worklog-only sync preserves the tested executable tree.
 - The archived Dive approach also replayed through both compiled production tool factories using recorded native states as press responses. OFF issued no presses. ON issued three checked UP inputs and returned the recorded destination map 24/5. Receipt: `runs/proofs/opus-trace-correctness/dive-execution.log`.
+
+## Review round 1
+
+- Frozen base 05b63718c, head c1b8df824, binary diff SHA-256 `07f3af203f4e8c21b2e69cdc417c874483ee468628896c02424dd5f429c0e838`. Claude returned LGTM. The independent GPT review identified the post-THE-END reset mislabel and requested a built viewer click-through and served-route receipt.
+- Both Grok 4.5 and Grok 4.7 attempts were rejected by the same Cursor account usage limit. Astra and Terra returned LGTM as read-only fallbacks. They do not substitute for a Grok verdict on the landing gate.
+- Fixed the credits reset decoder within the frozen behavior. Native source `Task_CreditsTheEnd6` changes the task owner before the fade, and the matching ROM instruction pair at 0x08175C7A and 0x08175C7C installs 0x08175CC9. The decoder now reports restart with input unavailable. Only the verified rolling owner gets a rolling readout. Focused environment test 69 passed.

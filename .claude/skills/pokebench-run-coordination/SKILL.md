@@ -19,6 +19,12 @@ Operator decision, 2026-10-22: coordinate with everyone affected before starting
 
 Use the existing decision-probes or fixed-run-launch skill for frozen inputs, fake rehearsal, registration, sampling and proof. This skill does not approve experiments or replace those requirements.
 
+## Run limits belong to the operator
+
+- Record the operator-authorized stopping conditions separately from the shared reservation and from estimates. A reservation grants access to shared resources. A scheduler fallback, inherited supervisor default, or cost estimate is never permission to add or shorten a run limit.
+- For a subscription-backed run authorized for a number of turns and a duration, apply those limits. Keep estimated API-equivalent dollars as telemetry only, with no stop threshold unless the operator explicitly sets one. Provider quota and errors can still end inference. Report those separately from local stops.
+- If an owner offers a window only with an extra or tighter stop condition, request a window that matches the authorized run. If that is unavailable, tell the operator what changed and get their decision before launch. Do not silently apply the condition or bypass the resource owner's reservation.
+
 ## Attached harness capture preflight
 
 The first implemented adapter is the opt-in `just codex-capture` bridge. Read [its local mechanism and commands](../../../docs/explainers/codex-capture.html). It archives one Codex player session, keeps source/summary/action provenance, and binds recorded game turns through tool-call IDs. It rejects unarchived player child-session spawning. It does not attach to or modify an existing running bridge. The preflight and launch authorization below still apply; an empty real-model rehearsal remains inconclusive for readable-summary availability.
@@ -53,4 +59,4 @@ This is an operator workflow requirement, not an implemented universal bridge, b
 
 ## Minimum receipt
 
-Record user authorization, recipients, exact reservation proposal, acknowledgments, endpoint/owner snapshot, planned and actual counts, and release/stop status under the study's ignored `runs/` artifacts. Report messages as **queued** versus **delivered** versus **acknowledged** according to evidence. No acknowledgment means coordination remains pending.
+Record user authorization, recipients, exact reservation proposal, acknowledgments, endpoint/owner snapshot, planned and actual counts, operator-authorized stop conditions, effective preset and supervisor stop conditions, and release/stop status under the study's ignored `runs/` artifacts. Report messages as **queued** versus **delivered** versus **acknowledged** according to evidence. No acknowledgment means coordination remains pending.

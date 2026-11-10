@@ -50,7 +50,7 @@ Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not ge
 
 ## M3: Rollout (no feature code)
 
-- [ ] HELD (coordinator 2026-11-10: `just viewer-main` needs the operator's own OK; a live run may be on 8790). Operator `.env` gains `POKEBENCH_ENDPOINT_FILE` (the Hermes file it used implicitly) so viewer-queued runs keep working; `just viewer-main`; confirm the served viewer reports the same endpoint as before.
+- [x] the operator OK 2026-11-10 11:27 AM ("do both"). Operator `.env` gains `POKEBENCH_ENDPOINT_FILE` (the Hermes file it used implicitly) so viewer-queued runs keep working; `just viewer-main`; confirm the served viewer reports the same endpoint as before.
 - [x] Land on main per execute-worklog (landing board, ff-only), report merge SHA. Landed 2026-11-10 11:24 AM: `main` fast-forwarded to 3ea864c1b. Post-merge `just test` on main exit 0: agent 2978 passed (63.97/60.15/63.39/69.42), viewer 1247 passed (41.77/44.26/47.01/42.45), env 3065, Claude gateway 38.
 
 ## M4: Carry into the public copy
@@ -74,3 +74,5 @@ Round 2 GPT lane (relay-run `codex exec`, gpt-5.6-sol, read-only, digest verifie
 Round 3 packet: base f8ee5f034, head 2235ffc98, SHA-256 1b0f176cb3f60d8bfb7cb75f1a35daa34e3863581eb9559bcc85678d04697944. Claude CLI: VERDICT: LGTM (`claude3.log`). GPT family: VERDICT: LGTM (`codex-gpt-r3.md`), run by the Mac relay as `codex exec` gpt-5.6-sol read-only after Cursor GPT hit its usage limit (standing harness-switch authorization; the Codex coordinator thread was idle). Grok: waived per the operator (out until 11/17), disclosed. Non-blocking queue-route ordering note: pre-existing, rebutted.
 
 Integration: merged main 362f1078d into the branch (daa5f73b4, clean). Main's overlap is the verified-warp-reach-v1 feature (viewer panels/next-run tests, server.ts lines unrelated to `NO_ENDPOINT`); classified unaffected. Focused post-merge checks: agent and viewer `tsc --noEmit` clean; agent config 18 passed; viewer next-run-endpoint + next-run 6 passed after rebuilding the agent dist (first run used a dist built before the merge and lacked the new switch).
+
+Rollout 2026-11-10 11:28 AM: `.env` gained `POKEBENCH_ENDPOINT_FILE` (Hermes's router file, as the old viewer used implicitly); `just viewer-main` exit 0, "1 live gameplay process(es) kept running", viewer at 5780cec90. New viewer log: `next runs: local models from <Hermes server.json>`, same as before. Live run 2026-11-10T11-25-21_opus-post-juan-hof_12bf (pid 46542) still running and listed live; `/` 200. `/api/models` answers `fetch failed` because the Hermes server is not running (Hermes kept off on this Mac); queuing from the viewer works again once it is.

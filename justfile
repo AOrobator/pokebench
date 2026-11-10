@@ -108,7 +108,8 @@ serve: build
 smoke:
     cd env && uv run python -m pokebench_env.smoke
 
-# Live LLM smoke: pi agent loop on the gateway, screenshot tool on the game server it spawns.
+# Live LLM smoke: pi agent loop on the configured model endpoint (docs/connect-a-model.md), screenshot
+# tool on the game server it spawns. Needs POKEBENCH_MODEL and POKEBENCH_GATEWAY_URL or POKEBENCH_ENDPOINT_FILE.
 smoke-llm: build
     node packages/agent/dist/live.js smoke
 

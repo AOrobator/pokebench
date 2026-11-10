@@ -28,10 +28,12 @@ RED run 2026-11-10: agent `config.test.ts` 10 failed / 8 passed; viewer `next-ru
 - [x] RED: `loadConfig` with neither `POKEBENCH_GATEWAY_URL` nor `POKEBENCH_ENDPOINT_FILE` throws the same kind of error; either one alone is accepted.
 - [x] RED: viewer startup with no `POKEBENCH_ENDPOINT_FILE` has `endpointFile === null` even when a Hermes endpoint file exists (injected `exists`); `HERMES_ENDPOINT` is deleted.
 - [x] RED: a viewer-queued run with no endpoint is refused with the same guidance instead of launching with an empty `POKEBENCH_ENDPOINT_FILE`.
-- [ ] GREEN: implement; existing config tests updated to pass explicit values.
-- [ ] Audit every launcher (`justfile` run recipes, plain-run `launch.sh`, fixed-run, `current-main.sh`, probe CLI, rehearsal scripts) and confirm each sets the endpoint explicitly; fix any that relied on a default.
+- [x] GREEN: implement; existing config tests updated to pass explicit values. Focused: agent config/live-human/decision-probe 40 passed; viewer next-run-endpoint/next-run 6 passed; tsc --noEmit clean for both packages; eslint clean on changed files.
+- [x] Audit every launcher (`justfile` run recipes, plain-run `launch.sh`, fixed-run, `current-main.sh`, probe CLI, rehearsal scripts) and confirm each sets the endpoint explicitly; fix any that relied on a default.
 - [ ] Gates: lint, test, coverage floors (agent 63/54/57/58, viewer 36/39/40/35, never lowered).
 - [ ] Review: Claude, Grok and GPT/Codex lanes LGTM.
+
+Launcher audit (2026-11-10): viewer queue (`next-run.ts`) sets MODEL + ENDPOINT_FILE and now refuses with `NO_ENDPOINT` first; `fixed-runner.ts` sets MODEL + ENDPOINT_FILE; `serial-comparison.ts` sets MODEL + GATEWAY_URL (+ file); `roxanne-measured-host.ts` and `scripts/rehearse-roxanne-live.mjs` set MODEL + ENDPOINT_FILE; plain-run `launch.sh` sets MODEL + ENDPOINT_FILE; `glm-loop.sh` and `whole-map-loop.sh` go through `just fixed-run`; `run-agent` goes through `fixed-cli play`, which preserves the caller's variables. Only `just smoke-llm` relied on the built-in gateway and model; its comment now says what to set. `live.js human/probe/verify-state` never load model config.
 
 ## M2: Connect-a-model guide
 

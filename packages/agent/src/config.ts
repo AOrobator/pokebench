@@ -1,10 +1,15 @@
+// Where the player's model is served: an OpenAI-compatible gateway, or a local endpoint file
+// ({base_url, api_key, vision}) that a model server writes. There is no built-in endpoint.
+export type ModelEndpoint = { readonly kind: "gateway"; readonly url: string } | { readonly kind: "file"; readonly path: string };
+
 export interface PokebenchConfig {
-  readonly gatewayUrl: string;
-  readonly model: string;
+  readonly endpoint: ModelEndpoint;
+  readonly model: string | null;
   readonly gameServerUrl: string;
   readonly visionModels: readonly string[];
-  readonly endpointFile: string | null;
 }
+
+export const CONNECT_GUIDE = "docs/connect-a-model.md";
 
 export class ConfigError extends Error {
   override readonly name = "ConfigError";
@@ -12,12 +17,9 @@ export class ConfigError extends Error {
 
 type Env = Readonly<Record<string, string | undefined>>;
 
-const DEFAULTS: PokebenchConfig = {
-  gatewayUrl: "http://inference.example/v1",
-  model: "think-swarm",
+const DEFAULTS = {
   gameServerUrl: "http://127.0.0.1:8000",
-  visionModels: [],
-  endpointFile: null,
+  visionModels: [] as readonly string[],
 };
 
 function read(env: Env, key: string): string | undefined {
@@ -26,7 +28,10 @@ function read(env: Env, key: string): string | undefined {
 }
 
 function httpUrl(env: Env, key: string, fallback: string): string {
-  const raw = read(env, key) ?? fallback;
+  return checkedUrl(key, read(env, key) ?? fallback);
+}
+
+function checkedUrl(key: string, raw: string): string {
   let parsed: URL;
   try {
     parsed = new URL(raw);
@@ -49,16 +54,29 @@ function idList(env: Env, key: string, fallback: readonly string[]): readonly st
   return ids;
 }
 
+function endpoint(env: Env): ModelEndpoint {
+  const gateway = read(env, "POKEBENCH_GATEWAY_URL");
+  const url = gateway === undefined ? undefined : checkedUrl("POKEBENCH_GATEWAY_URL", gateway);
+  const file = read(env, "POKEBENCH_ENDPOINT_FILE");
+  if (file !== undefined) return { kind: "file", path: file };
+  if (url !== undefined) return { kind: "gateway", url };
+  throw new ConfigError(`no model endpoint: set POKEBENCH_GATEWAY_URL (an OpenAI-compatible /v1 URL) or POKEBENCH_ENDPOINT_FILE (a local endpoint file); see ${CONNECT_GUIDE}`);
+}
+
 export function loadConfig(env: Env): PokebenchConfig {
-  const model = read(env, "POKEBENCH_MODEL") ?? DEFAULTS.model;
-  if (model.trim() === "") {
+  const model = read(env, "POKEBENCH_MODEL") ?? null;
+  if (model !== null && model.trim() === "") {
     throw new ConfigError("POKEBENCH_MODEL must not be blank");
   }
   return {
-    gatewayUrl: httpUrl(env, "POKEBENCH_GATEWAY_URL", DEFAULTS.gatewayUrl),
+    endpoint: endpoint(env),
     model,
     gameServerUrl: httpUrl(env, "POKEBENCH_GAME_SERVER_URL", DEFAULTS.gameServerUrl),
     visionModels: idList(env, "POKEBENCH_VISION_MODELS", DEFAULTS.visionModels),
-    endpointFile: read(env, "POKEBENCH_ENDPOINT_FILE") ?? DEFAULTS.endpointFile,
   };
+}
+
+export function requireModel(config: Pick<PokebenchConfig, "model">): string {
+  if (config.model === null) throw new ConfigError(`POKEBENCH_MODEL is not set: name the model to play, as the endpoint lists it; see ${CONNECT_GUIDE}`);
+  return config.model;
 }

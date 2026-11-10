@@ -32,7 +32,7 @@ import { createFrontierCache, type FrontierCache } from "./frontier-cache.js";
 import { BaselineError, RunsError, createBaselineReader, createRunCatalog, comparisonsOf, type BaselineCompute, eventsPath, liveScreenPort, LogReader, readRecentEventsAsync, readHeadEvents, readStart, readStartIdentity, runDir, type BaselineReader, type RunCatalog } from "./runs.js";
 import { featureHistory } from "./history.js";
 import { localModels } from "./models.js";
-import { NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
+import { NO_ENDPOINT, NextRunError, appendControl, healthProbe, liveRuns, readDraft, writeDraft, type RunQueue } from "./next-run.js";
 import { WORKBENCH_POLL_MS, type WorkbenchData } from "./workbench-data.js";
 import { cardWorkbench, createWorkbenchLoader, runFromSave, workbenchSnapshot, type LoadedRun, type WorkbenchCompute } from "./workbench-store.js";
 import { MILESTONE_ORDER } from "./model.js";
@@ -253,7 +253,7 @@ async function write(req: IncomingMessage, res: ServerResponse, options: ViewerO
       }
       if (queuedNow === "queued" || queuedNow === "launching") throw new NextRunError("a run is already queued; cancel it first");
       const draft = writeDraft(options.runsRoot, body);
-      if (options.endpointFile === undefined || options.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
+      if (options.endpointFile === undefined || options.endpointFile === null) throw new NextRunError(NO_ENDPOINT);
       const served = await localModels(options.endpointFile, options.fetchFn ?? fetch);
       // The play run accepts only loaded vision models with a known context size.
       const model = served.find((m) => m.id === draft.model && m.vision && m.status === "loaded" && m.contextWindow !== null);
@@ -525,7 +525,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
   }
   if (parts.length === 2 && head === "api" && second === "models") {
     if (options.endpointFile === undefined || options.endpointFile === null) {
-      sendJson(res, 503, { error: "the viewer was started without a local model endpoint file" });
+      sendJson(res, 503, { error: NO_ENDPOINT });
       return;
     }
     try {

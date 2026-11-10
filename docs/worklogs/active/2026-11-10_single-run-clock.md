@@ -32,3 +32,20 @@ allocation. The revised launcher checks the existing fixed-tree build stamp
 and requires a clean detached checkout. It validates the same unprivileged
 port range as the game server. The saved rehearsal driver rejects a stale
 stamp and port 80, then passes the extension and terminal-budget assertions.
+
+## Landing evidence
+
+Round 2 frozen base 0767261cb and head 2c46d5920. Diff SHA-256
+78ae123333ad01a26495c38ad5eaf59b0380a990cca0623319715e609316b6c3.
+Claude and independent GPT returned LGTM on that packet. Grok waived under
+The operator's standing 2026-10-22 waiver, confirmed by the Claude relay for this patch.
+
+Prelanding lint, test/build, vendor verification and the detached build
+preparation smoke passed. Main advanced through 004df3b40 with compatible
+stop-policy documentation only. The integrated feature diff stayed
+byte-identical. Fast-forwarded main to f8341057f and passed post-main
+`just test` and the same viewer-to-agent rehearsal using main's built modules.
+The new budget was applied, and the harness exited for budget at 2,300,367 ms
+on the accelerated clock. Proof is under `runs/proofs/single-run-clock/round-2/`.
+The current run and served viewer were left alone. The paused Drake checkpoint
+and its reload receipt are under `runs/launch-receipts/opus-drake-paused-20261110/`.

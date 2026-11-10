@@ -218,6 +218,9 @@ function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): str
   }
   const name = event.action.replace("_", " ");
   const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
+  if (event.reason === "claude_quota") return event.action === "pause"
+    ? "⏸ Paused for Claude quota · use Resume to retry"
+    : "▶ Claude quota retry requested · play stays paused until the reply arrives";
   const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
     ? event.action === "stop" ? " · ends after the current turn" : " · holds before the next model call"
     : `${event.paused_ms === undefined ? "" : ` · paused ${String(Math.round(event.paused_ms / 1000))}s`}${event.emulator_frozen === undefined ? "" : event.emulator_frozen ? " · emulator frozen" : " · emulator NOT frozen"}`;

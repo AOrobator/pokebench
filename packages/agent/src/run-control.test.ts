@@ -553,3 +553,64 @@ it("coalesces a same-poll provider pause and resume across a duplicate pause", a
   expect(h.control.state).toBe("running");
   expect(h.frozen).toEqual([]);
 });
+
+it("keeps the active clock and reply held across a viewer retry until the gateway releases quota", async () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.applyQuota(req(1, "pause"));
+  await Promise.resolve();
+  h.advance(30_000);
+  h.control.apply(req(3, "resume"));
+  const replyReleased = vi.fn();
+  const reply = h.control.callEnded().then(replyReleased);
+  await Promise.resolve();
+  h.advance(30_000);
+  expect(h.control.state).toBe("paused");
+  expect(h.control.pausedMs()).toBe(60_000);
+  expect(h.frozen).toEqual([true]);
+  expect(replyReleased).not.toHaveBeenCalled();
+  expect(h.records.at(-1)).toMatchObject({action:"resume",status:"pending",reason:"claude_quota"});
+  h.control.applyQuota(req(2, "resume"));
+  await reply;
+  expect(h.control.state).toBe("running");
+  expect(h.control.pausedMs()).toBe(60_000);
+  expect(h.frozen).toEqual([true,false]);
+});
+
+it("honors a viewer stop before a concurrent quota release", async () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.applyJournals([], [req(1,"pause")]);
+  await Promise.resolve();
+  h.control.applyJournals([req(1,"stop")], [req(2,"resume")]);
+  expect(h.control.state).toBe("ended");
+  expect(h.ended).toEqual(["operator_stop"]);
+  expect(h.frozen).toEqual([true]);
+});
+
+it("honors a queued Stop when Claude cannot finish the current turn", () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.apply(req(1, "stop"));
+  expect(h.control.state).toBe("stop_pending");
+  h.control.applyQuota(req(1, "pause"));
+  expect(h.control.state).toBe("ended");
+  expect(h.ended).toEqual(["operator_stop"]);
+});
+
+it("discards an older deferred unfreeze when the in-flight call hits quota", async () => {
+  let finishFreeze: (() => void) | undefined;
+  const freeze = vi.fn((paused: boolean) => paused ? new Promise<void>(resolve => { finishFreeze = resolve; }) : Promise.resolve());
+  const control = new RunControl({providerWaitPause:true,now:()=>0,freeze,end:vi.fn(),record:vi.fn()});
+  control.callStarted();
+  control.apply(req(1, "pause"));
+  control.apply(req(2, "resume"));
+  control.applyQuota(req(1, "pause"));
+  finishFreeze?.();
+  await Promise.resolve();
+  expect(control.state).toBe("paused");
+  expect(freeze.mock.calls).toEqual([[true]]);
+  control.applyQuota(req(2, "resume"));
+  await control.callEnded();
+  expect(control.state).toBe("running");
+});

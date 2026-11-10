@@ -28,3 +28,5 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 
 - Candidate commit `f289782c5`. Agent and viewer type checks and changed-file lint passed. The vendor pin check passed. Model-facing archived readout replay verified all three UI repairs with original run feature settings and the correction toggled on/off.
 - Requested the required shared CPU window for full lint and coverage through `just tell-claude`. The mailbox reported that no Claude session was listening and saved the request. Full gates and independent review are pending. Main remains at `710665101`.
+
+- The operator explicitly cleared full checks and reviews. The first full lint reached Python type checking and stopped because the isolated checkout lacked the mGBA binding. Installed the verified local mGBA package into the isolated environment and confirmed import. Synced with main at f1c175e8a before retrying.

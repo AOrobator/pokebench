@@ -41,3 +41,11 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 - The first post-review full lint found a local variable name colliding with a later list in the same function. Renamed it and passed targeted mypy and the 69 UI tests before rerunning the full checks.
 - The isolated built viewer served the tracked explainer at HTTP 200 with matching SHA-256. Verified Harness Config → READ EXPLAINER with pointer and keyboard in headless Chrome at 1280, 1440 and 375 pixels. Inspected all six screenshots. The scratch viewer used an archived run copy and has been stopped. Receipts: `runs/proofs/opus-trace-correctness/viewer-click.log`, `viewer-route.log`.
 - Updated archived re-render distinguishes intro, rolling credits, transition, and THE END with the original run features. The reset task is covered by a ROM-grounded in-memory fixture.
+
+## Landing
+
+- Round 2 frozen base `05b63718c`, head `520ab159f`, binary diff SHA-256 `4144d6818380c2761b9ccedc5f7bc6103d7a8d8c38821b3f635897fe2c43b8ab`. Claude and independent GPT both returned LGTM. Independent Astra and Terra fallbacks returned LGTM on the corrected packet.
+- Cursor rejected Grok 4.5 and both tested Grok 4.7 tiers due to the account usage limit. Applied the operator's standing all-branch outage waiver, independently verified in the original October 21–22 coordinator transcript (f7406a93 lines 4145, 4964, 6309), also recorded in the November 10 quota landing worklog. Grok issued no verdict.
+- Final full lint, build, test, no-I/O proof and vendor verification passed. Materialized every phase of the two current bundle-v-control definitions and verified the switch ON for all six arm presets.
+- Fast-forwarded local main to `520ab159f` while holding landing slot 1. Post-main `just test` passed 2,999 agent, 1,252 viewer, 3,071 environment and 39 gateway tests plus coverage and no-I/O gates. Main's Dive and model-facing readout replay matched the reviewed receipts byte for byte.
+- Scratch viewer click-through and the local explainer preview passed. Shared viewer refresh is separate from source landing and has not been coordinated. No gameplay runs were started.

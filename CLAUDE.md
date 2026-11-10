@@ -10,7 +10,7 @@ PokeBench-specific skills live in this repository under `.claude/skills/`; `.age
 
 A benchmark harness that measures how far local vision-language models get in Pokémon Emerald when given a specialized harness: first gym quickly, then the full game.
 
-- `packages/agent`: TypeScript agent on pi (`@mariozechner/pi-ai`, `@mariozechner/pi-agent-core`). Talks to the local-inference-stack gateway (`http://inference.example/v1`) and to the game server.
+- `packages/agent`: TypeScript agent on pi (`@mariozechner/pi-ai`, `@mariozechner/pi-agent-core`). Talks to the model endpoint a run names (`POKEBENCH_ENDPOINT_FILE` or `POKEBENCH_GATEWAY_URL`, plus `POKEBENCH_MODEL`; no built-in default, see `docs/connect-a-model.md`) and to the game server.
 - `env/`: Python environment.
   - `pokebench_env` is our code: ROM resolution, server launcher, vendor check, typed client.
   - `pokebench_gates` owns the per-metric Python coverage gate.

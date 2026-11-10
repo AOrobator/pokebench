@@ -37,14 +37,16 @@ Launcher audit (2026-11-10): viewer queue (`next-run.ts`) sets MODEL + ENDPOINT_
 
 ## M2: Connect-a-model guide
 
-- [ ] `docs/connect-a-model.md` with four recipes:
+- [x] `docs/connect-a-model.md` with four recipes:
   1. Any OpenAI-compatible server (llama.cpp, vLLM, a gateway, a cloud key behind a loopback proxy): `POKEBENCH_GATEWAY_URL` + `POKEBENCH_MODEL`, or an endpoint file `{base_url, api_key, vision}` (loopback only) via `POKEBENCH_ENDPOINT_FILE`.
   2. Hermes: point `POKEBENCH_ENDPOINT_FILE` at the endpoint file Hermes's llama-server router writes.
   3. Claude: `just claude-gateway` (session or stateless mode), `just gateway-preflight`, then point the run at the gateway's port.
   4. Codex: the opt-in `just codex-capture` bridge, with the transcript-capture preflight from `pokebench-run-coordination`.
-- [ ] Each recipe verified against the code it cites (option names, env names, file shape); no machine-specific hosts, users or paths.
-- [ ] README and CLAUDE.md: replace "talks to the local-inference-stack gateway (`http://inference.example/v1`)" with a link to the guide.
+- [x] Each recipe verified against the code it cites (option names, env names, file shape); no machine-specific hosts, users or paths.
+- [x] README and CLAUDE.md: replace "talks to the local-inference-stack gateway (`http://inference.example/v1`)" with a link to the guide.
 - [ ] Documentation review.
+
+Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not generic OpenAI-compatible. Gateway discovery requires `context_window` and `max_tokens` per model in `/v1/models` (the operator's stack, the Claude gateway and the Codex bridge all add them; a plain OpenAI `/v1/models` does not). Local llama.cpp and vLLM work through an endpoint file, whose discovery reads their native limits. Hosted APIs need a loopback proxy; none ships in the repo. The guide states this rather than claiming more. Possible follow-up for the operator: accept limits from config so a plain OpenAI endpoint works without a proxy.
 
 ## M3: Rollout (no feature code)
 

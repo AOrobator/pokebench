@@ -141,6 +141,12 @@ SCREENS: dict[int, str] = {
 WARP_HANDOFF_CALLBACKS = frozenset({0x081371D5, 0x081D67D1})
 CB2_CREDITS = 0x081754DD
 
+# pret credits.c, verified on the US ROM by literal pools: Task_Hof_HandleExit loads
+# CB2_StartCreditsSequence (0x08174190), which loads CB2_Credits (0x08175734).
+CREDITS_CALLBACKS = {0x08175621, 0x081754DD}
+# Task_CreditsTheEnd1..6 then Task_CreditsSoftReset: each loads the next from its literal pool.
+THE_END_TASKS = {0x08175A9D, 0x08175AE5, 0x08175B1D, 0x08175B91, 0x08175BD9, 0x08175C35, 0x08175CC9}
+
 
 @dataclass(frozen=True)
 class Screen:
@@ -156,7 +162,11 @@ class Screen:
 
 
 def read_screen(
-    read: ReadMemory, *, blackout_transition: bool = False, opus_trace_correctness: bool = False
+    read: ReadMemory,
+    *,
+    blackout_transition: bool = False,
+    opus_trace_correctness: bool = False,
+    game_clear_completion: bool = False,
 ) -> Screen:
     raw = read(GMAIN, 8)
     if len(raw) != 8:
@@ -176,6 +186,8 @@ def read_screen(
             kind = "field_transition"
         elif callback2 == CB2_CREDITS:
             kind = "credits"
+    if game_clear_completion and callback2 in CREDITS_CALLBACKS:
+        kind = "credits"
     if kind == "menu_program":
         tasks = read(TASKS, 16 * 0x28)
         if len(tasks) != 16 * 0x28:

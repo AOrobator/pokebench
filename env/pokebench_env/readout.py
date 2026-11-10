@@ -232,6 +232,7 @@ SERVER_FEATURES = (
     "tmhm-learning-visibility-v1",
     "opus-trace-correctness-v1",
     "waterfall-handoff-verification-v1",
+    "game-clear-completion-v1",
 )
 
 

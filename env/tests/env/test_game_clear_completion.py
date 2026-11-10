@@ -101,9 +101,17 @@ def test_production_factory_is_gated_and_journal_records_no_bug() -> None:
     assert "game-clear-completion-v1" in SERVER_FEATURES
     assert "game-clear-completion-v1" not in features_off_from_env({})
     memory = credits(CB2_CREDITS, TASK_THE_END6)
-    off = frozenset({"game-clear-completion-v1"})
+    opus = "opus-trace-correctness-v1"
+    off = frozenset({"game-clear-completion-v1", opus})
     legacy = state_json(read_state(memory.read, MapNames({}), active_ui=True, off=off))
-    current = state_json(read_state(memory.read, MapNames({}), active_ui=True, off=frozenset()))
+    current = state_json(
+        read_state(memory.read, MapNames({}), active_ui=True, off=frozenset({opus}))
+    )
+    # With opus-trace-correctness-v1 also on, its earlier credits branch keeps its own wording.
+    both = state_json(read_state(memory.read, MapNames({}), active_ui=True, off=frozenset()))
+    both_ui = both["active_ui"]
+    assert both["screen"] == "credits"
+    assert isinstance(both_ui, dict) and both_ui["phase"] == "credits_the_end"
     assert legacy["screen"] == "unknown (callback2 0x081754DD)"
     legacy_ui, current_ui = legacy["active_ui"], current["active_ui"]
     assert isinstance(legacy_ui, dict) and isinstance(current_ui, dict)

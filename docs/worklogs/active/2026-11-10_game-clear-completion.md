@@ -37,11 +37,11 @@ No new network surface; saves go through the existing loopback `/pokebench/check
 **M1 — Credits readouts and stop at game clear**
 - [x] Write tests (server readout ON/OFF, observer dedupe, GameClearStop, final save, factory wiring): env/tests/env/test_game_clear_completion.py (17), packages/agent/src/game-clear-stop.test.ts (12)
 - [x] COMMIT RED: `test(game-clear): pin credits readouts and the game-clear stop` (see git log; tests import modules absent on main)
-- [ ] Implement
-- [ ] Cheap checks
+- [x] Implement
+- [x] Cheap checks: ruff/format/mypy on changed Python, tsc + eslint on changed TS; focused pytest 17/17, agent vitest (features, play-preset, harness, opus-rayquaza, game-clear-stop) 137/137, viewer panels + next-run 178/178. Wiring deleted once (rerender line; governor.stop) and both tests went red, then restored.
 - [ ] Gates (CPU window)
 - [ ] COMMIT GREEN
-- [ ] Explainer
+- [x] Explainer: docs/explainers/game-clear-completion-v1.html, mapped in FEATURE_EXPLAINERS; pages-check clean
 - [ ] Review: Claude lane + Codex/GPT lane (Grok out until 11/17)
 - ASK USER: show the operator before landing
 
@@ -50,6 +50,8 @@ No new network surface; saves go through the existing loopback `/pokebench/check
 Rehearsal: replay b5a8's recorded events through GameClearStop; rerender b5a8's credits RAM samples with the switch on.
 
 ## Session Log
+
+- Rehearsal: rerender of b5a8 raw RAM (turns 55-117): OFF byte-matches the recorded `Screen: unknown (callback2 0x081754DD)` + coverage error; ON reads `Screen: credits` with `credits` then `the_end`. Replay of b5a8 events through GameClearStop ends at event 3024, turn 60, 2:10:15 PM NY.
 
 - 2026-11-10: forensics on b5a8, ROM address verification, worklog.
 
@@ -60,6 +62,8 @@ Rehearsal: replay b5a8's recorded events through GameClearStop; rerender b5a8's 
 ## Multi-Model Review Log
 
 ## Boy Scout Log
+
+- Noticed, not fixed (out of scope): the Hall of Fame readout's controls say "B exits PC" on the post-League Hall of Fame, which is the PC viewer's wording.
 
 ## Archive Milestone (user-gated)
 - ASK USER: archive

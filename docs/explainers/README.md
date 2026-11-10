@@ -429,3 +429,4 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 
 - [Verified Waterfall handoff](waterfall-handoff-verification-v1.html)
 - [Dive and native screen correctness](opus-trace-correctness-v1.html)
+- [Game clear ends the run](game-clear-completion-v1.html)

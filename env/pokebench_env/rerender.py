@@ -108,6 +108,7 @@ def read_state(
         offscreen_objects_enabled="offscreen-objects-v1" not in off,
         static_npc_templates_enabled="static-npc-template-approach-v1" not in off,
         blackout_transition_enabled="blackout-transition-v1" not in off,
+        game_clear_completion_enabled="game-clear-completion-v1" not in off,
         transition_coherence_enabled="transition-coherence-v1" not in off,
         readout_truth_enabled="readout-truth-v1" not in off,
         birch_pages_enabled="birch-speech-pages-v1" not in off,

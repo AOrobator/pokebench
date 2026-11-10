@@ -46,6 +46,7 @@ import {terminationTarget,flagFeatures,parsePlayPreset,presetFeatures,presetStar
 import {runEvaluation} from "./run-evaluation.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {NativeTargetStop} from "./target-stop.js";
+import {attachGameClearStop} from "./game-clear-stop.js";
 import { BudgetTimer, ControlFile, controlledRun, type RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
@@ -408,6 +409,7 @@ async function playAgent(): Promise<void> {
         });
         recorder.subscribe(event=>{stop.observe(event);});
       }
+      if(features["game-clear-completion-v1"])attachGameClearStop(recorder,governor,lifecycle,{run:runId,serverUrl:gameServerUrl,dir:join(RUNS_ROOT,runId,"checkpoints"),fetch,write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},rename:renameSync},()=>preset!==null&&activeMs()>runControl.wallLimit(limits.maxWallMs));
       startedAt = elapsed();
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");

@@ -65,11 +65,12 @@ def read_action_frame(
     battle_move_learn_input: bool = False,
 ) -> ActionFrame:
     battle = read_battle_state(read, tutorial_owner_enabled=tutorial_owner_enabled)
-    screen = read_screen(read, blackout_transition=True)
+    screen = read_screen(read, blackout_transition=True, game_clear_completion=True)
     ui = read_active_ui(
         read,
         screen,
         blackout_transition=True,
+        game_clear_completion=True,
         tutorial_owner_enabled=tutorial_owner_enabled,
         evolution_decision=evolution_decision,
         battle_move_learn_input=battle_move_learn_input,
@@ -485,7 +486,8 @@ class NativeActionJournal:
 
     def _diagnostic(self, owner: str, message: str, raw_hex: str | None) -> None:
         # One row per owner and kind: slot numbers and raw values do not make a new bug.
-        kind = diagnostic_kind(message)
+        # An unsupported screen is one bug per callback pair; its task list moves on.
+        kind = diagnostic_kind(message.split("; active tasks ", 1)[0])
         key = owner + ":" + kind
         if key not in self.diagnostics:
             self._emit(
@@ -623,11 +625,12 @@ class NativeActionJournal:
                         )
                     return
                 self.busy_frames = 0
-                screen = read_screen(read, blackout_transition=True)
+                screen = read_screen(read, blackout_transition=True, game_clear_completion=True)
                 ui = read_active_ui(
                     read,
                     screen,
                     blackout_transition=True,
+                    game_clear_completion=True,
                     tutorial_owner_enabled=self.tutorial_owner_enabled,
                     battle_move_learn_input=self.battle_move_learn_input,
                 )

@@ -12,7 +12,14 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from pokebench_env.game_screen import CB2_CREDITS, WARP_HANDOFF_CALLBACKS, ReadMemory, Screen
+from pokebench_env.game_screen import (
+    CB2_CREDITS,
+    CREDITS_CALLBACKS,
+    THE_END_TASKS,
+    WARP_HANDOFF_CALLBACKS,
+    ReadMemory,
+    Screen,
+)
 from pokebench_env.gba_text import GBA_TEXT
 from pokebench_env.menus import MenuValue
 from pokebench_env.transition_coherence import CB2_WHITE_OUT, HANDOFF_CALLBACKS
@@ -375,6 +382,7 @@ def read_active_ui(
     pokenav_short_list: bool = False,
     pokenav_call_advance: bool = False,
     field_call_input: bool = False,
+    game_clear_completion: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -696,6 +704,17 @@ def read_active_ui(
         )
     if screen.kind == "clock":
         return read_clock_ui(read)
+    if game_clear_completion and screen.callback2 in CREDITS_CALLBACKS:
+        credit_tasks = read(TASKS, 16 * 0x28)
+        if len(credit_tasks) != 16 * 0x28:
+            raise ValueError("short active UI gTasks read")
+        return credits_ui(
+            {
+                int.from_bytes(credit_tasks[i : i + 4], "little")
+                for i in range(0, len(credit_tasks), 0x28)
+                if credit_tasks[i + 4] == 1
+            }
+        )
     if screen.callback2 not in (0x0802F6B1, 0x08031679) and screen.kind != "unknown":
         return None
     tasks = read(TASKS, 16 * 0x28)
@@ -785,6 +804,17 @@ def read_active_ui(
         f"callback1 0x{screen.callback1:08X}; callback2 0x{screen.callback2:08X}; active tasks "
         + ",".join(f"0x{fn:08X}" for fn in functions),
         details=owner_details(read, screen.callback2),
+    )
+
+
+def credits_ui(functions: "list[int] | set[int]") -> ActiveUi:
+    """game-clear-completion-v1: the credits after the Hall of Fame; the game takes no input."""
+    if set(functions) & THE_END_TASKS:
+        return ActiveUi(
+            "the_end", None, False, "THE END is shown; the game is over and needs no input"
+        )
+    return ActiveUi(
+        "credits", None, False, "The credits are playing; the game is over and needs no input"
     )
 
 

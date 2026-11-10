@@ -393,6 +393,7 @@ export const SWITCHABLE_FEATURES = [
   "surf-navigation-correctness-v1",
   "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
+  "game-clear-completion-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -907,6 +908,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("surf-navigation-correctness-v1", "observation", "SURF MOVEMENT AND REFUSALS", null, "Uses native Surf mode for guarded direction batches and reports known destination obstacles without guessing at why a Surf route failed. Off: guarded batches use land rules and Surf refusals use the legacy explanation."),
   on("opus-trace-correctness-v1", "observation", "DIVE AND NATIVE SCREEN CORRECTNESS", null, "Recognizes Dive movement and underwater doors, warp and surfacing transitions, credits and party field-move refusals. Off: previous routes and readouts."),
   on("waterfall-handoff-verification-v1", "observation", "VERIFIED WATERFALL HANDOFF", null, "Checks the settled game state before reporting a Waterfall handoff or suggesting A. Off: navigation reports the planned facing after its turn attempt."),
+  on("game-clear-completion-v1", "observation", "GAME CLEAR ENDS THE RUN", null, "A correctness fix, meant ON. After the Hall of Fame the game plays the credits (pret credits.c CB2_StartCreditsSequence, CB2_Credits) and then shows THE END. The readout says Screen: credits, and the Interface line says the credits are playing or THE END is shown and the game needs no input, instead of Screen: unknown (callback2 0x081754DD) and a STATE COVERAGE ERROR that told the model to keep observing. Once this run has observed GAME_CLEAR_CONFIRMED and the credits begin (the game has written its own Hall of Fame save by then), the harness saves checkpoints/GAME_CLEAR_FINAL.state and ends the run as completed, with the milestone and credits state as its proof. A preset that already stops at GAME_CLEAR_CONFIRMED still stops there first. Off: the credits read as an unknown screen with a coverage error and the run keeps going until its own limits or an operator stop."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1035,6 +1037,7 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "tmhm-learning-visibility-v1",
   "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
+  "game-clear-completion-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1412,6 +1415,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("surf-navigation-correctness-v1"),
     ...when("opus-trace-correctness-v1"),
     ...when("waterfall-handoff-verification-v1"),
+    ...when("game-clear-completion-v1"),
   ];
 }
 

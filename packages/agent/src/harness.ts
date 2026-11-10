@@ -211,7 +211,7 @@ export class Governor {
   stop(reason: RunEndReason):void {this.stopReason??=reason;}
 
   abort(reason: RunEndReason): void {
-    if(this.stopReason==="milestone")return;
+    if(this.stopReason==="milestone"||this.stopReason==="completed")return;
     this.stopReason ??= reason;
     this.deps.abort();
   }

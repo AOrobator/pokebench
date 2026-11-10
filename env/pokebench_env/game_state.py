@@ -445,11 +445,13 @@ def read_game_state(
     type_gap_enabled: bool = False,
     move_matchup_enabled: bool = False,
     respawn_links: LinkCache | None = None,
+    game_clear_completion_enabled: bool = False,
 ) -> GameState:
     screen = read_screen(
         read,
         blackout_transition=blackout_transition_enabled,
         opus_trace_correctness=opus_trace_correctness_enabled,
+        game_clear_completion=game_clear_completion_enabled,
     )
     coherent = transition_coherence_enabled
     # transition-coherence-v1: CB2_HandleStartBattle is the battle start, not an unknown screen.
@@ -490,6 +492,7 @@ def read_game_state(
         transition_coherence=coherent,
         blackout_transition=blackout_transition_enabled,
         tutorial_owner_enabled=tutorial_owner_enabled,
+        game_clear_completion=game_clear_completion_enabled,
     )
     # Cmd_trygivecaughtmonnick state 1 owns input while battle controllers are busy.
     # Reuse the coherent battle read instead of decoding a second prompt owner.

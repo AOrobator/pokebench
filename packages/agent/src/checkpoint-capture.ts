@@ -1,6 +1,6 @@
 import {createHash} from "node:crypto";
 import {join} from "node:path";
-import type {RunEvent} from "./events.js";
+import type {RunEndReason,RunEvent} from "./events.js";
 import {MILESTONES,REQUIRED_FRONTIER_MILESTONES} from "./milestones.js";
 import type {RunStartMeta} from "./recorder.js";
 
@@ -41,6 +41,7 @@ export function checkpointTarget(env:NodeJS.ProcessEnv):string|null {
 
 type MilestoneEvent=Extract<RunEvent,{type:"milestone"}>;
 interface CaptureFailure {readonly milestone:string;readonly error:Error}
+export interface RunEnd {readonly reason:RunEndReason;readonly turn:number}
 const frontier=new Set(REQUIRED_FRONTIER_MILESTONES);
 const errorOf=(value:unknown):Error=>value instanceof Error?value:new Error(String(value));
 const isExists=(value:unknown):boolean=>value instanceof Error&&"code" in value&&value.code==="EEXIST";
@@ -81,7 +82,17 @@ export class CheckpointCapture {
  }
  // After close, later milestones cannot start a capture. Call this only after
  // the recorder's final snapshot so a last native transition is not dropped.
- async close():Promise<void>{this.closed=true;await this.settled();}
+ // Given the run's end, it also saves RUN_END, so any stop can resume natively
+ // instead of replaying inputs (the operator 2026-11-10: replay drifted after 12bf's stop).
+ async close(end?:RunEnd):Promise<void>{
+  this.closed=true;
+  let milestones:Error|undefined;
+  try {await this.settled();} catch(error) {milestones=errorOf(error);}
+  let last:Error|undefined;
+  if(end!==undefined){try {await this.saveEnd(end);} catch(error) {last=new Error(`run-end checkpoint failed: ${errorOf(error).message}`);this.recordEndFailure(end,errorOf(error));}}
+  if(milestones!==undefined&&last!==undefined)throw new Error(`${milestones.message}; ${last.message}`);
+  const failure=milestones??last;if(failure!==undefined)throw failure;
+ }
  private selected(name:string):boolean{return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
  private async post(path:string,body:unknown):Promise<Response>{return this.deps.fetch(`${this.deps.serverUrl}${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
  private metadata(event:MilestoneEvent,data:Buffer,sha1:string,sha256:string):Record<string,unknown>{
@@ -109,12 +120,26 @@ export class CheckpointCapture {
   const path=join(this.deps.dir,`${event.name}.error.json`),partial=`${path}.partial`;
   try {this.deps.write(partial,JSON.stringify({version:1,run:event.run,milestone:event.name,milestone_seq:event.seq,observed_at:event.t,error:error.message}));this.deps.rename(partial,path);} catch { /* The rejection remains the authoritative surface when disk recording also fails. */ }
  }
- private async capture(event:MilestoneEvent):Promise<void>{
+ private async state():Promise<{data:Buffer;sha1:string;sha256:string}>{
   const reply=await this.post("/pokebench/checkpoint",{});if(!reply.ok)throw new Error(`checkpoint request failed with HTTP ${String(reply.status)}`);
   const body=await reply.json() as {state_base64?:unknown;sha1?:unknown;sha256?:unknown};
   if(typeof body.state_base64!=="string"||typeof body.sha1!=="string"||typeof body.sha256!=="string")throw new Error("checkpoint reply is missing its state or digests");
   const data=Buffer.from(body.state_base64,"base64");if(data.length===0||data.length>8*1024*1024)throw new Error("checkpoint state size is invalid");
   const sha1=createHash("sha1").update(data).digest("hex"),sha256=createHash("sha256").update(data).digest("hex");if(sha1!==body.sha1||sha256!==body.sha256)throw new Error("checkpoint digest does not match the returned state");
+  return {data,sha1,sha256};
+ }
+ private async capture(event:MilestoneEvent):Promise<void>{
+  const {data,sha1,sha256}=await this.state();
   const meta=JSON.stringify(this.metadata(event,data,sha1,sha256));this.pair(this.deps.dir,event.name,data,meta);this.promote(event,data,meta,sha1,sha256);
+ }
+ // Never promoted to the shared library: a run end is not a frontier arrival.
+ private async saveEnd(end:RunEnd):Promise<void>{
+  const {data,sha1,sha256}=await this.state();
+  const meta=JSON.stringify({version:1,run:this.deps.run,kind:"run_end",end_reason:end.reason,turn:end.turn,state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"run_end_after_final_snapshot",stability:"saved_under_frame_loop_lock"}});
+  this.pair(this.deps.dir,"RUN_END",data,meta);
+ }
+ private recordEndFailure(end:RunEnd,error:Error):void{
+  const path=join(this.deps.dir,"RUN_END.error.json"),partial=`${path}.partial`;
+  try {this.deps.write(partial,JSON.stringify({version:1,run:this.deps.run,kind:"run_end",end_reason:end.reason,turn:end.turn,error:error.message}));this.deps.rename(partial,path);} catch { /* The rejection remains the authoritative surface when disk recording also fails. */ }
  }
 }

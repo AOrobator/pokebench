@@ -78,13 +78,13 @@ export function harnessInfo(git: (args: string[]) => string): RunStart["harness"
   };
 }
 
-export interface RunLifecycle {beforeRunEnd(task:()=>Promise<void>):void}
+export interface RunLifecycle {beforeRunEnd(task:(reason:RunEndReason)=>Promise<void>):void}
 
-async function finishRecording(recorder:RunRecorder,reason:RunEndReason,capture:boolean,tasks:readonly (()=>Promise<void>)[],operatorSignal:(()=>string|null)|undefined):Promise<void>{
+export async function finishRecording(recorder:Pick<RunRecorder,"afterPress"|"end">,reason:RunEndReason,capture:boolean,tasks:readonly ((reason:RunEndReason)=>Promise<void>)[],operatorSignal:(()=>string|null)|undefined):Promise<void>{
   let terminal=reason,failure:Error|undefined;
   const asError=(value:unknown):Error=>value instanceof Error?value:new Error(String(value));
   try {if(capture)await recorder.afterPress();} catch(error){terminal="crash";failure=asError(error);}
-  for(const task of tasks){try {await task();} catch(error){terminal="crash";failure??=asError(error);}}
+  for(const task of tasks){try {await task(terminal);} catch(error){terminal="crash";failure??=asError(error);}}
   recorder.end(terminal,terminal==="operator_abort"?operatorSignal?.()??null:null);
   if(failure!==undefined)throw failure;
 }
@@ -111,7 +111,7 @@ export async function withRun(
   const log = RunLog.create(plan.runsRoot, plan.runId,()=>new Date(),(prior.at(-1)?.seq??0)+1);
   if(plan.continuation!==undefined)writeFileSync(join(log.runDir,"restoration-prefix.jsonl"),plan.continuation.prefix,{flag:"wx"});
   let server: ServerHandle | undefined;
-  const beforeRunEnd:(()=>Promise<void>)[]=[];
+  const beforeRunEnd:((reason:RunEndReason)=>Promise<void>)[]=[];
   const startedAt = new Date().toISOString();
   let claimed = false;
   let pulse: ReturnType<typeof setInterval> | undefined;

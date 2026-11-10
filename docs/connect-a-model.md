@@ -27,7 +27,7 @@ Write a JSON file and point `POKEBENCH_ENDPOINT_FILE` at it:
 - `api_key` is sent as a bearer token. Use the server's `--api-key` if it has one, otherwise any non-empty string.
 - `vision` is needed for vLLM, whose `/v1/models` does not report image input. llama.cpp reports it itself (`--mmproj` on a router, `multimodal` on a single-model server).
 
-PokeBench reads the model's limits from the server: llama.cpp's `--ctx-size` (router) or `n_ctx` (single model), and vLLM's `max_model_len`.
+PokeBench reads the model's limits from the server's own `/v1/models`, and an endpoint file accepts only these three shapes: a llama.cpp router (loaded models, limits from `--ctx-size` in their args), a single-model llama.cpp server (`n_ctx`), and vLLM (`owned_by: "vllm"`, `max_model_len`). Anything else, including the gateway shape below, fails with `malformed .../models payload`.
 
 ```bash
 export POKEBENCH_ENDPOINT_FILE="$PWD/lanes/local/endpoint.json"
@@ -50,7 +50,7 @@ export POKEBENCH_GATEWAY_URL="http://127.0.0.1:8000/v1"
 export POKEBENCH_MODEL="lane-a"
 ```
 
-A plain OpenAI `/v1/models` (ids only) is not enough, because PokeBench needs the limits. Hosted APIs therefore go behind a small proxy on `127.0.0.1` that holds the key, answers `/v1/models` in one of the shapes above and forwards `chat/completions`; point an endpoint file at the proxy.
+A plain OpenAI `/v1/models` (ids only) is not enough, because PokeBench needs the limits. Hosted APIs therefore go behind a small proxy on `127.0.0.1` that holds the key, answers `/v1/models` in this gateway shape and forwards `chat/completions`; point `POKEBENCH_GATEWAY_URL` at the proxy. No such proxy ships with PokeBench.
 
 ## 2. Hermes
 
@@ -68,16 +68,22 @@ Only loaded models are listed. Set the same variable before starting the viewer 
 `scripts/claude-gateway/` serves the same API and answers each turn with Claude Code (`claude -p`). It reports one model, multimodal, with the limits you give it.
 
 ```bash
-just gateway-preflight --help   # session mode only: writes preflight-receipt.json
-just claude-gateway --mode session --model claude-model-id --bridge runs/claude-bridge \
-  --preflight-receipt runs/claude-bridge/preflight-receipt.json \
+just claude-gateway --mode stateless --model claude-model-id --bridge runs/claude-bridge \
   --port 8810 --game-port 8000 --context-window 200000 --max-tokens 16000
 export POKEBENCH_GATEWAY_URL="http://127.0.0.1:8810/v1"
 export POKEBENCH_MODEL="claude-model-id"
 ```
 
-- Session mode refuses to start without `--preflight-receipt`. Run `just gateway-preflight` first; it replays recorded requests with a stub `claude` and writes that receipt. Stateless mode needs no receipt.
-- `--mode stateless` sends the whole window every turn; `--mode session` continues one Claude Code session per run.
+- `--mode stateless` sends the whole harness window every turn and needs nothing else.
+- `--mode session` continues one Claude Code session per run, and refuses to start without `--preflight-receipt`. The receipt comes from `just gateway-preflight`, which replays harness requests already recorded by a bridge (its `requests/` folder) through the gateway with a stub `claude`, so session mode follows at least one recorded run:
+
+  ```bash
+  just gateway-preflight --preset experiments/presets/<the run's preset>.json \
+    --out runs/claude-bridge runs/claude-bridge/requests
+  just claude-gateway --mode session --preflight-receipt runs/claude-bridge/preflight-receipt.json ...
+  ```
+
+  Pass the gateway the same `--current-turn`, `--tool-schemas` and `--schema-hint` overrides you gave the preflight; the receipt is bound to them.
 - `--served-model` changes the advertised id; `POKEBENCH_MODEL` must match it.
 - `--claude-config-dir` runs the `claude` child under a dedicated login.
 - `--game-port` (or `--run-id`) binds the gateway to the one run it serves, so provider waits pause that run.

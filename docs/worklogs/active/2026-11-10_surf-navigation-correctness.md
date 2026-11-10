@@ -1,6 +1,6 @@
 # Surf movement and refusals
 
-**Status:** Candidate, pending full checks and independent review.
+**Status:** Landed on main at `3b217ead9`.
 
 - Opus 12bf turn 39 refused all manual RIGHT inputs from (60,6) because the next tile was water. Turn 40 navigated through the same tile. The guarded prefix used the land-only planner options despite native Surf mode. The generic Surf refusal also attributed failed searches to generic mechanics without evidence.
 - The correctness switch uses the native avatar flag and existing Surf planner for each guarded input. The game server's existing frame-owned stride stops an ordinary water step at one tile. An interrupted receipt ends the batch. Foot and unknown-mode states keep the conservative behavior. Forced transitions without a verified stride can use the existing destination tools.
@@ -13,3 +13,8 @@
 - Follow-up to 3020736c6 uses a typed text assertion for semantic refusal. No runtime change.
 
 - Final regression fixtures exercise the production navigation factory, malformed Surf receipts, zero-tile battle interruptions and the under-bridge guard. The six separate deletion checks each failed the intended test, and 89 focused tests passed after restoration.
+
+## Landing evidence
+
+- Claude and GPT independently approved the frozen patch. The scheduler confirmed the standing Grok waiver. Full lint, pre-merge tests, vendor verification and post-merge tests passed. Logs are in `runs/proofs/surf-navigation-correctness-v4/`.
+- All four archived GameState outputs matched byte for byte on the build from main.

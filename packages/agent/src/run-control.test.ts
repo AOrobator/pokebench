@@ -587,3 +587,30 @@ it("honors a viewer stop before a concurrent quota release", async () => {
   expect(h.ended).toEqual(["operator_stop"]);
   expect(h.frozen).toEqual([true]);
 });
+
+it("honors a queued Stop when Claude cannot finish the current turn", () => {
+  const h = harness(0, true);
+  h.control.callStarted();
+  h.control.apply(req(1, "stop"));
+  expect(h.control.state).toBe("stop_pending");
+  h.control.applyQuota(req(1, "pause"));
+  expect(h.control.state).toBe("ended");
+  expect(h.ended).toEqual(["operator_stop"]);
+});
+
+it("discards an older deferred unfreeze when the in-flight call hits quota", async () => {
+  let finishFreeze: (() => void) | undefined;
+  const freeze = vi.fn((paused: boolean) => paused ? new Promise<void>(resolve => { finishFreeze = resolve; }) : Promise.resolve());
+  const control = new RunControl({providerWaitPause:true,now:()=>0,freeze,end:vi.fn(),record:vi.fn()});
+  control.callStarted();
+  control.apply(req(1, "pause"));
+  control.apply(req(2, "resume"));
+  control.applyQuota(req(1, "pause"));
+  finishFreeze?.();
+  await Promise.resolve();
+  expect(control.state).toBe("paused");
+  expect(freeze.mock.calls).toEqual([[true]]);
+  control.applyQuota(req(2, "resume"));
+  await control.callEnded();
+  expect(control.state).toBe("running");
+});

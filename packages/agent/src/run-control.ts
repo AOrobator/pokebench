@@ -159,8 +159,11 @@ export class RunControl {
   // while the gateway releases the clock only after delivering the held reply.
   applyQuota(request: ControlRequest): void {
     const { action, seq } = request;
-    if (action === "pause" && this.inCall && this.deps.providerWaitPause &&
-        (this.current === "running" || this.current === "paused" || this.current === "pause_pending")) {
+    if (action === "pause" && this.inCall && this.deps.providerWaitPause) {
+      // A stopped turn cannot reach its normal boundary while the provider is held.
+      if (this.current === "stop_pending") { this.finish("operator_stop", "stop", this.stopRequest); return; }
+      if (this.current !== "running" && this.current !== "paused" && this.current !== "pause_pending") return;
+      this.dropDeferredResume();
       this.quotaHeld = true;
       this.pauseRequest = seq;
       if (this.current !== "paused") void this.pauseDuringCall();

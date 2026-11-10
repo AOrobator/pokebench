@@ -26,3 +26,12 @@ was no game server, emulator input, real Claude request or shared viewer change.
 Evidence is in `runs/proofs/manual-claude-quota/passed.json` and the linked
 rehearsal directory. Desktop and phone captures were checked. Full prelanding
 gates and review are separate from this isolated build-and-test candidate.
+
+Round-one Claude and GPT reviews blocked landing on a Stop queued before the
+quota failure. GPT also caught an older deferred Resume that could issue an
+unfreeze when an ordinary freeze and the quota hold overlapped. Both targeted
+regressions failed before the repair and passed after it. A pending Stop now
+ends immediately at quota acquisition because the blocked turn cannot finish.
+An older deferred Resume is retired as quota takes ownership. The isolated
+browser rehearsal passed again on the revision with two successful operator
+retry authorizations, one continuous hold, and unchanged Claude session/prompt.

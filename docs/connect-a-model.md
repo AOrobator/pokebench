@@ -68,14 +68,15 @@ Only loaded models are listed. Set the same variable before starting the viewer 
 `scripts/claude-gateway/` serves the same API and answers each turn with Claude Code (`claude -p`). It reports one model, multimodal, with the limits you give it.
 
 ```bash
-just gateway-preflight --help
+just gateway-preflight --help   # session mode only: writes preflight-receipt.json
 just claude-gateway --mode session --model claude-model-id --bridge runs/claude-bridge \
+  --preflight-receipt runs/claude-bridge/preflight-receipt.json \
   --port 8810 --game-port 8000 --context-window 200000 --max-tokens 16000
 export POKEBENCH_GATEWAY_URL="http://127.0.0.1:8810/v1"
 export POKEBENCH_MODEL="claude-model-id"
 ```
 
-- Run `just gateway-preflight` before any session-mode run; it replays recorded requests with a stub `claude` and writes the receipt that `--preflight-receipt` takes.
+- Session mode refuses to start without `--preflight-receipt`. Run `just gateway-preflight` first; it replays recorded requests with a stub `claude` and writes that receipt. Stateless mode needs no receipt.
 - `--mode stateless` sends the whole window every turn; `--mode session` continues one Claude Code session per run.
 - `--served-model` changes the advertised id; `POKEBENCH_MODEL` must match it.
 - `--claude-config-dir` runs the `claude` child under a dedicated login.
@@ -91,10 +92,10 @@ just build
 just codex-capture --capture-phase serve --control runs/codex-bridge/control.json \
   --source <codex session transcript> --session <codex session id> \
   --run <run id> --events runs/<run id>/events.jsonl \
-  --model codex-player --context 200000 --tokens 16000
+  --model codex-player --context 200000 --tokens 16000 --port 0
 ```
 
-`serve` prints the bridge URL. Then:
+`--port 0` lets the bridge pick a free port. `serve` prints JSON whose `url` field is the bridge's address. Then:
 
 ```bash
 export POKEBENCH_GATEWAY_URL="<bridge url>/v1"
@@ -102,7 +103,7 @@ export POKEBENCH_MODEL="codex-player"
 export POKEBENCH_RUN_ID="<run id>"
 ```
 
-The Codex session takes each turn with the `pending`, `begin` and `respond` phases against the same `--control` file. Before the first turn, enable reasoning summaries and prove capture with a rehearsal, as `.claude/skills/pokebench-run-coordination/SKILL.md` requires for every attached agent. `docs/explainers/codex-capture.html` explains the mechanism.
+The Codex session takes each turn with the `pending`, `begin` and `respond` phases against the same `--control` file; `begin` and `respond` also take `--capture-key`, and `respond` takes `--reply` (a JSON file). Before the first turn, enable reasoning summaries and prove capture with a rehearsal, as `.claude/skills/pokebench-run-coordination/SKILL.md` requires for every attached agent. `docs/explainers/codex-capture.html` explains the mechanism.
 
 ## Checking a setup
 

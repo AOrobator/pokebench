@@ -44,7 +44,7 @@ Launcher audit (2026-11-10): viewer queue (`next-run.ts`) sets MODEL + ENDPOINT_
   4. Codex: the opt-in `just codex-capture` bridge, with the transcript-capture preflight from `pokebench-run-coordination`.
 - [x] Each recipe verified against the code it cites (option names, env names, file shape); no machine-specific hosts, users or paths.
 - [x] README and CLAUDE.md: replace "talks to the local-inference-stack gateway (`http://inference.example/v1`)" with a link to the guide.
-- [ ] Documentation review.
+- [ ] Documentation review (round 1 Claude found two broken example commands; fixed in round 2).
 
 Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not generic OpenAI-compatible. Gateway discovery requires `context_window` and `max_tokens` per model in `/v1/models` (the operator's stack, the Claude gateway and the Codex bridge all add them; a plain OpenAI `/v1/models` does not). Local llama.cpp and vLLM work through an endpoint file, whose discovery reads their native limits. Hosted APIs need a loopback proxy; none ships in the repo. The guide states this rather than claiming more. Possible follow-up for the operator: accept limits from config so a plain OpenAI endpoint works without a proxy.
 
@@ -58,3 +58,9 @@ Finding while verifying recipe 1 (2026-11-10): `POKEBENCH_GATEWAY_URL` is not ge
 - [ ] Decide with the operator: refresh the public copy from the latest private `main` (picks up everything landed since the Nov 7 snapshot, needs the same scrub again), or apply only these commits on top of `~/dev/pokebench-public-v9`. The operator leans toward latest main (2026-11-10).
 - [ ] Whichever route, commit through the protected-data guard (hooks wired in v9 2026-11-10).
 - [ ] Re-run the full-history privacy sweep and gitleaks on the result.
+
+## Multi-Model Review Log
+
+Round 1 packet: base f8ee5f034, head e74c2f464, diff SHA-256 33778ff1bea0a33b1c94baf3408c73ba3b42b73bc45a736e063e4e6ea57d8c44 (`runs/reviews/explicit-model-endpoint/`). Lanes started 2026-11-10: Claude CLI (`~/.claude-review`, plan mode), Cursor `gpt-5.6-sol-xhigh` (GPT lane, the gating independent lane), Cursor `cursor-grok-4.5-high`. Per the operator via the coordinator (2026-11-10): Grok is out as a reviewer until 11/17, so its verdict is advisory only and does not count toward landing; GPT/Codex review is required.
+
+Round 1 results: Claude BLOCKING on two doc defects (B1 Codex `serve` example missing required `--port`; B2 Claude session-mode example missing required `--preflight-receipt`); code: no defects. Its three hardening notes triaged: bridge prints JSON with `url` (Fix, doc), `--capture-key`/`--reply` unmentioned (Fix, doc), `server.ts` queue POST writes the draft before the endpoint check (Rebut: pre-existing order, `git diff main -- packages/viewer/src/server.ts` changes only the message; principles row PB2 reworded). Cursor GPT and Grok lanes: no review, Cursor usage limit until 11/17 (`ActionRequiredError`); GPT lane moves to the Codex coordinator. Grok excluded until 11/17 anyway.

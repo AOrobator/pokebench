@@ -166,6 +166,11 @@ Interface: the_end; input not ready; THE END is shown; the game is over and need
 </section>
 
 <section class="card">
+<h2>With opus-trace-correctness-v1</h2>
+<p>The Opus preset also turns on <code>opus-trace-correctness-v1</code>, which landed its own credits readout on main the same afternoon. When both switches are on, that switch's earlier branch keeps its wording (rerendered b5a8 RAM: <code>Interface: credits; input not ready; The credits are rolling</code>, then <code>credits_the_end; input ready; THE END. A button press restarts the game</code>). Either way the screen reads <code>credits</code>, so this switch's stop and final save fire at the same state. This switch also classifies <code>CB2_StartCreditsSequence</code>, which the other does not.</p>
+</section>
+
+<section class="card">
 <h2>Harness bug rows</h2>
 <p>The native action recorder always classifies the credits now, so they log no <code>harness_bug</code>. Any other unsupported screen logs one row per callback pair instead of one per task list: b5a8 logged 16 rows for the credits alone. This is recording only; the model never sees these rows.</p>
 </section>

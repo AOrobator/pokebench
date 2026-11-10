@@ -57,6 +57,8 @@ Rehearsal: replay b5a8's recorded events through GameClearStop; rerender b5a8's 
 
 ## Surprises
 
+- 2026-11-10 landing: main gained opus-trace-correctness-v1 (e34457f36, f289782c5) with its own CB2_Credits screen/readout. Rebased onto 6b6ed6dee keeping both: its branch runs first when ON; this switch adds CB2_StartCreditsSequence and owns the stop. Rerender of b5a8 under OFF/OFF, mine only, and both ON recorded; factory test pins all three. Integration delta needs full gates and delta review again.
+
 - The run's start note said to continue until the Hall of Fame, but the preset never set `stopAt`.
 
 ## Multi-Model Review Log

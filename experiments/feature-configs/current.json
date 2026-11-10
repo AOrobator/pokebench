@@ -113,6 +113,7 @@
   ],
   "onInBoth": [
     "tmhm-learning-visibility-v1",
+    "verified-warp-reach-v1",
     "gym-door-label-v1",
     "battle-decision-ready-v1",
     "navigation-truth-v1",
@@ -492,6 +493,7 @@
     "refusal-ledger-v1": false,
     "party-menu-message-v1": false,
     "tmhm-learning-visibility-v1": true,
+    "verified-warp-reach-v1": true,
     "drought-progress-facts-v1": true,
     "whiteout-outcomes-v2": true,
     "interface-guidance-v1": true,

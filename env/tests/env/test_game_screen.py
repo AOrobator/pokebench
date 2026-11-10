@@ -79,3 +79,13 @@ def test_shared_main_menu_callback_is_classified_by_its_active_task(
     with pytest.raises(ValueError, match="gTasks"):
         read_screen(lambda a, n: struct.pack("<II", 0, 0x0802F6B1) if a == GMAIN else bytes(3))
     assert TASKS == 0x03005E00
+
+
+@pytest.mark.parametrize(
+    ("callback2", "kind"),
+    [(0x081371D5, "field_transition"), (0x081D67D1, "field_transition"), (0x081754DD, "credits")],
+)
+def test_opus_callback_corrections_are_switchable(callback2: int, kind: str) -> None:
+    read, _ = memory(0, callback2)
+    assert read_screen(read).kind == "unknown"
+    assert read_screen(read, opus_trace_correctness=True).kind == kind

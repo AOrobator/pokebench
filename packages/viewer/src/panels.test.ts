@@ -934,7 +934,7 @@ it("links the navigation cycle stop from its recorded feature card",()=>{
  const card=doc.querySelector(`[data-feature="${id}"]`);expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
 });
 
-it.each(["party-menu-message-v1","verified-warp-reach-v1","surf-navigation-correctness-v1","waterfall-handoff-verification-v1"])("links %s from its feature card",id=>{
+it.each(["party-menu-message-v1","verified-warp-reach-v1","surf-navigation-correctness-v1","waterfall-handoff-verification-v1","game-clear-completion-v1"])("links %s from its feature card",id=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);
@@ -1451,4 +1451,14 @@ it("links the four Opus Rayquaza decision cards and keeps them OFF for new runs"
   expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
   expect(card.textContent).toContain("NOT RECORDED");
  }
+});
+
+it("links the Dive and native screen correctness card",async()=>{
+ const {FEATURES:currentFeatures}=await import("../../agent/src/features.js");
+ const id="opus-trace-correctness-v1";
+ const doc=new Window().document;
+ doc.body.innerHTML=harnessConfig(view(bare()),currentFeatures);
+ const card=must(doc.querySelector(`[data-feature="${id}"]`));
+ expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
+ expect(card.textContent).toContain("NOT RECORDED");
 });

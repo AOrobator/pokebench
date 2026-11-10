@@ -46,6 +46,7 @@ import {terminationTarget,flagFeatures,parsePlayPreset,presetFeatures,presetStar
 import {runEvaluation} from "./run-evaluation.js";
 import {runStateMode,stateOnlyPrompt,stateOnlyProblems} from "./state-runtime.js";
 import {NativeTargetStop} from "./target-stop.js";
+import {attachGameClearStop} from "./game-clear-stop.js";
 import { BudgetTimer, ControlFile, controlledRun, type RunControl, freezeGame, watchControl, controlLine } from "./run-control.js";
 import {RUN_ID_PATTERN} from "./events.js";
 import { StateMilestones } from "./milestones.js";
@@ -362,6 +363,7 @@ async function playAgent(): Promise<void> {
       const cutOffNotice = cutOffReplyNotice(features,maxTokens);
       const cutOff = cutOffNotice === undefined ? undefined : (repeats: number) => cutOffReplyNotice(features,maxTokens,repeats) ?? cutOffNotice;
       const controlFile = new ControlFile(join(RUNS_ROOT, runId, "control.jsonl"));
+      const quotaFile = features["provider-wait-pause-v1"] ? new ControlFile(join(RUNS_ROOT, runId, "quota-control.jsonl")) : undefined;
       let startedAt = elapsed();
       const activeMs = (): number => elapsed() - (preset === null ? startedAt : 0) - (control?.pausedMs() ?? 0);
       // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
@@ -388,6 +390,7 @@ async function playAgent(): Promise<void> {
       }, {
         providerWaitPause: features["provider-wait-pause-v1"],
         poll: () => controlFile.poll(),
+        ...(quotaFile === undefined ? {} : { pollQuota: () => quotaFile.poll() }),
         record: (body) => { recorder.recordControl(body); },
         freeze: (paused) => freezeGame(gameServerUrl, paused),
         now: () => Date.now(),
@@ -408,13 +411,14 @@ async function playAgent(): Promise<void> {
         });
         recorder.subscribe(event=>{stop.observe(event);});
       }
+      if(features["game-clear-completion-v1"])attachGameClearStop(recorder,governor,lifecycle,{run:runId,serverUrl:gameServerUrl,dir:join(RUNS_ROOT,runId,"checkpoints"),fetch,write:(path,data)=>{mkdirSync(dirname(path),{recursive:true});writeFileSync(path,data);},rename:renameSync},()=>preset!==null&&activeMs()>runControl.wallLimit(limits.maxWallMs));
       startedAt = elapsed();
       const wall = new BudgetTimer(runControl, limits.maxWallMs, () => elapsed() - (preset===null?startedAt:0), () => {
         governor.abort("budget");
       });
       const stall = stallStop(features, recorder, runControl, () => elapsed() - (preset===null?startedAt:0), loopDetector);
       stallBriefing(features, recorder, loopDetector, runControl, () => elapsed() - (preset===null?startedAt:0));
-      const stopWatching = watchControl(controlFile, runControl);
+      const stopWatching = watchControl(controlFile, runControl, undefined, quotaFile);
       signals.onAbort((signal) => {
         console.log(`operator abort (${signal}): finishing the run record`);
         operatorAbort = signal;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RunView } from "./model.js";
+import { stateLabel } from "./controls.js";
 import { thinkingDialog } from "./panels.js";
 import { Log, START, assistant, fullRun, state } from "../test-support/events.js";
 import { behindLive, currentView, emptyCurrent, foldCurrent, jumpToTail, parseCurrent, MAX_OPEN_TOOLS, MAX_CURRENT_MILESTONES } from "./current-state.js";
@@ -101,4 +102,16 @@ describe("jumping a lagging feed to the tail", () => {
     const jumped = jumpToTail(saved, log.events.slice(-2));
     expect(jumped.turn).toBe(49); expect(jumped.thought?.thinking).toBe("t49"); expect(jumped.start).toEqual(saved.start);
   });
+});
+
+it("keeps the viewer paused across pending quota retries and counts one continuous hold",()=>{
+  const log=new Log();log.add(0,START);
+  log.add(110,{type:"operator_control",turn:0,action:"pause",status:"applied",request:1,reason:"claude_quota",during_call:true,freeze_wait_ms:10});
+  log.add(150,{type:"operator_control",turn:0,action:"resume",status:"pending",request:1,reason:"claude_quota"});
+  log.add(175,{type:"operator_control",turn:0,action:"pause",status:"applied",request:2,reason:"claude_quota"});
+  const paused=parseCurrent(JSON.parse(JSON.stringify(apply(log))) as unknown);
+  expect(stateLabel(currentView(paused),true).text).toBe("PAUSED · CLAUDE QUOTA");
+  expect(paused.control.pauseAt).toBe(paused.at-75);
+  log.add(200,{type:"operator_control",turn:0,action:"resume",status:"applied",request:3,paused_ms:100});
+  expect(apply(log).control).toMatchObject({state:"running",pausedMs:100,pauseAt:null});
 });

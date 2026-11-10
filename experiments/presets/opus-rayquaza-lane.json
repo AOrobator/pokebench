@@ -382,7 +382,7 @@
     "rq-checkpoint-recovery-v1": false,
     "rq-mach-dash-v1": true,
     "route-summary-v1": false,
-    "provider-wait-pause-v1": false,
+    "provider-wait-pause-v1": true,
     "badge-resets-cycles-v1": false,
     "drought-turns-only-v1": false,
     "drought-hold-screens-v1": false,
@@ -395,6 +395,7 @@
     "tmhm-learning-visibility-v1": true,
     "waterfall-handoff-verification-v1": true,
     "surf-navigation-correctness-v1": true,
-    "verified-warp-reach-v1": true
+    "verified-warp-reach-v1": true,
+    "opus-trace-correctness-v1": true
   }
 }

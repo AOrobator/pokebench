@@ -16,7 +16,7 @@ export interface CurrentState {
   context: { estimated: Reading | null; measured: Reading | null };
   retry: RunView["retry"];
   totals: { input: number; output: number; retries: number; modelErrors: number; toolErrors: number; compactions: number; requests: number; latencyMs: number };
-  control: { state: ControlState; pausedMs: number; pauseAt: number | null; maxWallMs: number | null; maxTurns: number | null; lastExtensionRequest: number | null; emulatorFrozen: boolean | null };
+  control: { state: ControlState; pausedMs: number; pauseAt: number | null; maxWallMs: number | null; maxTurns: number | null; lastExtensionRequest: number | null; emulatorFrozen: boolean | null; pauseReason?: "claude_quota" };
   openTools: Record<string, { at: number; name: string }>;
   requestAt: number | null;
   warning: string | null;
@@ -34,7 +34,7 @@ export function currentView(s: CurrentState): RunView {
   v.partyHealth=s.health===null?null:{...s.health,source:s.state!==null&&s.health.source.seq===s.state.seq?s.state:v.partyState!==null&&s.health.source.seq===v.partyState.seq?v.partyState:s.health.source};v.frame=s.frame;
   const estimate=s.context.estimated;v.context=estimate===null?null:{messages:0,images:0,est_tokens:estimate.tokens};v.promptTokens=s.context.measured?.tokens??null;
   v.retry=s.retry===null?null:{...s.retry};v.tokens={input:s.totals.input,output:s.totals.output};v.modelErrors=s.totals.modelErrors;v.toolErrors=s.totals.toolErrors;v.compactions=s.totals.compactions;
-  Object.assign(v.control,{state:s.control.state,maxWallMs:s.control.maxWallMs,maxTurns:s.control.maxTurns,lastExtensionRequest:s.control.lastExtensionRequest,emulatorFrozen:s.control.emulatorFrozen});
+  Object.assign(v.control,{state:s.control.state,maxWallMs:s.control.maxWallMs,maxTurns:s.control.maxTurns,lastExtensionRequest:s.control.lastExtensionRequest,emulatorFrozen:s.control.emulatorFrozen,pauseReason:s.control.pauseReason??null});
   // A compressed completed pause is equivalent for current elapsed time only.
   if(s.control.pausedMs>0)v.control.pauses.push({startMs:0,endMs:s.control.pausedMs});
   if(s.control.pauseAt!==null)v.control.pauses.push({startMs:s.control.pauseAt,endMs:null});
@@ -51,7 +51,7 @@ export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNe
   s.state=v.state;s.partyState=v.partyState;s.card=v.cardState;s.health=v.partyHealth;s.frame=v.frame;s.retry=v.retry;s.thought=v.lastThought;s.streaming=v.streaming;
   if(ms<prior.at)s.warning="Recorded time moved backwards; current display is not timing validation";
   s.totals.input=v.tokens.input;s.totals.output=v.tokens.output;s.totals.modelErrors=v.modelErrors;s.totals.toolErrors=v.toolErrors;s.totals.compactions=v.compactions;
-  s.control={state:v.control.state,pausedMs:v.control.pauses.reduce((n,p)=>n+(p.endMs===null?0:Math.max(0,p.endMs-p.startMs)),0),pauseAt:v.control.pauses.find(p=>p.endMs===null)?.startMs??null,maxWallMs:v.control.maxWallMs,maxTurns:v.control.maxTurns,lastExtensionRequest:v.control.lastExtensionRequest,emulatorFrozen:v.control.emulatorFrozen};
+  s.control={state:v.control.state,pausedMs:v.control.pauses.reduce((n,p)=>n+(p.endMs===null?0:Math.max(0,p.endMs-p.startMs)),0),pauseAt:v.control.pauses.find(p=>p.endMs===null)?.startMs??null,maxWallMs:v.control.maxWallMs,maxTurns:v.control.maxTurns,lastExtensionRequest:v.control.lastExtensionRequest,emulatorFrozen:v.control.emulatorFrozen,...(v.control.pauseReason===null?{}:{pauseReason:v.control.pauseReason})};
   if(event.type==="turn_start"){s.context.estimated={tokens:event.context.est_tokens,turn:event.turn,seq:event.seq,at:ms};s.requestAt=ms;}
   if(event.type==="assistant"){
     const tokens=event.usage.input+event.usage.cache_read+(event.usage.cache_write??0);
@@ -86,6 +86,7 @@ export function parseCurrent(value: unknown): CurrentState {
   const c=s["control"],t=s["totals"],context=s["context"],tools=s["openTools"];
   if(!object(c)||!object(t)||!object(context)||!object(tools)||Object.keys(tools).length>MAX_OPEN_TOOLS)return fail();
   if(!["running","pause_pending","paused","stop_pending","ended"].includes(String(c["state"]))||!number(c["pausedMs"])||!["pauseAt","maxWallMs","maxTurns","lastExtensionRequest"].every(k=>nullableNumber(c[k]))||!(c["emulatorFrozen"]===null||typeof c["emulatorFrozen"]==="boolean"))return fail();
+  if(c["pauseReason"]!==undefined&&c["pauseReason"]!=="claude_quota")return fail();
   for(const key of ["input","output","retries","modelErrors","toolErrors","compactions","requests","latencyMs"])if(!number(t[key]))return fail();
   for(const key of ["estimated","measured"]){const r=context[key];if(r!==null&&(!object(r)||!number(r["tokens"])||!integer(r["turn"])||!integer(r["seq"])||!number(r["at"])))return fail();}
   if(!nullableString(s["frame"])||!nullableString(s["warning"])||!nullableNumber(s["requestAt"]))return fail();

@@ -851,3 +851,35 @@ def read_menu_family(
             details=details,
         )
     return None
+
+
+def read_party_field_move_refusal(read: ReadMemory) -> "ActiveUi | None":
+    """Task_CancelAfterAorBPress owns the standard party message and A/B input."""
+    from pokebench_env.ui_state import (
+        STRING_VAR4,
+        STRING_VAR4_SIZE,
+        ActiveUi,
+        _window_drawn,
+        decode_message,
+    )
+
+    tasks = task_snapshot(read)
+    if len(tasks) != 1 or tasks[0][1] != 0x081B57B5:
+        return None
+    internal = int.from_bytes(read(PARTY_INTERNAL, 4), "little")
+    if not _ewram(internal, 14):
+        return None
+    window = read(internal + 13, 1)[0]
+    if window >= 32 or not _window_drawn(read, window):
+        return None
+    message = decode_message(read(STRING_VAR4, STRING_VAR4_SIZE))
+    if not message:
+        return None
+    ready = not bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
+    return ActiveUi(
+        "party_field_move_refusal",
+        "A/B: CONTINUE" if ready else None,
+        ready,
+        "A or B closes the message" if ready else "Party menu is fading",
+        details={"message": message, "owner_task": tasks[0][0]},
+    )

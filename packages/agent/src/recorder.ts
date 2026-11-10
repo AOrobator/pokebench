@@ -620,7 +620,7 @@ export class RunRecorder {
       turn: this.turn,
       reason,
       ...(operatorSignal===null?{}:{operator_signal:operatorSignal}),
-      ...(reason==="milestone"&&this.targetProof!==null?{target_proof:{...this.targetProof,state_evidence:[...this.targetProof.state_evidence]}}:{}),
+      ...((reason==="milestone"||reason==="completed")&&this.targetProof!==null?{target_proof:{...this.targetProof,state_evidence:[...this.targetProof.state_evidence]}}:{}),
       furthest_milestone: this.furthest,
       turns: this.turn-this.turnBase,
       wall_ms: Math.round(this.now() - this.startedAt),

@@ -12,7 +12,14 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from pokebench_env.game_screen import ReadMemory, Screen
+from pokebench_env.game_screen import (
+    CB2_CREDITS,
+    CREDITS_CALLBACKS,
+    THE_END_TASKS,
+    WARP_HANDOFF_CALLBACKS,
+    ReadMemory,
+    Screen,
+)
 from pokebench_env.gba_text import GBA_TEXT
 from pokebench_env.menus import MenuValue
 from pokebench_env.transition_coherence import CB2_WHITE_OUT, HANDOFF_CALLBACKS
@@ -369,11 +376,13 @@ def read_active_ui(
     party_menu_message: bool = False,
     bag_pocket_truth: bool = False,
     tmhm_learning: bool = False,
+    opus_trace_correctness: bool = False,
     caught_dex: bool = False,
     battle_move_learn_input: bool = False,
     pokenav_short_list: bool = False,
     pokenav_call_advance: bool = False,
     field_call_input: bool = False,
+    game_clear_completion: bool = False,
 ) -> ActiveUi | None:
     """transition_coherence: transition-coherence-v1's battle-start and handoff rules."""
     from pokebench_env.game_screen import TASKS
@@ -442,6 +451,38 @@ def read_active_ui(
                 "Wild/trainer battle animation is automatic",
                 details=owner_details(read, screen.callback2),
             )
+
+    if opus_trace_correctness:
+        from pokebench_env.menus import PALETTE_FADE, read_party_field_move_refusal, task_snapshot
+
+        if screen.callback2 in WARP_HANDOFF_CALLBACKS:
+            return ActiveUi("field_transition", None, False, "Field transition in progress")
+        if screen.callback2 == CB2_CREDITS:
+            credits_tasks = {function for _, function, _ in task_snapshot(read)}
+            # Task_CreditsTheEnd6 installs Task_CreditsSoftReset before the fade.
+            # US ROM 0x08175C7A loads 0x08175CC9 and stores it to gTasks[taskId].func.
+            if 0x08175CC9 in credits_tasks:
+                return ActiveUi("credits_restart", None, False, "Restarting after THE END")
+            if 0x08175C35 in credits_tasks:
+                fading = bool(read(PALETTE_FADE + 7, 1)[0] & 0x80)
+                return ActiveUi(
+                    "credits_the_end",
+                    None,
+                    not fading,
+                    "THE END. A button press restarts the game"
+                    if not fading
+                    else "THE END is fading in",
+                )
+            controls = (
+                "The credits are rolling"
+                if 0x08175775 in credits_tasks
+                else "Credits sequence in progress"
+            )
+            return ActiveUi("credits", None, False, controls)
+        if screen.kind == "party_menu":
+            refusal = read_party_field_move_refusal(read)
+            if refusal is not None:
+                return refusal
 
     lifecycle_ui = read_pokemon_lifecycle_menu(
         read, screen.callback2, evolution_decision=evolution_decision
@@ -663,6 +704,17 @@ def read_active_ui(
         )
     if screen.kind == "clock":
         return read_clock_ui(read)
+    if game_clear_completion and screen.callback2 in CREDITS_CALLBACKS:
+        credit_tasks = read(TASKS, 16 * 0x28)
+        if len(credit_tasks) != 16 * 0x28:
+            raise ValueError("short active UI gTasks read")
+        return credits_ui(
+            {
+                int.from_bytes(credit_tasks[i : i + 4], "little")
+                for i in range(0, len(credit_tasks), 0x28)
+                if credit_tasks[i + 4] == 1
+            }
+        )
     if screen.callback2 not in (0x0802F6B1, 0x08031679) and screen.kind != "unknown":
         return None
     tasks = read(TASKS, 16 * 0x28)
@@ -752,6 +804,17 @@ def read_active_ui(
         f"callback1 0x{screen.callback1:08X}; callback2 0x{screen.callback2:08X}; active tasks "
         + ",".join(f"0x{fn:08X}" for fn in functions),
         details=owner_details(read, screen.callback2),
+    )
+
+
+def credits_ui(functions: "list[int] | set[int]") -> ActiveUi:
+    """game-clear-completion-v1: the credits after the Hall of Fame; the game takes no input."""
+    if set(functions) & THE_END_TASKS:
+        return ActiveUi(
+            "the_end", None, False, "THE END is shown; the game is over and needs no input"
+        )
+    return ActiveUi(
+        "credits", None, False, "The credits are playing; the game is over and needs no input"
     )
 
 

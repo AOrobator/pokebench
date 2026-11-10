@@ -426,6 +426,7 @@ def read_game_state(
     interface_guidance_enabled: bool = False,
     bag_pocket_truth_enabled: bool = False,
     tmhm_learning_enabled: bool = False,
+    opus_trace_correctness_enabled: bool = False,
     waterfall_handoff_enabled: bool = False,
     pokenav_short_list_enabled: bool = False,
     pokenav_call_advance_enabled: bool = False,
@@ -444,8 +445,14 @@ def read_game_state(
     type_gap_enabled: bool = False,
     move_matchup_enabled: bool = False,
     respawn_links: LinkCache | None = None,
+    game_clear_completion_enabled: bool = False,
 ) -> GameState:
-    screen = read_screen(read, blackout_transition=blackout_transition_enabled)
+    screen = read_screen(
+        read,
+        blackout_transition=blackout_transition_enabled,
+        opus_trace_correctness=opus_trace_correctness_enabled,
+        game_clear_completion=game_clear_completion_enabled,
+    )
     coherent = transition_coherence_enabled
     # transition-coherence-v1: CB2_HandleStartBattle is the battle start, not an unknown screen.
     label = (
@@ -475,6 +482,7 @@ def read_game_state(
         party_menu_message=party_menu_message_enabled,
         bag_pocket_truth=bag_pocket_truth_enabled,
         tmhm_learning=tmhm_learning_enabled,
+        opus_trace_correctness=opus_trace_correctness_enabled,
         pokenav_short_list=pokenav_short_list_enabled,
         pokenav_call_advance=pokenav_call_advance_enabled,
         field_call_input=field_call_input_enabled,
@@ -484,6 +492,7 @@ def read_game_state(
         transition_coherence=coherent,
         blackout_transition=blackout_transition_enabled,
         tutorial_owner_enabled=tutorial_owner_enabled,
+        game_clear_completion=game_clear_completion_enabled,
     )
     # Cmd_trygivecaughtmonnick state 1 owns input while battle controllers are busy.
     # Reuse the coherent battle read instead of decoding a second prompt owner.

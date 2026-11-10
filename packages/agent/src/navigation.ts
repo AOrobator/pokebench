@@ -75,7 +75,7 @@ export interface SurfLaunchPoint {readonly at:Point;readonly water:Point;readonl
 export interface SurfLaunch extends SurfLaunchPoint {readonly goal:Point}
 // Starting Surf takes the model's own turns, so a launch search prefers a route with less of it.
 const LAUNCH_COST=4;
-export interface NavigationOptions {readonly zeroPads?:boolean;readonly ledgeDrops?:boolean;readonly surfStarts?:boolean;readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
+export interface NavigationOptions {readonly dive?:boolean;readonly zeroPads?:boolean;readonly ledgeDrops?:boolean;readonly surfStarts?:boolean;readonly surf?:boolean;readonly launch?:(found:SurfLaunchPoint|null)=>void;readonly climb?:boolean;readonly mode?:NavigationMode;readonly ledges?:boolean;readonly oneWay?:boolean;readonly grassCost?:boolean;readonly floor?:boolean;readonly elevation?:ElevationMode;readonly triggers?:readonly MatchingTrigger[];readonly slopes?:boolean;readonly actorElevation?:boolean;readonly goalOnly?:boolean;readonly gateArms?:GateArms}
 // rotating-gate-navigation-v1: the current arms by the pair of tiles each separates. A step across one pushes the gate in the
 // game (rotating_gate.c CheckForRotatingGatePuzzleCollision), so the planner treats that edge as blocked and press stays the
 // only way to move a gate.
@@ -154,6 +154,11 @@ function fullGeometry(state:GameStateSnapshot):Geometry|null {
 // surf-navigation-v1: the game's own surfing flag, never the tile under the player.
 const navigationStatus=(result:AgentToolResult<unknown>):string|undefined=>(result.details as {navigation?:{status?:string}}|undefined)?.navigation?.status;
 export const isSurfing=(state:Pick<GameStateSnapshot,"running">):boolean=>((state.running?.avatar_flags??0)&SURFING_FLAG)!==0;
+// PLAYER_AVATAR_FLAG_UNDERWATER takes precedence even while the Surf bit is still set.
+export const isDiving=(state:Pick<GameStateSnapshot,"running">):boolean=>((state.running?.avatar_flags??0)&0x10)!==0;
+// MB_NO_SURFACING, MB_SEAWEED and MB_SEAWEED_NO_SURFACING are underwater floor.
+const DIVE_FLOOR:ReadonlySet<number>=new Set([0x19,0x22,0x2a]);
+const WATER_DOOR=0x6c;
 const WATERFALL=0x13;
 // surf-navigation-v1: the tile above the falls a launch search climbs to in one UP step; replays must follow that step, not the falls' push.
 const climbTop=(geometry:Geometry,next:Point,direction:Direction,options:NavigationOptions):Point|null=>{
@@ -597,7 +602,8 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
  if(!layered&&levels.has(key(goal)))return null;
  type Node={p:Point;here:number;elevation:number;cost:number;parent:Node|null;direction:Direction|null;surf:boolean;launch:SurfLaunchPoint|null};
  const route=(node:Node):Direction[]=>{const path:Direction[]=[];for(let n:Node|null=node;n!==null&&n.direction!==null;n=n.parent)path.push(n.direction);return path.reverse();};
- const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null,surf:options.surf===true&&isSurfing(state),launch:null};
+ const diving=options.dive===true&&isDiving(state);
+ const start:Node={p:state.position,here:here.elevation,elevation:geometry.elevation,cost:0,parent:null,direction:null,surf:options.surf===true&&!diving&&isSurfing(state),launch:null};
  let best=start;
  const pending=new OpenList<Node>(),costs=new Map<string,number>();
  pending.push(distance(start.p,goal),start);
@@ -673,8 +679,9 @@ export function planNavigation(state:GameStateSnapshot,goal:Point,options:Naviga
    if(options.oneWay===true&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(node.p),direction)))continue;
    // A goal-only pad is entered only as the terminal tile: distance 0 is the goal, so it can never
    // appear as an intermediate node in a returned route.
-   const goalOnly=options.goalOnly===true&&GOAL_ONLY_BEHAVIORS.has(tile.behavior)&&distance(next,goal)===0;
-   if(!(walkable.has(tile.behavior)||goalOnly||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
+   const diveDoor=diving&&tile.behavior===WATER_DOOR&&warps.has(key(next));
+   const goalOnly=((options.goalOnly===true&&GOAL_ONLY_BEHAVIORS.has(tile.behavior))||diveDoor)&&distance(next,goal)===0;
+   if(!(walkable.has(tile.behavior)||(diving&&DIVE_FLOOR.has(tile.behavior))||goalOnly||(options.oneWay===true&&EDGE_WALLS.has(tile.behavior))))continue;
    const door=tile.behavior===0x69&&distance(next,goal)===0&&direction==="UP";
    if((tile.collision!==0&&!door)||(tile.behavior===0x69&&!door))continue;
    if(warps.has(key(next))&&distance(next,goal)!==0)continue;
@@ -850,6 +857,7 @@ export interface NavigationPorts {
  readonly sectionAlternatives?:boolean;
  // surf-navigation-v1: plan over water while surfing, and on foot walk to the shore when the way on crosses water.
  readonly surfNavigation?:boolean;
+ readonly diveNavigation?:boolean;
  readonly surfCorrectness?:boolean;
  readonly waterfallHandoffVerification?:boolean;
  // rotating-gate-navigation-v1: plan around gate arms; when only arms stop the route, walk up to the first and name it.
@@ -894,6 +902,7 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  const elevation=geometry.elevation,tiles:Point[]=[];
  if(elevation<1||elevation>14)return null;
  // surf-navigation-v1: a held press moves two tiles on water, so water steps go by a frame-owned corridor.
+ if(options.dive===true&&isDiving(state))return null;
  const surfing=options.surf===true&&isSurfing(state);
  const floor=(t:Tile):boolean=>surfing?SURF_TRAVEL.has(t.behavior):t.behavior===0||(tallGrass&&t.behavior===TALL_GRASS);
  const safe=(p:Point):boolean=>{
@@ -910,13 +919,14 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{}),...(bike?{bike:true as const}:{})};
 }
 // rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
-export interface PrefixRules {readonly surf?:boolean;readonly ledges:boolean;readonly ledgeDrops?:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
+export interface PrefixRules {readonly dive?:boolean;readonly surf?:boolean;readonly ledges:boolean;readonly ledgeDrops?:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
 export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean;readonly stride?:StrideCorridor}|{readonly ok:false;readonly reason:string};
 // rejected-movement-prefix-v1: one direction of a model's walking batch is valid when navigate_to's own planner would take
 // exactly that press to its landing tile (a ledge hop or slope slide included) and the landing is not a coordinate script
 // whose condition matches now. A refusal names the observable reason.
 export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:PrefixRules):RequestedStep {
- const surfing=rules.surf===true&&isSurfing(raw);
+ const diving=rules.dive===true&&isDiving(raw);
+ const surfing=rules.surf===true&&!diving&&isSurfing(raw);
  const state=rules.fieldMoveGates?gatedState(raw,surfing):raw,geometry=localGeometry(state),from=state.position;
  if(geometry===null||from===null||!ready(state))return {ok:false,reason:"the field is not free to walk"};
  const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return {ok:false,reason:`${direction} is not a direction`};
@@ -924,7 +934,7 @@ export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:Pr
  if(tile===undefined)return {ok:false,reason:`${at(next)} is outside the known map`};
  if(occupied(next))return {ok:false,reason:`${at(next)} has a person or object on it`};
  const triggers=matchingTriggers(state);
- const options:NavigationOptions={mode:"local",...(surfing?{surf:true}:{}),ledges:rules.ledges,...(rules.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
+ const options:NavigationOptions={mode:"local",...(diving?{dive:true}:{}),...(surfing?{surf:true}:{}),ledges:rules.ledges,...(rules.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
  const landing=routeTiles(state,[direction],options)?.at(-1);
  const path=landing===undefined?null:planNavigation(state,landing,options);
  if(landing!==undefined&&path?.length===1&&path[0]===direction){
@@ -1063,8 +1073,8 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
    // Script-trigger boundary: coordinate scripts are visible with coordinate-script-conditions-v1, and there is no
    // switch over what to do when every route crosses one (see the port comment): they are walked, not refused.
    const boundary=truth&&ports.triggers===true?matchingTriggers(state):[];
-   const guardedOptions:NavigationOptions={mode:active,ledges:ports.ledges===true,...(ports.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{}),...(ports.surfNavigation===true?{surf:true}:{}),...(ports.rotatingGates===true?{gateArms:gateArms(state)}:{})};
-   const surfing=ports.surfNavigation===true&&isSurfing(state);
+   const guardedOptions:NavigationOptions={mode:active,...(ports.diveNavigation===true?{dive:true}:{}),ledges:ports.ledges===true,...(ports.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:ports.oneWay===true,grassCost:ports.grassCost===true,floor:ports.floor===true,elevation:ports.elevation??"game",...(boundary.length===0?{}:{triggers:boundary}),...(ports.fieldMoveGates===true?{slopes:true}:{}),...(ports.actorElevation===true?{actorElevation:true}:{}),...(ports.warpTargets===true?{goalOnly:true}:{}),...(ports.surfNavigation===true?{surf:true}:{}),...(ports.rotatingGates===true?{gateArms:gateArms(state)}:{})};
+   const surfing=ports.surfNavigation===true&&!(ports.diveNavigation===true&&isDiving(state))&&isSurfing(state);
    // A script-free route wins. When the scripts are the only obstruction, the same route is walked and the first
    // matching script becomes the step that stops navigation; clear the triggers only if that route exists, so the
    // refusal text for a goal that is unreachable anyway still names which nearer tiles the scripts cut off.
@@ -1196,6 +1206,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     last=await ports.press(id,{buttons:[direction],...(ports.automaticRunning===true||goal.walking===undefined?{}:{walking:goal.walking})},signal,actual=>{
      if(actual===undefined||!ready(actual,active)||actual.map_id?.[0]!==goal.map_id[0]||actual.map_id[1]!==goal.map_id[1]||actual.position?.x!==before.x||actual.position.y!==before.y)throw new NavigationPreconditionError("map, position or field input unavailable or changed before action; no command submitted");
      const requestedStop=stop?.(actual)??null;if(requestedStop!==null){stopRequested=true;throw new NavigationPreconditionError(requestedStop);}
+     if(options.dive===true&&isDiving(actual)!==isDiving(planned))throw new NavigationPreconditionError("Dive movement state changed before action; no command submitted");
      if(finalGoalStep){const actualTile=(active==="full"?fullGeometry(actual):localGeometry(actual))?.tile(goal)??null;if(JSON.stringify(actualTile)!==JSON.stringify(goalEntryTile))throw new NavigationPreconditionError("goal entry tile changed before action; no command submitted");}
      if(ports.safeStrides===true&&(actual.running?.controllable!==true||(stride!==null&&JSON.stringify(planStride(actual,path.slice(0,bound-plannedSteps),options,ports.grassStrides===true,ridden))!==JSON.stringify(stride))))throw new NavigationPreconditionError("stride geometry or native input changed before action; no command submitted");
     },triggerAware&&stride===null?{automaticRunning:false}:ports.safeStrides===true?(stride===null?{automaticRunning:false}:{stride}):deliberateGoalEntry?{automaticRunning:false}:undefined);
@@ -1269,5 +1280,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],surfCorrectness:features["surf-navigation-correctness-v1"],waterfallHandoffVerification:features["waterfall-handoff-verification-v1"],fieldMoveGates:features["field-move-gates-v1"],obstacleRespawn:features["field-obstacle-respawn-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],diveNavigation:features["opus-trace-correctness-v1"],surfCorrectness:features["surf-navigation-correctness-v1"],waterfallHandoffVerification:features["waterfall-handoff-verification-v1"],fieldMoveGates:features["field-move-gates-v1"],obstacleRespawn:features["field-obstacle-respawn-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

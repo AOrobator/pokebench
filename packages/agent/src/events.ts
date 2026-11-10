@@ -873,6 +873,7 @@ const OperatorControl = event("operator_control", {
   action: Type.Enum(CONTROL_ACTIONS),
   status: Type.Enum(["pending", "applied", "ignored", "failed"] as const),
   request: Type.Integer({ minimum: 1 }),
+  reason: Type.Optional(Type.Literal("claude_quota")),
   previous_max_turns: Type.Optional(NonNegativeInt),
   max_turns: Type.Optional(NonNegativeInt),
   previous_max_wall_ms: Type.Optional(NonNegativeInt),

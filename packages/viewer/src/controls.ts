@@ -87,6 +87,7 @@ export function stateLabel(view: RunView, live: boolean): { cls: string; text: s
   if (view.end !== null) return { cls: "ended", text: view.end.reason === "operator_abort" ? "ABORTED" : "ENDED" };
   if (!live) return { cls: "idle", text: "REPLAY" };
   const labels = { running: ["live", "RUNNING"], pause_pending: ["pausing", "PAUSING"], paused: ["paused", "PAUSED"], stop_pending: ["stopping", "STOPPING"], ended: ["ended", "ENDED"] } as const;
+  if (view.control.state === "paused" && view.control.pauseReason === "claude_quota") return {cls:"paused",text:"PAUSED · CLAUDE QUOTA"};
   const [cls, text] = labels[view.control.state];
   return { cls, text };
 }
@@ -120,6 +121,11 @@ export function overlay(kind: Overlay, view: RunView, nowMs: number, holdFractio
   const box = (fill: string, stroke: string, title: string, titleCls: string, lines: [string, string][], extra = ""): string =>
     `<g class="overlay ${kind}" role="status" aria-label="${esc(title)}"><rect width="288" height="192" fill="#0e1626" opacity=".6"/><rect x="24" y="36" width="240" height="112" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="4"/><rect x="30" y="42" width="228" height="100" rx="7" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/>${text(70, `l ${titleCls}`, title)}${lines.map(([cls, line], n) => text(90 + 16 * n, `s ${cls}`, line)).join("")}${extra}</g>`;
   if (kind === "pausing") return box("#ffd447", "#7a5410", "⏸ PAUSING", "", [["", `finishing turn ${turn}, then holding`], ["", "no further model call"], ["r", "Use RESUME or STOP above"]]);
+  if (kind === "paused" && view.control.pauseReason === "claude_quota") return box(
+    "#ffd447", "#7a5410", "⏸ CLAUDE QUOTA", "",
+    [["", `turn ${turn} · model reply held`], ["", `time cap clock stopped at ${at}`],
+      ["r", view.control.emulatorFrozen === false ? "emulator NOT frozen" : "RESUME retries this turn"]],
+  );
   if (kind === "paused") return box("#ffd447", "#7a5410", "⏸ PAUSED", "", [["", `after turn ${turn} · no model call`], ["", `time cap clock stopped at ${at}`], ["r", view.control.emulatorFrozen === false ? "emulator NOT frozen" : "Use RESUME or STOP above"]]);
   if (kind === "stopping") return box("#1e2c44", "#ff9b4a", "■ STOPPING", "y", [["w", `finishing turn ${turn}, then ending`], ["w", "Use CANCEL STOP above"], ["w", "still counted in results"]], '<rect x="64" y="128" width="160" height="8" rx="3" fill="#2a3e60" stroke="#ff9b4a" stroke-width="2"/><rect class="sweep" x="66" y="130" width="60" height="4" rx="2" fill="#ff9b4a"/>');
   if (kind === "abort_hold") {

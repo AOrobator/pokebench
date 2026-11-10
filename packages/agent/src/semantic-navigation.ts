@@ -4,7 +4,7 @@ import type {Button} from "./events.js";
 import {semanticNavigation,type FeatureSet} from "./features.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {parseGameState,type GameStateSnapshot,type StateSource} from "./game-state.js";
-import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,routeTiles,surfLaunch,verifiedSurfRefusal,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
+import {directionalWarpActivation,elevationsMatch,gatedState,GOAL_ONLY_BEHAVIORS,isCheckedNavigation,isDiving,isSurfing,matchingTriggers,planNavigation,plannedArrivalElevation,plannedWarpElevation,routeTiles,surfLaunch,verifiedSurfRefusal,waterReason,withClimb,type CheckedNavigationTool,type NavigationMode,type NavigationOptions} from "./navigation.js";
 import {warpsOf} from "./exit-history.js";
 import {exitReach} from "./surf-gate.js";
 import {COUNTER} from "./tile-rules.js";
@@ -45,7 +45,7 @@ const EDGE_BUTTON:Readonly<Record<"NORTH"|"SOUTH"|"EAST"|"WEST",Button>>={NORTH:
 
 function navigationOptions(features:FeatureSet):NavigationOptions {
  const mode:NavigationMode=features["full-map-navigation-v1"]?"full":features["visited-terrain-navigation-v1"]?"visited":"local";
- return {zeroPads:features["navigator-elevation-zero-pads-v1"],surfStarts:features["navigator-surf-start-warps-v1"],mode,ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
+ return {...(features["opus-trace-correctness-v1"]?{dive:true}:{}),zeroPads:features["navigator-elevation-zero-pads-v1"],surfStarts:features["navigator-surf-start-warps-v1"],mode,ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",...(features["field-move-gates-v1"]?{slopes:true}:{}),...(features["warp-target-navigation-v1"]?{goalOnly:true}:{}),...(features["surf-navigation-v1"]?{surf:true}:{})};
 }
 function stateOf(result:AgentToolResult<unknown>):GameStateSnapshot {
  const details=result.details;
@@ -642,7 +642,7 @@ function semanticTool(navigate:CheckedNavigationTool,press:CheckedPressTool,feat
       return withStatus(walked,navigationStatus(walked)??"stopped at the water",selected,request.target,false);
      }
     }
-    if(isSurfing(planned)&&here!==null){
+    if(isSurfing(planned)&&!(options.dive===true&&isDiving(planned))&&here!==null){
      const reason=!features["surf-navigation-correctness-v1"]?waterReason(planned,target??here)
       :target===null||target.kind==="warp"?verifiedSurfRefusal(planned,target,options)
       :`No verified Surf route from (${String(here.x)},${String(here.y)}) to a tile next to the target`;

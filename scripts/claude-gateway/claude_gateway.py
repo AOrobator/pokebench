@@ -19,7 +19,8 @@ error, because five reply failures end a run. The request is held: the gateway
 appends `pause` to runs/<run>/control.jsonl, retries on a fixed backoff, answers
 when a call succeeds and then appends `resume`. The SSE stream opens at once and
 carries keepalive comments while a request is held, so the harness's HTTP client
-neither times out nor resends it.
+neither times out nor resends it. The optional manual quota policy instead
+holds until the operator requests each retry, then releases play on delivery.
 """
 
 from __future__ import annotations
@@ -193,6 +194,7 @@ class Config:
     run_id: str | None = None
     game_port: int | None = None
     backoff: tuple[float, ...] = BACKOFF_SECONDS
+    manual_quota_resume: bool = False
     keepalive: float = KEEPALIVE_SECONDS
     call_timeout: float = CALL_TIMEOUT_SECONDS
     # Claude Code's auto-compact window in tokens; None keeps its default (the model's window).
@@ -636,6 +638,11 @@ def reask(prompt: Prompt, reply: str, error: str, session: bool, hint: str = "")
 
 
 USAGE_LIMIT = re.compile(r"limit|\b429\b|rate|too many requests|resets?\b", re.I)
+QUOTA_FAILURE = re.compile(
+    r"\b429\b|\brate[ _-]?limit\b|\busage limit\b|\bquota (?:exhausted|exceeded)\b"
+    r"|\bhit (?:your |the )?limit\b|too many requests",
+    re.I,
+)
 AUTH_FAILURE = re.compile(r"authenticat|log ?in\b|oauth|api key|credential", re.I)
 
 
@@ -841,9 +848,35 @@ class RunBinder:
         )
 
 
-def append_control(runs_root: Path, run_id: str, action: str, at: str) -> int:
+def operator_commands(text: str) -> list[tuple[int, str]]:
+    commands = []
+    for line in text.split("\n")[:-1]:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if (
+            isinstance(row, dict)
+            and row.get("v") == 1
+            and type(row.get("seq")) is int
+            and isinstance(row.get("action"), str)
+        ):
+            commands.append((row["seq"], row["action"]))
+    return commands
+
+
+def quota_command(text: str, after: int) -> Literal["resume", "stop"] | None:
+    actions = {action for seq, action in operator_commands(text) if seq > after}
+    if actions & {"stop", "abort"}:
+        return "stop"
+    return "resume" if "resume" in actions else None
+
+
+def append_control(
+    runs_root: Path, run_id: str, action: str, at: str, journal: str = "control.jsonl"
+) -> int:
     """The viewer's appendControl: seq is the count of existing lines plus one."""
-    path = runs_root / run_id / "control.jsonl"
+    path = runs_root / run_id / journal
     lines = path.read_text(encoding="utf8").splitlines() if path.exists() else []
     seq = sum(1 for line in lines if line) + 1
     line = json.dumps({"v": 1, "seq": seq, "at": at, "action": action}, separators=(",", ":"))
@@ -905,6 +938,7 @@ class Gateway:
     lock: threading.Lock = field(default_factory=threading.Lock)
     bound_logged: bool = field(default=False, init=False)
     holding: bool = field(default=False, init=False)
+    quota_holding: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         bridge = self.config.bridge
@@ -925,6 +959,7 @@ class Gateway:
             current_turn=self.config.current_turn,
             tool_schemas=self.config.tool_schemas,
             schema_hint=self.config.schema_hint,
+            manual_quota_resume=self.config.manual_quota_resume,
             session_id=self.session.session_id,
             run_id=self.config.run_id,
             game_port=self.config.game_port,
@@ -950,26 +985,70 @@ class Gateway:
         seq = append_control(self.config.runs_root, run, action, iso_now(self.clock))
         self.event("control", action=action, run_id=run, seq=seq)
 
+    def quota_control(self, run: str, action: str) -> None:
+        seq = append_control(
+            self.config.runs_root, run, action, iso_now(self.clock), "quota-control.jsonl"
+        )
+        self.event("quota_control", action=action, run_id=run, seq=seq)
+
+    def operator_journal(self, run: str) -> str:
+        try:
+            return (self.config.runs_root / run / "control.jsonl").read_text(encoding="utf8")
+        except FileNotFoundError:
+            return ""
+
+    def wait_for_quota_resume(
+        self, run: str, seq: int, attempt: int, error: str | None, gone: Callable[[], bool]
+    ) -> bool:
+        after = max((n for n, _ in operator_commands(self.operator_journal(run))), default=0)
+        self.quota_control(run, "pause")
+        self.quota_holding = True
+        self.event("quota_held", request=seq, attempt=attempt, error=error, after_control_seq=after)
+        while not gone():
+            command = quota_command(self.operator_journal(run), after)
+            if command == "stop":
+                return False
+            if command == "resume":
+                self.event("quota_retry", request=seq, attempt=attempt + 1)
+                return True
+            self.sleep(0.25)
+        return False
+
     def answer(
         self,
         raw: bytes,
         deliver: Callable[[int, Outcome], None] | None = None,
         gone: Callable[[], bool] = lambda: False,
     ) -> tuple[int, Outcome]:
-        """Answer one request; `resume` follows any `pause`, even when delivery fails."""
+        """Release a manual quota hold only after delivery; legacy backoff retains its cleanup."""
         with self.lock:
             self.seq += 1
             seq = self.seq
             (self.config.bridge / "requests" / f"request-{seq}.json").write_bytes(raw)
-            self.run_id()
+            run = self.run_id()
             self.holding = False
+            self.quota_holding = False
             try:
-                outcome = self._answer(seq, parse_request(raw), gone)
+                if self.config.manual_quota_resume and (
+                    run is None or not self.binder.recorded_feature("provider-wait-pause-v1")
+                ):
+                    outcome = Outcome(
+                        None, "manual quota resume needs a bound run with provider-wait-pause-v1"
+                    )
+                else:
+                    outcome = self._answer(seq, parse_request(raw), gone)
                 if deliver is not None:
                     deliver(seq, outcome)
+                if (
+                    self.quota_holding
+                    and run is not None
+                    and outcome.reply is not None
+                    and not gone()
+                ):
+                    self.quota_control(run, "resume")
                 return seq, outcome
             finally:
-                if self.holding:
+                if self.holding and not self.quota_holding:
                     self.control("resume")
 
     def _save_screens(self, seq: int, messages: Sequence[Message]) -> list[list[Path]]:
@@ -1066,6 +1145,18 @@ class Gateway:
             if spec.mode == "session":
                 result = self._per_call_cost(spec, result)
             self._log_call(seq, attempt, spec, result, waited_ms, session_total)
+            if self.quota_holding or (
+                self.config.manual_quota_resume
+                and result.provider_wait
+                and QUOTA_FAILURE.search(result.error or "")
+            ):
+                if result.provider_wait or result.error is not None:
+                    run = self.run_id()
+                    if run is None or not self.wait_for_quota_resume(
+                        run, seq, attempt, result.error, gone
+                    ):
+                        return Outcome(None, "quota wait cancelled", True)
+                    continue
             if result.provider_wait:
                 if waits == 0:
                     self.control("pause")
@@ -1097,6 +1188,13 @@ class Gateway:
                     raise GatewayError(result.error)
                 return Outcome(parse_reply(result.text, request.tools), None, waits > 0)
             except GatewayError as error:
+                if self.quota_holding:
+                    run = self.run_id()
+                    if run is None or not self.wait_for_quota_resume(
+                        run, seq, attempt, str(error), gone
+                    ):
+                        return Outcome(None, "quota wait cancelled", True)
+                    continue
                 if reasked:
                     self.event("invalid_reply", request=seq, error=str(error))
                     return Outcome(None, f"invalid reply after one re-ask: {error}", waits > 0)
@@ -1321,6 +1419,9 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
     parser.add_argument("--served-model", default="", help="model id advertised to the harness")
     parser.add_argument("--context-window", type=int, default=32768)
     parser.add_argument("--max-tokens", type=int, default=4096)
+    parser.add_argument(
+        "--manual-quota-resume", action="store_true", help="hold quota retries until viewer Resume"
+    )
     parser.add_argument("--backoff", type=_backoff, default=BACKOFF_SECONDS)
     parser.add_argument("--keepalive", type=float, default=KEEPALIVE_SECONDS)
     parser.add_argument(
@@ -1377,6 +1478,7 @@ def parse_args(argv: Sequence[str]) -> tuple[Config, int]:
         run_id=args.run_id,
         game_port=args.game_port,
         backoff=args.backoff,
+        manual_quota_resume=args.manual_quota_resume,
         keepalive=args.keepalive,
         autocompact=args.autocompact,
         continue_from=args.continue_session_from,

@@ -9,8 +9,9 @@ import type {CheckedPressTool} from "./game-tools.js";
 import type {CheckedNavigationTool} from "./navigation.js";
 import {playSystemPrompt} from "./play-config.js";
 import {flagFeatures} from "./play-preset.js";
-import {withSemanticNavigation} from "./semantic-navigation.js";
+import {verifiedWarpRoute,withSemanticNavigation} from "./semantic-navigation.js";
 import {IN_GAME} from "../test-support/events.js";
+import currentRecipe from "../../../experiments/feature-configs/current.json" with {type:"json"};
 
 const POND=0x10,OCEAN=0x15,CURRENT_EAST=0x50,CURRENT_SOUTH=0x53,WATERFALL=0x13,WATER_DOOR=0x6c;
 type Cell={behavior?:number;elevation?:number;collision?:number};
@@ -353,4 +354,41 @@ it("does not fall back to a held press under a bridge when the stride is unverif
  expect(planNavigation(s,{x:3,y:0},ON)).toEqual(["RIGHT"]);
  expect(requestedStep(s,"RIGHT",{surf:true,ledges:true,oneWay:true,floor:true,elevation:"game",fieldMoveGates:false}))
   .toEqual({ok:false,reason:"no verified single-tile Surf stride onto (3,0); use navigate_to for this transition"});
+});
+
+it("uses native Dive mode for a water door only as a listed warp goal",()=>{
+ const tiles=row({3:{behavior:0,elevation:3},4:{behavior:WATER_DOOR,elevation:0},5:{behavior:0,elevation:3}});
+ const state=grid(field(3,false,tiles,{running:{...SURF.running,avatar_flags:0x10}}),{warps:[{x:4,y:0}]});
+ const goal={x:4,y:0};
+ expect(planNavigation(state,goal,ON)).toBeNull();
+ expect(planNavigation(state,goal,{...ON,dive:true})).toEqual(["RIGHT"]);
+ expect(planNavigation(state,{x:5,y:0},{...ON,dive:true})).toBeNull();
+ expect(planNavigation(field(3,false,tiles,{running:{...SURF.running,avatar_flags:0x10}}),goal,{...ON,dive:true})).toBeNull();
+ expect(planNavigation(grid(field(3,false,tiles),{warps:[goal]}),goal,{...ON,dive:true})).toBeNull();
+});
+
+
+it("verifies the Dive warp through semantic navigation in both current arms",()=>{
+ const id="opus-trace-correctness-v1";
+ expect(currentRecipe.onInBoth).toContain(id);
+ expect(currentRecipe.switches).not.toContain(id);
+ expect(currentRecipe.features[id]).toBe(true);
+ const goal={x:4,y:0};
+ const tiles=row({3:{behavior:0,elevation:3},4:{behavior:WATER_DOOR,elevation:0}});
+ const state=grid(field(3,false,tiles,{
+  running:{...SURF.running,avatar_flags:0x10},
+  interaction_targets:[{...goal,kind:"warp",elevation:0,activation:"movement",availability:"conditional",facing:null,local_id:null,destination:[24,5,0],name:null}],
+ }),{warps:[goal]});
+ const base={...flagFeatures({} as Parameters<typeof flagFeatures>[0]),"walkable-floor-v1":true,"surf-navigation-v1":true};
+ expect(verifiedWarpRoute(state,goal,{...base,[id]:false})).toBe(false);
+ expect(verifiedWarpRoute(state,goal,{...base,[id]:true})).toBe(true);
+});
+
+
+it("crosses seaweed and no-surfacing tiles as underwater floor without ignoring collision",()=>{
+ const tiles=row({2:{behavior:0x19,elevation:3},3:{behavior:0x22,elevation:3},4:{behavior:0x2a,elevation:3},5:{behavior:0,elevation:3}});
+ const state=field(2,false,tiles,{running:{...SURF.running,avatar_flags:0x10}});
+ expect(planNavigation(state,{x:5,y:0},ON)).toBeNull();
+ expect(planNavigation(state,{x:5,y:0},{...ON,dive:true})).toEqual(["RIGHT","RIGHT","RIGHT"]);
+ expect(planNavigation(grid(state,{objects:[{x:3,y:0,elevation:3}]}),{x:5,y:0},{...ON,dive:true})).toBeNull();
 });

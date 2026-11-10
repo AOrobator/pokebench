@@ -218,6 +218,9 @@ function controlRow(event: Extract<RunEvent, { type: "operator_control" }>): str
   }
   const name = event.action.replace("_", " ");
   const status = event.status === "pending" ? "requested" : event.status === "failed" ? "FAILED" : event.status;
+  if (event.reason === "claude_quota") return event.action === "pause"
+    ? "⏸ Paused for Claude quota · use Resume to retry"
+    : "▶ Claude quota retry requested · play stays paused until the reply arrives";
   const detail = event.status === "failed" ? " · emulator still frozen; the run stays paused" : event.status === "pending"
     ? event.action === "stop" ? " · ends after the current turn" : " · holds before the next model call"
     : `${event.paused_ms === undefined ? "" : ` · paused ${String(Math.round(event.paused_ms / 1000))}s`}${event.emulator_frozen === undefined ? "" : event.emulator_frozen ? " · emulator frozen" : " · emulator NOT frozen"}`;
@@ -695,7 +698,9 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "tmhm-learning-visibility-v1":"tmhm-learning-visibility-v1.html",
  "verified-warp-reach-v1":"verified-warp-reach-v1.html",
  "surf-navigation-correctness-v1":"surf-navigation-correctness-v1.html",
+ "opus-trace-correctness-v1":"opus-trace-correctness-v1.html",
  "waterfall-handoff-verification-v1":"waterfall-handoff-verification-v1.html",
+ "game-clear-completion-v1":"game-clear-completion-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",

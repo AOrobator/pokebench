@@ -37,7 +37,7 @@ import { driveProbe, parseProbeCommand, type ProbeCommand } from "./probe.js";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgentLoop, type AgentMessage } from "@mariozechner/pi-agent-core";
-import { loadConfig } from "./config.js";
+import { loadConfig, requireModel } from "./config.js";
 import { checkSmoke, gameTools, observeTool, pressTool, serverHealthy } from "./game-tools.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
 import { FrameStore } from "./frames.js";
@@ -187,14 +187,18 @@ async function live(): Promise<Live> {
     throw new Error(`POKEBENCH_GAME_SERVER_URL must be http://127.0.0.1:<port>; each run launches its own server (INV-7)`);
   }
   const port = configured.port === "" ? allocateGamePort() : Number(configured.port);
-  const local = config.endpointFile === null ? null : readEndpoint(config.endpointFile);
-  const models =
-    local === null
-      ? await discoverModels({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels })
-      : await discoverLocal(local);
-  const model = selectModel(models, config.model);
-  if (!model.input.includes("image")) throw new Error(`model ${config.model} is not a vision lane; runs need one`);
-  return { model, port, gatewayUrl: local?.baseUrl ?? config.gatewayUrl, apiKey: local?.apiKey };
+  const wanted = requireModel(config);
+  const { endpoint } = config;
+  let lane: { readonly models: GatewayModel[]; readonly baseUrl: string; readonly apiKey: string | undefined };
+  if (endpoint.kind === "gateway") {
+    lane = { models: await discoverModels({ gatewayUrl: endpoint.url, visionModels: config.visionModels }), baseUrl: endpoint.url, apiKey: undefined };
+  } else {
+    const local = readEndpoint(endpoint.path);
+    lane = { models: await discoverLocal(local), baseUrl: local.baseUrl, apiKey: local.apiKey };
+  }
+  const model = selectModel(lane.models, wanted);
+  if (!model.input.includes("image")) throw new Error(`model ${wanted} is not a vision lane; runs need one`);
+  return { model, port, gatewayUrl: lane.baseUrl, apiKey: lane.apiKey };
 }
 
 function pressHooks(recorder: RunRecorder): Parameters<typeof pressTool>[1] {

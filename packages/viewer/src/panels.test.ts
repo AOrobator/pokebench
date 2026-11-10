@@ -934,8 +934,7 @@ it("links the navigation cycle stop from its recorded feature card",()=>{
  const card=doc.querySelector(`[data-feature="${id}"]`);expect(card?.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);expect(card?.textContent).toContain("ON");
 });
 
-it("links the party menu message from its feature card",()=>{
- const id="party-menu-message-v1";
+it.each(["party-menu-message-v1","verified-warp-reach-v1","surf-navigation-correctness-v1"])("links %s from its feature card",id=>{
  expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
  const log=new Log();log.add(0,{...START,harness_features:["ram-state-v1",id]});
  const doc=new Window().document;doc.body.innerHTML=harnessConfig(view(log),FEATURES);

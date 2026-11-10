@@ -229,6 +229,18 @@ function unreadyReason(state:GameStateSnapshot):string {
  return "this map's navigation geometry is unavailable; inspect the new state before calling navigate_to again";
 }
 // surf-navigation-v1: why no route runs from the water, in the game's words where it has any.
+export function verifiedSurfRefusal(state:GameStateSnapshot,goal:Point|null,options:NavigationOptions):string {
+ const here=state.position===null?"here":at(state.position);
+ if(goal===null)return `No verified Surf route from ${here} to this map edge`;
+ const geometry=options.mode==="full"?fullGeometry(state):localGeometry(state);
+ const bounds=geometry?.bounds;
+ if(bounds!=null&&(goal.x<0||goal.y<0||goal.x>=bounds.width||goal.y>=bounds.height))return `${at(goal)} is outside this map`;
+ const tile=geometry?.tile(goal);
+ if(tile!==undefined&&!WATER.has(tile.behavior)&&tile.collision!==0)return `${at(goal)} is a solid tile`;
+ const push=tile===undefined?undefined:FORCED_WATER.get(tile.behavior);
+ if(push!==undefined)return `No verified Surf route from ${here} to stop at ${at(goal)}; the tile pushes ${push.toLowerCase()}`;
+ return `No verified Surf route from ${here} to ${at(goal)}`;
+}
 export function waterReason(state:GameStateSnapshot,goal:Point):string {
  const here=state.position===null?"here":at(state.position);
  const fall=state.field_obstacles?.obstacles.find(o=>o.gate==="waterfall"&&o.open===false);
@@ -825,6 +837,7 @@ export interface NavigationPorts {
  readonly sectionAlternatives?:boolean;
  // surf-navigation-v1: plan over water while surfing, and on foot walk to the shore when the way on crosses water.
  readonly surfNavigation?:boolean;
+ readonly surfCorrectness?:boolean;
  // rotating-gate-navigation-v1: plan around gate arms; when only arms stop the route, walk up to the first and name it.
  readonly rotatingGates?:boolean;
  // trainer-sight-check-v1: the model's own call checks its first planned route against unbeaten trainers' sight.
@@ -883,29 +896,33 @@ export function planStride(state:GameStateSnapshot,path:readonly Direction[],opt
  return tiles.length===0?null:{map_id:state.map_id,origin,path:tiles,elevation,...(surfing?{surfing:true as const}:tallGrass?{tall_grass:true as const}:{}),...(bike?{bike:true as const}:{})};
 }
 // rejected-movement-prefix-v1: the navigate_to rules one requested direction is checked by.
-export interface PrefixRules {readonly ledges:boolean;readonly ledgeDrops?:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
-export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean}|{readonly ok:false;readonly reason:string};
+export interface PrefixRules {readonly surf?:boolean;readonly ledges:boolean;readonly ledgeDrops?:boolean;readonly oneWay:boolean;readonly floor:boolean;readonly elevation:ElevationMode;readonly fieldMoveGates:boolean}
+export type RequestedStep={readonly ok:true;readonly landing:Point;readonly warp:boolean;readonly stride?:StrideCorridor}|{readonly ok:false;readonly reason:string};
 // rejected-movement-prefix-v1: one direction of a model's walking batch is valid when navigate_to's own planner would take
 // exactly that press to its landing tile (a ledge hop or slope slide included) and the landing is not a coordinate script
 // whose condition matches now. A refusal names the observable reason.
 export function requestedStep(raw:GameStateSnapshot,direction:Direction,rules:PrefixRules):RequestedStep {
- const state=rules.fieldMoveGates?gatedState(raw):raw,geometry=localGeometry(state),from=state.position;
+ const surfing=rules.surf===true&&isSurfing(raw);
+ const state=rules.fieldMoveGates?gatedState(raw,surfing):raw,geometry=localGeometry(state),from=state.position;
  if(geometry===null||from===null||!ready(state))return {ok:false,reason:"the field is not free to walk"};
  const delta=DIRECTIONS.find(([d])=>d===direction);if(delta===undefined)return {ok:false,reason:`${direction} is not a direction`};
  const next={x:from.x+delta[1],y:from.y+delta[2]},tile=geometry.tile(next),occupied=(p:Point):boolean=>geometry.objects.some(o=>samePoint(o,p));
  if(tile===undefined)return {ok:false,reason:`${at(next)} is outside the known map`};
  if(occupied(next))return {ok:false,reason:`${at(next)} has a person or object on it`};
  const triggers=matchingTriggers(state);
- const options:NavigationOptions={mode:"local",ledges:rules.ledges,...(rules.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
+ const options:NavigationOptions={mode:"local",...(surfing?{surf:true}:{}),ledges:rules.ledges,...(rules.ledgeDrops===true?{ledgeDrops:true}:{}),oneWay:rules.oneWay,floor:rules.floor,elevation:rules.elevation,triggers,...(rules.fieldMoveGates?{slopes:true}:{})};
  const landing=routeTiles(state,[direction],options)?.at(-1);
  const path=landing===undefined?null:planNavigation(state,landing,options);
  if(landing!==undefined&&path?.length===1&&path[0]===direction){
   const arrived=walked(state,[direction],options)?.elevation??geometry.elevation;
   if(triggerAt(triggers,landing,arrived)!==undefined)return {ok:false,reason:`${at(landing)} is a script tile whose condition matches now; stepping on it runs a script, so press ${direction} on its own to step on it on purpose`};
-  return {ok:true,landing,warp:geometry.warps.some(w=>samePoint(w,landing))};
+  const stride=surfing?planStride(state,[direction],options):null;
+  if(surfing&&(SURF_TRAVEL.has(tile.behavior)||WATER.has(tile.behavior))&&stride===null)return {ok:false,reason:`no verified single-tile Surf stride onto ${at(next)}; use navigate_to for this transition`};
+  return {ok:true,landing,warp:geometry.warps.some(w=>samePoint(w,landing)),...(stride===null?{}:{stride})};
  }
  const arrow=LEDGES.get(tile.behavior);
  if(arrow!==undefined)return {ok:false,reason:arrow===direction?`the ledge at ${at(next)} has no free landing tile`:`${at(next)} is a ledge; it can be hopped only going ${arrow}`};
+ if(surfing&&WATER.has(tile.behavior))return {ok:false,reason:verifiedSurfRefusal(state,next,options)};
  if(WATER.has(tile.behavior))return {ok:false,reason:`${at(next)} is water`};
  if(tile.collision!==0)return {ok:false,reason:`${at(next)} is a wall or other solid tile`};
  if(rules.oneWay&&(walled(tile,OPPOSITE[direction])||walled(geometry.tile(from),direction)))return {ok:false,reason:`a one-way edge blocks moving ${direction} from ${at(from)} to ${at(next)}`};
@@ -1060,7 +1077,7 @@ export function navigationTool(ports:NavigationPorts):CheckedNavigationTool {
     }
     if(found!==null&&ignoring!==null)path=ignoring.slice(0,found.steps);
    }
-   if(path===null&&surfing){status=waterReason(state,goal);break;}
+   if(path===null&&surfing){status=ports.surfCorrectness===true?verifiedSurfRefusal(state,goal,options):waterReason(state,goal);break;}
    if(path===null){
     status=(ports.counters===true?counterHint(state,goal,options,truth):null)??(ports.refusalReasons===true?targetReason(state,goal,options,ports.connectionEdges===true,truth,ports.exitReach===true?{surf:ports.surfGate===true,reach:true,gates:ports.fieldMoveGates===true}:null,advice,observed,ports.mapObservability===true):null)??(active==="local"&&ports.windowReasons===true?windowReason(state,goal,options,advice):null)??(active==="full"?"no supported path on the current map; choose a reachable waypoint":active==="visited"?"no supported path through terrain shown this run; explore until another area has been shown, then try again":"no supported local path; choose a reachable local waypoint");
     if(ports.sectionAlternatives===true){const alternatives=reachableSectionAlternatives(state,goal);if(alternatives!==null)status+=`; ${alternatives}`;}
@@ -1224,5 +1241,5 @@ export function withNavigation(base:readonly AgentTool[],features:FeatureSet,sta
  if(features["story-battle-heal-gate-v1"]&&healGate===undefined)throw new Error("story-battle-heal-gate-v1 needs the gate");
  const press=base.find(tool=>tool.name==="press"),observe=base.find(tool=>tool.name==="observe");
  if(press===undefined||observe===undefined||!isCheckedPress(press))throw new Error("Navigation requires ordinary game tools");
- tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],fieldMoveGates:features["field-move-gates-v1"],obstacleRespawn:features["field-obstacle-respawn-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
+ tools.push(navigationTool({rotatingGates:features["rotating-gate-navigation-v1"],mapObservability:features["map-observability-v1"],cycleStop:features["navigation-cycle-stop-v1"],semanticTargets:features["semantic-navigation-v2"],safeStrides:features["safe-navigation-strides-v1"],grassStrides:features["grass-strides-v1"],bikeNavigation:features["bike-navigation-v1"],...(features["bike-register-v1"]&&press.executeBikeRegister!==undefined?{bikeRegister:press.executeBikeRegister}:{}),...(features["bike-auto-mount-v1"]&&press.executeBikeToggle!==undefined?{bikeToggle:press.executeBikeToggle}:{}),automaticRunning:features["automatic-running-v1"],ledges:features["ledge-hops-v1"],ledgeDrops:features["navigator-ledge-drops-v1"],oneWay:features["one-way-tiles-v1"],grassCost:features["grass-cost-navigation-v1"],counters:features["counter-talk-v1"],refusalReasons:features["navigation-refusal-reasons-v1"],connectionEdges:features["connection-edge-tiles-v1"],truth:features["navigation-truth-v1"],triggers:features["coordinate-script-conditions-v1"],windowReasons:features["navigation-refusal-reasons-v2"],waypointAdvice:features["navigation-refusal-reasons-v3"],floor:features["walkable-floor-v1"],elevation:features["elevation-transitions-v1"]?"game":"legacy",navigateFirst:features["navigate-first-prompt-v1"],crossMapGoal:features["cross-map-goal-v1"],exitReach:features["exit-reachability-v1"],surfGate:features["surf-gated-exits-v1"],surfNavigation:features["surf-navigation-v1"],surfCorrectness:features["surf-navigation-correctness-v1"],fieldMoveGates:features["field-move-gates-v1"],obstacleRespawn:features["field-obstacle-respawn-v1"],deterministicWarps:features["deterministic-warp-navigation-v1"],warpTargets:features["warp-target-navigation-v1"],alreadyHere:features["navigate-already-here-v1"],boundaryCrossingFacts:features["boundary-crossing-facts-v1"],sectionAlternatives:features["reachable-section-alternatives-v1"],read:signal=>state.read(signal),press:(id,params,signal,check,options)=>check===undefined?press.execute(id,params,signal):press.executeChecked(id,params,check,signal,undefined,options),observe:(id,signal)=>observe.execute(id,{},signal),gate,fullMap:features["full-map-navigation-v1"],windowEscape:features["window-escape-route-v1"],actorElevation:features["elevation-aware-map-v1"],visitedTerrain:features["visited-terrain-navigation-v1"],...(features["trainer-sight-check-v1"]?{trainerSight:sight}:{}),...(features["story-battle-heal-gate-v1"]?{healGate}:{})}));return tools;
 }

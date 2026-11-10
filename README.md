@@ -2,7 +2,7 @@
 
 How far can a local vision-language model get in Pokémon Emerald when it is given a specialized harness?
 
-- **Agent:** TypeScript on [pi](https://github.com/badlogic/pi-mono). LLM access goes through the local-inference-stack gateway (`http://inference.example/v1`).
+- **Agent:** TypeScript on [pi](https://github.com/badlogic/pi-mono). It plays through an OpenAI-compatible model endpoint you configure (a local llama.cpp or vLLM server, or a gateway that reports each model's limits); there is no built-in one. See [Connect a model](docs/connect-a-model.md) for local servers, gateways, Hermes, Claude and Codex.
 - **Environment:** a native mGBA build on Apple Silicon. It drives the [continual-harness](https://github.com/sethkarten/continual-harness) game server (the PokéAgent Challenge starter kit), vendored unmodified at a pinned commit.
 - **Observability:** a viewer shows the live game, button presses, thinking traces and tool calls.
 

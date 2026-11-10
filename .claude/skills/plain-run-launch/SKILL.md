@@ -5,7 +5,7 @@ description: Launch one ordinary `just run-agent` gameplay run — a solo contro
 
 # Plain run launch (`just run-agent`)
 
-One run, one arm, one wall cap. A launch is not done until `run_start` is read back from
+One run, one arm, with the operator-authorized limits. A launch is not done until `run_start` is read back from
 `runs/<id>/events.jsonl` and matches what you meant to launch.
 
 `scripts/launch.sh --meta <dir> --model <id>` does the launch: it refuses a bad preset, endpoint, port or commit, starts the run detached with `POKEBENCH_CHECKPOINT_FRONTIER=1`, and writes `launch.receipt.json`. Every start saves frontier checkpoints by default; `POKEBENCH_CHECKPOINT_FRONTIER=0` turns that off on a hand launch.
@@ -58,6 +58,12 @@ curl -s http://127.0.0.1:18100/v1/models | head -c 400   # expect max_model_len 
 
 `context_window` comes from the lane's `/v1/models` (`max_model_len`), and `maxTokens` is set equal to
 it, so a `max_tokens 8192` sampling cap is what actually bounds replies.
+
+## Preflight every stop condition
+
+Before starting, compare the authorized limits with the effective preset, gateway, and any wrapper or supervisor. Write the comparison to a separate preflight receipt under the run’s ignored artifacts so the launcher can write its own receipt independently. Verify all turn, wall-clock, milestone, token, and spend stops, including defaults inherited from a previous run. Apply the [run-limit authorization rules](../pokebench-run-coordination/SKILL.md#run-limits-belong-to-the-operator) to resolve any mismatch.
+
+For example, for an Opus Max run authorized for 600 turns or two hours, the supervisor's API-equivalent spend threshold must be disabled. The gateway may still record its estimate. Confirm the effective stop settings before the detached process starts because some supervisors read them only once.
 
 ## 3. Launch detached, from `just`
 

@@ -126,6 +126,18 @@ export async function appendControl(runsRoot: string, runId: string, action: Con
   return seq;
 }
 
+// The viewer queues runs only on an endpoint file named in its environment; there is no built-in one.
+export const NO_ENDPOINT = "queueing is disabled: start the viewer with POKEBENCH_ENDPOINT_FILE set to a local model endpoint file (see docs/connect-a-model.md)";
+
+export function endpointFromEnv(env: Readonly<Record<string, string | undefined>>): string | null {
+  const file = env["POKEBENCH_ENDPOINT_FILE"];
+  return file === undefined || file === "" ? null : file;
+}
+
+export function nextRunsLine(endpointFile: string | null): string {
+  return endpointFile === null ? `next runs: ${NO_ENDPOINT}` : `next runs: local models from ${endpointFile}`;
+}
+
 export interface LaunchSpec { readonly runId: string; readonly argv: readonly string[]; readonly env: Readonly<Record<string, string>>; readonly stdout: string; readonly stderr: string; readonly started?: (pid: number) => void }
 export interface QueueHost {
   readonly runsRoot: string;
@@ -159,7 +171,7 @@ export class RunQueue {
   }
 
   enqueue(value: unknown): QueueStatus {
-    if (this.host.endpointFile === null) throw new NextRunError("the viewer was started without a local model endpoint file");
+    if (this.host.endpointFile === null) throw new NextRunError(NO_ENDPOINT);
     if (this.current.state === "queued") throw new NextRunError("a run is already queued; cancel it first");
     if (this.current.state === "launching" || this.current.state === "running") throw new NextRunError("a queued run is already launching or running");
     const draft = parseNextRun(value);

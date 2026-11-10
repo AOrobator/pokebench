@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_NEXT_RUN, healthProbe, presetFor } from "./next-run.js";
 
 const ALL_ON = { ...REGISTERED_ALL_ON, "visited-terrain-navigation-v1": false, "battle-effective-damage-v1": false, "semantic-navigation-v1":false, "deterministic-exploration-v1":false };
-Object.assign(ALL_ON,{"safe-navigation-strides-v1":false,"tmhm-learning-visibility-v1":true});
+Object.assign(ALL_ON,{"safe-navigation-strides-v1":false,"tmhm-learning-visibility-v1":true,"verified-warp-reach-v1":true,"surf-navigation-correctness-v1":true});
 // Game servers that answer /health in these tests.
 const draft = { ...DEFAULT_NEXT_RUN, model: "Qwen3.8-Flash" };
 

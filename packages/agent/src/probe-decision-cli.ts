@@ -12,7 +12,7 @@ import { AuthoredSceneLabelSchema, type AuthoredSceneLabel, checkEvent, type Run
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { completeSimple, type AssistantMessage, type ThinkingLevel } from "@mariozechner/pi-ai";
-import { loadConfig } from "./config.js";
+import { loadConfig, type PokebenchConfig } from "./config.js";
 import { contextDiff, decisionContext, serverSwitch, distribution, parseSwitch, recordedRun, recordedAction, recordedFeatures, sample, withSwitches, type ContextSize, type Decision, type DecisionContext, type ProbePorts, type ProbeSwitch, type RawRef, type RecordedRun, type Sampler } from "./decision-probe.js";
 import { serverFeatureEnv, type FeatureSet } from "./features.js";
 import { discoverModels, selectModel, type GatewayModel } from "./gateway.js";
@@ -118,9 +118,9 @@ export async function readRun(path: string): Promise<RecordedRun> {
 
 // The lane a probe samples, with its key: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
 export interface ProbeLane { readonly models: GatewayModel[]; readonly apiKey: string | undefined }
-export async function probeLane(config: { readonly endpointFile: string | null; readonly gatewayUrl: string; readonly visionModels: readonly string[] }, local = discoverLocal, gateway = discoverModels): Promise<ProbeLane> {
-  if (config.endpointFile === null) return { models: await gateway({ gatewayUrl: config.gatewayUrl, visionModels: config.visionModels }), apiKey: undefined };
-  const endpoint = readEndpoint(config.endpointFile);
+export async function probeLane(config: Pick<PokebenchConfig, "endpoint" | "visionModels">, local = discoverLocal, gateway = discoverModels): Promise<ProbeLane> {
+  if (config.endpoint.kind === "gateway") return { models: await gateway({ gatewayUrl: config.endpoint.url, visionModels: config.visionModels }), apiKey: undefined };
+  const endpoint = readEndpoint(config.endpoint.path);
   return { models: await local(endpoint), apiKey: endpoint.apiKey };
 }
 

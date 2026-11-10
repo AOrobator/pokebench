@@ -11,6 +11,8 @@ import {parseGameState,type GameStateSnapshot} from "./game-state.js";
 import type {RunEvent} from "./events.js";
 import {STORY_HEADER,StoryDestinations,placeEvidenceSource,PlacesBodySchema,reachedText,staleGoalLine,type MapId,type Place,type PlaceSource,type StoryGoal} from "./story-destinations.js";
 import {Value} from "typebox/value";
+import type {FeatureSet} from "./features.js";
+import {verifiedWarpRoute} from "./semantic-navigation.js";
 import {exitBlock} from "./surf-gate.js";
 import {connectionArgument,targetSuffix,uniqueDirection,uniqueTile} from "./semantic-targets.js";
 
@@ -74,28 +76,34 @@ export function charactersLine(text:string):string|null {
 // player's tile, named from the map table. Null without exit_reach, with a malformed foot mask, or for a map the table
 // lacks. A warp the table does not list, or one to a dynamic destination, is left out rather than guessed.
 // surf-navigation-v1: surf adds what lies across water once Surf can be used, and while surfing lists what the water reaches.
-export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate"|"interaction_targets"|"exit_sections">,places:readonly Place[],semantic=false,sections=false,surf=false):string|null {
+export function exitsLine(state:Pick<GameStateSnapshot,"map_id"|"exit_reach"|"topology"|"surf_gate"|"interaction_targets"|"exit_sections">,places:readonly Place[],semantic=false,sections=false,surf=false,verifyWarp?:(point:{x:number;y:number})=>boolean):string|null {
  const reach=state.exit_reach,here=state.map_id;
  if(reach===undefined||here===null||exitBlock({surf:false,reach:true},state).foot(0,0)===null)return null;
  const map=places.find(p=>same(p.map_id,here));if(map===undefined)return null;
  const name=(to:MapId)=>{const q=places.find(r=>same(r.map_id,to));return q===undefined?null:mapLabel(q.display,to);};
- const listed=(wanted:(label:string)=>boolean):string[]=>{
+ const unverified:string[]=[];
+ const listed=(wanted:(label:string)=>boolean,checkWarps=false):string[]=>{
   const doors=new Map<string,{tiles:string[];label:string}>();
   for(const w of reach.warps){
    if(!wanted(w.reach))continue;
    const to=map.warps.find(m=>m.x===w.x&&m.y===w.y)?.to;
    const label=to===undefined?null:name(to);if(to===undefined||label===null)continue;
    const specific=sectionWarp(state,w.x,w.y,sections);
+   if(checkWarps&&verifyWarp!==undefined&&!verifyWarp(w)){
+    unverified.push(`${at(w)} -> ${specific??label}`);
+    continue;
+   }
    const key=specific===null?`${String(to[0])}/${String(to[1])}`:`${String(w.x)},${String(w.y)}`;const door=doors.get(key)??{tiles:[],label:specific??label};
    door.tiles.push(`${at(w)}${semantic&&uniqueTile(state.interaction_targets,"warp",w.x,w.y)?targetSuffix(warpArgument(w)):""}`);doors.set(key,door);
   }
   const edges=reach.connections.flatMap(c=>{const label=wanted(c.reach)?(sectionConnection(state,c,sections)??name(c.destination)):null;return label===null?[]:[`${c.direction} edge -> ${label}${semantic&&(walkOff(state,c.direction)||(surf&&uniqueDirection(state.topology?.connections,c.direction)))?targetSuffix(connectionArgument(c.direction)):""}`];});
   return [...[...doors.values()].map(d=>`${d.tiles.join(" or ")} -> ${d.label}`),...edges];
  };
- if(surf&&state.surf_gate?.surfing===true){const all=listed(label=>label!=="none");return `You are surfing. Exits by water or land from here, not counting currents and waterfalls: ${all.length===0?"none":all.join("; ")}.`;}
- const all=listed(label=>label==="foot");
+ const uncertain=()=>unverified.length===0?"":` Known warps without a verified route from this tile: ${unverified.join("; ")}.`;
+ if(surf&&state.surf_gate?.surfing===true){const all=listed(label=>label!=="none",true);return `You are surfing. Exits by water or land from here, not counting currents and waterfalls: ${all.length===0?"none":all.join("; ")}.${uncertain()}`;}
+ const all=listed(label=>label==="foot",true);
  const across=surf&&state.surf_gate?.can_surf===true?listed(label=>label==="water"):[];
- return `Exits you can walk to from where you stand: ${all.length===0?"none (no exit of this map can be reached on foot from your tile)":all.join("; ")}.${across.length===0?"":` Across water: ${across.join("; ")}.`}`;
+ return `Exits you can walk to from where you stand: ${all.length===0?(verifyWarp===undefined?"none (no exit of this map can be reached on foot from your tile)":"none verified"):all.join("; ")}.${uncertain()}${across.length===0?"":` Across water: ${across.join("; ")}.`}`;
 }
 
 // Map-table steps (warps and NORTH/SOUTH/EAST/WEST connections) from a map to the nearest target; null when none leads there.
@@ -249,7 +257,7 @@ function stateOf(details:unknown):GameStateSnapshot|null {
 }
 
 // battleAction: harness-trust-v2 also heads battle_action results.
-export interface TrustOptions {readonly doneOnEvent?:boolean;readonly noOpenGoal?:boolean;readonly unnamedPlaces?:boolean;readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
+export interface TrustOptions {readonly verifiedWarpFeatures?:FeatureSet;readonly doneOnEvent?:boolean;readonly noOpenGoal?:boolean;readonly unnamedPlaces?:boolean;readonly surfNavigation?:boolean;readonly supervisor:boolean;readonly battleAction?:boolean;readonly goalOnce?:boolean;readonly retireLab?:boolean;readonly stageBound?:boolean;readonly nativeTasks?:boolean;readonly omitEmptyGoal?:boolean;readonly scriptedGuidance?:boolean;readonly reachableGoal?:boolean;readonly semanticTargets?:boolean;readonly activity?:boolean;readonly exitSections?:boolean;readonly playerName?:boolean;readonly gymEvidence?:boolean;readonly deliveredPlaces?:boolean;readonly untalkedPeople?:boolean;readonly buildings?:boolean;readonly selfNamed?:boolean;readonly retireReached?:boolean}
 
 // The header (and any walk-away note) put at the top of the result's first text part.
 export class HarnessTrust {
@@ -263,7 +271,8 @@ export class HarnessTrust {
   const anyLine=this.story.latest(callId,null,state.name)!==null;
   const goal=places instanceof Error||state.map_id===null?null:this.story.goal(state.map_id,state.name,callId,places,this.options.retireLab===true,state.story??null,this.options.stageBound===true,state);
   const characters=charactersLine(text);
-  const exits=places instanceof Error?null:exitsLine(state,places,this.options.semanticTargets===true,this.options.exitSections===true,this.options.surfNavigation===true);
+  const warpFeatures=this.options.verifiedWarpFeatures;
+  const exits=places instanceof Error?null:exitsLine(state,places,this.options.semanticTargets===true,this.options.exitSections===true,this.options.surfNavigation===true,warpFeatures===undefined?undefined:point=>verifiedWarpRoute(state,point,warpFeatures));
   const untalked=this.people?.untalkedLine(state,text,callId)??null;
   const repeated=this.options.goalOnce===true&&goal!==null&&goal.done!==true&&seen.includes(STORY_HEADER)&&seen.includes(`"${goal.line.text}"`);
   // no-open-story-goal-v1: a repeated quote is still skipped, but the plain line is not.

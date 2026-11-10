@@ -2,7 +2,7 @@ import {expect,it} from "vitest";
 import {parseEvent,type RunEvent} from "./events.js";
 import {qualifiedNativeMilestone} from "./milestones.js";
 import {NativeTargetStop} from "./target-stop.js";
-import {NAME_CONFIRMED} from "../test-support/events.js";
+import {IN_GAME,NAME_CONFIRMED} from "../test-support/events.js";
 const RUN="target-test";
 const state=parseEvent(JSON.stringify({v:1,type:"state",turn:1,t:"2026-10-12T22:00:00.000-04:00",...NAME_CONFIRMED,run:RUN,seq:10}));
 const mark:Extract<RunEvent,{type:"milestone"}>={v:1,run:RUN,seq:11,t:"2026-10-12T22:00:00.000-04:00",turn:1,type:"milestone",name:"PLAYER_NAME_CONFIRMED",kind:"story",origin:"observed",server_timestamp:0,evidence:[10]};
@@ -52,4 +52,21 @@ it("rejects a transition as the recorded truck witness",()=>{
  const truck=parseEvent(JSON.stringify({...state,seq:20,screen:"field_transition",started:true,name:"MAY",location:"INSIDE OF TRUCK"}));
  const exit=parseEvent(JSON.stringify({...truck,seq:21,screen:"overworld",location:"LITTLEROOT TOWN"}));
  expect(qualifiedNativeMilestone({...mark,seq:22,name:"FIRST_TRUCK_EXIT",evidence:[20,21]},[truck,exit])).toBe(false);
+});
+
+it("stops on the observed game-clear flag, not Hall of Fame arrival or checkpoint state",()=>{
+ const target=new NativeTargetStop(RUN,"GAME_CLEAR_CONFIRMED",()=>undefined);
+ const clear={...mark,name:"GAME_CLEAR_CONFIRMED"};
+ const flags=Buffer.alloc(300);
+ const nativeState=()=>parseEvent(JSON.stringify({...state,...IN_GAME,story_progress:{flags:flags.toString("hex"),rustboro_stage:0,devon_stage:0,letter:false}}));
+ target.observe(nativeState());
+ target.observe(clear);
+ expect(target.proof).toBeNull();
+ flags[0x864>>3]=1<<(0x864&7);
+ target.observe(nativeState());
+ target.observe({...clear,name:"HALL_OF_FAME_ENTERED"});
+ target.observe({...clear,origin:"present_at_start"});
+ expect(target.proof).toBeNull();
+ target.observe(clear);
+ expect(target.proof).toEqual({name:clear.name,milestone_seq:11,state_evidence:[10]});
 });

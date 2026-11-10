@@ -1,7 +1,7 @@
 import {describe,expect,it} from "vitest";
 import {checkEvent} from "./events.js";
 import {featuresSha256,runEvaluation} from "./run-evaluation.js";
-import {presetFeatures,parsePlayPreset} from "./play-preset.js";
+import {presetFeatures,parsePlayPreset,terminationTarget} from "./play-preset.js";
 import {RUN_START} from "../test-support/events.js";
 import {rayquazaLanePreset} from "../test-support/rayquaza-lane.js";
 
@@ -35,4 +35,13 @@ describe("runEvaluation",()=>{
   expect(out).toMatchObject({experiment,goal_target:"STONE_BADGE",target:"STONE_BADGE"});
   expect(out).not.toHaveProperty("reply_failures_end_run");
  });
+});
+
+it("accepts game clear as a native stop without making it the model goal",()=>{
+ const stopAt="GAME_CLEAR_CONFIRMED";
+ const preset=parsePlayPreset({...rayquazaLanePreset(),stopAt});
+ expect(preset.target).toBeNull();
+ expect(terminationTarget(preset)).toBe(stopAt);
+ expect(()=>parsePlayPreset({...rayquazaLanePreset(),target:stopAt})).toThrow(/measurement-only/);
+ expect(()=>parsePlayPreset({...rayquazaLanePreset(),stopAt:"HALL_OF_FAME_ENTERED"})).toThrow(/native target/);
 });

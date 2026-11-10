@@ -389,6 +389,7 @@ export const SWITCHABLE_FEATURES = [
   "opus-rq-catch-v1",
   "opus-rq-moveset-v1",
   "tmhm-learning-visibility-v1",
+  "verified-warp-reach-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -899,6 +900,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("opus-rq-catch-v1", "guidance", "OPUS RAYQUAZA CAPTURE", "ram-state-v1", "Default off; assisted Opus Rayquaza lane only. After the Sootopolis crisis, tells Opus to return to SKY PILLAR and use the MASTER BALL on RAYQUAZA. Off: no capture decision prompt."),
   on("opus-rq-moveset-v1", "guidance", "OPUS RAYQUAZA MOVESET", "ram-state-v1", "Default off; assisted Opus Rayquaza lane only. After the RAIN BADGE, tells Opus to teach the available speedrun moves to RAYQUAZA. Off: no Rayquaza moveset prompt."),
   on("tmhm-learning-visibility-v1", "observation", "TM/HM LEARNING VISIBILITY", null, "Correctness switch for both arms. Identifies native TM/HM move-learning messages and readiness. Reports the verified move selection as pending until the party slot changes. Off: previous message and tool feedback."),
+  on("verified-warp-reach-v1", "observation", "VERIFIED WARP REACHABILITY", null, "Checks a warp against the navigation planner before calling it reachable. Keeps known warps without a verified route separate. Off: the exit header uses the original terrain flood."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1398,6 +1400,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("opus-rq-catch-v1"),
     ...when("opus-rq-moveset-v1"),
     ...when("tmhm-learning-visibility-v1"),
+    ...when("verified-warp-reach-v1"),
   ];
 }
 

@@ -422,3 +422,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Pick up the Master Ball](opus-rq-master-ball-v1.html)
 - [Catch Rayquaza](opus-rq-catch-v1.html)
 - [Teach the speedrun moveset](opus-rq-moveset-v1.html)
+
+- [Verified warp reachability](verified-warp-reach-v1.html)

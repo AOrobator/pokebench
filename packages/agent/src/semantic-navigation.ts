@@ -284,6 +284,17 @@ export function plannedRoute(state:GameStateSnapshot,goal:RouteGoal,features:Fea
  const tiles=routeTiles(planned,path,options);
  return tiles===null?null:{point:choice.point,steps:path.length,tiles};
 }
+// The terrain flood deliberately over-approximates paths. Require a resolved
+// native warp and a current route before converting that evidence into a claim.
+export function verifiedWarpRoute(state:GameStateSnapshot,point:Point,features:FeatureSet):boolean {
+ const base=navigationOptions(features);
+ const options=features["navigation-truth-v1"]&&features["coordinate-script-conditions-v1"]
+  ?{...base,triggers:matchingTriggers(state)}:base;
+ const target=resolve(state,{kind:"warp",...point},options);
+ if(target===null)return false;
+ const route=plannedRoute(state,{route:"listed",target},features);
+ return route!==null&&route.launch===undefined;
+}
 // The way across water: as the walk does, it goes to the shore and leaves the A press to the player.
 function shoreRoute(planned:GameStateSnapshot,goal:RouteGoal,listed:SnapshotTarget|null,options:NavigationOptions):PlannedRoute|null {
  const beside=(p:Point):Point[]=>STEPS.map(([,dx,dy])=>({x:p.x+dx,y:p.y+dy}));

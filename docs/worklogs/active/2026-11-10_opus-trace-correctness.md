@@ -53,3 +53,6 @@ Isolated worktree created at main 710665101. Implementation and landing in progr
 ## Dedicated Opus launch preset
 
 The dedicated `experiments/presets/opus-rayquaza-lane.json` is independent of the current arm recipe. Its previously omitted switch normalized to OFF. Explicitly enable the landed four corrections for future launches using this preset. Preserve its existing sampling, limits, and other features.
+
+- Shared viewer refreshed to clean build `2813dc4e8` on November 10. Its listener is detached. The shared viewer served the exact explainer and a headless browser opened it from Harness Config at desktop and phone sizes. The viewer build includes the four corrections.
+- Dedicated preset activation landed at `8b57b1ad5`. Claude, independent GPT and Astra fallback approved the immutable preset-only delta under the standing Grok waiver. All 78 focused tests passed. Reused the full checks for the unchanged executable tree. On main, the launch parser and server feature environment both resolved the switch ON. Structural comparison verified all other preset values were preserved.

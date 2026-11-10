@@ -112,24 +112,26 @@ it("stops after close and never leaves a published state without provenance",asy
 
 it("checks and loads a relative checkpoint path through one absolute path",()=>{const start={kind:"save_state",path:"relative/CLOCK_SET.state",sha1};const seen:string[]=[];const resolved=presetStart(parsePlayPreset({...v2,start}),path=>{seen.push(path);return STATE;});expect(resolved.kind==="save_state"&&resolved.path.startsWith("/")).toBe(true);expect(seen).toEqual([resolved.kind==="save_state"?resolved.path:""]);});
 
-it("saves the final native state with its end reason and turn when the run ends, after pending milestones",async()=>{
+it("saves the final native state with its end reason and turn, never in the shared library",async()=>{
  const {capture,calls,files}=fixture({kind:"frontier"});capture.observe(milestone("PETALBURG_WOODS",20,"observed","navigation"));
- await capture.close({reason:"budget",turn:248});
+ await capture.close();await capture.saveRunEnd({reason:"budget",turn:248});
  expect(calls.filter(c=>c.url.endsWith("/pokebench/checkpoint"))).toHaveLength(2);
  expect(files.get("/runs/cp-run/checkpoints/RUN_END.state")).toEqual(STATE);
  const meta=JSON.parse(String(files.get("/runs/cp-run/checkpoints/RUN_END.json"))) as Record<string,unknown>;
  expect(meta).toMatchObject({version:1,run:"cp-run",kind:"run_end",end_reason:"budget",turn:248,state:{sha1,sha256,bytes:STATE.length},source:{rom_sha1:"a".repeat(40)},capture:{basis:"run_end_after_final_snapshot",stability:"saved_under_frame_loop_lock"}});
- expect(files.has("/runs/checkpoints/RUN_END")).toBe(false);expect([...files.keys()].some(path=>path.startsWith("/runs/checkpoints/")&&path.includes("RUN_END"))).toBe(false);
+ expect([...files.keys()].some(path=>path.startsWith("/runs/checkpoints/")&&path.includes("RUN_END"))).toBe(false);
 });
 
-it("records a failed run-end save without hiding it and still reports earlier milestone failures",async()=>{
+it("saves RUN_END even when milestone saving is switched off",async()=>{
+ const base=fixture();const off=new CheckpointCapture(null,base.deps,START);
+ off.observe(milestone("CLOCK_SET",20));await off.close();expect(base.calls).toHaveLength(0);
+ await off.saveRunEnd({reason:"operator_abort",turn:3});expect(base.files.get("/runs/cp-run/checkpoints/RUN_END.state")).toEqual(STATE);
+});
+
+it("records a failed run-end save and rejects with its cause",async()=>{
  const down=fixture({kind:"frontier"},{detail:"server gone"},503);
- await expect(down.capture.close({reason:"crash",turn:7})).rejects.toThrow(/^run-end checkpoint failed: checkpoint request failed with HTTP 503$/);
+ await expect(down.capture.saveRunEnd({reason:"crash",turn:7})).rejects.toThrow(/^run-end checkpoint failed: checkpoint request failed with HTTP 503$/);
  expect(JSON.parse(String(down.files.get("/runs/cp-run/checkpoints/RUN_END.error.json")))).toMatchObject({version:1,run:"cp-run",kind:"run_end",end_reason:"crash",turn:7,error:"checkpoint request failed with HTTP 503"});
- const both=fixture({kind:"frontier"},{detail:"x"},503);both.capture.observe(milestone("PETALBURG_WOODS",20,"observed","navigation"));
- await expect(both.capture.close({reason:"operator_abort",turn:9})).rejects.toThrow(/checkpoint request failed with HTTP 503.*run-end checkpoint failed/);
-});
-
-it("closes without a run-end save when no end is given",async()=>{
- const {capture,calls}=fixture({kind:"frontier"});await capture.close();expect(calls).toHaveLength(0);
+ const deaf=fixture({kind:"frontier"},{detail:"x"},503,true);const deps:CheckpointDeps={...deaf.deps,write:()=>{throw new Error("disk full");}};
+ await expect(new CheckpointCapture(null,deps,START).saveRunEnd({reason:"budget",turn:1})).rejects.toThrow(/^run-end checkpoint failed/);
 });

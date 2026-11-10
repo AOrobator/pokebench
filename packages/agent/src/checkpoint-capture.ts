@@ -65,7 +65,7 @@ export class CheckpointCapture {
  private readonly seen=new Set<string>();
  private readonly failures:CaptureFailure[]=[];
  private closed=false;
- constructor(private readonly selection:CheckpointSelection,private readonly deps:CheckpointDeps,private readonly start:RunStartMeta){}
+ constructor(private readonly selection:CheckpointSelection|null,private readonly deps:CheckpointDeps,private readonly start:RunStartMeta){}
  observe(event:RunEvent):void {
   // A continuation replays its source run's events through every observer; the game is not at those milestones.
   if(event.run!==this.deps.run)return;
@@ -82,18 +82,13 @@ export class CheckpointCapture {
  }
  // After close, later milestones cannot start a capture. Call this only after
  // the recorder's final snapshot so a last native transition is not dropped.
- // Given the run's end, it also saves RUN_END, so any stop can resume natively
- // instead of replaying inputs (the operator 2026-11-10: replay drifted after 12bf's stop).
- async close(end?:RunEnd):Promise<void>{
-  this.closed=true;
-  let milestones:Error|undefined;
-  try {await this.settled();} catch(error) {milestones=errorOf(error);}
-  let last:Error|undefined;
-  if(end!==undefined){try {await this.saveEnd(end);} catch(error) {last=new Error(`run-end checkpoint failed: ${errorOf(error).message}`);this.recordEndFailure(end,errorOf(error));}}
-  if(milestones!==undefined&&last!==undefined)throw new Error(`${milestones.message}; ${last.message}`);
-  const failure=milestones??last;if(failure!==undefined)throw failure;
+ async close():Promise<void>{this.closed=true;await this.settled();}
+ // Saves RUN_END, so any stop resumes natively instead of replaying inputs
+ // (the operator 2026-11-10: replay drifted after 12bf's stop). Runs whatever the milestone selection.
+ async saveRunEnd(end:RunEnd):Promise<void>{
+  try {await this.saveEnd(end);} catch(value) {const error=errorOf(value);this.recordEndFailure(end,error);throw new Error(`run-end checkpoint failed: ${error.message}`,{cause:value});}
  }
- private selected(name:string):boolean{return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
+ private selected(name:string):boolean{if(this.selection===null)return false;return this.selection.kind==="single"?name===this.selection.target:frontier.has(name);}
  private async post(path:string,body:unknown):Promise<Response>{return this.deps.fetch(`${this.deps.serverUrl}${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
  private metadata(event:MilestoneEvent,data:Buffer,sha1:string,sha256:string):Record<string,unknown>{
   return {version:1,run:event.run,milestone:event.name,milestone_event:{seq:event.seq,t:event.t,turn:event.turn,server_timestamp:event.server_timestamp,...(event.kind===undefined?{}:{kind:event.kind}),...(event.origin===undefined?{}:{origin:event.origin}),...(event.evidence===undefined?{}:{evidence:[...event.evidence]})},state:{sha1,sha256,bytes:data.length},source:source(this.start),capture:{basis:"first_observed_native_milestone",stability:"saved_under_frame_loop_lock"}};
@@ -105,7 +100,7 @@ export class CheckpointCapture {
   this.deps.rename(`${sidecar}.partial`,sidecar);this.deps.rename(`${state}.partial`,state);
  }
  private promote(event:MilestoneEvent,data:Buffer,meta:string,sha1:string,sha256:string):void{
-  if(this.selection.kind!=="frontier"||this.deps.libraryDir===undefined||this.deps.linkExclusive===undefined||this.deps.remove===undefined)return;
+  if(this.selection?.kind!=="frontier"||this.deps.libraryDir===undefined||this.deps.linkExclusive===undefined||this.deps.remove===undefined)return;
   const root=join(this.deps.libraryDir,event.name),relative=join("candidates",event.run),candidate=join(root,relative);
   this.pair(candidate,event.name,data,meta);
   const winner=JSON.stringify({version:1,milestone:event.name,run:event.run,candidate:relative,state:{sha1,sha256,bytes:data.length},milestone_seq:event.seq,observed_at:event.t});

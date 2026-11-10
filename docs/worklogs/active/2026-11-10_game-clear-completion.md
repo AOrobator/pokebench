@@ -1,0 +1,65 @@
+# Game clear ends the run (game-clear-completion-v1)
+
+## Problem Statement
+
+Opus run `2026-11-10T13-52-15_opus-drake-continuation_b5a8` confirmed `GAME_CLEAR_CONFIRMED` at turn 54 (2:09:54 PM NY) and kept playing for 64 turns until an operator abort at 2:13 PM:
+
+- The harness ends at a milestone only through `terminationTarget(preset)` = `stopAt ?? target`. Preset `opus-rayquaza-lane` has neither, so the native game clear ended nothing, although CLAUDE.md lists native game completion as a way a run ends.
+- The credits (`CB2_StartCreditsSequence`, `CB2_Credits`) and THE END are unknown screens. The readout said `Screen: unknown (callback2 0x081754DD)` and `Interface: unsupported ... Observe and report this coverage error`, so the model called observe 62 times.
+- 16 of the run's 18 `harness_bug` native actions are that one coverage error: `diagnostic_kind` keeps `0x` values, so every new credits task list made a new row.
+
+The operator approved the proposal with "continue" (thread message [private message reference], 2026-11-10).
+
+## Skills Loaded
+
+feature-switch, feature-worklog, execute-worklog, pokebench-game-state, close-the-loop, agent-observability, tool-prompt-sync (no tool change), only-operator-ends-a-run rule.
+
+## Architecture
+
+- Server (`env/pokebench_env`): `game_screen.CREDITS_CALLBACKS` classifies the two credits callbacks as `Screen: credits` when the switch is on. `ui_state` reports `credits` or `the_end` (task `Task_CreditsTheEnd1..6` or `Task_CreditsSoftReset` active) as input-not-needed instead of `unsupported`. `rerender.py` threads `game_clear_completion_enabled`. The native action observer (recording only) always classifies them, and dedupes unsupported-screen diagnostics by callback2.
+- Agent (`packages/agent`): `GameClearStop` watches for an observed `GAME_CLEAR_CONFIRMED` followed by a `state` event on `credits` (the game's own Hall of Fame save, `Task_Hof_TrySaveData`, runs before `CB2_StartCreditsSequence`). Then live.ts saves `checkpoints/GAME_CLEAR_FINAL.state` + `.json` and stops with run_end reason `completed` and a `target_proof`.
+
+ROM verification (US Emerald, sha1 f3ae0881…): literal pools show `0x08175621` loaded at 0x08174190 (hall of fame exit), `0x081754DD` loaded inside `0x08175621`'s body (0x08175734), and the chain `0x08175A9D→…AE5→…B1D→…B91→…BD9→…C35→0x08175CC9`, each literal sitting in the previous task's pool, matching `Task_CreditsTheEnd1..6 → Task_CreditsSoftReset` in pret credits.c.
+
+## Invariants
+
+- INV-1: Switch OFF reproduces today's readout bytes and run end. Test: OFF fixtures.
+- INV-2: The stop needs an *observed* `GAME_CLEAR_CONFIRMED` of this run (not present_at_start, not replayed) and a later credits state. Test: unit cases.
+- INV-3: No new stop limit: the only new end is native game completion (CLAUDE.md "Only the operator ends a run"). A run whose preset already stops at the flag is unchanged.
+- INV-4: The final save never replaces an earlier checkpoint and records provenance first.
+
+## Security Review
+
+No new network surface; saves go through the existing loopback `/pokebench/checkpoint` route; paths are run-owned.
+
+## Milestones
+
+**M1 — Credits readouts and stop at game clear**
+- [x] Write tests (server readout ON/OFF, observer dedupe, GameClearStop, final save, factory wiring): env/tests/env/test_game_clear_completion.py (17), packages/agent/src/game-clear-stop.test.ts (12)
+- [x] COMMIT RED: `test(game-clear): pin credits readouts and the game-clear stop` (see git log; tests import modules absent on main)
+- [ ] Implement
+- [ ] Cheap checks
+- [ ] Gates (CPU window)
+- [ ] COMMIT GREEN
+- [ ] Explainer
+- [ ] Review: Claude lane + Codex/GPT lane (Grok out until 11/17)
+- ASK USER: show the operator before landing
+
+## Closing the Loop
+
+Rehearsal: replay b5a8's recorded events through GameClearStop; rerender b5a8's credits RAM samples with the switch on.
+
+## Session Log
+
+- 2026-11-10: forensics on b5a8, ROM address verification, worklog.
+
+## Surprises
+
+- The run's start note said to continue until the Hall of Fame, but the preset never set `stopAt`.
+
+## Multi-Model Review Log
+
+## Boy Scout Log
+
+## Archive Milestone (user-gated)
+- ASK USER: archive

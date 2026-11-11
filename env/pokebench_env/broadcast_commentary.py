@@ -411,6 +411,76 @@ def read_steps(lines: Iterable[str], start: float = 0, end: float = float("inf")
     return [step for step in steps.values() if start <= step.t < end]
 
 
+GatewayCall = tuple[int, str, str]
+
+
+def _record_reply(record: str) -> tuple[str, str] | None:
+    """A gateway call record's reply text and its thinking, or None without a reply object."""
+    thinking: list[str] = []
+    text: str | None = None
+    for raw in record.splitlines():
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "assistant":
+            content = event.get("message", {}).get("content")
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("type") == "thinking":
+                    part = block.get("thinking")
+                    thinking.append(part if isinstance(part, str) else "")
+        elif event.get("type") == "result":
+            result = event.get("result")
+            try:
+                reply = json.loads(result) if isinstance(result, str) else None
+            except ValueError:
+                continue
+            said = reply.get("text") if isinstance(reply, dict) else None
+            text = said if isinstance(said, str) else None
+    return None if text is None else (text, "".join(thinking))
+
+
+def gateway_calls(log: str, read: Callable[[str], str | None]) -> list[GatewayCall]:
+    """Each request's reply text and thinking from a session gateway's bridge; a request tried
+    more than once keeps its last reply."""
+    calls: dict[int, GatewayCall] = {}
+    for raw in log.splitlines():
+        try:
+            call = json.loads(raw)
+            request, name = call["request"], call["record"]
+        except (ValueError, KeyError, TypeError):
+            continue
+        if type(request) is not int or not isinstance(name, str) or Path(name).name != name:
+            continue
+        record = read(name)
+        reply = None if record is None else _record_reply(record)
+        if reply is not None:
+            calls[request] = (request, *reply)
+    return list(calls.values())
+
+
+def join_thinking(
+    steps: Sequence[Step], calls: Iterable[GatewayCall]
+) -> tuple[list[Step], int, int]:
+    """A step takes a call's thinking only when the call's request is the turn and its reply
+    text is the step's text, so a renumbered or retried request never lends the wrong thought."""
+    found = {request: (text, thinking) for request, text, thinking in calls}
+    out: list[Step] = []
+    matched = mismatched = 0
+    for step in steps:
+        call = found.get(step.turn)
+        if step.thinking == "" and call is not None:
+            if call[0] == step.text:
+                matched += call[1] != ""
+                step = replace(step, thinking=call[1])
+            else:
+                mismatched += 1
+        out.append(step)
+    return out, matched, mismatched
+
+
 def clock(seconds: float) -> str:
     whole = int(seconds)
     return f"{whole // 3600}:{whole // 60 % 60:02d}:{whole % 60:02d}"
@@ -657,6 +727,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=os.environ.get("CLAUDE_CONFIG_DIR"),
         help="the claude login to use (CLAUDE_CONFIG_DIR)",
     )
+    parser.add_argument(
+        "--thinking-from",
+        type=Path,
+        help="claude writer: a session gateway's --bridge folder holding the run's thinking",
+    )
     parser.add_argument("--follow", action="store_true", help="tail a live run until it ends")
     parser.add_argument("--lines-only", action="store_true", help="write lines, make no voice")
     parser.add_argument("--voice-only", action="store_true", help="voice the lines on file")
@@ -749,6 +824,13 @@ def _read_at(path: Path, offset: int, length: int) -> bytes:  # pragma: no cover
         return log.read(length)
 
 
+def _read_text(path: Path) -> str | None:  # pragma: no cover - the disk
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
 def _log_lines(path: Path) -> Iterator[str]:  # pragma: no cover - the disk
     with path.open(encoding="utf-8") as lines:
         yield from lines
@@ -818,9 +900,21 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
 
         argv_ = claude_argv(args.claude, args.claude_model)
         env = claude_env(dict(os.environ), args.claude_config_dir)
+        steps = read_steps(_log_lines(log_path), args.start, args.end)
+        if args.thinking_from is not None:
+            bridge: Path = args.thinking_from
+            calls = gateway_calls(
+                (bridge / "calls.jsonl").read_text(encoding="utf-8"),
+                lambda name: _read_text(bridge / "calls" / name),
+            )
+            steps, matched, mismatched = join_thinking(steps, calls)
+            print(
+                f"thinking: {matched} turns joined, {mismatched} replies did not match", flush=True
+            )
+        print(f"{len(steps)} turns", flush=True)
         with tempfile.TemporaryDirectory(prefix="broadcast-claude-") as empty:
             done = write_claude_lines(
-                read_steps(_log_lines(log_path), args.start, args.end),
+                steps,
                 existing,
                 covered,
                 lambda prompt: run_claude(_subprocess_runner, argv_, empty, env, prompt),

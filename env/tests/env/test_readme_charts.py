@@ -19,9 +19,7 @@ def ms(name, t, turn=1, origin="observed"):
 
 
 def turn(t, i=1000, c=0, o=10, w=0):
-    return ev(
-        "assistant", t, usage={"input": i, "cache_read": c, "output": o, "cache_write": w}
-    )
+    return ev("assistant", t, usage={"input": i, "cache_read": c, "output": o, "cache_write": w})
 
 
 PRICES = {

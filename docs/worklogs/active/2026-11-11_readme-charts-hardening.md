@@ -6,14 +6,15 @@ Apply the five non-blocking hardening notes from the readme-chart-script review 
 
 ## Plan
 
-- [ ] Reject unknown stage names in `just readme-charts` and in `run()`, with a clear error; bad JSON in chart-data.json is a ChartError, not a traceback.
-- [ ] Validate prices.json and chart-data.json into typed values in `parse_prices` / `parse_series`; ChartError on bad shapes.
-- [ ] `stitch` checks that each next leg's checkpoint comes from the previous leg's run folder.
-- [ ] Price `cache_write` tokens: optional `cache_write` rate in prices.json, defaulting to the input rate.
-- [ ] COSTS.md: DeepSeek peak hours use the event timestamps' local clock, which assumes the run machine is on New York time.
+- [x] Reject unknown stage names in `just readme-charts` and in `run()`, with a clear error; bad JSON in chart-data.json is a ChartError, not a traceback.
+- [x] Validate prices.json and chart-data.json into typed values in `parse_prices` / `parse_series`; ChartError on bad shapes.
+- [x] `stitch` checks that each next leg's checkpoint comes from the previous leg's run folder.
+- [x] Price `cache_write` tokens: optional `cache_write` rate in prices.json, defaulting to the input rate.
+- [x] COSTS.md: DeepSeek peak hours use the event timestamps' local clock, which assumes the run machine is on New York time.
 
 No feature switch: README tooling only, no harness behavior.
 
 ## Log
 
 - 2026-11-11 4:12 PM: RED. New and updated tests in env/tests/env/test_readme_charts.py: 26 fail, 19 pass.
+- 2026-11-11 4:20 PM: GREEN. 45 tests pass under the no-I/O guard, readme_charts.py 99% branch coverage. ruff, ruff format and mypy are clean. Byte-identical output: check-points against ~/dev/pokebench/runs matches, and both HTML pages from the old code (79704679f) and the new code are identical. `just readme-charts pionts` exits 2 with a usage error before running anything; with [positional-arguments], the default stage still reaches $1.

@@ -66,3 +66,5 @@ affected types/lint. Repeat full gates and cumulative independent reviews pendin
   Refresh order is web first, then projector, from the same prepared tree.
 - The scroll owner is selected between the inner pane and document to avoid
   compensating twice; Chromium desktop recovery drift is below 1 px.
+- Disabled native browser anchoring for the stats pane because explicit keyed
+  restoration owns that scrolling region; prevents intermittent double correction.

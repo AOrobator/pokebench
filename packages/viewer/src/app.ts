@@ -1816,6 +1816,7 @@ export class App {
     const totalsKnown=current===null&&currentSnapshot===null||currentSnapshot?.complete===true;
     const statsPane=this.ui("budgets").closest<HTMLElement>(".page-content");
     for(const name of ["counters","budgets","metric-history"]){const box=this.ui(name);box.dataset.keep=`stats-${name}`;box.dataset.keepBox="";}
+    if(statsPane!==null)statsPane.style.overflowAnchor="none";
     const statsPlace=statsPane===null?null:readPlace(statsPane,this.doc.activeElement);
     const documentPlace=(statsPane?.scrollTop??0)>0?null:readPlace(this.doc.documentElement,this.doc.activeElement);
     this.setHtml("budgets",(totalsKnown||currentSnapshot?.control!=null)?budgets(view,nowMs,totalsKnown):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');

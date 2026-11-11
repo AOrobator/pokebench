@@ -43,7 +43,7 @@ No new network surface. Reads emulator memory the server already reads. No new f
 - [x] Implement
 - [x] Cheap checks: ruff, ruff format, mypy on changed Python; tsc and eslint on changed TS; focused pytest 23/23; agent vitest league-stock-up, features, play-preset, opus-rayquaza 71/71; viewer panels, next-run, custom-lane and the fixed/recipe suites 369/369 + 4/4. Wiring deleted once (withLeagueStockUp in play-wiring) and the factory test went red, then restored.
 - [x] COMMIT GREEN: `feat(foe-items): foe trainer items in battle and a League stock-up paragraph` (see next entry)
-- [ ] Explainer: docs/explainers/foe-items-league-stock.html, mapped for the three switches
+- [x] Explainer: docs/explainers/foe-items-league-stock.html, mapped for the three switches; pages-check clean; headless desktop and phone screenshots checked, no page-level horizontal scroll
 - [ ] Gates in a CPU window: just test, just lint, pnpm -r build, just verify-vendor
 - [ ] Review: Codex/GPT lane LGTM (Grok out until 11/17), Claude lane
 - [ ] Show the operator; land fast-forward; just viewer-main

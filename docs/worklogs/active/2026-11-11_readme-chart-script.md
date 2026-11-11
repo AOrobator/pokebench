@@ -32,6 +32,7 @@ The charts were drawn by `docs/images/charts/build_charts.py` from hand-copied n
 - 2026-11-11 3:52 PM: COSTS.md now says the local-model provider is picked once per model over its pooled plotted usage (Codex's non-blocking note; Qwen3.8 6056 alone would be $4.80 on Chutes vs $4.84 on PrimeIntellect). Docs only.
 - 2026-11-11 3:55 PM: merged main f78794ddf into the branch for landing (15 commits, viewer src and worklogs only; no overlap with this branch). Feature review range stays dc7b45ed3..02f34c218.
 - 2026-11-11 3:59 PM: review loop on frozen packet dc7b45ed3..02f34c218 (diff SHA-256 1f7054f1…eec8, PNGs excluded): GPT lane (Codex) LGTM, Claude lane (claude -p, review config) LGTM, Grok out of Cursor usage until 11/17, so a fresh read-only fallback reviewer stood in (standing operator rule) and returned LGTM. Non-blocking hardening noted: validate the readme-charts stage argument, typed JSON checks in parse_prices/parse_series, stitch could check the checkpoint's run folder, cache_write unpriced, peak hours assume New York offset. Targeted checks green on merge 92fe726dd. The operator: "u can land it once its ready".
+- 2026-11-11 4:05 PM: landed on main at 2760e105e (fast-forward). Post-main just test green: agent 3,042, viewer 1,281, env 3,340, claude-gateway 39, every floor and the no-I/O proof pass. Nothing to activate (README images and tooling only).
 
 ## Follow-ups
 

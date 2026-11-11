@@ -41,7 +41,7 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 
 **M1 — Source readiness**
 - [x] Worklog committed
-- [ ] Tests (RED)
+- [x] Tests (RED)
 - [ ] Implement
 - [ ] Cheap checks, guard deletion; full gates
 - [ ] Close the loop: unpack the real 67d7 release; viewer on a scratch port; background browser click-through of the run page, frontier and splits; desktop (1280, 1440) and phone (375) screenshots opened and looked at; stop the scratch viewer

@@ -79,3 +79,34 @@ affected types/lint. Repeat full gates and cumulative independent reviews pendin
   although app already supplies explicit timeKnown. Fix: honor explicit timeKnown,
   retain complete as compatibility fallback when absent. RED pure regression and
   14 focused control tests pass. This is the last display caller in original scope.
+
+## Landing evidence
+
+Final feature head b22678177746c0f35b4659d14bf6d1606b7b125a on base
+aaecbda1732db0f598dfd5489055ce671f063c98. Frozen cumulative diff SHA-256
+69b072003383bf85272d944b7fb4aacaebdfb54671c1447ef6515a09031756f6.
+Claude and fresh independent GPT both LGTM on final-time-tile packet; earlier
+round-two packets clear the cumulative feature. Grok standing all-branch waiver
+(operator 2026-10-22) applies; no Grok verdict claimed.
+
+Final full lint/build/test/vendor pass; agent 3017, viewer 1264, env 3090, gateway
+39 tests, coverage floors and no-I/O proof pass. Protected trainer guard and
+visual baselines 3/3 pass using existing canonical ROM art, no baseline changes.
+Final built-source headless Chromium and WebKit at1280/1440/375 pass, 25+ polls
+each, zero page exceptions, known partial-history clock (including TIME tile),
+with recovery anchor drift 0.11-0.90px sampled every animation frame. All twelve
+screenshots inspected, including desktop/phone contact sheets. Browser interception
+was confined to agent-owned pages; source projector fixtures separately prove
+real decoding, durable clock/gaps and history pagination.
+
+Fast-forwarded main to b22678177 under this chat's landing slot. Post-main just test
+passed including all coverage and no-I/O checks. Durable logs and browser receipts:
+runs/proofs/viewer-compatible-events/. No live gameplay, recording, prompts,
+limits, or user untracked files touched. Activation remains pending the single
+coordinated viewer/projector refresh and direct live proof.
+
+Operator follow-up question: persisted snapshots already exist (250ms commit
+interval plus sparse event offsets). Routine viewer reopening should consume only
+new bytes. Source audit found independent evidence-file signatures also invalidate
+the whole projection; separating that evidence invalidation from the append-only
+event snapshot is a follow-up, not silently included in this landed patch.

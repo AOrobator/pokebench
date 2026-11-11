@@ -11,7 +11,8 @@ export interface BroadcastView {
   readonly party: readonly BroadcastMon[];
   readonly badges: readonly string[];
   readonly frame: string | null;
-  readonly think: { readonly turn: number; readonly text: string } | null;
+  // From the thought's first words to the next turn's thought (null while it is still the newest).
+  readonly think: { readonly turn: number; readonly text: string; readonly start: number; readonly end: number | null } | null;
   readonly action: { readonly name: string; readonly detail: string } | null;
   readonly cost: number | null;
   readonly caption: string | null;
@@ -35,6 +36,15 @@ const windowOf = <T extends { readonly t: number }>(list: readonly T[], t: numbe
 export function clockText(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(s / 3600))}:${String(Math.floor(s % 3600 / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+const HOLD = 0.15, REACH = 0.85, LIVE_SPAN_S = 20;
+// How far down a long thought the panel is at t: it holds at the top, then scrolls evenly to reach the end before
+// the next thought replaces it. A function of t alone, so a rendered frame is the same every time.
+export function scrollFraction(t: number, start: number, end: number | null): number {
+  const span = (end ?? start + LIVE_SPAN_S) - start;
+  if (!(span > 0)) return 1;
+  return Math.min(1, Math.max(0, (t - start - HOLD * span) / ((REACH - HOLD) * span)));
 }
 
 export function thinkingTail(text: string, chars = TAIL_CHARS): string[] {
@@ -79,13 +89,16 @@ export class BroadcastTimeline {
     const newest = upTo(this.thoughts, t) - 1, item = this.thoughts[newest];
     if (item === undefined) return null;
     const pieces: string[] = [];
+    let start = item.t;
     for (let index = newest; index >= 0; index -= 1) {
       const piece = this.thoughts[index];
       if (piece === undefined || piece.turn !== item.turn) break;
       pieces.unshift(piece.d);
+      start = piece.t;
       if (piece.k === "thought") break;
     }
-    return { turn: item.turn, text: pieces.join("") };
+    const next = this.thoughts.slice(newest + 1).find(piece => piece.turn !== item.turn);
+    return { turn: item.turn, text: pieces.join(""), start, end: next?.t ?? null };
   }
 
   // Recorded dollars, when the run has them, beat a price worked out from tokens.

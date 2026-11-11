@@ -506,10 +506,13 @@ def join_thinking(
     return out, matched, mismatched
 
 
-# PRIVATE finds a URL or path by its start; blanking one needs its whole length.
+# PRIVATE finds a URL or path by its start. Its end cannot be told (spaces, quotes, parentheses),
+# so blanking runs from its start to the end of its line.
 WHOLE = {
-    "a url": re.compile(r"\b[a-z][a-z0-9+.-]*://\S*|\bwww\.\S*", re.IGNORECASE),
-    "a file path": re.compile(r"(?<![\w/])(~|\.{1,2})?(/[\w.-]+)+/?|\b[a-z]:\\\S*", re.IGNORECASE),
+    "a url": re.compile(r"\b[a-z][a-z0-9+.-]*://[^\n]*|\bwww\.[^\n]*", re.IGNORECASE),
+    "a file path": re.compile(
+        r"(?<![\w/])(~|\.{1,2})?/[\w.-]+[^\n]*|\b[a-z]:\\[^\n]*", re.IGNORECASE
+    ),
 }
 
 

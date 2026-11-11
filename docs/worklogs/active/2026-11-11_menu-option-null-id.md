@@ -33,3 +33,11 @@ Correctness fix, default ON. Activation milestone: any run that opens the START 
 - Cheap checks: agent and viewer `tsc --noEmit` clean; eslint on changed files clean. Viewer focused tests need the agent build, so they move into the full-gate window.
 - Explainer themed with `just pages-theme`; `just pages-check` prints nothing.
 - Explainer figures fit the desktop frame and scroll inside their own container on phone; headless desktop 1280 and phone 390 screenshots checked, page scrollWidth equals viewport, zero external requests.
+
+## Multi-Model Review Log
+
+Packet: base `6d5a67339`, head `935630b36`, diff SHA-256 `8cb32aa782b41ce03702e7c7c348295ae6b40d3338c4f570b025c27e6577733d`, files under `/tmp/review-menu-option-null-id-935630b36/`.
+
+- Round 1, Claude CLI (`~/.claude-review`, plan mode): exit 0, empty stderr, one successful result. `VERDICT: LGTM`. Triage: PB13 "pending until full gates" accepted as a landing condition (no code change). Follow-up only: shared typed stubs for the factory test's press/recorder; an extra OFF-arm raw-null case. Speculation (deliberate 0 on START accepted) is the specified contract.
+- Round 1, GPT (Codex coordinator job `review-gpt-menu-option-null-id-935630b36`): pending.
+- Grok: not requested; GPT and Claude are the lanes the operator named for this fix.

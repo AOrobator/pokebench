@@ -594,6 +594,15 @@ def test_operator_name_becomes_the_operator_everywhere():
         in wrapped.markdown
     )
     assert "1. The operator picked" in wrapped.markdown
+    far = "https://example.org/" + "a" * 420
+    quoted = twin(
+        f"<h1>Far</h1><p><a href='{far}'>Done.</a> The operator approved it. 'the operator said.'"
+        " \u2018the operator too.\u2019</p>"
+    )
+    assert (
+        f"[Done.]({far}) The operator approved it. 'The operator said.'"
+        " \u2018The operator too.\u2019" in quoted.markdown
+    )
     linked = twin(
         "<h1>Links</h1><p><a href='#x'>The operator</a> opened. Done. <a href='#y'>The operator</a> approved it."
         " Approved by <code>The operator</code> yesterday. <code>The operator</code> said.</p>"

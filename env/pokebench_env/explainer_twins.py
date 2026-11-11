@@ -80,7 +80,7 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 _NAME = re.compile(r"(?:\b(the)\s+)?\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I)
 _OPERATOR = "\ue000"
-_OPENERS = '*_~`["\u201c'
+_OPENERS = "*_~`[\"'\u201c\u2018"
 _CLOSERS = re.compile(r"(?:\]\([^()\s]*\)|[*_~`\"'\u201d\u2019)\]])+$")
 _NAME_LINE_LEAD = re.compile(r"[ \t]*(?:[#>*+-]+[ \t]*|\d+[.)][ \t]*)*$")
 
@@ -113,11 +113,8 @@ def scrub(text: str) -> str:
     operator's real name (written as "the operator", the operator's decision 2026-11-11)."""
     parts = scrub_inline(text).split(_OPERATOR)
     out = [parts[0]]
-    tail = parts[0][-400:]
     for part in parts[1:]:
-        name = "The operator" if _starts_sentence(tail) else "the operator"
-        out += [name, part]
-        tail = (tail + name + part)[-400:]
+        out += ["The operator" if _starts_sentence("".join(out)) else "the operator", part]
     return "".join(out)
 
 

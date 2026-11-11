@@ -808,3 +808,81 @@ def test_bad_flag_combinations_are_refused(argv: list[str]) -> None:
 
 def test_batch_size_is_twenty_to_thirty() -> None:
     assert 20 <= BATCH <= 30
+
+
+from pokebench_env.broadcast_commentary import gateway_calls, join_thinking  # noqa: E402
+
+
+def stream(thinking: list[str], text: str | None) -> str:
+    blocks = [{"type": "thinking", "thinking": t} for t in thinking]
+    lines = [
+        json.dumps({"type": "system", "subtype": "init"}),
+        json.dumps({"type": "assistant", "message": {"content": blocks}}),
+        "not json",
+    ]
+    if text is not None:
+        reply = json.dumps({"name": "press", "arguments": {}, "text": text})
+        lines.append(json.dumps({"type": "result", "result": reply}))
+    return "\n".join(lines)
+
+
+def test_gateway_calls_pair_each_request_with_its_reply_text_and_thinking() -> None:
+    log = "\n".join(
+        [
+            json.dumps({"request": 1, "record": "call-1-1.jsonl"}),
+            json.dumps({"request": 2, "record": "call-2-1.jsonl"}),
+            json.dumps({"request": 2, "record": "call-2-2.jsonl"}),
+            json.dumps({"request": 3, "record": "../evil.jsonl"}),
+            json.dumps({"request": "4", "record": "call-4-1.jsonl"}),
+            json.dumps({"request": 5, "record": "call-5-1.jsonl"}),
+            "junk",
+        ]
+    )
+    records = {
+        "call-1-1.jsonl": stream(["Rayquaza ", "is here."], "Throwing."),
+        "call-2-1.jsonl": stream(["first try"], None),
+        "call-2-2.jsonl": stream([], "Walking."),
+        "call-5-1.jsonl": json.dumps({"type": "result", "result": "[1]"}),
+    }
+    read: list[str] = []
+
+    def reader(name: str) -> str | None:
+        read.append(name)
+        return records.get(name)
+
+    assert gateway_calls(log, reader) == [
+        (1, "Throwing.", "Rayquaza is here."),
+        (2, "Walking.", ""),
+    ]
+    assert "../evil.jsonl" not in read
+
+
+def test_result_text_that_is_not_a_reply_object_is_left_out() -> None:
+    log = json.dumps({"request": 1, "record": "a.jsonl"})
+    bad = [
+        json.dumps({"type": "result", "result": "plain words"}),
+        json.dumps({"type": "result", "result": "[1]"}),
+        json.dumps({"type": "result", "result": json.dumps({"text": 3})}),
+        json.dumps({"type": "result", "result": 7}),
+        json.dumps({"type": "assistant", "message": {"content": "x"}}),
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "thinking"}, 5]}}),
+        json.dumps([1]),
+    ]
+    for line in bad:
+        assert gateway_calls(log, lambda _n, body=line: body) == []
+
+
+def test_thinking_joins_a_step_only_when_turn_and_text_match() -> None:
+    plain = [
+        Step(1, 1.0, "", "Throwing."),
+        Step(2, 2.0, "", "Walking."),
+        Step(3, 3.0, "already", "Same."),
+    ]
+    calls = [
+        (1, "Throwing.", "Rayquaza is here."),
+        (2, "Other.", "wrong turn"),
+        (3, "Same.", "new"),
+    ]
+    joined, matched, mismatched = join_thinking(plain, calls)
+    assert [s.thinking for s in joined] == ["Rayquaza is here.", "", "already"]
+    assert (matched, mismatched) == (1, 1)

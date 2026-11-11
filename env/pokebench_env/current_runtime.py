@@ -176,6 +176,24 @@ def stop(config: Config, target: Path, uid: int, run: Runner = subprocess.run) -
         target.replace(target.with_suffix(".plist.disabled"))
 
 
+def refresh_viewer(
+    root: Path, tree: Path, config: Config, target: Path, uid: int, run: Runner = subprocess.run
+) -> None:
+    """Refresh both consumers from the same prepared immutable build."""
+    install(config, target, uid, run)
+    run(
+        [
+            str(tree / "scripts/viewer-restart.sh"),
+            str(tree / "packages/viewer/dist/cli.js"),
+            "8790",
+            str(root / "runs"),
+            str(root / ".env"),
+            str(root / "runs/viewer-8790.log"),
+        ],
+        check=True,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("viewer", "install", "stop"))
@@ -196,25 +214,15 @@ def main(argv: Sequence[str] | None = None) -> None:
         tree = prepare(
             root, cache / "builds", target=None if override is None else Path(override).resolve()
         )
-        if args.action == "viewer":
-            subprocess.run(
-                [
-                    str(tree / "scripts/viewer-restart.sh"),
-                    str(tree / "packages/viewer/dist/cli.js"),
-                    "8790",
-                    str(root / "runs"),
-                    str(root / ".env"),
-                    str(root / "runs/viewer-8790.log"),
-                ],
-                check=True,
-            )
-            print(f"viewer at {tree.name}")
-            return
         node = shutil.which("node")
         if node is None:
             raise RuntimeError("node is required for the current projector")
         config = service_config(root, tree, str(Path(node).resolve()), cache)
         target = Path.home() / "Library/LaunchAgents" / f"{config['Label']}.plist"
+        if args.action == "viewer":
+            refresh_viewer(root, tree, config, target, os.getuid())
+            print(f"viewer and current projector at {tree.name}")
+            return
         install(config, target, os.getuid())
         print(f"current projector installed at {tree.name}; label {config['Label']}")
 

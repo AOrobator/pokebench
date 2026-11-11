@@ -1,3 +1,4 @@
+import {clockEvent,clockStart,foldClock} from "./current-clock.js";
 import {existsSync,readdirSync,realpathSync,lstatSync,mkdirSync} from "node:fs";
 import {join} from "node:path";
 import {DatabaseSync} from "node:sqlite";
@@ -7,7 +8,7 @@ import {performance} from "node:perf_hooks";
 import {Type,type Static} from "typebox";
 import {Value} from "typebox/value";
 import {RUN_ID_PATTERN} from "@pokebench/agent/events";
-import {behindLive,emptyCurrent,foldCurrent,jumpToTail,type CurrentState} from "./current-state.js";
+import {behindLive,emptyCurrent,foldCurrent,foldDisplayEvent,parseCurrent,jumpToTail,type CurrentState} from "./current-state.js";
 import {openCurrentStore,type SavedCurrent,type HistoryOffset,type CurrentStoreOptions} from "./current-store.js";
 import {CurrentSourceFile,openCurrentSource,currentRunDirectory,lineCursor,readCurrentLines,prefixSignature,sourceEvidence,SourceBudgetError,type LineCursor,type CurrentLine} from "./current-source.js";
 import {newDigest,parseDigest,updateDigest,finishDigest,checkpointDigest} from "./current-digest.js";
@@ -15,13 +16,13 @@ import {publishCurrent} from "./current-projection.js";
 import {RUN_LOG_MAX_BYTES} from "./run-log.js";
 const N=Type.Integer({minimum:0,maximum:Number.MAX_SAFE_INTEGER}),closed={additionalProperties:false};
 const Prefix=Type.Object({signature:Type.String(),offset:N,seq:N,ms:N,done:Type.Boolean(),digest:Type.Object({h:Type.Array(Type.Integer({minimum:0,maximum:0xffffffff}),{minItems:8,maxItems:8}),tail:Type.Array(N,{maxItems:0}),bytes:N},closed)},closed);
-const Auxiliary=Type.Object({v:Type.Literal(1),complete:Type.Boolean(),reconstruct:Type.Boolean(),updatedAt:N,observedAt:N,problem:Type.Union([Type.String(),Type.Null()]),headerEnd:N,namespace:N,health:Type.Object({ok:Type.Union([Type.Boolean(),Type.Null()]),checkedAt:Type.Union([N,Type.Null()]),enabled:Type.Boolean(),owner:Type.Boolean()},closed),regions:Type.Array(Type.Object({first:N,last:N},closed),{maxItems:4}),prefix:Type.Union([Prefix,Type.Null()])},closed);
+const Auxiliary=Type.Object({v:Type.Literal(1),complete:Type.Boolean(),reconstruct:Type.Boolean(),updatedAt:N,observedAt:N,problem:Type.Union([Type.String(),Type.Null()]),headerEnd:N,namespace:N,health:Type.Object({ok:Type.Union([Type.Boolean(),Type.Null()]),checkedAt:Type.Union([N,Type.Null()]),enabled:Type.Boolean(),owner:Type.Boolean()},closed),regions:Type.Array(Type.Object({first:N,last:N},closed),{maxItems:4}),prefix:Type.Union([Prefix,Type.Null()]),clock:Type.Optional(Type.String({maxLength:262144})),clockOffset:Type.Optional(N),clockReady:Type.Optional(Type.Boolean())},closed);
 export type ProjectorAux=Static<typeof Auxiliary>;
 export function parseProjectorAux(text:string):ProjectorAux{const value:unknown=JSON.parse(text);if(!Value.Check(Auxiliary,value))throw new Error("Invalid projector metadata");if(value.regions.some(r=>r.first>r.last))throw new Error("Invalid history coverage");if(value.prefix!==null){parseDigest(value.prefix.digest);if(value.prefix.offset<value.prefix.digest.bytes||value.prefix.offset-value.prefix.digest.bytes>63)throw new Error("Invalid prefix hash cursor");}return value;}
 export const PROJECTOR_LIMITS={chunkBytes:256*1024,tailBytes:256*1024,records:64,bytesPerSecond:20*1024*1024,burstBytes:4*1024*1024,hotRuns:16,candidates:8192,commitMs:250,sliceMs:10,discoveryMs:1000,healthMs:2000,recentMs:24*3600000,recentEnded:16};
 export interface ProjectorOptions{runsRoot:string;database:string;now?:()=>number;monotonic?:()=>number;healthy?:(port:number,signal:AbortSignal)=>Promise<boolean>;storeFactory?:(path:string,options:CurrentStoreOptions)=>ReturnType<typeof openCurrentStore>;limits?:Partial<typeof PROJECTOR_LIMITS>;read?:(record:{run:string;path:string;bytes:number;offset:number;purpose:"data"|"anchor"})=>void}
-interface Job{run:string;current:SavedCurrent|null;stage:SavedCurrent|null;aux:ProjectorAux;cursor:LineCursor;rebuild:LineCursor;prefixCursor:LineCursor|null;dirty:boolean;force:boolean;lastCommit:number;index:HistoryOffset[];init:LineCursor;generation:string;fresh:boolean}
-function cover(aux:ProjectorAux,lines:readonly CurrentLine[]):void{for(const line of lines)aux.regions.push({first:line.event.seq,last:line.event.seq});const regions=aux.regions.sort((a,b)=>a.first-b.first),merged:ProjectorAux["regions"]=[];for(const r of regions){const last=merged.at(-1);if(last!==undefined&&(r.first<=last.last+1||(last.last===0&&r.first===aux.namespace)))last.last=Math.max(last.last,r.last);else merged.push({...r});}if(merged.length>4)throw new Error("Too many disjoint history regions");aux.regions=merged;}
+interface Job{run:string;current:SavedCurrent|null;stage:SavedCurrent|null;aux:ProjectorAux;cursor:LineCursor;rebuild:LineCursor;prefixCursor:LineCursor|null;dirty:boolean;force:boolean;lastCommit:number;index:HistoryOffset[];init:LineCursor;generation:string;fresh:boolean;clockCursor?:LineCursor}
+function cover(aux:ProjectorAux,lines:readonly CurrentLine[]):void{for(const line of lines)aux.regions.push({first:line.event.seq,last:line.event.seq});const regions=aux.regions.sort((a,b)=>a.first-b.first),merged:ProjectorAux["regions"]=[];for(const r of regions){const last=merged.at(-1);if(last!==undefined&&(r.first<=last.last+1||(last.last===0&&r.first===aux.namespace)))last.last=Math.max(last.last,r.last);else merged.push({...r});}aux.regions=merged.length>4?[...merged.slice(0,1),...merged.slice(-3)]:merged;}
 const indexes=(lines:readonly CurrentLine[]):HistoryOffset[]=>lines.filter((l,i)=>i===0||l.event.seq%16===0||l.event.type==="turn_start").map(l=>({seq:l.event.seq,turn:l.event.turn,offset:l.offset,end:l.end}));
 function rootLease(root:string):DatabaseSync{
  const cache=join(root,".viewer-cache"),folder=join(cache,"current-v1"),path=join(folder,"projector-owner.sqlite");
@@ -33,7 +34,7 @@ export class CurrentProjector{
  constructor(private readonly options:ProjectorOptions){
   this.root=realpathSync(options.runsRoot);this.now=options.now??Date.now;this.monotonic=options.monotonic??options.now??(()=>performance.now());this.limits={...PROJECTOR_LIMITS,...options.limits};
   for(const key of Object.keys(PROJECTOR_LIMITS) as (keyof typeof PROJECTOR_LIMITS)[]){const value=this.limits[key];if(!Number.isSafeInteger(value)||value<1||value>PROJECTOR_LIMITS[key])throw new Error("Invalid projector limits");}
-  this.workBytes=Math.max(3*this.limits.chunkBytes+65536,this.limits.chunkBytes+this.limits.tailBytes+32768);if(this.limits.burstBytes<this.workBytes)throw new Error("Projector burst cannot cover a bounded batch");
+  this.workBytes=Math.max(7*this.limits.chunkBytes+131072,5*this.limits.chunkBytes+this.limits.tailBytes+65536);if(this.limits.burstBytes<this.workBytes)throw new Error("Projector burst cannot cover a bounded batch");
   this.tokens=this.limits.burstBytes;this.tokenAt=this.monotonic();if(!Number.isFinite(this.tokenAt)||this.tokenAt<0)throw new Error("Invalid monotonic clock");this.lease=rootLease(this.root);let opened:ReturnType<typeof openCurrentStore>|undefined;
   try{opened=(options.storeFactory??openCurrentStore)(options.database,{publish:(state,source,revision,aux)=>publishCurrent(state,source,revision,parseProjectorAux(aux))});const stat=lstatSync(this.root);opened.bindRoot(`${this.root}:${String(stat.dev)}:${String(stat.ino)}`);this.store=opened;this.priority=new Set(this.store.active());this.ids=this.store.runIds();}catch(error){opened?.close();this.lease.close();throw error;}
  }
@@ -82,7 +83,7 @@ export class CurrentProjector{
   const job:Job={run,current:null,stage:null,aux,cursor:lineCursor(first.end),rebuild:lineCursor(first.end),prefixCursor:null,dirty:false,force:false,lastCommit:this.monotonic(),index:[],init:cursor,generation,fresh:true};
   job.stage=this.store.seed(state,source.capture(first.end,generation,signature),indexes([first]),JSON.stringify(aux));job.current=job.stage;
   const tail=this.tail(source,first.end);
-  if(tail.length>0){const firstSeq=tail[0]?.event.seq??namespace;if(firstSeq<namespace)throw new Error("Invalid provisional sequence namespace");let provisional={...state,nextSeq:firstSeq};for(const line of tail){if(line.event.run!==run)throw new Error("Foreign provisional source event");provisional=foldCurrent(provisional,line.event);}cover(aux,tail);if(provisional.end!==null){const recent=this.now()-Date.parse(provisional.end.t)<=this.limits.recentMs&&(this.recentEnds.has(run)||this.recentEnds.size<this.limits.recentEnded);aux.reconstruct=recent;if(recent)this.recentEnds.add(run);}
+  if(tail.length>0){const firstSeq=tail[0]?.event.seq??namespace;if(firstSeq<namespace)throw new Error("Invalid provisional sequence namespace");let provisional={...state,nextSeq:firstSeq};for(const line of tail){if(line.event.run!==run)throw new Error("Foreign provisional source event");provisional=foldDisplayEvent(provisional,line.event,line.problem);}cover(aux,tail);if(provisional.end!==null){const recent=this.now()-Date.parse(provisional.end.t)<=this.limits.recentMs&&(this.recentEnds.has(run)||this.recentEnds.size<this.limits.recentEnded);aux.reconstruct=recent;if(recent)this.recentEnds.add(run);}
    job.current=this.store.commit(provisional,source.capture(tail.at(-1)?.end??first.end,generation,signature),[...indexes([first]),...indexes(tail)],1024,JSON.stringify(aux));job.cursor=lineCursor(job.current.source.offset);}
   this.initializing.delete(run);return job;
  }
@@ -105,13 +106,30 @@ export class CurrentProjector{
    return prefix.done;
   }finally{file.close();}
  }
- private async fold(job:Job,state:CurrentState,lines:readonly CurrentLine[]):Promise<CurrentState>{let next=state,slice=performance.now();for(const line of lines){if(line.event.run!==job.run)throw new Error("Foreign source run event");next=foldCurrent(next,line.event);if(line.event.type==="run_end"||line.event.type==="operator_control")job.force=true;if(performance.now()-slice>=this.limits.sliceMs){await yieldImmediate();slice=performance.now();}}return next;}
+ private async fold(job:Job,state:CurrentState,lines:readonly CurrentLine[]):Promise<CurrentState>{let next=state,slice=performance.now();for(const line of lines){if(line.event.run!==job.run)throw new Error("Foreign source run event");next=foldDisplayEvent(next,line.event,line.problem);if(line.event.type==="run_end"||line.event.type==="operator_control")job.force=true;if(performance.now()-slice>=this.limits.sliceMs){await yieldImmediate();slice=performance.now();}}return next;}
  private jump(job:Job,source:CurrentSourceFile,signature:string):void{
   const saved=job.current;if(saved===null||saved.state.end!==null||!job.aux.complete||!behindLive(source.stat.size,job.cursor.offset,this.limits.burstBytes))return;
   const tail=this.tail(source,job.aux.headerEnd),first=tail[0];if(first===undefined||first.event.seq<=saved.state.seq)return;
   job.aux.complete=false;job.aux.reconstruct=true;cover(job.aux,tail);job.stage=this.store.stage(saved.state,saved.source,[],JSON.stringify(job.aux));job.rebuild=job.cursor;
   job.current=this.store.commit(jumpToTail(saved.state,tail.map(line=>line.event)),source.capture(tail.at(-1)?.end??job.cursor.offset,job.generation,signature),indexes(tail),1024,JSON.stringify(job.aux));job.cursor=lineCursor(job.current.source.offset);
  }
+ private advanceClock(job:Job,source:CurrentSourceFile):void {
+  const start=job.current?.state.start;
+  if(start===null||start===undefined||start.restoration!==undefined)return;
+  let clock=job.aux.clock===undefined?clockStart(start):parseCurrent(JSON.parse(job.aux.clock) as unknown);
+  if(clock.run!==job.run)throw new Error("Foreign clock checkpoint");
+  if(clock.end!==null)return;
+  const cursor=job.clockCursor??=lineCursor(job.aux.clockOffset??job.aux.headerEnd);
+  const batch=readCurrentLines(source,cursor,this.limits.chunkBytes*4,2048,undefined,clockEvent);
+  for(const line of batch.lines)clock=foldClock(clock,line.event,line.problem);
+  if(cursor.problem!==undefined)clock={...clock,warning:cursor.problem};
+  const wasReady=job.aux.clockReady;
+  job.aux.clock=JSON.stringify(clock);job.aux.clockOffset=cursor.offset;
+  job.aux.clockReady=batch.atEnd&&clock.warning===null;
+  job.dirty ||= batch.bytes>0||wasReady!==job.aux.clockReady;
+  job.force ||= wasReady!==job.aux.clockReady;
+ }
+
  private async advance(job:Job,source:CurrentSourceFile,reconstruct:boolean):Promise<boolean>{
   const signature=sourceEvidence(source.path),saved=job.current??job.stage;if(saved===null)throw new Error("Missing source checkpoint");
   if(!source.compatible(saved.source)||signature!==saved.source.evidence||(job.stage!==null&&!source.compatible(job.stage.source))){this.store.remove(job.run);this.jobs.delete(job.run);this.initializing.delete(job.run);return true;}
@@ -120,9 +138,12 @@ export class CurrentProjector{
   if(job.current!==null&&job.current.state.end===null){
    const batch=readCurrentLines(source,job.cursor,this.limits.chunkBytes,this.limits.records);if(batch.lines.length>0){job.current={...job.current,state:await this.fold(job,job.current.state,batch.lines),source:source.capture(job.cursor.offset,job.generation,signature)};cover(job.aux,batch.lines);job.index.push(...indexes(batch.lines));job.dirty=true;progress=true;}
   }
+  if(job.current!==null&&job.cursor.problem!==undefined){job.current={...job.current,state:{...job.current.state,partial:true,warning:job.cursor.problem},source:source.capture(job.cursor.offset,job.generation,signature)};job.dirty=true;}
+  if(!job.aux.complete||job.current?.state.partial===true)this.advanceClock(job,source);
   if(reconstruct&&!job.aux.complete&&job.aux.reconstruct&&job.stage!==null){
    if(await this.verifyPrefix(job,source)){
     const batch=readCurrentLines(source,job.rebuild,this.limits.chunkBytes,this.limits.records);if(batch.lines.length>0){job.stage={...job.stage,state:await this.fold(job,job.stage.state,batch.lines),source:source.capture(job.rebuild.offset,job.generation,signature)};cover(job.aux,batch.lines);job.index.push(...indexes(batch.lines));job.dirty=true;progress=true;}
+    if(job.rebuild.problem!==undefined){job.stage={...job.stage,state:{...job.stage.state,partial:true,warning:job.rebuild.problem},source:source.capture(job.rebuild.offset,job.generation,signature)};job.dirty=true;}
     if(batch.atEnd&&job.stage.source.offset>=(job.current?.source.offset??0)){job.aux.complete=true;job.current=job.stage;job.stage=null;job.cursor=job.rebuild;job.force=true;job.dirty=true;}
    }else progress=true;
   }

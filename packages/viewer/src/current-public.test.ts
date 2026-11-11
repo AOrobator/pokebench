@@ -49,3 +49,23 @@ it("publishes the quota reason through the browser display protocol",()=>{
  expect(publicCurrentView(snapshot).control.pauseReason).toBe("claude_quota");
  expect(snapshot.phase.kind).toBe("paused");
 });
+
+it("publishes a verified control clock before lifetime totals have rebuilt",()=>{
+ const {current,aux}=fixture(false);
+ aux.clock=JSON.stringify(current);aux.clockReady=true;
+ const snapshot=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,1,aux).detail) as unknown);
+ expect(snapshot.complete).toBe(false);
+ expect(snapshot.totals).toBeNull();
+ expect(snapshot.control).not.toBeNull();
+ expect(snapshot.run.elapsedMs).not.toBeNull();
+ expect(publicCurrentView(snapshot).control.state).toBe("running");
+});
+
+it("keeps later cards but withholds complete totals after omitted records",()=>{
+ const {current,aux}=fixture();
+ current.partial=true;current.warning="Display skipped future event";
+ aux.clock=JSON.stringify({...current,partial:undefined,warning:null});aux.clockReady=true;
+ const snapshot=parseCurrentSnapshot(JSON.parse(publishCurrent(current,source,1,aux).detail) as unknown);
+ expect(snapshot.complete).toBe(false);expect(snapshot.totals).toBeNull();
+ expect(snapshot.run.card).not.toBeNull();expect(snapshot.control).not.toBeNull();
+});

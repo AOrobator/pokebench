@@ -41,7 +41,8 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
  if(!only(g,["validation","recorded"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean")))return fail();
  const data=parseWorkbench({version:1,at:0,milestones:[],runs:[v["run"]],problems:[]}),run=data.runs[0];
  if(run===undefined||run.id!==v["id"]||run.splits.length!==0||run.measurement!==undefined||run.excluded!==null)return fail();
- if(v["complete"]?(v["totals"]===null||v["control"]===null):(v["totals"]!==null||v["control"]!==null||run.elapsedMs!==null))return fail();
+ if(v["complete"]?(v["totals"]===null||v["control"]===null):v["totals"]!==null)return fail();
+ if((v["control"]===null)!==(run.elapsedMs===null))return fail();
  if(!only(v["context"],["estimated","measured"])||!object(v["context"]))return fail();
  for(const reading of [v["context"]["estimated"],v["context"]["measured"]])if(reading!==null&&!only(reading,["tokens","turn","seq","at"]))return fail();
  if(v["totals"]!==null&&!only(v["totals"],["input","output","retries","modelErrors","toolErrors","compactions","requests","latencyMs"]))return fail();

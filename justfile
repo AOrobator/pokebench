@@ -32,6 +32,7 @@ coverage: test
 
 lint:
     pnpm -r lint
+    just explainer-twins-check
     cd env && uv run ruff check . && uv run ruff format --check . && uv run mypy
     uv run --project env ruff check scripts/claude-gateway && uv run --project env ruff format --check scripts/claude-gateway
     uv run --project env mypy --strict scripts/claude-gateway/claude_gateway.py scripts/claude-gateway/replay.py scripts/claude-gateway/preflight.py
@@ -207,6 +208,20 @@ pages:
 # Fail if any given HTML page would make a network request when it loads.
 pages-check +files:
     scripts/pages.sh check {{files}}
+
+# Regenerate the Markdown twins of docs/explainers/*.html (docs/explainers/md/), the explainer
+# index docs/explainers/README.md and the switch table docs/features.md. The HTML is the source.
+explainer-twins:
+    uv run --project env python -I -m pokebench_env.explainer_twins write
+
+# Fail if any generated explainer twin, the index or docs/features.md differs from a fresh build.
+explainer-twins-check:
+    uv run --project env python -I -m pokebench_env.explainer_twins check
+
+# Refresh the committed run-67d7 feature snapshot from that run's event log (docs/features.md column).
+[positional-arguments]
+explainer-twins-snapshot events:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.explainer_twins snapshot "$(realpath "$1")"
 
 # Replace viewer font URLs in the given pages with inline data: URIs.
 pages-inline-fonts +files:

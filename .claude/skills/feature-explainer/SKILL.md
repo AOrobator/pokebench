@@ -9,7 +9,7 @@ The operator wants every new feature and switch explained with diagrams, not pro
 
 ## Where it goes
 
-- One file per feature: `docs/explainers/<feature-or-switch-id>.html`, tracked in Git alongside the feature. Add it to `docs/explainers/README.md`. Do not keep the only copy in ignored `runs/` or a temporary directory.
+- One file per feature: `docs/explainers/<feature-or-switch-id>.html`, tracked in Git alongside the feature. Then run `just explainer-twins`: it writes the page's Markdown twin under `docs/explainers/md/`, its index entry in the generated `docs/explainers/README.md` and `docs/features.md`. Commit those outputs with the page; `just lint` fails on drift. Do not keep the only copy in ignored `runs/` or a temporary directory.
 - Self-contained: inline CSS and inline SVG only. Zero network requests: no web fonts, CDNs, images by URL or scripts from elsewhere. Use system font stacks in the page's own CSS.
 - Pokémon themed: after writing the page, run `just pages-theme docs/explainers/<id>.html`. It inlines the Emerald PokéNav theme (`docs/design/emerald-pages.css`, with the pixel font as a data URI) and pins the light palette. Use `main`, `h1`–`h4`, `.card`, `.kpi`, `table` and `details` so the theme frames them; no solid side-stripe accents.
 - Never publish it as a claude.ai artifact or any hosted link. Everything stays local.

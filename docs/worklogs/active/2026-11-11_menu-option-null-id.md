@@ -41,3 +41,7 @@ Packet: base `6d5a67339`, head `935630b36`, diff SHA-256 `8cb32aa782b41ce03702e7
 - Round 1, Claude CLI (`~/.claude-review`, plan mode): exit 0, empty stderr, one successful result. `VERDICT: LGTM`. Triage: PB13 "pending until full gates" accepted as a landing condition (no code change). Follow-up only: shared typed stubs for the factory test's press/recorder; an extra OFF-arm raw-null case. Speculation (deliberate 0 on START accepted) is the specified contract.
 - Round 1, GPT (Codex coordinator job `review-gpt-menu-option-null-id-935630b36`): pending.
 - Grok: not requested; GPT and Claude are the lanes the operator named for this fix.
+
+## Integration with main 5ea56bac5 (foe items landed)
+
+Upstream added foe-item-recap-v1, foe-trainer-items-v1, league-stock-up-v1 at the same registry tails. Conflicts resolved with main's switches first and menu-option-null-id-v1 appended after league-stock-up-v1 in SWITCHABLE_FEATURES, FEATURES, playHarnessFeatures, the preset schema/Exclude union/normalize/flagFeatures, FEATURE_EXPLAINERS and the explainer README. The registry test's position anchor moves from game-clear-completion-v1 to league-stock-up-v1. Tool logic, wiring and other tests unchanged. tsc clean; focused tests 69/69. CPU window granted in sequence (the operator "sure", 2026-11-11 9:23 AM).

@@ -394,6 +394,9 @@ export const SWITCHABLE_FEATURES = [
   "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
   "game-clear-completion-v1",
+  "foe-item-recap-v1",
+  "foe-trainer-items-v1",
+  "league-stock-up-v1",
   "menu-option-null-id-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
@@ -910,6 +913,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("opus-trace-correctness-v1", "observation", "DIVE AND NATIVE SCREEN CORRECTNESS", null, "Recognizes Dive movement and underwater doors, warp and surfacing transitions, credits and party field-move refusals. Off: previous routes and readouts."),
   on("waterfall-handoff-verification-v1", "observation", "VERIFIED WATERFALL HANDOFF", null, "Checks the settled game state before reporting a Waterfall handoff or suggesting A. Off: navigation reports the planned facing after its turn attempt."),
   on("game-clear-completion-v1", "observation", "GAME CLEAR ENDS THE RUN", null, "A correctness fix, meant ON. After the Hall of Fame the game plays the credits (pret credits.c CB2_StartCreditsSequence, CB2_Credits) and then shows THE END. The readout says Screen: credits, and the Interface line says the credits are playing or THE END is shown and the game needs no input, instead of Screen: unknown (callback2 0x081754DD) and a STATE COVERAGE ERROR that told the model to keep observing. Once this run has observed GAME_CLEAR_CONFIRMED and the credits begin (the game has written its own Hall of Fame save by then), the harness saves checkpoints/GAME_CLEAR_FINAL.state and ends the run as completed, with the milestone and credits state as its proof. A preset that already stops at GAME_CLEAR_CONFIRMED still stops there first. Off: the credits read as an unknown screen with a coverage error and the run keeps going until its own limits or an operator stop."),
+  on("foe-item-recap-v1", "observation", "FOE ITEMS USED", RAM, "Meant ON in both arms (the operator 2026-11-11). Opus aimed finishing blows at foes the trainer then healed: the game shows \"<TRAINER> used FULL RESTORE!\" once, in the dialogue of the call it happened in, and nothing kept it in view. In a trainer battle that lets the trainer use items (pret battle_ai_script_commands.c BattleAI_HandleItemUseBeforeAISetup: not link, Safari, Frontier, e-Reader, secret base, in-game partner or recorded link), the battle readout adds one line after the battle details: \"Foe trainer items used this battle: FULL RESTORE ×1\", or \"none\". It names only items the game has already shown being used: the used slots of the battle history's trainerItems (zeroed by battle_ai_switch_items.c ShouldUseItem), named from the trainer's own gTrainers items. It never says what the trainer still carries, and a chosen item stays out of it until its action has run (the AI empties the slot when it chooses, during selection). The state JSON gains foe_trainer_items with trainer_id and used; items_no and left only with foe-trainer-items-v1. Off: no line and no foe_trainer_items key, byte for byte as before."),
+  on("foe-trainer-items-v1", "observation", "FOE TRAINER ITEMS LEFT", RAM, "Custom-lane knowledge switch (the operator 2026-11-11: the Rayquaza lane and the Opus Rayquaza lane only; a run with it ON shows as heavily assisted). The items a trainer still carries are hidden in the game, so this is game knowledge. In the same battles as foe-item-recap-v1, one line after the battle details: \"Foe trainer items left (from game memory): FULL RESTORE (any turn); FULL RESTORE (only once 2 or fewer of its POKéMON can fight). Unless it switches POKéMON, the game's trainer AI uses an item instead of a move, and the item takes effect before any move that turn: FULL RESTORE when its POKéMON in battle is below 1/4 of its max HP.\" The rule is pret battle_ai_switch_items.c ShouldUseItem: item i after the first waits until the trainer has itemsNo - i + 1 or fewer POKéMON able to fight; FULL RESTORE below 1/4 HP; potions below 1/4 HP or when missing more HP than they restore; status cures when the POKéMON has that condition; X items and DIRE HIT on its first turn out; GUARD SPEC. on its first turn out when no MIST is up on its side. Every Elite Four member carries 2 FULL RESTOREs and Champion WALLACE 4 (trainers.h). Off: no line, and with foe-item-recap-v1 also off no foe_trainer_items key."),
+  on("league-stock-up-v1", "guidance", "LEAGUE STOCK-UP", null, "Custom-lane knowledge switch (the operator 2026-11-11: the Rayquaza lane and the Opus Rayquaza lane only). Run 67d7 walked into the Elite Four with ₽130,696 and no healing items, lost to GLACIA, and the whiteout halved its money. On the first field result after each arrival in EVER GRANDE CITY POKEMON LEAGUE 1F, one paragraph: past the north door the ELITE FOUR and the CHAMPION are fought back to back with no POKéMON CENTER between them, so the BAG is the only healing; each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION 4; a loss sends you back to this lobby (its OnTransition sets the respawn), halves your money and restarts the ELITE FOUR from the first room; becoming CHAMPION is the end goal, so money kept back has no later use; the lobby mart's healing prices (pret EverGrandeCity_PokemonLeague_1F mart and items.h: HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600, REVIVE ₽1,500); your money and BAG healing and status items. It names no amount to buy: that is the model's call. Off: no paragraph."),
   on("menu-option-null-id-v1", "observation", "START MENU SELECTION", null, "A correctness fix, meant ON. The START menu has no menu id, and select_menu_option tells the model to copy null, but the agent's argument validation converts menu_id null to 0 before the tool runs, so every START-menu selection was refused as not ready. On, a menu with no id accepts menu_id null or 0; a menu with a real id still needs that exact id. The prompt text is unchanged. Off: the id must match exactly, so START-menu selections are refused."),
 ];
 
@@ -1040,6 +1046,8 @@ export const SERVER_FEATURES: readonly SwitchableFeature[] = [
   "opus-trace-correctness-v1",
   "waterfall-handoff-verification-v1",
   "game-clear-completion-v1",
+  "foe-item-recap-v1",
+  "foe-trainer-items-v1",
 ];
 
 export function serverFeatureEnv(features: FeatureSet): { POKEBENCH_ACTIVE_UI: "0" | "1"; POKEBENCH_FEATURES_OFF: string } {
@@ -1418,6 +1426,9 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("opus-trace-correctness-v1"),
     ...when("waterfall-handoff-verification-v1"),
     ...when("game-clear-completion-v1"),
+    ...when("foe-item-recap-v1"),
+    ...when("foe-trainer-items-v1"),
+    ...when("league-stock-up-v1"),
     ...when("menu-option-null-id-v1"),
   ];
 }

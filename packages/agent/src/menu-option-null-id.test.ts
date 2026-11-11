@@ -87,12 +87,12 @@ describe("id matching with the switch on",()=>{
 });
 
 describe("registry and factory",()=>{
- it("is a default-on agent-side correctness switch appended after game-clear-completion-v1",()=>{
-  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("game-clear-completion-v1")+1);
+ it("is a default-on agent-side correctness switch appended after league-stock-up-v1",()=>{
+  expect(SWITCHABLE_FEATURES.indexOf(ID)).toBe(SWITCHABLE_FEATURES.indexOf("league-stock-up-v1")+1);
   expect(featureInfo(ID)).toMatchObject({group:"observation",needs:null,switchable:true});
   expect(featureInfo(ID).description).toContain(" Off: ");
   const recorded=playHarnessFeatures(ALL_ON,null);
-  expect(recorded.indexOf(ID)).toBe(recorded.indexOf("game-clear-completion-v1")+1);
+  expect(recorded.indexOf(ID)).toBe(recorded.indexOf("league-stock-up-v1")+1);
   expect(playHarnessFeatures({...ALL_ON,[ID]:false},null)).not.toContain(ID);
   expect(SERVER_FEATURES).not.toContain(ID);
   const without=Object.fromEntries(Object.entries(ALL_ON).filter(([id])=>id!==ID)) as Omit<FeatureSet,typeof ID>;

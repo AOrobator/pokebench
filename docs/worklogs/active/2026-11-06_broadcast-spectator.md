@@ -116,6 +116,13 @@ Coordinator brief 2026-11-11 for the operator: the 67d7 YouTube broadcast narrat
   - Round 1, GPT on 79704679f..0b3845392 (packet sha 52f4e855): BLOCKING, all three real and reproduced. (1) a skipped batch, or claude exiting nonzero with a well-formed result, still ended the job with success; (2) the scrub missed the machine's own single-label hostname; (3) argparse in tests stats gettext catalogs when LANG is set, so 11 tests fail the no-I/O guard (my shell has no LANG). Fix: validation moves to a pure `Options`/`options_problem`, argparse stays in the entrypoint; nonzero exit when a batch is skipped; the hostname joins the private words. RED 2b4aa99f2; GREEN: 118 focused tests pass with LANG=en_US.UTF-8 under the guard, module 99%, env lint clean.
   - Round 2, GPT on 79704679f..514f79c93 (packet sha 3905e519, delta sha 5e4a75d4): LGTM; fixes confirmed, 118 passed under LANG=en_US.UTF-8. Only the GPT lane ran (the brief asked for Codex review); not landed, per the brief.
 
+### Piece 12: 67d7 render fixes (ducking, thinking, API cost)
+Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the game at full level and ducks it about -12 dB under each spoken line (150 ms attack, 400 ms release) with a volume envelope built from the line times, instead of a flat 0.35; (2) THINKING for 67d7 from the bridge, via `runs/broadcast/<run>/thinking.jsonl` (`--side-only --thinking-from`, scrubbed like the lines), filling turns whose events have none; (3) API COST counts up per turn from the bridge's `session_cost_total_usd` via `runs/broadcast/<run>/cost.jsonl`, ending at $780.55. Never touches `runs/<run>/`.
+- [ ] RED
+- [ ] GREEN
+- [ ] Trial v2 render t=52400-52668, frames checked, ducking measured
+- [ ] Review: Codex via `just tell-codex`
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

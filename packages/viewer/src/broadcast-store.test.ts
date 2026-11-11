@@ -101,3 +101,28 @@ describe("the broadcast store", () => {
     expect(d.reads).toBeGreaterThan(before);
   });
 });
+
+describe("side files from the session gateway's bridge", () => {
+  const ASSIST = (turn: number, s: number, rest: Record<string, unknown>): string => `${JSON.stringify({ v: 1, run: "r", seq: 1, t: t(s), type: "assistant", turn, text: `said ${String(turn)}`, ...rest })}\n`;
+  const files = (thinking: string, cost: string): Record<string, string> => ({
+    "/runs/r/events.jsonl": START + ASSIST(1, 1, {}) + ASSIST(2, 2, { thinking: "own" }) + ASSIST(3, 3, {}),
+    "/runs/broadcast/r/thinking.jsonl": thinking,
+    "/runs/broadcast/r/cost.jsonl": cost,
+  });
+
+  it("fills a turn's missing thinking and counts the bridge's cost at each turn", async () => {
+    const thinking = [{ turn: 1, thinking: "deep" }, { turn: 2, thinking: "not used" }, { turn: "3", thinking: "bad" }].map(row => JSON.stringify(row)).join("\n");
+    const cost = `${JSON.stringify({ turn: 1, usd: 0.12 })}\nnot json\n${JSON.stringify({ turn: 3, usd: 0.5 })}\n${JSON.stringify({ turn: 2, usd: "x" })}\n`;
+    const { items } = await store(disk(files(thinking, cost))).read("r", 0);
+    expect(items).toEqual([
+      { k: "thought", t: 1, turn: 1, d: "deep" }, { k: "usd", t: 1, usd: 0.12 },
+      { k: "thought", t: 2, turn: 2, d: "own" },
+      { k: "thought", t: 3, turn: 3, d: "said 3" }, { k: "usd", t: 3, usd: 0.5 },
+    ]);
+  });
+
+  it("changes nothing without them", async () => {
+    const d = disk({ "/runs/r/events.jsonl": START + ASSIST(1, 1, {}) });
+    expect((await store(d).read("r", 0)).items).toEqual([{ k: "thought", t: 1, turn: 1, d: "said 1" }]);
+  });
+});

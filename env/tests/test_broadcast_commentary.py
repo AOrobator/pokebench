@@ -3,7 +3,7 @@ import json
 import wave
 from collections.abc import Callable
 from dataclasses import replace
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -919,3 +919,62 @@ def test_gateway_replies_are_read_the_way_the_gateway_reads_them(
     record = json.dumps({"type": "result", "result": result})
     want = [] if text is None else [(1, text, "")]
     assert gateway_calls(log, lambda _n: record) == want
+
+
+# ---------------------------------------------------------------- Piece 12: side files for /broadcast
+
+from pokebench_env.broadcast_commentary import cost_rows, scrub_private, thinking_rows  # noqa: E402
+
+
+def test_scrub_blanks_every_private_kind_and_keeps_the_rest() -> None:
+    text = (
+        "Rayquaza at 20/45 HP. See /Users/someone/x and https://a.b/c, mail a@b.com, "
+        "ip 10.0.0.2, host box.local, file notes.md, the operator said hi, on mymac today."
+    )
+    out = scrub_private(text, ["The operator", "mymac", ""])
+    for gone in ("/Users", "https", "a@b.com", "10.0.0.2", "box.local", "notes.md", "The operator", "mymac"):
+        assert gone not in out
+    assert out.startswith("Rayquaza at 20/45 HP. See … and …")
+    assert "today." in out
+
+
+def test_thinking_rows_keep_turns_with_thinking_scrubbed() -> None:
+    steps = [Step(1, 1.0, "Go to /tmp/x now.", "a"), Step(2, 2.0, "", "b"), Step(3, 3.0, "Throw.", "c")]
+    assert thinking_rows(steps, []) == [
+        {"turn": 1, "thinking": "Go to … now."},
+        {"turn": 3, "thinking": "Throw."},
+    ]
+
+
+def test_cost_rows_take_each_requests_last_session_total_in_turn_order() -> None:
+    row = lambda request, attempt, total: json.dumps(  # noqa: E731
+        {"request": request, "attempt": attempt, "session_cost_total_usd": total}
+    )
+    log = "\n".join(
+        [
+            row(2, 1, 0.5),
+            row(1, 1, 0.2),
+            row(2, 2, 0.7),
+            json.dumps({"request": 3, "session_cost_total_usd": True}),
+            json.dumps({"request": "4", "session_cost_total_usd": 1.0}),
+            json.dumps({"request": 5}),
+            "junk",
+            row(6, 1, 0.9),
+        ]
+    )
+    assert cost_rows(log) == [
+        {"turn": 1, "usd": 0.2},
+        {"turn": 2, "usd": 0.7},
+        {"turn": 6, "usd": 0.9},
+    ]
+
+
+def test_side_only_needs_a_bridge_and_the_whole_run() -> None:
+    assert options_problem(Options(run="run1", side_only=True, thinking_from=Path("/b"))) is None
+    assert options_problem(Options(run="run1", side_only=True)) is not None
+    for bad in (
+        Options(run="run1", side_only=True, thinking_from=Path("/b"), start=5.0),
+        Options(run="run1", side_only=True, thinking_from=Path("/b"), lines_only=True),
+        Options(run="run1", side_only=True, thinking_from=Path("/b"), voice_only=True),
+    ):
+        assert options_problem(bad) is not None

@@ -47,6 +47,14 @@ describe("the broadcast timeline", () => {
     expect(b.view(10, [], null).cost).toBeNull();
   });
 
+  it("counts recorded dollars when the run has them, with or without rates", () => {
+    const b = timeline();
+    b.add([{ k: "usd", t: 4, usd: 1.25 }, { k: "usd", t: 9, usd: 2.5 }]);
+    expect(b.view(3, [], null).cost).toBe(0);
+    expect(b.view(5, [], null).cost).toBe(1.25);
+    expect(b.view(10, [], rates).cost).toBe(2.5);
+  });
+
   it("captions only the current turn, once its line's time has come", () => {
     const b = timeline();
     expect(b.view(2.5, [line(1, 3)], null).caption).toBeNull();

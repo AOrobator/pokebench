@@ -7,6 +7,7 @@ describe("the broadcast feed guard", () => {
   it("accepts the server's answer", () => {
     expect(parseBroadcast(OK)).toEqual(OK);
     expect(parseBroadcast({ ...OK, rates: { input: 1, output: 2, cacheRead: 3 } }).rates).toEqual({ input: 1, output: 2, cacheRead: 3 });
+    expect(parseBroadcast({ ...OK, items: [{ k: "usd", t: 1, usd: 0.5 }] }).items).toEqual([{ k: "usd", t: 1, usd: 0.5 }]);
   });
 
   it.each([null, 1, {}, { ...OK, header: null }, { ...OK, items: {} }, { ...OK, next: "1" }, { ...OK, ended: 0 }, { ...OK, commentary: null }, { ...OK, rates: 3 }, { ...OK, items: [{ k: "press" }] }, { ...OK, items: [{ t: 1 }] }])("refuses %j", value => {

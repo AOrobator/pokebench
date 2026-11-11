@@ -128,9 +128,9 @@ It prints one `PASS` or `FAIL` line per check and exits non-zero on any `FAIL`. 
 - The files it reads match `SHA256SUMS`, and your ROM is the right one.
 - The event log starts from boot, has no operator input, and ends with the run's game-clear proof.
 - The run's final RAM snapshot, read with the game's own memory layout, shows the game-clear flag, all eight badges and Rayquaza in the party.
-- The checkpoints (one save state per milestone) are complete and match the run.
+- Each checkpoint in the release has its save state and JSON record as a matching pair, their digests match, and their metadata agrees with the run. It does not check that every milestone has a checkpoint.
 
-This shows the release is intact and self-consistent. It does not replay the game. For that:
+This shows the evidence it reads is self-consistent. Other listed files, such as the screenshots and the full RAM log, are only checked for presence; run `shasum -a 256 -c SHA256SUMS` (or `sha256sum -c` on Linux) to check every file. It does not replay the game. For that:
 
 - `just replay-verify <folder>` replays the run from power-on in mGBA with the logged inputs and recorded clock, and compares the emulator's RAM with each recorded snapshot. It stops at the first difference. By default it covers game frames 0 to 150,000; `--all` covers the whole run. It needs the mGBA build (`just build-mgba`).
 - `just view-release <folder>` checks the release, unpacks it under `runs/releases/`, and opens it in the viewer on `127.0.0.1`.

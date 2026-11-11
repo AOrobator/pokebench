@@ -757,6 +757,16 @@ def test_events_inside_a_tar_with_the_real_final_snapshot_name(ext: str) -> None
     assert "10 events" in result(report, "events: order").detail
 
 
+@pytest.mark.parametrize("ext", ["", ".gz", ".xz"])
+def test_tar_inside_a_basename_is_not_an_archive(ext: str) -> None:
+    build = Build()
+    build.ext = ext
+    build.names = {"events": "events.target.jsonl", "final": "raw-ram-final.target.json"}
+    assert failed(run(build.files())) == {}
+    assert vr._is_tar("events-67d7.tar.xz") and vr._is_tar("checkpoints.tar")
+    assert not vr._is_tar("events.target.jsonl.gz") and not vr._is_tar("x.tar.zst")
+
+
 def test_event_tar_must_hold_exactly_one_events_jsonl() -> None:
     build = Build()
     build.events_tar = True

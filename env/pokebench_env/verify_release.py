@@ -54,6 +54,7 @@ KINDS = {
     "checkpoints": re.compile(r"checkpoints[A-Za-z0-9._-]*\.tar(\.gz|\.xz|\.zst)?"),
 }
 SUM_LINE = re.compile(r"([0-9a-f]{64}) [ *]([A-Za-z0-9][A-Za-z0-9._+-]*)")
+TAR_SUFFIX = re.compile(r".+\.tar(\.gz|\.xz)?")
 EVENT_MEMBER = re.compile(r"events[A-Za-z0-9._-]*\.jsonl")
 MEMBER_NAME = re.compile(r"checkpoints/([A-Z0-9_]{1,128})\.(state|json)")
 
@@ -110,6 +111,11 @@ class _Tee(io.RawIOBase):
         while self.read(CHUNK):
             pass
         return self.sha.hexdigest()
+
+
+def _is_tar(name: str) -> bool:
+    """By the terminal format suffix only: `events.target.jsonl.gz` is not a tar."""
+    return TAR_SUFFIX.fullmatch(name) is not None
 
 
 def _decoder(name: str, raw: BinaryIO) -> BinaryIO:
@@ -274,7 +280,7 @@ def scan_events(stream: BinaryIO) -> EventFacts:
 
 def scan_event_source(stream: BinaryIO, name: str) -> EventFacts:
     """An events*.jsonl (already decompressed by the caller), or a tar whose only member is one."""
-    if ".tar" not in name:
+    if not _is_tar(name):
         return scan_events(stream)
     facts: EventFacts | None = None
     with _open_tar(stream, name) as tar:
@@ -765,7 +771,7 @@ def verify(
             try:
                 buffered = cast(BinaryIO, io.BufferedReader(tee, CHUNK))
                 # tarfile decompresses archives itself ("r|xz"/"r|gz").
-                source = buffered if ".tar" in target else _decoder(target, buffered)
+                source = buffered if _is_tar(target) else _decoder(target, buffered)
                 result = scan(source, target, tee)
             except Exception as error:  # noqa: BLE001 - fail closed: any failure is a named FAIL
                 problem = f"{target}: {_failure(error)}"

@@ -430,3 +430,5 @@ Qualified static placement approach only. Activation PLAYER_HOUSE_ENTERED / prim
 - [Verified Waterfall handoff](waterfall-handoff-verification-v1.html)
 - [Dive and native screen correctness](opus-trace-correctness-v1.html)
 - [Game clear ends the run](game-clear-completion-v1.html)
+- [Foe items and League stock-up](foe-items-league-stock.html) — foe-item-recap-v1, foe-trainer-items-v1 and league-stock-up-v1: the trainer's items in battle and the League lobby paragraph.
+- [START menu selection](menu-option-null-id-v1.html)

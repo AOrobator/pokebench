@@ -1,14 +1,15 @@
+import {parseDisplayEvent,type DisplayEvent} from "./display-event.js";
 import {constants,openSync,closeSync,fstatSync,lstatSync,readSync,realpathSync,existsSync,type Stats} from "node:fs";
 import {join,dirname,relative,sep} from "node:path";
 import {createHash} from "node:crypto";
-import {RUN_ID_PATTERN,parseEvent,type RunEvent} from "@pokebench/agent/events";
+import {RUN_ID_PATTERN} from "@pokebench/agent/events";
 import type {CurrentSource} from "./current-store.js";
 export const CURRENT_READ_BYTES=64*1024,CURRENT_LINE_BYTES=1024*1024;
 export class SourceBudgetError extends Error{}
 export interface SourceOptions {allowance?:()=>number;read?:(bytes:number,offset:number,purpose:"data"|"anchor")=>void}
-export interface CurrentLine {event:RunEvent;offset:number;end:number;raw:Buffer}
-export interface LineCursor {offset:number;buffer:Buffer;readOffset:number}
-export const lineCursor=(offset=0):LineCursor=>({offset,buffer:Buffer.alloc(0),readOffset:offset});
+export interface CurrentLine {event:DisplayEvent;problem?:string;offset:number;end:number;raw:Buffer}
+export interface LineCursor {offset:number;buffer:Buffer;readOffset:number;problem?:string}
+export const lineCursor=(offset=0,problem?:string):LineCursor=>({offset,buffer:Buffer.alloc(0),readOffset:offset,...(problem===undefined?{}:{problem})});
 const coordinate=(n:number):boolean=>Number.isSafeInteger(n)&&n>=0;
 export function currentRunDirectory(root:string,run:string):string{
  if(!new RegExp(RUN_ID_PATTERN).test(run))throw new Error("Invalid source run id");
@@ -46,14 +47,17 @@ export function prefixSignature(path:string):string{
  const file=join(dirname(path),"restoration-prefix.jsonl");if(!existsSync(file))return "";const stat=lstatSync(file);if(stat.isSymbolicLink()||!stat.isFile())throw new Error("Invalid restoration prefix source");return `${String(stat.dev)}:${String(stat.ino)}:${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}`;
 }
 export interface CurrentLineSource {readonly stat:{readonly size:number};read:(offset:number,length:number,purpose?:"data"|"anchor")=>Buffer}
-export function readCurrentLines(source:CurrentLineSource,cursor:LineCursor,maxBytes:number,maxRecords:number,lineBytes=CURRENT_LINE_BYTES):{lines:CurrentLine[];bytes:number;atEnd:boolean}{
+export function readCurrentLines(source:CurrentLineSource,cursor:LineCursor,maxBytes:number,maxRecords:number,lineBytes=CURRENT_LINE_BYTES,decode:(text:string)=>DisplayEvent=parseDisplayEvent):{lines:CurrentLine[];bytes:number;atEnd:boolean}{
  if(!coordinate(maxBytes)||!Number.isSafeInteger(maxRecords)||maxRecords<1||!Number.isSafeInteger(lineBytes)||lineBytes<1)throw new Error("Invalid source limits");
  const lines:CurrentLine[]=[];let bytes=0;
  while(lines.length<maxRecords){
   const newline=cursor.buffer.indexOf(10);
   if(newline>=0){
    if(newline>lineBytes)throw new Error("Source event exceeds line bound");const raw=cursor.buffer.subarray(0,newline+1),offset=cursor.offset;cursor.offset+=raw.length;cursor.buffer=cursor.buffer.subarray(raw.length);
-   const text=raw.subarray(0,-1).toString("utf8");if(text.trim()==="")throw new Error("Source contains a blank event");let event:RunEvent;try{event=parseEvent(text);}catch{throw new Error(`Invalid source event at byte ${String(offset)}`);}lines.push({event,offset,end:cursor.offset,raw});continue;
+   const text=raw.subarray(0,-1).toString("utf8");let event:DisplayEvent;
+   try{event=decode(text);}catch{cursor.problem=`Unreadable display event at byte ${String(offset)}`;continue;}
+   lines.push({event,offset,end:cursor.offset,raw,...(cursor.problem===undefined?{}:{problem:cursor.problem})});
+   delete cursor.problem;continue;
   }
   if(cursor.buffer.length>lineBytes)throw new Error("Source event exceeds line bound");
   if(bytes>=maxBytes||cursor.readOffset>=source.stat.size)break;
@@ -67,4 +71,12 @@ export function sourceEvidence(path:string):string{
  const folder=dirname(path),receipts=["viewer-visual-milestones.v1.json",join("derived","route103_rival.jsonl"),join("derived","story_progress.jsonl")],keys:string[]=[];
  for(const name of receipts){const file=join(folder,name);if(!existsSync(file))continue;const parent=dirname(file);if(lstatSync(parent).isSymbolicLink())throw new Error("Evidence directory refuses symbolic links");const stat=lstatSync(file);if(stat.isSymbolicLink()||!stat.isFile())throw new Error("Invalid evidence receipt source");keys.push(`${name}:${String(stat.dev)}:${String(stat.ino)}:${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}`);}
  return JSON.stringify({prefix:prefixSignature(path),receipts:keys});
+}
+
+// Current counters/state depend on the append-only event source and restoration
+// prefix, not independently refreshed grading receipts. Accept old cache evidence
+// envelopes so this migration resumes their existing byte cursors.
+export function sameEventEvidence(saved:string,live:string):boolean {
+ const prefix=(text:string):string|null=>{try{const v:unknown=JSON.parse(text);return typeof v==="object"&&v!==null&&"prefix" in v&&typeof v.prefix==="string"?v.prefix:null;}catch{return null;}};
+ const before=prefix(saved),after=prefix(live);return before!==null&&after!==null&&before===after;
 }

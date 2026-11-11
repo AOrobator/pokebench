@@ -1,3 +1,4 @@
+import type {DisplayEvent} from "./display-event.js";
 import type { RunEvent } from "@pokebench/agent/events";
 import { RunView, isRunEvent, type ControlState, type StateEvent, type Thought } from "./model.js";
 
@@ -20,6 +21,8 @@ export interface CurrentState {
   openTools: Record<string, { at: number; name: string }>;
   requestAt: number | null;
   warning: string | null;
+  partial?: boolean;
+  milestoneTimes?: Record<string,number>;
   milestones: Extract<RunEvent,{type:"milestone"}>[];
 }
 export function emptyCurrent(): CurrentState {
@@ -41,11 +44,13 @@ export function currentView(s: CurrentState): RunView {
   v.lastThought=s.thought;v.streaming=s.streaming;if(s.requestAt!==null){v.turnStartMs=s.requestAt;v.thinkingSpans.push({startMs:s.requestAt,endMs:null});}
   return v;
 }
-export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNext = 1, toolLimit = MAX_OPEN_TOOLS, milestoneLimit = MAX_CURRENT_MILESTONES): CurrentState {
+export function foldCurrent(prior: CurrentState, event: DisplayEvent, continuationNext = 1, toolLimit = MAX_OPEN_TOOLS, milestoneLimit = MAX_CURRENT_MILESTONES): CurrentState {
   if(prior.end!==null)throw new Error("Current checkpoint is terminal");
   if(event.seq!==prior.nextSeq)throw new Error("Current event sequence mismatch");
   if(prior.start===null?event.type!=="run_start":event.run!==prior.run||event.type==="run_start")throw new Error("Current run identity mismatch");
   const ms=Date.parse(event.t);if(!Number.isFinite(ms))throw new Error("Invalid event time");
+  if(event.type==="viewer_unsupported")return {...prior,seq:event.seq,nextSeq:event.seq+1,at:ms,turn:event.turn,
+    partial:true,warning:`Display skipped ${event.originalType} at event ${String(event.seq)}: ${event.problem}`};
   const s=structuredClone(prior),v=currentView(s);v.apply(event);
   s.run=event.run;s.seq=event.seq;s.nextSeq=event.type==="run_start"?continuationNext:event.seq+1;s.at=ms;s.turn=v.turn;s.start=v.start===null?null:{...v.start,system_prompt:""};s.end=v.end;
   s.state=v.state;s.partyState=v.partyState;s.card=v.cardState;s.health=v.partyHealth;s.frame=v.frame;s.retry=v.retry;s.thought=v.lastThought;s.streaming=v.streaming;
@@ -60,6 +65,7 @@ export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNe
   if(event.type==="milestone"&&!s.milestones.some(m=>m.name===event.name)){
     if(s.milestones.length>=milestoneLimit)throw new Error("Too many recorded progress anchors");
     s.milestones.push(event);
+    if(s.start!==null&&s.warning===null&&s.partial!==true)s.milestoneTimes={...s.milestoneTimes,[String(event.seq)]:Math.max(0,ms-Date.parse(s.start.t)-v.control.pausedBefore(ms))};
   }
   if(event.type==="retry")s.totals.retries++;
   if(event.type==="tool_call"){
@@ -70,6 +76,13 @@ export function foldCurrent(prior: CurrentState, event: RunEvent, continuationNe
   if(event.type==="run_end"){s.openTools={};s.requestAt=null;}
   return s;
 }
+// An unreadable line can leave a sequence hole in presentation. Identity and
+// backward-order checks still apply, and the gap remains visible to the reader.
+export function foldDisplayEvent(prior:CurrentState,event:DisplayEvent,problem?:string):CurrentState {
+  const next=problem!==undefined&&event.seq>=prior.nextSeq?{...prior,nextSeq:event.seq,partial:true,warning:problem}:prior;
+  return foldCurrent(next,event);
+}
+
 const object=(v:unknown):v is Record<string,unknown>=>typeof v==="object"&&v!==null&&!Array.isArray(v);
 const number=(v:unknown):v is number=>typeof v==="number"&&Number.isFinite(v)&&v>=0;
 const integer=(v:unknown):v is number=>number(v)&&Number.isSafeInteger(v);
@@ -79,9 +92,11 @@ export function parseCurrent(value: unknown): CurrentState {
   const fail=():never=>{throw new Error("Invalid current checkpoint");};
   if(!object(value))return fail();const s=value;
   if(s["version"]!==1||typeof s["run"]!=="string"||!integer(s["seq"])||(!integer(s["nextSeq"])||typeof s["seq"]!=="number"||s["nextSeq"]<=s["seq"])||!number(s["at"])||!integer(s["turn"]))return fail();
+  if(s["partial"]!==undefined&&typeof s["partial"]!=="boolean")return fail();
   const start=s["start"];if(!isRunEvent(start)||start.type!=="run_start"||start.seq!==0||start.run!==s["run"])return fail();
   for(const key of ["state","partyState","end"]){const e=s[key];if(e!==null&&(!isRunEvent(e)||e.run!==s["run"]||e.seq>s["seq"]||e.type!==(key==="end"?"run_end":"state")))return fail();}
   const milestones=s["milestones"],lastSeq=s["seq"];
+  const times=s["milestoneTimes"];if(times!==undefined&&(!object(times)||Object.keys(times).length>MAX_CURRENT_MILESTONES||!Object.entries(times).every(([seq,ms])=>/^\d+$/.test(seq)&&Number.isSafeInteger(Number(seq))&&Number(seq)<=lastSeq&&number(ms))))return fail();
   if(!Array.isArray(milestones)||milestones.length>MAX_CURRENT_MILESTONES||!milestones.every((e:unknown)=>isRunEvent(e)&&e.type==="milestone"&&e.run===s["run"]&&e.seq<=lastSeq)||new Set(milestones.map(e=>(e as Extract<RunEvent,{type:"milestone"}>).name)).size!==milestones.length)return fail();
   const c=s["control"],t=s["totals"],context=s["context"],tools=s["openTools"];
   if(!object(c)||!object(t)||!object(context)||!object(tools)||Object.keys(tools).length>MAX_OPEN_TOOLS)return fail();
@@ -102,8 +117,8 @@ export function parseCurrent(value: unknown): CurrentState {
 export const behindLive=(size:number,offset:number,limit:number):boolean=>size-offset>limit;
 // A lagging feed shows the newest events at once; the skipped span is folded behind it and replaces this state when done.
 // In-flight fields are cleared: the saved values are stale, and the backfill restores any still open.
-export function jumpToTail(saved:CurrentState,tail:readonly RunEvent[]):CurrentState{
+export function jumpToTail(saved:CurrentState,tail:readonly DisplayEvent[]):CurrentState{
   const first=tail[0];if(first===undefined)return saved;
   const seed:CurrentState={...saved,nextSeq:first.seq,openTools:{},requestAt:null,streaming:{thinking:"",text:""}};
-  return tail.reduce((s,event)=>foldCurrent(s,event),seed);
+  return tail.reduce((s,event)=>foldDisplayEvent(s,event,event.seq>s.nextSeq?"Some display events were unreadable":undefined),seed);
 }

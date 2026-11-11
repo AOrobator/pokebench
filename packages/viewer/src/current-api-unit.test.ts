@@ -19,3 +19,9 @@ it("returns explicit indexing, cursor reset, oversized and bounded failure statu
  const r=new Response();await createCurrentApi(pool(()=>Promise.resolve<CurrentAnswer>({kind:"unavailable",version:1,problem:"x".repeat(1000)})),{maxBytes:128}).handle(request("/api/current-runs"),response(r),["api","current-runs"],7);expect(r.status).toBe(413);expect(Buffer.byteLength(r.body)).toBeLessThanOrEqual(128);
 });
 it("closes a held current response at the injected tiny production deadline",async()=>{const r=new Response(),closed=new Promise<string>(resolve=>{r.once("close",()=>{resolve("closed");});});let timer:ReturnType<typeof setTimeout>|undefined;void createCurrentApi(pool(()=>new Promise(()=>{})),{responseMs:1}).handle(request("/api/current-runs"),response(r),["api","current-runs"],7);const outcome=await Promise.race([closed,new Promise<string>(resolve=>{timer=setTimeout(()=>{resolve("deadline not enforced");},20);})]);clearTimeout(timer);try{expect(outcome).toBe("closed");expect(r.destroyed).toBe(true);}finally{r.destroy();}});
+
+it("routes immutable metadata and checkpoint progress independently from live polling",async()=>{
+ const queries:CurrentQuery[]=[],api=createCurrentApi(pool(q=>{queries.push(q);return Promise.resolve({kind:"unavailable",version:1,problem:"fixture"});}));
+ for(const [url,operation] of [["/api/runs/fixture/metadata?reference="+"a".repeat(64),"metadata"],["/api/runs/fixture/progress?generation=g&after=cursor","progress"]]){const r=new Response();await api.handle(request(url??""),response(r),["api","runs","fixture",operation??""],7);}
+ expect(queries).toEqual([{kind:"metadata",run:"fixture",reference:"a".repeat(64),now:7},{kind:"progress",run:"fixture",generation:"g",after:"cursor",now:7}]);
+});

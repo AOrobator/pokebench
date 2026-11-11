@@ -76,14 +76,14 @@ export function partyNotice(view: RunView): string {
 
 function budgetBar(label: string, fraction: number, value: string): string {
   const clamped = Math.min(1, Math.max(0, fraction));
-  return `<div class="row"><span class="l">${label}</span><div class="budget-track"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
+  return `<div class="row" data-keep="stats-budget-${esc(label)}"><span class="l">${label}</span><div class="budget-track"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
 }
 
 function budgetMissing(label: string, text: string): string {
-  return `<div class="row"><span class="l">${label}</span><span class="v">${text}</span></div>`;
+  return `<div class="row" data-keep="stats-budget-${esc(label)}"><span class="l">${label}</span><span class="v">${text}</span></div>`;
 }
 
-export function budgets(view: RunView, nowMs: number): string {
+export function budgets(view: RunView, nowMs: number, totalsKnown = true): string {
   const start = view.start;
   if (start === null) return `<p>${NO_DATA}</p>`;
   const rows: string[] = [];
@@ -95,20 +95,20 @@ export function budgets(view: RunView, nowMs: number): string {
       : budgetBar("CONTEXT", context.tokens / window, `${context.measured ? "" : "~"}${num(context.tokens)} / ${num(window)}`),
   );
   rows.push(
-    view.disk === null
+    !totalsKnown || view.disk === null
       ? budgetMissing("DISK", NO_DATA)
       : budgetBar("DISK", view.disk.bytes / view.disk.cap_bytes, `${(view.disk.bytes / MB).toFixed(1)} MB / ${String(Math.round(view.disk.cap_bytes / MB))} MB`),
   );
   rows.push(
-    view.retry === null
-      ? budgetMissing("RETRIES", '<span class="nodata">no retries yet</span>')
+    !totalsKnown || view.retry === null
+      ? budgetMissing("RETRIES", totalsKnown ? '<span class="nodata">no retries yet</span>' : NO_DATA)
       : budgetBar("RETRIES", view.retry.attempt / view.retry.limit, `${String(view.retry.attempt)} / ${String(view.retry.limit)}`),
   );
   const { max_tokens } = start.budgets;
   const max_turns=view.effectiveTurnLimit ?? start.budgets.max_turns;
   const max_wall_ms = view.control.maxWallMs ?? start.budgets.max_wall_ms;
   if (max_turns !== undefined) rows.push(budgetBar("TURNS", view.turn / max_turns, `${String(view.turn)} / ${num(max_turns)}`));
-  if (max_tokens !== undefined) {
+  if (max_tokens !== undefined && totalsKnown) {
     const used = view.tokens.input + view.tokens.output;
     rows.push(budgetBar("TOKENS", used / max_tokens, `${num(used)} / ${num(max_tokens)}`));
   }
@@ -701,6 +701,10 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "opus-trace-correctness-v1":"opus-trace-correctness-v1.html",
  "waterfall-handoff-verification-v1":"waterfall-handoff-verification-v1.html",
  "game-clear-completion-v1":"game-clear-completion-v1.html",
+ "foe-item-recap-v1":"foe-items-league-stock.html",
+ "foe-trainer-items-v1":"foe-items-league-stock.html",
+ "league-stock-up-v1":"foe-items-league-stock.html",
+ "menu-option-null-id-v1":"menu-option-null-id-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",

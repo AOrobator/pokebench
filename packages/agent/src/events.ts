@@ -652,6 +652,8 @@ export const StateBodySchema = Type.Object(
     route103_rival:Type.Optional(Type.Union([Type.Object({battle_active:Type.Boolean(),defeated:Type.Boolean(),oldale_stage:Type.Union([Type.Integer({minimum:0,maximum:2}),Type.Null()])},closed),Type.Null()])),
     // trainer-opponent-v1: gTrainerBattleOpponent_A, its ROM name and class, its defeated flag, and a trainer battle on now.
     trainer_opponent:Type.Optional(Type.Union([Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),trainer_class:Type.Integer({minimum:0,maximum:255}),name:Type.Union([Type.String({maxLength:40}),Type.Null()]),defeated:Type.Boolean(),battle_active:Type.Boolean()},closed),Type.Null()])),
+    // foe-item-recap-v1 / foe-trainer-items-v1: present only with a switch, in a trainer battle.
+    foe_trainer_items:Type.Optional(Type.Object({trainer_id:Type.Integer({minimum:1,maximum:854}),items_no:Type.Optional(Type.Integer({minimum:0,maximum:4})),left:Type.Optional(Type.Array(Type.Object({slot:Type.Integer({minimum:0,maximum:3}),name:Type.String({maxLength:40})},closed),{maxItems:4})),used:Type.Array(Type.Object({slot:Type.Integer({minimum:0,maximum:3}),name:Type.String({maxLength:40})},closed),{maxItems:4})},closed)),
     blackout_active:Type.Optional(Type.Union([Type.Boolean(),Type.Null()])),
     // blackout-readout-v1: the frame latch's one-shot delivery receipt. Unlike
     // blackout_active, it survives a complete CB2_WhiteOut between observations.

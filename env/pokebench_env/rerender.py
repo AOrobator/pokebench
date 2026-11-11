@@ -22,7 +22,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import TextIO
 
-from pokebench_env import authored_scene_labels
+from pokebench_env import authored_scene_labels, foe_trainer_items
 from pokebench_env.bike import MOUNT_SWITCH as BIKE_MOUNT
 from pokebench_env.bike import REGISTER_SWITCH as BIKE_REGISTER
 from pokebench_env.blackout_readout import Whiteout
@@ -173,6 +173,21 @@ def read_state(
     )
     if authored_scene_labels.SWITCH not in off:
         state = authored_scene_labels.annotate_scene_label(read, state)
+    if (
+        getattr(state, "in_battle", False)
+        and not {
+            foe_trainer_items.RECAP_SWITCH,
+            foe_trainer_items.LEFT_SWITCH,
+        }
+        <= off
+    ):
+        try:
+            items = foe_trainer_items.read_foe_trainer_items(read, True)
+        except (ValueError, OSError):
+            items = None
+        if items is not None and foe_trainer_items.LEFT_SWITCH in off:
+            items = replace(items, knowledge=False)
+        state = replace(state, foe_trainer_items=items)
     # Callers that stub read_game_state return other objects; only a real observation is relabelled.
     observation = getattr(state, "map_observation", None)
     if DEEP_SOUTH_WARP_LABEL not in off and isinstance(observation, MapObservation):

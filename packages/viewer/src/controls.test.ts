@@ -160,3 +160,12 @@ describe("switchboard", () => {
 });
 
 it("keeps legacy zero-state stats when current completeness metadata is absent",()=>{const html=sideStats(new RunView(),BASE_MS);expect(html).toContain("TURN<b>0</b>");expect(html).toContain("FAILURES<b>0</b>of 3");});
+
+it("shows a verified clock while lifetime totals are still rebuilding",()=>{
+ const v=view();
+ const current={complete:false,contextKnown:true,timeKnown:true};
+ const html=sideStats(v,BASE_MS+30_000,current);
+ expect(html).toContain("TIME<b>0:00:30</b>");
+ expect(html).toContain("FAILURES<b>—</b>");
+ expect(sideStats(v,BASE_MS+30_000,{...current,timeKnown:false})).toContain("TIME<b>—</b>unavailable");
+});

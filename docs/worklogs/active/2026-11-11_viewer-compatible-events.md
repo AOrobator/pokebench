@@ -1,0 +1,112 @@
+# Keep viewer displays live across additive event changes
+
+Operator requested tolerant display parsing, independent cards and clock during
+history rebuilding, and a coordinated refresh of viewer and current-state service.
+The actual failing state at Opus turn 1483 contains running.movement_direction,
+which the older projector rejects. Preserve strict grading and original logs.
+Work in isolation, prove unsupported and malformed records remain visible as
+warnings while later valid state updates continue. Refresh both services together
+only after review and gates. Preserve active gameplay and its pinned runtime.
+
+## Implementation and focused evidence
+
+- Viewer-only decoder strips additive fields, retains strict recorder/grade schemas,
+  and represents unsupported bodies as explicitly partial display records. Damaged
+  JSON remains an omission warning; later identity and backward-sequence checks hold.
+- Independently bounded control-only scan recovers pauses/extensions before expensive
+  state/history replay. It persists its cursor; unknown control bodies withhold the
+  clock. Partial history never publishes complete token/error totals.
+- Viewer refresh installs the projector and web consumer from one prepared tree.
+- No harness switches, model prompts, gameplay runtime, recording, trainer-card
+  identity/design, or grading authority changed.
+- Focused viewer tests: 42 passed; affected viewer tsc/ESLint passed. Python ruff,
+  mypy passed; refresh/unload tests 4 passed. Initial parser tests failed before
+  implementation. Follow-up regression exposed and retained the existing approximate
+  backward-time display behavior separately from omitted-record completeness.
+- Read-only native event replay: event seq 76877 / turn 1483 with
+  running.movement_direction=4 decodes as state and passes strict validation after
+  display normalization. Original recording unchanged.
+- Offline isolated projector rehearsal: 2,204 events, trainer card and verified
+  clock available while complete=false; later complete=true; restart reload and
+  public reader pass. Evidence runs/proofs/viewer-compatible-events/rehearsal.json.
+  Rehearsal used focused transpilation, not a claimed full build/gate.
+- Full gates requested through relay; no listener, request saved. Full gates,
+  independent reviews, browser proof, landing and activation remain pending.
+- Grok standing all-branch waiver: operator 2026-10-22; disclose on landing.
+- Stats redraw preserves the reader's keyed panel position while the independently
+  available budget rows and eventually recovered totals change.
+
+## Round one and correction batch
+
+Frozen base aaecbda1732db0f598dfd5489055ce671f063c98, head
+0bb4a046c629b5ea4d00d13ace4fb4fd9312dd4c, diff SHA-256
+8c7336cf8c4d799a1e213606cd425962a4c9d1cbb5c1454b69dc683c2032fb74.
+Full lint/build/test/vendor passed on that frozen source: agent 3017, viewer 1261,
+env 3089, gateway 39 tests; all coverage floors and no-I/O proof passed.
+No coordinator listener; used operator's earlier instruction to run needed checks
+without queueing. No gameplay/recording changes.
+
+Independent GPT BLOCKING: unsupported-only history page incorrectly terminated
+pagination. Fix accepted: explicit skipped-record cursor bookkeeping; RED regression
+failed before correction. Independent Claude BLOCKING: malformed trailing-line gap
+was not durable on restart, and lost-owner health semantics had changed. Both fixes
+accepted: persist both live and rebuild pending-gap cursors; restore previous owner
+status behavior. Claude nonblocking refresh-order issue accepted within same refresh
+owner: start backward-compatible web consumer before updating projector. Other
+hardening observations retained as follow-ups, not additional scope.
+
+Browser rehearsal found a phone document scroll jump when counters become available;
+protect the document as well as the inner stats pane. No card appearance or identity
+changed. Focused correction tests: 52 viewer tests and 4 Python tests passed with
+affected types/lint. Repeat full gates and cumulative independent reviews pending.
+- Damaged-line restart rehearsal now passes with durable currentGap/rebuildGap;
+  a separate unsupported-only 200-event recording pages back to valid seq 0/1.
+  Evidence: runs/proofs/viewer-compatible-events/damaged-restart.json.
+- A failed web refresh leaves the existing projector alone (new pure regression).
+  Refresh order is web first, then projector, from the same prepared tree.
+- The scroll owner is selected between the inner pane and document to avoid
+  compensating twice; Chromium desktop recovery drift is below 1 px.
+- Disabled native browser anchoring for the stats pane because explicit keyed
+  restoration owns that scrolling region; prevents intermittent double correction.
+- Final phone correction gives each existing budget row a stable key, so a barely
+  clipped loading-counter box cannot outrank the actual budget row being read.
+  This changes attributes only, not appearance. Browser setup now establishes its
+  baseline after initial asynchronous history loading, before the forced recovery.
+- Trainer design check initially failed because isolated worktree lacked ignored
+  local ROM art. Re-run with POKEBENCH_CARD_ART pointing at the canonical existing
+  art directory; no fixtures, assertions or baselines are changed.
+- Screenshot inspection found the small TIME tile still coupled to complete totals
+  although app already supplies explicit timeKnown. Fix: honor explicit timeKnown,
+  retain complete as compatibility fallback when absent. RED pure regression and
+  14 focused control tests pass. This is the last display caller in original scope.
+
+## Landing evidence
+
+Final feature head b22678177746c0f35b4659d14bf6d1606b7b125a on base
+aaecbda1732db0f598dfd5489055ce671f063c98. Frozen cumulative diff SHA-256
+69b072003383bf85272d944b7fb4aacaebdfb54671c1447ef6515a09031756f6.
+Claude and fresh independent GPT both LGTM on final-time-tile packet; earlier
+round-two packets clear the cumulative feature. Grok standing all-branch waiver
+(operator 2026-10-22) applies; no Grok verdict claimed.
+
+Final full lint/build/test/vendor pass; agent 3017, viewer 1264, env 3090, gateway
+39 tests, coverage floors and no-I/O proof pass. Protected trainer guard and
+visual baselines 3/3 pass using existing canonical ROM art, no baseline changes.
+Final built-source headless Chromium and WebKit at1280/1440/375 pass, 25+ polls
+each, zero page exceptions, known partial-history clock (including TIME tile),
+with recovery anchor drift 0.11-0.90px sampled every animation frame. All twelve
+screenshots inspected, including desktop/phone contact sheets. Browser interception
+was confined to agent-owned pages; source projector fixtures separately prove
+real decoding, durable clock/gaps and history pagination.
+
+Fast-forwarded main to b22678177 under this chat's landing slot. Post-main just test
+passed including all coverage and no-I/O checks. Durable logs and browser receipts:
+runs/proofs/viewer-compatible-events/. No live gameplay, recording, prompts,
+limits, or user untracked files touched. Activation remains pending the single
+coordinated viewer/projector refresh and direct live proof.
+
+Operator follow-up question: persisted snapshots already exist (250ms commit
+interval plus sparse event offsets). Routine viewer reopening should consume only
+new bytes. Source audit found independent evidence-file signatures also invalidate
+the whole projection; separating that evidence invalidation from the append-only
+event snapshot is a follow-up, not silently included in this landed patch.

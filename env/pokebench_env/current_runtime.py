@@ -180,7 +180,6 @@ def refresh_viewer(
     root: Path, tree: Path, config: Config, target: Path, uid: int, run: Runner = subprocess.run
 ) -> None:
     """Refresh both consumers from the same prepared immutable build."""
-    install(config, target, uid, run)
     run(
         [
             str(tree / "scripts/viewer-restart.sh"),
@@ -192,6 +191,7 @@ def refresh_viewer(
         ],
         check=True,
     )
+    install(config, target, uid, run)
 
 
 def main(argv: Sequence[str] | None = None) -> None:

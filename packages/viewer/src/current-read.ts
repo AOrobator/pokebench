@@ -44,7 +44,7 @@ export function createCurrentReader(options:CurrentReaderOptions):CurrentReader{
     const batch=readCurrentLines(bounded,c,limits.bytes-bytes,1);bytes+=batch.bytes;const line=batch.lines[0];
     if(line===undefined){if(batch.atEnd){reached=true;break;}const narrower=decoded===null?null:narrowerScan(page.scan,limits.events);return narrower===null?answer("oversized",[],q.before):history(db,q,narrower);}
     if(line.event.run!==q.run)throw new Error("Foreign indexed history event");if(line.event.seq>=target){reached=true;break;}
-    if(line.raw.length>limits.replyBytes)return answer("oversized",[],q.before);if(line.event.type!=="viewer_unsupported")page.add(line.event,line.raw.length);
+    if(line.raw.length>limits.replyBytes)return answer("oversized",[],q.before);if(line.event.type==="viewer_unsupported")page.skip(line.event.seq);else page.add(line.event,line.raw.length);
     if(c.offset>=upper){reached=true;break;}
    }
    if(!file.samePath())return answer("reset",[],null);if(!reached)return answer("indexing",[],q.before);

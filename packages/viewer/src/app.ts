@@ -1817,10 +1817,12 @@ export class App {
     const statsPane=this.ui("budgets").closest<HTMLElement>(".page-content");
     for(const name of ["counters","budgets","metric-history"]){const box=this.ui(name);box.dataset.keep=`stats-${name}`;box.dataset.keepBox="";}
     const statsPlace=statsPane===null?null:readPlace(statsPane,this.doc.activeElement);
+    const documentPlace=readPlace(this.doc.documentElement,this.doc.activeElement);
     this.setHtml("budgets",(totalsKnown||currentSnapshot?.control!=null)?budgets(view,nowMs,totalsKnown):'<p class="nodata">Lifetime totals are still loading. Current turn and context are shown above.</p>');
     this.setHtml("counters",totalsKnown?counters(view):'<p class="nodata">Lifetime totals are still loading.</p>');
     this.setHtml("metric-history", metricHistory(this.traceOwner()));
     if(statsPane!==null&&statsPlace!==null)returnToPlace(statsPane,statsPlace);
+    returnToPlace(this.doc.documentElement,documentPlace);
     this.renderRace(view, nowMs, recordedSplits);
     this.laneMotion??=new LaneMotion(this.ui("lanes"),this.deps.animateLanes);
     this.laneMotion.render(this.current?.state.selected===this.runId?this.timelineFeed.view:this.shown,nowMs,clock!==null&&this.mode==="replay"?clock.playing?clock.speed:0:this.headReady&&this.view.end!==null?0:1);

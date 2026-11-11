@@ -11,6 +11,7 @@ export interface HistoryPage {
   // Sequence numbers read before the page's cursor.
   readonly scan: number;
   add(event: RunEvent, bytes: number): void;
+  skip(seq: number): void;
   readonly events: RunEvent[];
   // The next page's bound, or null at the start of the recording.
   before(): number | null;
@@ -28,6 +29,7 @@ export function historyPage(older: boolean, limit: number, replyBytes: number, s
   return {
     scan,
     events,
+    skip(seq) { skipped ??= seq; },
     add(event, bytes) {
       if (older && OLDER_SKIPS.has(event.type)) { skipped ??= event.seq; return; }
       events.push(event); lengths.push(bytes); payload += bytes;

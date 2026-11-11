@@ -4,7 +4,7 @@ from pathlib import Path
 from pokebench_env import current_runtime
 
 
-def test_refresh_updates_the_indexer_before_the_viewer(monkeypatch):
+def test_refresh_updates_the_compatible_viewer_before_the_indexer(monkeypatch):
     actions = []
     config = {"Label": "fixture"}
 
@@ -18,8 +18,8 @@ def test_refresh_updates_the_indexer_before_the_viewer(monkeypatch):
 
     monkeypatch.setattr(current_runtime, "install", install)
     current_runtime.refresh_viewer(Path("/repo"), Path("/build"), config, Path("/plist"), 501, run)
-    assert actions[0] == "indexer"
-    assert actions[1] == [
+    assert actions[1] == "indexer"
+    assert actions[0] == [
         "/build/scripts/viewer-restart.sh",
         "/build/packages/viewer/dist/cli.js",
         "8790",

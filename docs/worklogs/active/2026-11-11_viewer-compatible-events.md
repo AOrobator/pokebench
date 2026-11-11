@@ -35,3 +35,27 @@ only after review and gates. Preserve active gameplay and its pinned runtime.
 - Grok standing all-branch waiver: operator 2026-10-22; disclose on landing.
 - Stats redraw preserves the reader's keyed panel position while the independently
   available budget rows and eventually recovered totals change.
+
+## Round one and correction batch
+
+Frozen base aaecbda1732db0f598dfd5489055ce671f063c98, head
+0bb4a046c629b5ea4d00d13ace4fb4fd9312dd4c, diff SHA-256
+8c7336cf8c4d799a1e213606cd425962a4c9d1cbb5c1454b69dc683c2032fb74.
+Full lint/build/test/vendor passed on that frozen source: agent 3017, viewer 1261,
+env 3089, gateway 39 tests; all coverage floors and no-I/O proof passed.
+No coordinator listener; used operator's earlier instruction to run needed checks
+without queueing. No gameplay/recording changes.
+
+Independent GPT BLOCKING: unsupported-only history page incorrectly terminated
+pagination. Fix accepted: explicit skipped-record cursor bookkeeping; RED regression
+failed before correction. Independent Claude BLOCKING: malformed trailing-line gap
+was not durable on restart, and lost-owner health semantics had changed. Both fixes
+accepted: persist both live and rebuild pending-gap cursors; restore previous owner
+status behavior. Claude nonblocking refresh-order issue accepted within same refresh
+owner: start backward-compatible web consumer before updating projector. Other
+hardening observations retained as follow-ups, not additional scope.
+
+Browser rehearsal found a phone document scroll jump when counters become available;
+protect the document as well as the inner stats pane. No card appearance or identity
+changed. Focused correction tests: 52 viewer tests and 4 Python tests passed with
+affected types/lint. Repeat full gates and cumulative independent reviews pending.

@@ -71,3 +71,9 @@ describe("historyPage", () => {
     expect(historyPage(true, 64, 1000, 128).scan).toBe(128);
   });
 });
+
+it("keeps an older cursor through a page containing only unsupported display records",()=>{
+ const page=historyPage(false,64,1000);
+ page.skip(128);page.skip(129);
+ expect(page.events).toEqual([]);expect(page.before()).toBe(128);
+});

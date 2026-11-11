@@ -16,7 +16,7 @@ import {publishCurrent} from "./current-projection.js";
 import {RUN_LOG_MAX_BYTES} from "./run-log.js";
 const N=Type.Integer({minimum:0,maximum:Number.MAX_SAFE_INTEGER}),closed={additionalProperties:false};
 const Prefix=Type.Object({signature:Type.String(),offset:N,seq:N,ms:N,done:Type.Boolean(),digest:Type.Object({h:Type.Array(Type.Integer({minimum:0,maximum:0xffffffff}),{minItems:8,maxItems:8}),tail:Type.Array(N,{maxItems:0}),bytes:N},closed)},closed);
-const Auxiliary=Type.Object({v:Type.Literal(1),complete:Type.Boolean(),reconstruct:Type.Boolean(),updatedAt:N,observedAt:N,problem:Type.Union([Type.String(),Type.Null()]),headerEnd:N,namespace:N,health:Type.Object({ok:Type.Union([Type.Boolean(),Type.Null()]),checkedAt:Type.Union([N,Type.Null()]),enabled:Type.Boolean(),owner:Type.Boolean()},closed),regions:Type.Array(Type.Object({first:N,last:N},closed),{maxItems:4}),prefix:Type.Union([Prefix,Type.Null()]),clock:Type.Optional(Type.String({maxLength:262144})),clockOffset:Type.Optional(N),clockReady:Type.Optional(Type.Boolean())},closed);
+const Auxiliary=Type.Object({v:Type.Literal(1),complete:Type.Boolean(),reconstruct:Type.Boolean(),updatedAt:N,observedAt:N,problem:Type.Union([Type.String(),Type.Null()]),headerEnd:N,namespace:N,health:Type.Object({ok:Type.Union([Type.Boolean(),Type.Null()]),checkedAt:Type.Union([N,Type.Null()]),enabled:Type.Boolean(),owner:Type.Boolean()},closed),regions:Type.Array(Type.Object({first:N,last:N},closed),{maxItems:4}),prefix:Type.Union([Prefix,Type.Null()]),clock:Type.Optional(Type.String({maxLength:262144})),clockOffset:Type.Optional(N),clockReady:Type.Optional(Type.Boolean()),currentGap:Type.Optional(Type.String({maxLength:500})),rebuildGap:Type.Optional(Type.String({maxLength:500}))},closed);
 export type ProjectorAux=Static<typeof Auxiliary>;
 export function parseProjectorAux(text:string):ProjectorAux{const value:unknown=JSON.parse(text);if(!Value.Check(Auxiliary,value))throw new Error("Invalid projector metadata");if(value.regions.some(r=>r.first>r.last))throw new Error("Invalid history coverage");if(value.prefix!==null){parseDigest(value.prefix.digest);if(value.prefix.offset<value.prefix.digest.bytes||value.prefix.offset-value.prefix.digest.bytes>63)throw new Error("Invalid prefix hash cursor");}return value;}
 export const PROJECTOR_LIMITS={chunkBytes:256*1024,tailBytes:256*1024,records:64,bytesPerSecond:20*1024*1024,burstBytes:4*1024*1024,hotRuns:16,candidates:8192,commitMs:250,sliceMs:10,discoveryMs:1000,healthMs:2000,recentMs:24*3600000,recentEnded:16};
@@ -67,7 +67,7 @@ export class CurrentProjector{
  private start(run:string,source:CurrentSourceFile):Job|null{
   const current=this.store.get(run),stage=this.store.rebuilding(run),raw=this.store.auxiliary(run),saved=current??stage;
   if(saved!==null&&raw!==null){const aux=parseProjectorAux(raw);if(source.compatible(saved.source)&&(stage===null||source.compatible(stage.source))&&saved.source.evidence===sourceEvidence(source.path)){
-    const job:Job={run,current,stage,aux,cursor:lineCursor(current?.source.offset??aux.headerEnd),rebuild:lineCursor(stage?.source.offset??aux.headerEnd),prefixCursor:null,dirty:!this.store.published(run),force:!this.store.published(run),lastCommit:this.monotonic()-this.limits.commitMs,index:[],init:lineCursor(),generation:saved.source.generation,fresh:false};
+    const job:Job={run,current,stage,aux,cursor:lineCursor(current?.source.offset??aux.headerEnd,aux.currentGap),rebuild:lineCursor(stage?.source.offset??aux.headerEnd,aux.rebuildGap),prefixCursor:null,dirty:!this.store.published(run),force:!this.store.published(run),lastCommit:this.monotonic()-this.limits.commitMs,index:[],init:lineCursor(),generation:saved.source.generation,fresh:false};
     if(!aux.complete&&aux.reconstruct&&stage===null){const start=current?.state.start;if(start===null||start===undefined)throw new Error("Missing reconstruction start");const state=foldCurrent(emptyCurrent(),start,aux.namespace);job.stage=this.store.stage(state,source.capture(aux.headerEnd,job.generation,sourceEvidence(source.path)),[],JSON.stringify(aux));}
     this.initializing.delete(run);return job;
    }
@@ -153,6 +153,8 @@ export class CurrentProjector{
  private flush(job:Job):void{
   if(!job.dirty||(!job.force&&this.monotonic()-job.lastCommit<this.limits.commitMs))return;
   job.aux.updatedAt=this.now();job.aux.problem=null;
+  if(job.cursor.problem===undefined)delete job.aux.currentGap;else job.aux.currentGap=job.cursor.problem;
+  if(job.rebuild.problem===undefined)delete job.aux.rebuildGap;else job.aux.rebuildGap=job.rebuild.problem;
   // Prefix reconstruction and the provisional tail may cover different offsets.
   // Index rows are written with the matching consumed cursor, never the other lane.
   if(job.stage!==null){const stage=job.stage,staged=job.index.filter(i=>i.end<=stage.source.offset&&i.seq<=stage.state.seq);job.stage=this.store.stage(stage.state,stage.source,staged,JSON.stringify(job.aux));}

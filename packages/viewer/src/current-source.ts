@@ -9,7 +9,7 @@ export class SourceBudgetError extends Error{}
 export interface SourceOptions {allowance?:()=>number;read?:(bytes:number,offset:number,purpose:"data"|"anchor")=>void}
 export interface CurrentLine {event:DisplayEvent;problem?:string;offset:number;end:number;raw:Buffer}
 export interface LineCursor {offset:number;buffer:Buffer;readOffset:number;problem?:string}
-export const lineCursor=(offset=0):LineCursor=>({offset,buffer:Buffer.alloc(0),readOffset:offset});
+export const lineCursor=(offset=0,problem?:string):LineCursor=>({offset,buffer:Buffer.alloc(0),readOffset:offset,...(problem===undefined?{}:{problem})});
 const coordinate=(n:number):boolean=>Number.isSafeInteger(n)&&n>=0;
 export function currentRunDirectory(root:string,run:string):string{
  if(!new RegExp(RUN_ID_PATTERN).test(run))throw new Error("Invalid source run id");

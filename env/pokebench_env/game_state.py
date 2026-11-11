@@ -33,6 +33,7 @@ from pokebench_env.field_moves import (
     read_object_obstacles,
     survey,
 )
+from pokebench_env.foe_trainer_items import FoeTrainerItems
 from pokebench_env.game_screen import ReadMemory, read_screen
 from pokebench_env.gba_text import GBA_TEXT, decode_text
 from pokebench_env.heal_trainers import HealFacts, read_heal_facts
@@ -224,6 +225,8 @@ class GameState:
     pokedex: Pokedex | None = None
     # type-gap-team-v1: party species and move types and the ROM type chart; None when off.
     type_gap: TypeGap | None = None
+    # foe-item-recap-v1 / foe-trainer-items-v1: read only with a switch on, in a trainer battle.
+    foe_trainer_items: FoeTrainerItems | None = None
     move_matchup_enabled: bool = False
 
 

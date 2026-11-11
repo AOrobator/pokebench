@@ -39,10 +39,10 @@ No new network surface. Reads emulator memory the server already reads. No new f
 
 **M1: Readouts, lobby paragraph and lane wiring**
 - [x] Write tests: env/tests/env/test_foe_trainer_items.py (23), packages/agent/src/league-stock-up.test.ts (7, also covers supplies-v1, which had no tests), custom-lane, recipe-overlay and launched-recipe test updates
-- [ ] COMMIT RED
+- [x] COMMIT RED: `test(foe-items): pin foe trainer item readouts and the League stock-up paragraph` (4e459d707)
 - [x] Implement
 - [x] Cheap checks: ruff, ruff format, mypy on changed Python; tsc and eslint on changed TS; focused pytest 23/23; agent vitest league-stock-up, features, play-preset, opus-rayquaza 71/71; viewer panels, next-run, custom-lane and the fixed/recipe suites 369/369 + 4/4. Wiring deleted once (withLeagueStockUp in play-wiring) and the factory test went red, then restored.
-- [ ] COMMIT GREEN
+- [x] COMMIT GREEN: `feat(foe-items): foe trainer items in battle and a League stock-up paragraph` (see next entry)
 - [ ] Explainer: docs/explainers/foe-items-league-stock.html, mapped for the three switches
 - [ ] Gates in a CPU window: just test, just lint, pnpm -r build, just verify-vendor
 - [ ] Review: Codex/GPT lane LGTM (Grok out until 11/17), Claude lane

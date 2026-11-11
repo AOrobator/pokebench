@@ -60,7 +60,6 @@
     "available-exits-presentation-v1",
     "native-task-goal-retirement-v1",
     "cutscene-journal-v1",
-    "supplies-v1",
     "untalked-in-gym-v1",
     "scene-followup-prompt-v1",
     "instruction-memory-dedup-v1",
@@ -109,7 +108,9 @@
     "rq-old-rival-line-v1",
     "rq-no-grind-note-v1",
     "rq-checkpoint-recovery-v1",
-    "rq-mach-dash-v1"
+    "rq-mach-dash-v1",
+    "foe-trainer-items-v1",
+    "league-stock-up-v1"
   ],
   "onInBoth": [
     "tmhm-learning-visibility-v1",
@@ -235,7 +236,9 @@
     "drought-turns-only-v1",
     "drought-hold-screens-v1",
     "field-obstacle-respawn-v1",
-    "gym-puzzle-supervisor-hold-v1"
+    "gym-puzzle-supervisor-hold-v1",
+    "supplies-v1",
+    "foe-item-recap-v1"
   ],
   "features": {
     "drought-hold-screens-v1": true,
@@ -520,7 +523,7 @@
     "map-observability-v1": true,
     "context-exact-count-v1": true,
     "type-gap-team-v1": true,
-    "supplies-v1": false,
+    "supplies-v1": true,
     "untalked-in-gym-v1": false,
     "grass-strides-v1": true,
     "scene-followup-prompt-v1": false,
@@ -601,6 +604,9 @@
     "rq-no-grind-note-v1": false,
     "rq-checkpoint-recovery-v1": false,
     "rq-mach-dash-v1": false,
-    "gym-puzzle-supervisor-hold-v1": true
+    "gym-puzzle-supervisor-hold-v1": true,
+    "foe-item-recap-v1": true,
+    "foe-trainer-items-v1": false,
+    "league-stock-up-v1": false
   }
 }

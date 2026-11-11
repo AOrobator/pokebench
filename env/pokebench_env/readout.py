@@ -33,6 +33,9 @@ from pokebench_env.field_moves import HEADER as FIELD_HEADER
 from pokebench_env.field_moves import RESPAWN_SWITCH as OBSTACLE_RESPAWN
 from pokebench_env.field_moves import SWITCH as FIELD_MOVES
 from pokebench_env.field_moves import FieldObstacles
+from pokebench_env.foe_trainer_items import LEFT_SWITCH as FOE_LEFT
+from pokebench_env.foe_trainer_items import RECAP_SWITCH as FOE_RECAP
+from pokebench_env.foe_trainer_items import foe_item_lines
 from pokebench_env.game_state import GameState
 from pokebench_env.levelup_box import SWITCH as LEVELUP_BOX
 from pokebench_env.levelup_box import levelup_clause
@@ -233,6 +236,8 @@ SERVER_FEATURES = (
     "opus-trace-correctness-v1",
     "waterfall-handoff-verification-v1",
     "game-clear-completion-v1",
+    FOE_RECAP,
+    FOE_LEFT,
 )
 
 
@@ -267,7 +272,8 @@ def features_off_from_env(env: Mapping[str, str]) -> frozenset[str]:
         "bike-register-v1,bike-auto-mount-v1,surf-navigation-v1,"
         "rotating-gate-positions-v1,rotating-gate-rules-v1,rotating-gate-map-v1,map-code-aliases-v1,"
         "rotating-gate-regions-v1,shop-shelf-hidden-v1,field-call-input-v1,"
-        "field-obstacle-respawn-v1,waterfall-handoff-verification-v1",
+        "field-obstacle-respawn-v1,waterfall-handoff-verification-v1,"
+        "foe-item-recap-v1,foe-trainer-items-v1",
     )
     if raw == "":
         return frozenset()
@@ -614,6 +620,9 @@ def format_readout(
         else:
             lines.append("Battle details: unprovided")
             lines += own_line
+        lines += foe_item_lines(
+            state.foe_trainer_items, recap=FOE_RECAP not in off, left=FOE_LEFT not in off
+        )
         if TRIAGE not in off:
             lines += battle_triage_lines(battle, state.battle_details)
     # blackout-readout-v1: CB2_WhiteOut is running in this observation's own state.
@@ -1334,4 +1343,10 @@ def state_json(state: GameState) -> dict[str, object]:
         ),
         # type-gap-team-v1: present only with the switch, so switch-off state is unchanged.
         **({} if state.type_gap is None else {"type_gap": state.type_gap.json()}),
+        # foe-item-recap-v1 / foe-trainer-items-v1: present only with a switch, in a trainer battle.
+        **(
+            {}
+            if state.foe_trainer_items is None
+            else {"foe_trainer_items": state.foe_trainer_items.json()}
+        ),
     }

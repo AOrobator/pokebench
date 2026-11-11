@@ -290,7 +290,7 @@
     "map-observability-v1": true,
     "context-exact-count-v1": true,
     "type-gap-team-v1": true,
-    "supplies-v1": false,
+    "supplies-v1": true,
     "untalked-in-gym-v1": false,
     "grass-strides-v1": true,
     "scene-followup-prompt-v1": false,
@@ -396,6 +396,9 @@
     "waterfall-handoff-verification-v1": true,
     "surf-navigation-correctness-v1": true,
     "verified-warp-reach-v1": true,
-    "opus-trace-correctness-v1": true
+    "opus-trace-correctness-v1": true,
+    "foe-item-recap-v1": true,
+    "foe-trainer-items-v1": true,
+    "league-stock-up-v1": true
   }
 }

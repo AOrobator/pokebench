@@ -1,0 +1,192 @@
+"""The foe trainer's battle items, read from game memory (foe-item-recap-v1, foe-trainer-items-v1).
+
+pokeemerald 731ad5bf:
+- src/battle_ai_script_commands.c BattleAI_HandleItemUseBeforeAISetup zeroes the battle history at
+  battle start and, in a trainer battle without the link, Safari, Frontier, e-Reader, secret base,
+  in-game partner or recorded-link flags, copies each non-empty gTrainers[gTrainerBattleOpponent_A]
+  .items[i] into trainerItems[itemsNo++].
+- src/battle_ai_switch_items.c ShouldUseItem sets trainerItems[i] = ITEM_NONE when the AI uses
+  item i, and skips item i > 0 while the foe has more than itemsNo - i + 1 POKéMON able to fight.
+- include/battle.h: struct BattleResources holds battleHistory at +0x18; struct BattleHistory has
+  usedMoves[4] (16 bytes each: moves[4] and unknown[4]), abilities[4], itemEffects[4], then
+  trainerItems[4] (u16) at +0x48 and itemsNo at +0x50. include/data.h struct Trainer (0x28
+  bytes) holds items[4] at +0x10.
+"""
+
+from collections import Counter
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+
+from pokebench_env.pokemon import read_item_name
+from pokebench_env.route103_rival import BATTLE_TYPE_FLAGS, BATTLE_TYPE_TRAINER, OPPONENT_A
+from pokebench_env.trainer_opponent import GTRAINERS, TRAINER_SIZE, TRAINERS_COUNT
+
+ReadMemory = Callable[[int, int], bytes]
+
+RECAP_SWITCH = "foe-item-recap-v1"
+LEFT_SWITCH = "foe-trainer-items-v1"
+
+BATTLE_RESOURCES = 0x020244A8
+HISTORY = 0x18
+TRAINER_ITEMS = 0x48
+ITEMS_NO = 0x50
+TRAINER_ITEMS_FIELD = 0x10
+MAX_TRAINER_ITEMS = 4
+# BATTLE_TYPE_LINK, SAFARI, EREADER_TRAINER, SECRET_BASE, INGAME_PARTNER, RECORDED_LINK and the
+# Frontier flags (BATTLE_TOWER, DOME, PALACE, ARENA, FACTORY, PIKE, PYRAMID): no trainer items.
+NO_ITEMS = (
+    1 << 1
+    | 1 << 7
+    | 1 << 11
+    | 1 << 27
+    | 1 << 22
+    | 1 << 25
+    | 1 << 8
+    | 1 << 16
+    | 1 << 17
+    | 1 << 18
+    | 1 << 19
+    | 1 << 20
+    | 1 << 21
+)
+
+# HP each potion restores (src/data/pokemon/item_effects.h; MAX POTION's full heal is 255 there).
+POTIONS = {"POTION": 20, "SUPER POTION": 50, "HYPER POTION": 200, "MAX POTION": 255}
+CURES = {"FULL HEAL", "ANTIDOTE", "BURN HEAL", "ICE HEAL", "AWAKENING", "PARLYZ HEAL"}
+FIRST_TURN = {
+    "X ATTACK",
+    "X DEFEND",
+    "X SPEED",
+    "X SPECIAL",
+    "X ACCURACY",
+    "DIRE HIT",
+    "GUARD SPEC.",
+}
+
+
+@dataclass(frozen=True)
+class FoeItem:
+    slot: int
+    name: str
+
+
+@dataclass(frozen=True)
+class FoeTrainerItems:
+    trainer_id: int
+    items_no: int
+    left: tuple[FoeItem, ...]
+    used: tuple[FoeItem, ...]
+
+    def json(self) -> dict[str, object]:
+        return {
+            "trainer_id": self.trainer_id,
+            "items_no": self.items_no,
+            "left": [asdict(item) for item in self.left],
+            "used": [asdict(item) for item in self.used],
+        }
+
+
+def _u16(raw: bytes, offset: int) -> int:
+    return int.from_bytes(raw[offset : offset + 2], "little")
+
+
+def _exact(read: ReadMemory, address: int, length: int) -> bytes:
+    body = read(address, length)
+    if len(body) != length:
+        raise ValueError(f"short foe trainer items read at 0x{address:08X}")
+    return body
+
+
+def _ewram(read: ReadMemory, address: int) -> int | None:
+    pointer = int.from_bytes(_exact(read, address, 4), "little")
+    return pointer if 0x02000000 <= pointer < 0x02040000 else None
+
+
+def read_foe_trainer_items(read: ReadMemory, in_battle: bool) -> FoeTrainerItems | None:
+    """None outside a trainer battle that carries items, and while the battle history is not
+    yet this battle's (the game fills it as the battle starts)."""
+    if not in_battle:
+        return None
+    flags = int.from_bytes(_exact(read, BATTLE_TYPE_FLAGS, 4), "little")
+    if not flags & BATTLE_TYPE_TRAINER or flags & NO_ITEMS:
+        return None
+    trainer_id = _u16(_exact(read, OPPONENT_A, 2), 0)
+    if not 0 < trainer_id < TRAINERS_COUNT:
+        return None
+    entry = _exact(read, GTRAINERS + trainer_id * TRAINER_SIZE + TRAINER_ITEMS_FIELD, 8)
+    carried = [i for i in (_u16(entry, 2 * s) for s in range(MAX_TRAINER_ITEMS)) if i != 0]
+    resources = _ewram(read, BATTLE_RESOURCES)
+    history = None if resources is None else _ewram(read, resources + HISTORY)
+    if history is None:
+        return None
+    raw = _exact(read, history + TRAINER_ITEMS, ITEMS_NO - TRAINER_ITEMS + 1)
+    items_no = raw[ITEMS_NO - TRAINER_ITEMS]
+    slots = [_u16(raw, 2 * s) for s in range(MAX_TRAINER_ITEMS)]
+    if items_no != len(carried) or any(
+        slots[s] not in (0, carried[s]) if s < items_no else slots[s] != 0
+        for s in range(MAX_TRAINER_ITEMS)
+    ):
+        return None
+    names = [read_item_name(read, item) for item in carried]
+    return FoeTrainerItems(
+        trainer_id=trainer_id,
+        items_no=items_no,
+        left=tuple(FoeItem(s, names[s]) for s in range(items_no) if slots[s] != 0),
+        used=tuple(FoeItem(s, names[s]) for s in range(items_no) if slots[s] == 0),
+    )
+
+
+def _counted(items: tuple[FoeItem, ...]) -> str:
+    if not items:
+        return "none"
+    counts = Counter(item.name for item in items)
+    return ", ".join(f"{name} ×{count}" for name, count in counts.items())
+
+
+def recap_line(items: FoeTrainerItems) -> str:
+    """foe-item-recap-v1: only what the game has already shown ("<TRAINER> used <ITEM>!")."""
+    return f"Foe trainer items used this battle: {_counted(items.used)}"
+
+
+def _when(item: FoeItem, items_no: int) -> str:
+    if item.slot == 0:
+        return f"{item.name} (any turn)"
+    return f"{item.name} (only once {items_no - item.slot + 1} or fewer of its POKéMON can fight)"
+
+
+def left_line(items: FoeTrainerItems) -> str:
+    """foe-trainer-items-v1: the items the trainer still carries and when its AI uses them."""
+    head = "Foe trainer items left (from game memory): " + (
+        "; ".join(_when(item, items.items_no) for item in items.left) or "none"
+    )
+    if not items.left:
+        return head
+    names = {item.name for item in items.left}
+    rules: list[str] = []
+    if "FULL RESTORE" in names:
+        rules.append("FULL RESTORE when its POKéMON in battle is below 1/4 of its max HP")
+    potions = [name for name in POTIONS if name in names]
+    if potions:
+        amounts = ", ".join(f"{name} {POTIONS[name]}" for name in potions)
+        rules.append(
+            f"{' or '.join(potions)} when its POKéMON is below 1/4 of its max HP or is missing "
+            f"more HP than the item restores ({amounts})"
+        )
+    cures = sorted(names & CURES)
+    if cures:
+        rules.append(f"{' or '.join(cures)} when its POKéMON has a condition the item cures")
+    boosts = sorted(names & FIRST_TURN)
+    if boosts:
+        rules.append(f"{' or '.join(boosts)} on its POKéMON's first turn in battle")
+    if not rules:
+        return head
+    return (
+        f"{head}. The game's trainer AI uses an item instead of a move, and the item takes "
+        f"effect before any move that turn: {'; '.join(rules)}."
+    )
+
+
+def foe_item_lines(items: FoeTrainerItems | None, *, recap: bool, left: bool) -> list[str]:
+    if items is None:
+        return []
+    return [*([recap_line(items)] if recap else []), *([left_line(items)] if left else [])]

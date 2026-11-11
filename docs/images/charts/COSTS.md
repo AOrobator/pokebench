@@ -1,58 +1,55 @@
 # Where each dollar figure on the README charts comes from
 
-`build_charts.py` plots one cost per model: the API-price cost of its best run **up to the furthest milestone it reached**, not the whole run. This file records the source, the calculation and the prices behind each one, so it can be checked or regenerated. Times and milestones are re-derived by `audit_runs.py`. Paths are relative to the repository; runs are under `runs/<run-id>/`.
+`just readme-charts` regenerates both README charts (`docs/images/badges-over-time.png` and `docs/images/badges-for-the-money.png`) from the run logs. Each model's cost is the API-price cost of its best run **up to the furthest milestone it reached**, not the whole run.
 
-| Point | $ | Up to | Kind | Source |
+The inputs live next to this file:
+
+- `chart-data.json` lists every plotted series: its run ids, colour, whether it is assisted, and how its cost is found. It also holds the human world-record splits and the page titles and notes.
+- `prices.json` is the dated price table (dollars per million tokens), with the provider each price came from.
+- `chart-points.json` is generated. It records each series' milestone times and cost, so the HTML and PNG stage can run without `runs/`.
+
+The code is `env/pokebench_env/readme_charts.py`; its tests are in `env/tests/env/test_readme_charts.py`.
+
+## Commands
+
+- `just readme-charts` reads `runs/`, rewrites `chart-points.json`, then renders the HTML and PNGs.
+- `just readme-charts html` re-renders from the committed `chart-points.json` only, for a copy without `runs/`.
+- `just readme-charts-check` fails if `chart-points.json` no longer matches the run logs.
+
+## Times and milestones
+
+Times come from each run's `runs/<id>/events.jsonl`: a milestone's wall-clock `t` minus the `run_start` `t`, rounded to the nearest second. Milestones already held when the run started (`origin: present_at_start`) are skipped.
+
+A checkpoint chain (the Opus chain `6302→1121→69d8→d718`) is stitched: each leg is cut at the milestone whose checkpoint the next leg loaded, the cuts are summed, and anything a leg did after its cut is ignored, because that play was rolled back.
+
+Badges count up in the order they were earned. The Elite Four, Champion and Hall of Fame rows sit above the eighth badge.
+
+## Costs
+
+Each series' `cost.kind` in `chart-data.json` says how its dollars are found.
+
+| Kind | Series | How |
+|---|---|---|
+| `events` | DeepSeek V4.1 Flash, all local models | `usage` on every `"type":"assistant"` event in `events.jsonl` (`input`, `cache_read`, `output`), summed up to the milestone, at the series' `prices.json` entry |
+| `codex` | GPT-6.1 Sol | the last cumulative `token_count` reading (`payload.info.total_token_usage`) at or before the milestone, in `runs/<id>/attached-harness/codex/native.jsonl`. Its `input` includes cached tokens. |
+| `pinned` | Claude Opus 5.5 (chain and Rayquaza lane), GPT-6 Astra | a fixed figure whose source is written into `chart-data.json`, because the tokens are not in the run folder |
+
+### Prices (`prices.json`, as of 2026-11-11)
+
+| Model | Provider | Input | Cache read | Output |
 |---|---|---|---|---|
-| Claude Opus 5.5, chain `6302→1121→69d8→d718` | 679.16 | Glacia (d718 turn 1127) | cumulative session cost at that moment | gateway session record |
-| Claude Opus 5.5, Rayquaza lane `67d7` | 780.00 | Hall of Fame (turn 4119) | cumulative session cost at that moment | gateway session record |
-| GPT-6 Astra `429f` | 718.54 | Heat Badge (turn 2418) | cumulative to the badge | operator's 10/30 run-grades report, Codex native session usage |
-| GPT-6.1 Sol `3300` | 149.92 | Dynamo Badge (turn 858) | cumulative to the badge | `runs/<id>/attached-harness/codex/native.jsonl` |
-| DeepSeek V4.1 Flash `5f0f` | 9.56 | Balance Badge (turn 1684) | cumulative to the badge | `runs/<id>/events.jsonl` usage |
-| Qwen3.6 35B-A3B `d41e` | 2.94 | Dynamo Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
-| Qwen3.6 35B-A3B, Rayquaza lane `3bb0` | 2.82 | Balance Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
-| GLM-5.3 Flash `6bbd` | 2.85 | Dynamo Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
-| Qwen3.8 27B `7da5` | 1.04 | Stone Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
-| Qwen3.8 27B, Rayquaza lane `6056` | 6.09 | Knuckle Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
+| DeepSeek V4.1 Flash | OrcaRouter list price | $0.15 | $0.003 | $0.60 |
+| GPT-6.1 Sol | OpenAI API list price | $2.00 | $0.10 | $10.00 |
+| Qwen3.6 35B-A3B | PrimeIntellect (fp8) on OpenRouter | $0.011 | $0.010 | $0.103 |
+| Qwen3.8 27B | PrimeIntellect (fp8) on OpenRouter | $0.064 | $0.007 | $0.456 |
+| GLM-5.3 Flash | PrimeIntellect on OpenRouter | $0.0525 | $0.0105 | $0.25 |
 
-## Claude Opus 5.5 (chain and `67d7`)
+- **Local models** (Qwen3.6, Qwen3.8, GLM) ran on our own GPUs, so their figures are estimates: the recorded tokens priced at the OpenRouter provider that is cheapest **for that model's tokens**, from the listings fetched 2026-11-11 19:58 UTC. To refresh them, fetch the listings again, update `prices.json` and its `as_of`, and run `just readme-charts`.
+- **DeepSeek:** OrcaRouter doubles its prices 8–11 PM and 1–5 AM New York time, so a turn whose event time falls in those hours is charged double (`peak` in `prices.json`).
 
-Opus ran through the Claude session gateway on a Claude Max plan, so `events.jsonl` records zero tokens. The cost comes from the gateway's Claude Code session transcript, which lives in the gateway's Claude config directory, outside the repository: `<claude-config>/projects/<project>/<session-id>.jsonl`. The session ids are `00000000…` for the unassisted chain and `00000001…` for `67d7`.
+### Pinned figures
 
-- The transcript has `"type":"cost-state"` lines carrying a cumulative `totalCostUSD`, which Claude Code computes at Anthropic's list prices. A cost-state line has no timestamp of its own, so it takes the timestamp of the line before it.
-- The cost at a milestone is the last `totalCostUSD` at or before the milestone event's wall-clock `t` in `events.jsonl`.
-- **Chain:** all four legs ran in one Claude session, so no stitching of dollars is needed. The value at d718's `ELITE_FOUR_GLACIA_DEFEATED` is $679.16. It is cumulative across the whole session, so it **includes** the stretches the stitched timeline drops: each leg's play after the checkpoint the next leg loaded, about 42 minutes of it before the last leg. The cost therefore overstates the stitched path. The same method gives $546.67 at the Rain Badge, the figure the article uses.
-- **`67d7`:** $780.00 at `GAME_CLEAR_CONFIRMED`. The README's "$780.55" is the whole run, to `run_end`, from the staged release.
-
-## GPT-6 Astra `429f`
-
-$718.54 is the cumulative cost to `HEAT_BADGE`, taken from the operator's run-grades report of 2026-10-30, in its "Token cost to each earned badge" table. That report read the Codex native session usage over the run's wall-clock window:
-
-- 657,608,898 processed input tokens, of which 653,478,400 were cache reads, and 475,056 output tokens.
-- At $10 input, $1 cached input and $50 output per million: (657,608,898 − 653,478,400) × 10 + 653,478,400 × 1 + 475,056 × 50, divided by 10⁶, comes to $718.53, which the report gives as $718.54.
-
-The run's own `runs/<id>/attached-harness/codex/*native-transcript.jsonl` starts partway through the run and ends before the Heat Badge, so the figure **cannot be recomputed from the repository's run folder alone**. It needs the Codex session rollout kept by Codex itself.
-
-## GPT-6.1 Sol `3300`
-
-- Source: `token_count` events in `runs/<id>/attached-harness/codex/native.jsonl`, field `payload.info.total_token_usage`.
-- The cost at a milestone uses the last cumulative reading at or before the milestone's time.
-- Prices: $2 input, $0.10 cached input and $10 output per million (GPT-6.1 Sol API list price).
-- At the Dynamo Badge: 1.328B input, of which 1.321B were cached, and 451k output, giving $149.92.
-
-## DeepSeek V4.1 Flash `5f0f`
-
-- Source: `usage` on every `"type":"assistant"` event in `runs/<id>/events.jsonl`, summed up to the `BALANCE_BADGE` event.
-- Prices: OrcaRouter's catalogue (`GET /v1/models`, model `deepseek/deepseek-v4.1-flash`, read 2026-11-11): $0.15 prompt, $0.003 cache read and $0.60 completion per million.
-- Peak hours: a turn whose event time falls in 01:00–04:00 or 06:00–10:00 UTC is charged double, matching the gateway's double-price windows.
-  - With doubling: $9.56. Without it: $6.56. The article uses $9.56.
-
-## Local models (Qwen3.6, Qwen3.8, GLM-5.3 Flash)
-
-Basis: each run's recorded tokens at the **cheapest OpenRouter provider for that model**, which is the method the operator chose on 2026-11-09 and the article uses ("as of 11/8"). The figures plotted are the article's as published.
-
-- **Token source:** `usage` on every `"type":"assistant"` event in `runs/<id>/events.jsonl` (`input`, `cache_read`, `output`), summed up to the plotted milestone. Cache reads are charged at the input rate.
-- **Qwen3.6 35B-A3B** (`d41e`, `3bb0`): the cheapest provider was an fp8 host at $0.011 input and $0.101 output per million.
-  - Recomputed for `d41e` to the Dynamo Badge: 180,357,696 input + 68,504,132 cache read at $0.011, plus 2,668,903 output at $0.101, gives **$3.01**. The article has $2.94; the small gap is consistent with the 11/8 price snapshot or a slightly different cut-off.
-- **GLM-5.3 Flash** (`6bbd`) and **Qwen3.8 27B** (`7da5`, `6056`): the cheapest-provider rates used for the article were not recorded. These figures are the article's as published.
-- **Before publishing:** record the per-model provider rates next to this file, so every local figure can be recomputed the way `d41e`'s is above.
+- **Claude Opus 5.5** ran through the Claude session gateway on a Claude Max plan, so `events.jsonl` records zero tokens. The cost comes from the Claude Code session transcript in the gateway's config directory, outside the repository: the last cumulative `totalCostUSD` (in `"type":"cost-state"` lines, at Anthropic's list prices) at or before the milestone's time.
+  - **Chain:** $679.16 at d718's `ELITE_FOUR_GLACIA_DEFEATED`, session `redacted-id…`. All four legs ran in one session, so this figure **includes** the leg tails the stitched timeline drops (about 42 minutes before the last leg) and overstates the stitched path.
+  - **Rayquaza lane `67d7`:** $780.00 at `GAME_CLEAR_CONFIRMED`, session `redacted-id…`. The README's $780.55 is the whole run, to `run_end`.
+- **GPT-6 Astra `429f`:** $718.54 to the Heat Badge, from the operator's run-grades report of 2026-10-30. 657,608,898 input tokens, of which 653,478,400 were cache reads, and 475,056 output, at $10 / $1 / $50 per million. The run folder's own Codex transcript ends before the Heat Badge, so this **cannot be recomputed from the repository**.

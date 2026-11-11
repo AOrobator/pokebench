@@ -251,6 +251,18 @@ explainer-twins-check:
 explainer-twins-snapshot events:
     cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.explainer_twins snapshot "$(realpath "$1")"
 
+# Rebuild the README charts. `points` re-derives every plotted time and cost from the run logs
+# (needs runs/) into docs/images/charts/chart-points.json; `html` redraws from that committed file
+# alone. Either way the chart pages are rendered to docs/images/*.png. Inputs: chart-data.json, prices.json.
+readme-charts stage="points":
+    if [ "{{stage}}" = points ]; then uv run --project env python -I -m pokebench_env.readme_charts points; fi
+    uv run --project env python -I -m pokebench_env.readme_charts html
+    pnpm --filter @pokebench/viewer exec node scripts/readme-charts-png.mjs "{{justfile_directory()}}"
+
+# Fail if chart-points.json no longer matches the run logs (needs runs/).
+readme-charts-check:
+    uv run --project env python -I -m pokebench_env.readme_charts check-points
+
 # Replace viewer font URLs in the given pages with inline data: URIs.
 pages-inline-fonts +files:
     scripts/pages.sh inline-fonts {{files}}

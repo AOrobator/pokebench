@@ -1,0 +1,211 @@
+{
+  "_about": "What the README charts plot. Run `just readme-charts` after editing; see env/pokebench_env/readme_charts.py.",
+  "human": {
+    "label": "Human: keepingiticy (world record)",
+    "color": "#d83a3a",
+    "source": "keepingiticy's world-record video splits; badge received times, Elite Four splits not marked",
+    "splits_seconds": [
+      1049,
+      2542,
+      3381,
+      3593,
+      3956,
+      5160,
+      6417,
+      7861,
+      null,
+      null,
+      null,
+      null,
+      8919,
+      8984
+    ]
+  },
+  "series": [
+    {
+      "label": "Claude Opus 5.5",
+      "color": "#1a9a6c",
+      "assisted": false,
+      "runs": [
+        "2026-11-07T02-24-52_claude-opus-5-5_6302",
+        "2026-11-07T10-06-29_claude-opus-5-5_1121",
+        "2026-11-07T16-42-59_claude-opus-5-5_69d8",
+        "2026-11-07T21-23-08_claude-opus-5-5_d718"
+      ],
+      "cost": {
+        "kind": "pinned",
+        "usd": 679.16,
+        "source": "Claude Code session transcript redacted-id (gateway config dir, outside the repo): last cumulative totalCostUSD at or before d718's ELITE_FOUR_GLACIA_DEFEATED. Includes the leg tails the stitched timeline drops."
+      },
+      "label_offset": [
+        -16,
+        -6,
+        "end"
+      ]
+    },
+    {
+      "label": "Claude Opus 5.5, Rayquaza lane*",
+      "color": "#16405e",
+      "assisted": true,
+      "runs": [
+        "2026-11-10T15-37-43_opus-rayquaza-boot_67d7"
+      ],
+      "cost": {
+        "kind": "pinned",
+        "usd": 780.0,
+        "source": "Claude Code session transcript redacted-id (outside the repo): last cumulative totalCostUSD at or before GAME_CLEAR_CONFIRMED."
+      },
+      "label_offset": [
+        -16,
+        -6,
+        "end"
+      ]
+    },
+    {
+      "label": "DeepSeek V4.1 Flash",
+      "color": "#2a72d8",
+      "assisted": false,
+      "runs": [
+        "2026-11-04T16-25-02_deepseek-deepseek-v4.1-flash_5f0f"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "deepseek-v4.1-flash"
+      }
+    },
+    {
+      "label": "GPT-6 Astra",
+      "color": "#6a4fd6",
+      "assisted": false,
+      "runs": [
+        "2026-10-25T10-50-57_gpt-6-astra_429f"
+      ],
+      "cost": {
+        "kind": "pinned",
+        "usd": 718.54,
+        "source": "Run-grades report 2026-10-30, from the Codex session rollout kept by Codex (the run folder's native transcript ends before the Heat Badge). 657,608,898 input of which 653,478,400 cached, 475,056 output, at $10 / $1 / $50 per M."
+      },
+      "label_offset": [
+        -14,
+        -10,
+        "end"
+      ]
+    },
+    {
+      "label": "GPT-6.1 Sol",
+      "color": "#8a8f98",
+      "assisted": false,
+      "runs": [
+        "2026-11-07T01-55-08_gpt-6.1-sol_3300"
+      ],
+      "cost": {
+        "kind": "codex",
+        "price": "gpt-6.1-sol"
+      }
+    },
+    {
+      "label": "Qwen3.6 35B-A3B",
+      "color": "#e8692c",
+      "assisted": false,
+      "runs": [
+        "2026-10-24T19-31-52_qwen36-gpu1_d41e"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "qwen3.6-35b-a3b",
+        "estimated": true
+      },
+      "label_offset": [
+        -16,
+        -6,
+        "end"
+      ]
+    },
+    {
+      "label": "Qwen3.6 35B-A3B, Rayquaza lane*",
+      "color": "#e8692c",
+      "assisted": true,
+      "runs": [
+        "2026-11-08T18-33-33_rayquaza-lane-qwen36_3bb0"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "qwen3.6-35b-a3b",
+        "estimated": true
+      },
+      "label_offset": [
+        -14,
+        -10,
+        "end"
+      ]
+    },
+    {
+      "label": "GLM-5.3 Flash",
+      "color": "#9a6a3a",
+      "assisted": false,
+      "runs": [
+        "2026-10-24T19-37-24_glm53-mac_6bbd"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "glm-5.3-flash",
+        "estimated": true
+      },
+      "label_offset": [
+        14,
+        -8,
+        "start"
+      ]
+    },
+    {
+      "label": "Qwen3.8 27B",
+      "color": "#c8409a",
+      "assisted": false,
+      "runs": [
+        "2026-11-01T01-37-02_hyperqwen-gpu0_7da5"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "qwen3.8-27b",
+        "estimated": true
+      }
+    },
+    {
+      "label": "Qwen3.8 27B, Rayquaza lane*",
+      "color": "#c8409a",
+      "assisted": true,
+      "runs": [
+        "2026-11-07T00-28-59_rayquaza-lane-qwen_6056"
+      ],
+      "cost": {
+        "kind": "events",
+        "price": "qwen3.8-27b",
+        "estimated": true
+      },
+      "label_offset": [
+        14,
+        -10,
+        "start"
+      ]
+    }
+  ],
+  "pages": {
+    "badges_over_time": {
+      "title": "Badges over time",
+      "subtitle": "Each step is a gym badge, then each Elite Four member and the Champion beaten, at the time it happened. Every model’s best run, against keepingiticy’s English-language world record.",
+      "notes": [
+        "* Heavily assisted: the Rayquaza lane adds a just-in-time guide to the harness. Dotted lines and hollow end points are lane runs.",
+        "keepingiticy’s Elite Four splits aren’t marked; the line runs from the Rain Badge to the Champion at 2:28:39. Unassisted Opus ran out of time against Drake.",
+        "Unassisted Qwen3.6, Qwen3.8 and GLM start from a main-menu save with fast text already set; every other run, the Rayquaza lane runs included, starts from power-on. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded."
+      ]
+    },
+    "badges_for_the_money": {
+      "title": "Badges for the money",
+      "subtitle": "Each model’s best run: how far it got (gym badges, then the Elite Four and Champion) against what the tokens would have cost at API prices, up to that point.",
+      "notes": [
+        "* Heavily assisted (Rayquaza lane), shown as hollow points. Unassisted Opus’s cost is up to Glacia, the third of the Elite Four.",
+        "Prices: frontier models at their API list prices (Opus from its gateway session records; Astra and Sol from Codex token counts; DeepSeek from recorded tokens at OrcaRouter’s list price). Local models (estimated) are priced at the cheapest OpenRouter provider for each model’s recorded tokens, as of 11/11."
+      ]
+    }
+  }
+}

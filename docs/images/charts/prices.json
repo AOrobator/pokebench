@@ -1,0 +1,50 @@
+{
+  "as_of": "2026-11-11",
+  "_about": "Dollars per million tokens. Local models: the OpenRouter provider that is cheapest for that model's recorded tokens; raw listings fetched 2026-11-11 19:58 UTC are kept locally under runs/reports/run-analysis/2026-11-11_openrouter-prices/. peak.local_hours are [start, end) wall-clock hours of each event's own timestamp.",
+  "models": {
+    "deepseek-v4.1-flash": {
+      "provider": "OrcaRouter list price (GET /v1/models, 2026-11-11)",
+      "input": 0.15,
+      "cache_read": 0.003,
+      "output": 0.6,
+      "peak": {
+        "multiplier": 2,
+        "local_hours": [
+          [
+            20,
+            23
+          ],
+          [
+            1,
+            5
+          ]
+        ],
+        "note": "OrcaRouter doubles prices 8-11 PM and 1-5 AM New York time"
+      }
+    },
+    "gpt-6.1-sol": {
+      "provider": "OpenAI API list price",
+      "input": 2.0,
+      "cache_read": 0.1,
+      "output": 10.0
+    },
+    "qwen3.6-35b-a3b": {
+      "provider": "PrimeIntellect (fp8) on OpenRouter",
+      "input": 0.011,
+      "cache_read": 0.01,
+      "output": 0.103
+    },
+    "qwen3.8-27b": {
+      "provider": "PrimeIntellect (fp8) on OpenRouter",
+      "input": 0.064,
+      "cache_read": 0.007,
+      "output": 0.456
+    },
+    "glm-5.3-flash": {
+      "provider": "PrimeIntellect on OpenRouter (quantization not listed)",
+      "input": 0.0525,
+      "cache_read": 0.0105,
+      "output": 0.25
+    }
+  }
+}

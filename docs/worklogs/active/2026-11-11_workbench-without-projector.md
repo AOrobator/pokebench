@@ -31,7 +31,7 @@ No new endpoint or input; `/api/cards` is already fetched and validated by `pars
 
 **M1 — Source readiness**
 - [x] Worklog
-- [ ] Tests (RED)
+- [x] Tests (RED)
 - [ ] Implement; cheap checks; guard deletion; full gates
 - [ ] Browser check: scratch multi-run root (67d7 + 37ca clone) with no projector, where SPLITS races the frontier; single-run root still settles (with splits-no-frontier) or is unchanged
 - [ ] Codex review; ready to land

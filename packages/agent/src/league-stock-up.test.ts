@@ -116,3 +116,11 @@ it("registers three default-off switches in order, two of them server-side",()=>
  expect(serverOff({...off,"foe-trainer-items-v1":true})).toEqual(serverOffWith(off,{on:["foe-trainer-items-v1"]}));
  expect(serverOff({...off,"league-stock-up-v1":true})).toEqual(serverOff(off));
 });
+
+it("the state schema takes foe_trainer_items with or without the knowledge fields",()=>{
+ const used=[{slot:0,name:"FULL RESTORE"}];
+ expect(parseGameState({...IN_GAME,foe_trainer_items:{trainer_id:263,used}}).foe_trainer_items).toEqual({trainer_id:263,used});
+ const full={trainer_id:263,used,items_no:2,left:[{slot:1,name:"FULL RESTORE"}]};
+ expect(parseGameState({...IN_GAME,foe_trainer_items:full}).foe_trainer_items).toEqual(full);
+ expect(()=>parseGameState({...IN_GAME,foe_trainer_items:{trainer_id:263,used,extra:1}})).toThrow();
+});

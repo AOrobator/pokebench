@@ -185,6 +185,8 @@ def read_state(
             items = foe_trainer_items.read_foe_trainer_items(read, True)
         except (ValueError, OSError):
             items = None
+        if items is not None and foe_trainer_items.LEFT_SWITCH in off:
+            items = replace(items, knowledge=False)
         state = replace(state, foe_trainer_items=items)
     # Callers that stub read_game_state return other objects; only a real observation is relabelled.
     observation = getattr(state, "map_observation", None)

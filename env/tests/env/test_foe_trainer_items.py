@@ -168,9 +168,9 @@ def test_items_left_say_when_the_ai_may_use_each() -> None:
         "Foe trainer items left (from game memory): "
         "FULL RESTORE (only once 4 or fewer of its POKéMON can fight); "
         "FULL RESTORE (only once 2 or fewer of its POKéMON can fight). "
-        "The game's trainer AI uses an item instead of a move, and the item takes effect "
-        "before any move that turn: FULL RESTORE when its POKéMON in battle is below 1/4 of "
-        "its max HP."
+        "Unless it switches POKéMON, the game's trainer AI uses an item instead of a move, and "
+        "the item takes effect before any move that turn: FULL RESTORE when its POKéMON in "
+        "battle is below 1/4 of its max HP."
     )
 
 
@@ -209,16 +209,17 @@ def test_each_switch_adds_only_its_own_line() -> None:
     assert foe_item_lines(None, recap=True, left=True) == []
 
 
-def test_the_json_keeps_slots() -> None:
+def test_the_json_keeps_slots_and_drops_what_is_left_without_the_knowledge_switch() -> None:
     items = FoeTrainerItems(
         trainer_id=GLACIA, items_no=2, left=(FoeItem(1, "FULL RESTORE"),), used=()
     )
     assert items.json() == {
         "trainer_id": GLACIA,
+        "used": [],
         "items_no": 2,
         "left": [{"slot": 1, "name": "FULL RESTORE"}],
-        "used": [],
     }
+    assert replace(items, knowledge=False).json() == {"trainer_id": GLACIA, "used": []}
 
 
 GLACIA_LEFT = FoeTrainerItems(
@@ -276,7 +277,7 @@ def test_factory_reads_the_items_only_with_a_switch_and_in_battle(
     assert rerender.read_state(m.read, MapNames({}), active_ui=True, off=off) is seen
     for still_off in (RECAP_SWITCH, LEFT_SWITCH):
         on = rerender.read_state(m.read, MapNames({}), active_ui=True, off=off - {still_off})
-        assert on.foe_trainer_items == GLACIA_LEFT
+        assert on.foe_trainer_items == replace(GLACIA_LEFT, knowledge=still_off == LEFT_SWITCH)
     field = replace(seen, in_battle=False)
     monkeypatch.setattr(rerender, "read_game_state", lambda *_args, **_kwargs: field)
     assert rerender.read_state(m.read, MapNames({}), active_ui=True, off=frozenset()) is field
@@ -385,3 +386,36 @@ def test_guard_spec_also_needs_no_mist() -> None:
     assert left_line(items).endswith(
         "GUARD SPEC. on its POKéMON's first turn in battle when no MIST is up on its side."
     )
+
+
+def test_the_pending_slot_is_the_one_holding_the_chosen_item() -> None:
+    # Slot 1 (FULL RESTORE) was used and shown on an earlier turn; this turn the AI chose slot 0
+    # (HYPER POTION), still hidden. gBattleStruct->chosenItem[0] holds 21.
+    m = Memory()
+    battle(m, 7, [HYPER_POTION, FULL_RESTORE], [0, 0], 2)
+    turn(m, SELECT, [0xFF, 1], [1, 0], 2)
+    m.put(0x0202449C, struct.pack("<I", 0x02000010))
+    m.put(0x02000010 + 0xC0, bytes([HYPER_POTION, 0, 0, 0]))
+    items = read_foe_trainer_items(m.read, True)
+    assert items is not None
+    assert items.used == (FoeItem(1, "FULL RESTORE"),)
+    assert items.left == (FoeItem(0, "HYPER POTION"),)
+    m.put(0x02000010 + 0xC0, bytes([FULL_RESTORE, 0, 0, 0]))
+    other = read_foe_trainer_items(m.read, True)
+    assert other is not None and other.used == (FoeItem(0, "HYPER POTION"),)
+
+
+def test_with_only_the_recap_on_the_state_keeps_only_what_was_shown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    m = Memory()
+    battle(m, GLACIA, [FULL_RESTORE, FULL_RESTORE], [0, FULL_RESTORE], 2)
+    seen = battle_state(None)
+    monkeypatch.setattr(rerender, "read_game_state", lambda *_args, **_kwargs: seen)
+    off = features_off_from_env({}) - {RECAP_SWITCH}
+    on = rerender.read_state(m.read, MapNames({}), active_ui=True, off=off)
+    assert state_json(on)["foe_trainer_items"] == {
+        "trainer_id": GLACIA,
+        "used": [{"slot": 0, "name": "FULL RESTORE"}],
+    }
+    assert format_readout(on, off).count("Foe trainer items") == 1

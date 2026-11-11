@@ -69,6 +69,10 @@ PRE_TURN = (0x0803BE75, 0x0803D2E9, 0x0803D6F1)
 CALLBACK_STACK = 0x0C
 CALLBACK_SIZE = 0x20
 B_ACTION_USE_ITEM = 1
+# gBattleStruct (pointer) and BattleStruct.chosenItem[4] (include/battle.h; 0xC0 holds 19, FULL
+# RESTORE, on 67d7 raw RAM 105176 while GLACIA's choice was pending).
+BATTLE_STRUCT = 0x0202449C
+CHOSEN_ITEM = 0xC0
 
 # HP each potion restores (src/data/pokemon/item_effects.h; MAX POTION's full heal is 255 there).
 POTIONS = {"POTION": 20, "SUPER POTION": 50, "HYPER POTION": 200, "MAX POTION": 255}
@@ -95,13 +99,20 @@ class FoeTrainerItems:
     items_no: int
     left: tuple[FoeItem, ...]
     used: tuple[FoeItem, ...]
+    # foe-trainer-items-v1 off: the recorded state keeps only what the game has shown.
+    knowledge: bool = True
 
     def json(self) -> dict[str, object]:
-        return {
+        shown: dict[str, object] = {
             "trainer_id": self.trainer_id,
+            "used": [asdict(item) for item in self.used],
+        }
+        if not self.knowledge:
+            return shown
+        return {
+            **shown,
             "items_no": self.items_no,
             "left": [asdict(item) for item in self.left],
-            "used": [asdict(item) for item in self.used],
         }
 
 
@@ -133,12 +144,14 @@ def _pre_turn_script(read: ReadMemory) -> bool:
     return top in PRE_TURN
 
 
-def _chosen_not_shown(read: ReadMemory) -> int:
+def _chosen_not_shown(read: ReadMemory) -> list[int]:
     """Opponent item actions the AI has chosen this turn that have not run yet.
 
     ShouldUseItem zeroes the slot when the AI chooses the item, during action selection while the
     player's own menu is open; the game shows "<TRAINER> used <ITEM>!" only when that action runs
     (HandleAction_UseItem, in turn order). Until then the zeroed slot is still the trainer's.
+    Returns each such action's item id as ShouldUseItem stored it in gBattleStruct->chosenItem
+    [(battler / 2) * 2] (a u8; only the opponent's AI writes it).
     """
     count = min(_exact(read, BATTLERS_COUNT, 1)[0], 4)
     positions = _exact(read, BATTLER_POSITIONS, 4)
@@ -147,7 +160,8 @@ def _chosen_not_shown(read: ReadMemory) -> int:
     current = _exact(read, CURRENT_TURN_ACTION, 1)[0]
     main = int.from_bytes(_exact(read, MAIN_FUNC, 4), "little")
     pre_turn = main in PRE_TURN or _pre_turn_script(read)
-    pending = 0
+    pending: list[int] = []
+    chosen_items: bytes | None = None
     for battler in range(count):
         if not positions[battler] & 1 or chosen[battler] != B_ACTION_USE_ITEM:
             continue
@@ -155,7 +169,10 @@ def _chosen_not_shown(read: ReadMemory) -> int:
         # shown only once it has finished and the turn has moved past it (HandleAction_UseItem
         # installs a script whose message prints over later frames).
         if pre_turn or (battler in order and order.index(battler) >= current):
-            pending += 1
+            if chosen_items is None:
+                struct = _ewram(read, BATTLE_STRUCT)
+                chosen_items = bytes(4) if struct is None else _exact(read, struct + CHOSEN_ITEM, 4)
+            pending.append(chosen_items[(battler // 2) * 2])
     return pending
 
 
@@ -185,10 +202,12 @@ def read_foe_trainer_items(read: ReadMemory, in_battle: bool) -> FoeTrainerItems
     ):
         return None
     names = [read_item_name(read, item) for item in carried]
-    zeroed = [s for s in range(items_no) if slots[s] == 0]
-    # The latest choice zeroed the highest such slot: the AI takes the first usable slot in order.
-    pending = _chosen_not_shown(read) if zeroed else 0
-    used = set(zeroed[: max(len(zeroed) - pending, 0)])
+    used = {s for s in range(items_no) if slots[s] == 0}
+    for item in _chosen_not_shown(read) if used else []:
+        # The emptied slot holding the chosen item; with several, the newest is the highest
+        # (earlier ones were usable first). An unmatched id still hides the highest empty slot.
+        matching = [s for s in used if carried[s] & 0xFF == item] or sorted(used)
+        used.discard(max(matching))
     return FoeTrainerItems(
         trainer_id=trainer_id,
         items_no=items_no,
@@ -251,8 +270,8 @@ def left_line(items: FoeTrainerItems) -> str:
     if not rules:
         return head
     return (
-        f"{head}. The game's trainer AI uses an item instead of a move, and the item takes "
-        f"effect before any move that turn: {'; '.join(rules)}."
+        f"{head}. Unless it switches POKéMON, the game's trainer AI uses an item instead of a "
+        f"move, and the item takes effect before any move that turn: {'; '.join(rules)}."
     )
 
 

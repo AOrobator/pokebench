@@ -29,7 +29,8 @@ Changes only the wording of the replacement; every name pattern is still scrubbe
 **M1**
 - [x] Scrub change and tests; focused tests 30/30; ruff and mypy clean
 - [x] Twins regenerated; check clean; no mid-sentence "Operator" remains
-- [ ] Full gates (CPU window requested first)
+- [x] Round-1 fix (GPT BLOCKING, 2 x P2): positional capitalisation now applies after an absorbed lowercase "the"; text nodes scrub the name to a marker (`scrub_inline`) and `scrub` of the assembled markdown capitalises it, so inline emphasis is not a sentence start. Regression tests for both; regeneration changed 0 files
+- [ ] Full gates (CPU window requested first; the first window failed in seconds on a missing node_modules in the new worktree, since installed)
 - [ ] Codex review (covers 79704679f..head, both commits)
 - [ ] Land (the operator approved landing for item 3; item 2 asks for the change)
 
@@ -40,6 +41,10 @@ Changes only the wording of the replacement; every name pattern is still scrubbe
 ## Surprises
 
 ## Multi-Model Review Log
+
+### Round 1 — GPT (JOB review-gpt-twins-operator-wording-55322f221)
+
+Scope 79704679f..55322f221, packet verified, 345 pages match the generator. `VERDICT: BLOCKING`, two Fix findings, both accepted and fixed in round 2: (1) `scrub("the operator picked it.")` stayed lowercase because an absorbed article disabled positional capitalisation; (2) `<p>Approved by <strong>The operator</strong> yesterday.</p>` gave "**The operator**" because each text node was scrubbed as if it started a sentence.
 
 ## Boy Scout Log
 

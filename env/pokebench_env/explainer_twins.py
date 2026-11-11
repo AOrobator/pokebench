@@ -79,23 +79,33 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 _NAME = re.compile(r"(?:\b(the)\s+)?\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I)
-_SENTENCE_START = re.compile(r"(?:[.!?][\"'\u201d\u2019)\]]*\s+|\n[\s#>*-]*|\|\s*)$")
+_OPERATOR = "\ue000"
+_SENTENCE_START = re.compile(r"(?:[.!?][\"'\u201d\u2019)\]]*\s+|\n[\s#>*-]*|\|\s*)[*_~\u201c\"]*$")
 
 
-def _the_operator(match: re.Match[str]) -> str:
-    article = match.group(1)
-    start = match.start()
-    lead = ("\n" if start <= 12 else "") + match.string[max(0, start - 12) : start]
-    capital = article == "The" or (article is None and _SENTENCE_START.search(lead))
-    return "The operator" if capital else "the operator"
+def _mark_name(match: re.Match[str]) -> str:
+    return "The operator" if match.group(1) == "The" else _OPERATOR
+
+
+def scrub_inline(text: str) -> str:
+    """Scrub a fragment of a larger text; the operator's name stays a marker that `scrub` of the
+    assembled text capitalises from its context."""
+    for pattern, replacement in _SCRUBS:
+        text = pattern.sub(replacement, text)
+    return _NAME.sub(_mark_name, text)
 
 
 def scrub(text: str) -> str:
     """Remove machine paths, tailnet hosts, private IPs, chat ids, emails, branch names and the
     operator's real name (written as "the operator", the operator's decision 2026-11-11)."""
-    for pattern, replacement in _SCRUBS:
-        text = pattern.sub(replacement, text)
-    return _NAME.sub(_the_operator, text)
+    parts = scrub_inline(text).split(_OPERATOR)
+    out = [parts[0]]
+    tail = "\n" + parts[0]
+    for part in parts[1:]:
+        name = "The operator" if _SENTENCE_START.search(tail[-13:]) else "the operator"
+        out += [name, part]
+        tail = (tail + name + part)[-13:]
+    return "".join(out)
 
 
 # ---------------------------------------------------------------- tiny DOM
@@ -639,7 +649,7 @@ class Renderer:
 
     def inline_one(self, node: Node | str) -> str:
         if isinstance(node, str):
-            return escape_text(_WS.sub(" ", scrub(node)))
+            return escape_text(_WS.sub(" ", scrub_inline(node)))
         tag = node.tag
         if tag in SKIP:
             return ""

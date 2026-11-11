@@ -558,6 +558,10 @@ def test_operator_name_becomes_the_operator_everywhere():
     assert t.scrub("- The operator picked\n| The operator |\n## The operator's call") == (
         "- The operator picked\n| The operator |\n## The operator's call"
     )
+    assert t.scrub("the operator picked it.") == "The operator picked it."
+    assert t.scrub("Done. the operator picked it.") == "Done. The operator picked it."
+    assert t.scrub("- the operator picked it") == "- The operator picked it"
+    assert t.scrub("Done. **The operator** picked") == "Done. **The operator** picked"
     assert t.scrub("mimosa andrewsville") == "mimosa andrewsville"
     result = twin(
         "<h1>The operator's switch</h1><p>The operator approved (the operator 2026-11-11) it.</p>"
@@ -568,6 +572,15 @@ def test_operator_name_becomes_the_operator_everywhere():
     assert "The operator approved (the operator 2026-11-11) it." in result.markdown
     svg = result.files["docs/explainers/md/demo/fig-1.svg"].decode()
     assert "asked by the operator" in svg
+    inline = twin(
+        "<h1>Inline</h1><p>Approved by <strong>The operator</strong> yesterday. <em>The operator</em> then"
+        " <a href='#x'>asked the operator</a>.</p>"
+    )
+    assert (
+        "Approved by **the operator** yesterday. *The operator* then [asked the operator](#x)."
+        in inline.markdown
+    )
+    assert "\ue000" not in inline.markdown
     pages = {
         **PAGES,
         "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),
@@ -576,3 +589,4 @@ def test_operator_name_becomes_the_operator_everywhere():
     output = t.generate(t.Inputs(pages, ts, PANELS_TS, NEXT_RUN_TS, SNAPSHOT))
     for name in ("docs/explainers/README.md", "docs/features.md"):
         assert "The operator" not in output.files[name].decode().lower()
+    assert not [name for name, data in output.files.items() if "\ue000".encode() in data]

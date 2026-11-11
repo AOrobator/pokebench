@@ -45,10 +45,10 @@ Untrusted download: the same bounded, non-extracting readers as `verify-release`
 **M1 — Source readiness**
 - [x] Worklog committed (`docs(worklog): replay-verify`)
 - [x] Tests (RED): clock equivalence, inputs, snapshot stream validation, replay loop with a fake emulator (match, divergence, frame slip, prefix, `--all`), integrity, CLI
-- [ ] Implement
-- [ ] Cheap checks, guard deletion
+- [x] Implement (`replay_verify.py`; `verify_release.read_event_source` extracted from `scan_event_source` with no behavior change; `just replay-verify`)
+- [x] Cheap checks: 24/24 replay + 80/80 verify-release; ruff, mypy clean. Guard deletion: 15 guards removed alone, all red ("stop at divergence" shows as a hang of the divergence test rather than a clean failure; no timeout plugin to turn it into one)
 - [ ] Full gates (`just lint`, `just test`)
-- [ ] Real run on `runs/release-staging/67d7` (read-only): expected 4,777 of 4,777 snapshots match through frame 150,000
+- [x] Real run on `runs/release-staging/67d7` (read-only, folder listing unchanged): `PASS replay: frames 0-150,000 replayed from power-on with 88,567 logged actions; 4,777 of 4,777 snapshots match on all 7 regions`, 87.1 s, 244 MB peak. Same result as the hand replay.
 - [ ] Codex review (two rounds, then ask)
 - Non-goals: video or audio re-encoding, screenshot (PNG) matching, the viewer. Terminator: review LGTM.
 
@@ -63,6 +63,8 @@ Proof surface: the command's terminal output on the real 67d7 release, plus unit
 - 2026-11-11: worktree from main a6a9eff8f.
 
 ## Surprises
+
+- The hand replay's clock reads `server_timestamp * 1000.0`, so 1.005 s becomes 1004.9999… ms; the streamed clock keeps that arithmetic exactly (the fixtures had to apply the same conversion).
 
 ## Multi-Model Review Log
 

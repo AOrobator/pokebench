@@ -98,7 +98,10 @@ class Run:
         self.tamper: dict[int, str] = {}  # sequence -> region name whose content is altered
 
     def samples(self) -> list[tuple[int, float]]:
-        return [(f, ms) for f, ms, _ in self.actions] + list(self.snaps)
+        # The values a reader gets back: server_timestamp seconds * 1000, timestamp_ns / 1e6.
+        return [(f, (ms / 1000.0) * 1000.0) for f, ms, _ in self.actions] + [
+            (f, int(ms * 1e6) / 1e6) for f, ms in self.snaps
+        ]
 
     def state_at(self, frame: int) -> tuple[tuple[str, ...], int]:
         clock = reference_clock(self.samples())
@@ -271,7 +274,9 @@ def test_clock_before_the_first_and_after_the_last_sample() -> None:
 def test_read_inputs_keeps_input_changes_and_every_clock_sample() -> None:
     inputs = rv.read_inputs(io.BytesIO(Run().event_bytes()))
     assert inputs.inputs == {1: (), 2: ("A",), 4: ("A", "UP"), 7: ()}
-    assert sorted(inputs.samples) == sorted((f, ms) for f, ms, _ in Run().actions)
+    assert sorted(inputs.samples) == sorted(
+        (f, (ms / 1000.0) * 1000.0) for f, ms, _ in Run().actions
+    )
     assert inputs.actions == 5
 
 
@@ -478,7 +483,7 @@ def test_reads_only_the_two_inputs_and_never_the_final_snapshot() -> None:
 def test_main_parses_frames_and_all() -> None:
     files = release(Run())
     for argv, frames in (
-        (["rel"], "frames 0-9"),
+        (["rel"], "frames 0-150,000"),
         (["rel", "--frames", "5"], "frames 0-5"),
         (["rel", "--all"], "frames 0-9"),
     ):

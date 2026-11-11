@@ -49,6 +49,12 @@ build-mgba:
 verify-release folder:
     cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.verify_release "$1"
 
+# Replay a downloaded release from power-on with its logged inputs and recorded clock, and compare
+# the emulator's RAM with every recorded snapshot (default frames 0-150,000; --frames N; --all).
+[positional-arguments]
+replay-verify folder *args:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.replay_verify "$@"
+
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 

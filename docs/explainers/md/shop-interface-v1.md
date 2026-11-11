@@ -2,7 +2,7 @@
 
 > Markdown twin of [shop-interface-v1.html](../shop-interface-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`shop-interface-v1` · server readout switch · on in both arms of current (the operator 2026-11-01); registered default off · the operator 2026-10-21: "build it and put it in the bundle"
+`shop-interface-v1` · server readout switch · on in both arms of current (Operator 2026-11-01); registered default off · Operator 2026-10-21: "build it and put it in the bundle"
 
 The Interface line is how the model knows which row the cursor is on and whether a press worked. On the POKéMON MART buy screen it was wrong or missing almost everywhere. In run `2026-10-21T06-28-18_qwen36-gpu0_1331` (RUSTBORO CITY MART, turns 680–690), the first row named item id 18 (PARLYZ HEAL) for POKé BALL. Every later row was a coverage error, so each DOWN press came back "unavailable". The quantity box said "ITEM 22", and the page after buying was an unknown owner for 56 snapshots.
 

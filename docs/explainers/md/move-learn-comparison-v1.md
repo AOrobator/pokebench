@@ -2,7 +2,7 @@
 
 > Markdown twin of [move-learn-comparison-v1.html](../move-learn-comparison-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`move-learn-comparison-v1` · server readout switch · bundle-only, default off · approved by the operator 2026-10-21
+`move-learn-comparison-v1` · server readout switch · bundle-only, default off · approved by Operator 2026-10-21
 
 In run `2026-10-20T20-26-22_qwen36-gpu1_97a0` the model never weighed DOUBLE KICK during 100+ turns on COMBUSKEN's prompts: nothing in the readout described it beyond its name. At the two learn-a-move boxes, in the evolution scene or in battle, and on the summary screen's forget-a-move list, this switch adds a block: the learner with its types, each move it knows and the new move, each with type, kind, power, accuracy and PP from the game's move table, and the game's own description (the text the summary screen shows). Nothing ranks or recommends a move.
 

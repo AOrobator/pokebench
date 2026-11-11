@@ -37,6 +37,6 @@ The Interface line and the question are copied from the same result's readout (`
 ## Status
 
 - RED ee9a741d3, GREEN f330bce71. Not merged into main.
-- Default OFF. ON in the bundle arm only of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in the bundle arm only of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
 - Tests: `packages/agent/src/stale-plan-fact.test.ts` (production `playGameTools`). Multi-model review: not run yet.
 - Not measured in runs. Pending experiment: `experiments/stale-plan-fact-v1.json`.

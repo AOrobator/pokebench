@@ -35,4 +35,4 @@ The 10/22 frontier report: every run that heard MAY's mother ("MAY went out to R
 
 ## Status
 
-Default OFF in every preset and in the next-run defaults; not in any arm until the operator adds it. Registered as a pending experiment, not queued or approved. Unit and production-factory tests pass; the cloud review lanes and any measured runs have not happened yet.
+Default OFF in every preset and in the next-run defaults; not in any arm until Operator adds it. Registered as a pending experiment, not queued or approved. Unit and production-factory tests pass; the cloud review lanes and any measured runs have not happened yet.

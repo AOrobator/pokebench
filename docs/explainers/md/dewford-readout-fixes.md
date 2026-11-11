@@ -50,7 +50,7 @@ ON, with stale-story-goal-v2 (a702): the line is omitted.
 ON, without v2: Story goal: none. DAD's line from turn 312 ("Head for RUSTBORO CITY beyond this town.") is done: RUSTBORO CITY (map 0/3), first entered at turn 378, then rustboro gym complete at turn 578. It is not where to go.
 ```
 
-A line retires when the player has entered every place it names since the line, and the game then observes a story milestone or a step of the extended campaign catalog: a place reached, such as DEWFORD TOWN, or an event, such as STEVEN LETTER RECEIVED (the operator, 2026-10-28). Arriving in DEWFORD TOWN therefore retires MR. STONE's turn-630 line, because the game records its DEWFORD_TOWN step right after the arrival. Battles won (trainers, the rival, leaders), other measurement-only steps and optional activities do not count, and scoring is unchanged. Needs unfinished-activity-v1, which records the arrivals.
+A line retires when the player has entered every place it names since the line, and the game then observes a story milestone or a step of the extended campaign catalog: a place reached, such as DEWFORD TOWN, or an event, such as STEVEN LETTER RECEIVED (Operator, 2026-10-28). Arriving in DEWFORD TOWN therefore retires MR. STONE's turn-630 line, because the game records its DEWFORD_TOWN step right after the arrival. Battles won (trainers, the rival, leaders), other measurement-only steps and optional activities do not count, and scoring is unchanged. Needs unfinished-activity-v1, which records the arrivals.
 
 ## Wiring
 

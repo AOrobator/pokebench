@@ -2,7 +2,7 @@
 
 > Markdown twin of [whiteout-healed-v1.html](../whiteout-healed-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`whiteout-healed-v1` · agent switch · bundle-only, default off · approved by the operator 2026-10-20 6:31 PM ET ("lets build it, bundle only")
+`whiteout-healed-v1` · agent switch · bundle-only, default off · approved by Operator 2026-10-20 6:31 PM ET ("lets build it, bundle only")
 
 In run `2026-10-20T16-14-34_qwen36-gpu1_c6c2` the model lost to MAY at turn 256 and whited out. The readout right after said `TORCHIC Lv5 HP 20/20`, yet for turns 257 to 263 its thinking planned to go to the POKéMON CENTER to heal TORCHIC before fighting MAY again. It noticed the full HP at turn 264. Nothing in the harness said that whiting out heals the party.
 

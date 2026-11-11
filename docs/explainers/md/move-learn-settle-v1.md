@@ -2,7 +2,7 @@
 
 > Markdown twin of [move-learn-settle-v1.html](../move-learn-settle-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`move-learn-settle-v1` · server observation switch · bundle-only, default off · approved by the operator 2026-10-21
+`move-learn-settle-v1` · server observation switch · bundle-only, default off · approved by Operator 2026-10-21
 
 Run `2026-10-20T20-26-22_qwen36-gpu1_97a0` (v6 bundle) evolved TORCHIC into COMBUSKEN at turn 777. From turn 779 it pressed B for 100+ turns in a 4-turn cycle on the DOUBLE KICK prompts. Every press result was captured while "Delete a move to make room for DOUBLE KICK?" or "Stop learning DOUBLE KICK?" was still printing (the evolution scene's MVSTATE 3), so the model never saw the YES/NO box. This switch makes an observation taken in that window wait, per emulated frame, until the scene takes input.
 

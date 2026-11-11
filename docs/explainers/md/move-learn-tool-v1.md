@@ -66,6 +66,6 @@ The server side is `env/pokebench_env/learn_move_wait.py` (`learn_step` per emul
 ## Status
 
 - RED 0dcfc846c, GREEN 2af9cefca. Not merged into main.
-- Default OFF. ON in the bundle arm only of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in the bundle arm only of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
 - Tests: `packages/agent/src/learn-move.test.ts` (fake game over ea04's recorded states) and `env/tests/env/test_learn_move_wait.py` (the nine 97a0 raw-RAM archives). No save state at a move-learn prompt exists, so it has not been driven on the emulator. Multi-model review: not run yet.
 - Not measured in runs. Pending experiment: `experiments/move-learn-tool-v1.json`.

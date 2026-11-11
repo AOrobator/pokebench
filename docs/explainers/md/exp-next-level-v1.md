@@ -2,7 +2,7 @@
 
 > Markdown twin of [exp-next-level-v1.html](../exp-next-level-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`exp-next-level-v1` · server readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
+`exp-next-level-v1` · server readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
 
 Each entry of the readout's Party line gains the two numbers the POKéMON summary screen shows under the stats. The state JSON gains `party_next_level`, which the Training block repeats for the whole party.
 

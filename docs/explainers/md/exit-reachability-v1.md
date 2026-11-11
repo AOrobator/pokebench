@@ -10,7 +10,7 @@ One reachability check, made once by the game server, decides for every exit lis
 
 - Runs 0e05 and 93eb (2026-10-17, ROUTE104): from the south half, the readout listed `NORTH edge -> RUSTBORO CITY` and the PETALBURG WOODS north mouths as untaken exits, and navigate_to said `call navigate_to again to continue to (12,0)`. Rows 31 to 37 are solid wall; the north half is reached only through PETALBURG WOODS.
 - Run 4198 (2026-10-16, ROUTE103): navigate_to told the model, 11 times, that none of MAY's free neighbouring tiles could be reached from here. That was true only inside the 15x15 local map; the way to her runs west, outside it. The model gave up on her.
-- The operator asked for one DRY mechanism for leaving out exits that are not available (the operator, 2026-10-17). This switch is it: `exitReach(features, state)` in `packages/agent/src/surf-gate.ts`, fed by the server's `exit_reach`.
+- The operator asked for one DRY mechanism for leaving out exits that are not available (Operator, 2026-10-17). This switch is it: `exitReach(features, state)` in `packages/agent/src/surf-gate.ts`, fed by the server's `exit_reach`.
 
 ## What the server computes
 

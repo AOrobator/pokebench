@@ -4,7 +4,7 @@ Harness switch · guard · `heal-before-trainers-v1` · needs `low-hp-trainer-wa
 
 > Markdown twin of [heal-before-trainers-v1.html](../heal-before-trainers-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-A simple v1 of "heal before trainer fights" (the operator, 2026-10-17). On the free field, when a trainer the player has not beaten is loaded on the current map and the party is weak, the tool result says so and names the nearest place the player has been to that heals the party. Everything it says comes from game memory, the ROM's map table and the game's own text.
+A simple v1 of "heal before trainer fights" (Operator, 2026-10-17). On the free field, when a trainer the player has not beaten is loaded on the current map and the party is weak, the tool result says so and names the nearest place the player has been to that heals the party. Everything it says comes from game memory, the ROM's map table and the game's own text.
 
 ## The run that prompted it
 

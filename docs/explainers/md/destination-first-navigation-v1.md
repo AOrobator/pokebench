@@ -30,7 +30,7 @@ The reminder does not choose a destination, invent a route, press another button
 
 In Qwen run `2026-10-28T12-26-58_qwen36-gpu0_9c88`, turns 94–125 contained 27 press calls and five navigation calls. Turn 95 already used completed navigation strides; turn 98 received the old reminder and later turns continued manual routing. These observations motivate the policy; they do not establish that this change improves gameplay.
 
-`destination-first-navigation-v1` is registered default OFF. The operator explicitly requested ON in both current arms on October 28, 2026. The shared current recipe enables it for future launches. Running trials and historical recordings retain their pinned configuration.
+`destination-first-navigation-v1` is registered default OFF. Operator explicitly requested ON in both current arms on October 28, 2026. The shared current recipe enables it for future launches. Running trials and historical recordings retain their pinned configuration.
 
 ## Implementation and verification
 

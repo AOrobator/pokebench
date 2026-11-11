@@ -2,7 +2,7 @@
 
 > Markdown twin of [pokenav-call-auto-advance-v1.html](../pokenav-call-auto-advance-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`pokenav-call-auto-advance-v1` — enabled in the current bundle by the operator on October 28, 2026; promoted to both arms on November 1, 2026 ("control should have that switch"). Registered and standalone defaults remain OFF. Existing runs keep their recorded settings.
+`pokenav-call-auto-advance-v1` — enabled in the current bundle by Operator on October 28, 2026; promoted to both arms on November 1, 2026 ("control should have that switch"). Registered and standalone defaults remain OFF. Existing runs keep their recorded settings.
 
 ## Why this switch exists
 

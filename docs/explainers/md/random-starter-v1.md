@@ -4,7 +4,7 @@
 
 `random-starter-v1` · guard · default off in every arm · a data-collection switch, not a harness improvement.
 
-The operator, 2026-10-22: most long runs chose Torchic, so there is little long-play data on the other two starters. With this switch on, the harness picks Treecko or Mudkip with a fair coin once per run, presses its way to that starter in Professor Birch's bag, confirms it, and hands the game back. Nothing else about the harness changes.
+Operator, 2026-10-22: most long runs chose Torchic, so there is little long-play data on the other two starters. With this switch on, the harness picks Treecko or Mudkip with a fair coin once per run, presses its way to that starter in Professor Birch's bag, confirms it, and hands the game back. Nothing else about the harness changes.
 
 ## What happens at the bag
 

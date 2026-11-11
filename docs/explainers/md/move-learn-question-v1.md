@@ -2,7 +2,7 @@
 
 > Markdown twin of [move-learn-question-v1.html](../move-learn-question-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`move-learn-question-v1` · server readout switch · bundle-only, default off · approved by the operator 2026-10-21
+`move-learn-question-v1` · server readout switch · bundle-only, default off · approved by Operator 2026-10-21
 
 Run `2026-10-20T20-26-22_qwen36-gpu1_97a0` pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts. It said "answer NO to keep my current moveset" at both questions, also at turns 782/783 when the box was shown, and in battle with PECK (turns 755-769). But B = NO at "Delete a move to make room for DOUBLE KICK?" only asks "Stop learning DOUBLE KICK?", and B = NO there starts the whole flow over. This switch adds one line at a ready box: the question in the game's words and what each answer does, from the game's own flow. It recommends nothing.
 

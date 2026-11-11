@@ -2,7 +2,7 @@
 
 > Markdown twin of [supplies-v1.html](../supplies-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Bundle arm only, default off. Approved by the operator on 2026-10-27, reworked the same day at the operator's request. On arrival on a map where something can be bought, or that has a door into one, one line sets the player's money next to the balls and healing items in the BAG, the party size and the places on the map that sell things. It shows again whenever a shop's buy list opens. No advice. mart-stock-readout-v1 still lists what the shop sells.
+Bundle arm only, default off. Approved by Operator on 2026-10-27, reworked the same day at Operator's request. On arrival on a map where something can be bought, or that has a door into one, one line sets the player's money next to the balls and healing items in the BAG, the party size and the places on the map that sell things. It shows again whenever a shop's buy list opens. No advice. mart-stock-readout-v1 still lists what the shop sells.
 
 ## Why on arrival, not inside the mart
 

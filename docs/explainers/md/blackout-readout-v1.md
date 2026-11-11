@@ -49,7 +49,7 @@ OFF
 ## Limits
 
 - The field line needs the live server's frame latch; re-rendering a single raw-RAM archive offline shows only the "Whiting out" line, from that archive's own state.
-- Operator amendment (the operator, 2026-10-16): the latch sees game-loop frames advanced through `run_frame_with_buttons`, the same hook as the frame settle and battle wait. Frames the vendor adapter advances directly, `tick` and the one frame `load_state` runs after loading a state, are out of scope; a state saved on the last `CB2_WhiteOut` frame and loaded shows no field line.
+- Operator amendment (Operator, 2026-10-16): the latch sees game-loop frames advanced through `run_frame_with_buttons`, the same hook as the frame settle and battle wait. Frames the vendor adapter advances directly, `tick` and the one frame `load_state` runs after loading a state, are out of scope; a state saved on the last `CB2_WhiteOut` frame and loaded shows no field line.
 - If the save-block pointers cannot be read on the first whiteout frame, the line says "halved your money" without amounts.
 
 ## Status

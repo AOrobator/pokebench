@@ -36,6 +36,6 @@ Other TypeScript readers of `world_context.triggers` also get the far triggers w
 ## Status
 
 - Commit cb757550 (M6 GREEN). Not yet merged into main.
-- Default OFF. Not in any bundle yet; that waits for the operator's OK.
+- Default OFF. Not in any bundle yet; that waits for Operator's OK.
 - Tests: `env/tests/env/test_map_wide_triggers.py`, `packages/agent/src/map-wide-triggers.test.ts`. Review round 1: Claude, Grok and GPT lanes LGTM.
 - Not yet measured in runs. The related ad34 seq 12351 case (navigate_to routing around the running-shoes trigger) was found to be by design and is not changed.

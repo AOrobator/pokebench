@@ -2,7 +2,7 @@
 
 > Markdown twin of [same-target-no-progress-v1.html](../same-target-no-progress-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`same-target-no-progress-v1` · guard · needs `deterministic-loop-guard-v1` · bundle-only, default off · guard approved by the operator 2026-10-20
+`same-target-no-progress-v1` · guard · needs `deterministic-loop-guard-v1` · bundle-only, default off · guard approved by Operator 2026-10-20
 
 In control run `2026-10-20T16-14-34_qwen36-gpu0_a8f9`, from turn 1282 (6:42 PM New York) the model called `navigate_to {x:29, y:16, map_id:[24,4]}` again and again in RUSTURF TUNNEL: 39 times, then 12 or more times to (18,20). From turn 1282 to 1322 each walk hit the 8-button command limit or was stopped by a wild battle, and every one ended on one of six tiles within 3 tiles of (4,9). No loop guard fired; only the 5-minute milestone-drought briefing did, at turns 1309 and 1340.
 

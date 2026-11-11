@@ -76,11 +76,16 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"(?<![\w./~-])(?:claude|codex)/[A-Za-z0-9][\w./-]*[\w]"),
         "a working branch",
     ),
+    (
+        re.compile(r"\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I),
+        "Operator",
+    ),
 )
 
 
 def scrub(text: str) -> str:
-    """Remove machine paths, tailnet hosts, private IPs, chat ids, emails and branch names."""
+    """Remove machine paths, tailnet hosts, private IPs, chat ids, emails, branch names and the
+    operator's real name (written as Operator, the operator's decision 2026-11-11)."""
     for pattern, replacement in _SCRUBS:
         text = pattern.sub(replacement, text)
     return text
@@ -988,7 +993,7 @@ def convert(page_id: str, source: str, sibling_ids: frozenset[str]) -> Twin:
     page = Page(page_id, sibling_ids, svgs, shared, css, overrides, anchors, svg_ancestors(root))
     title_node = _first(root, "title")
     h1 = _first(root, "h1")
-    title = _WS.sub(" ", (h1 or title_node or Node("x")).text()).strip() or page_id
+    title = scrub(_WS.sub(" ", (h1 or title_node or Node("x")).text()).strip()) or page_id
     body = _first(root, "main") or _first(root, "body") or root
     _drop_branch_rows(body)
     summary = lead_summary(body, page_id)
@@ -1001,7 +1006,7 @@ def convert(page_id: str, source: str, sibling_ids: frozenset[str]) -> Twin:
     )
     first_h1 = next(i for i, b in enumerate(blocks) if b.startswith("# "))
     blocks.insert(first_h1 + 1, note)
-    markdown = "\n\n".join(b for b in blocks if b.strip()) + "\n"
+    markdown = scrub("\n\n".join(b for b in blocks if b.strip()) + "\n")
     markdown = re.sub(r"\n{3,}", "\n\n", tidy_branches(markdown))
     files = {f"{TWINS}/{page_id}.md": markdown.encode()}
     files.update({f"{TWINS}/{name}": data for name, data in sorted(page.files.items())})
@@ -1345,9 +1350,11 @@ def generate(inputs: Inputs) -> Output:
     files: dict[str, bytes] = {}
     for twin in twins:
         files.update(twin.files)
-    files[INDEX] = build_index(twins, groups).encode()
-    files[FEATURES_MD] = build_features_table(
-        features, parse_default_off(inputs.next_run_ts), explainers, set(ids), run
+    files[INDEX] = scrub(build_index(twins, groups)).encode()
+    files[FEATURES_MD] = scrub(
+        build_features_table(
+            features, parse_default_off(inputs.next_run_ts), explainers, set(ids), run
+        )
     ).encode()
     return Output(dict(sorted(files.items())), twins)
 

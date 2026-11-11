@@ -8,7 +8,7 @@ Every overworld readout repeated the same four blocks of text under its map: the
 
 ## Why it exists
 
-In the showcase arm of bundle-v-control (run `2026-10-16T00-34-26_qwen36-gpu1_show`), all 451 overworld tool results carried the four blocks, about 890 characters each, 16% of a median 5,509-character result. The legend line was the same string in all 2,811 places it appeared. The operator proposed moving only this fixed text, leaving script-trigger lists, interaction candidates and the readout's order alone.
+In the showcase arm of bundle-v-control (run `2026-10-16T00-34-26_qwen36-gpu1_show`), all 451 overworld tool results carried the four blocks, about 890 characters each, 16% of a median 5,509-character result. The legend line was the same string in all 2,811 places it appeared. Operator proposed moving only this fixed text, leaving script-trigger lists, interaction candidates and the readout's order alone.
 
 ## The real readout, off and on
 

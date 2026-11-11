@@ -2,7 +2,7 @@
 
 > Markdown twin of [bike-navigation-v1.html](../bike-navigation-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Three switches, all default off, all in the bundle arm only (the operator 2026-11-03: "i agree with ur changes, u can build it"). Together they let the harness use the bike the player already owns: register it to SELECT, get on where riding is faster, and ride navigate_to's straight corridors. The harness never chooses between the MACH BIKE and the ACRO BIKE.
+Three switches, all default off, all in the bundle arm only (Operator 2026-11-03: "i agree with ur changes, u can build it"). Together they let the harness use the bike the player already owns: register it to SELECT, get on where riding is faster, and ride navigate_to's straight corridors. The harness never chooses between the MACH BIKE and the ACRO BIKE.
 
 ## The three switches
 

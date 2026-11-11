@@ -69,4 +69,4 @@ Recorded example, a702 T1301 (episodes shortened here with …; the model gets t
 
 ## Status
 
-Default off in presets; turned on in both arms of `experiments/feature-configs/current.json` (the operator, 2026-10-28 9:08 AM NY: "yes cap on in both arms, its corrrectness"). Tests: `instruction-memory-cap.test.ts`, `story-checkpoints.test.ts` (audited against pret). Not yet measured in runs.
+Default off in presets; turned on in both arms of `experiments/feature-configs/current.json` (Operator, 2026-10-28 9:08 AM NY: "yes cap on in both arms, its corrrectness"). Tests: `instruction-memory-cap.test.ts`, `story-checkpoints.test.ts` (audited against pret). Not yet measured in runs.

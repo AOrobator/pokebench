@@ -2,7 +2,7 @@
 
 > Markdown twin of [short-cycle-fixed-point-v1.html](../short-cycle-fixed-point-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`short-cycle-fixed-point-v1` · guard · acts through `duplicate-turn-collapse-v1` or `fixed-point-breaker-v1` · bundle-only, default off · approved by the operator 2026-10-21 00:08 UTC (8:08 PM New York), widened to 2–4 turn cycles by the coordinator on run 97a0
+`short-cycle-fixed-point-v1` · guard · acts through `duplicate-turn-collapse-v1` or `fixed-point-breaker-v1` · bundle-only, default off · approved by Operator 2026-10-21 00:08 UTC (8:08 PM New York), widened to 2–4 turn cycles by the coordinator on run 97a0
 
 `duplicate-turn-collapse-v1` leaves out of each request a run of 3 or more identical turns: the same thinking, text and tool calls, each leaving the same game state. Two bundle runs looped without ever producing such a run:
 

@@ -2,7 +2,7 @@
 
 > Markdown twin of [exp-earned-ledger-v1.html](../exp-earned-ledger-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`exp-earned-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
+`exp-earned-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
 
 In the Training block: the amounts in the game's "… gained … EXP. Points!" pages the model was shown, by the battle they came from (trainer name, or wild and the species), for the last 10 battles that printed any, and the lowest and highest per page for trainers and for wild POKéMON.
 

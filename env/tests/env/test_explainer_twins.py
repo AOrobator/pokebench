@@ -545,3 +545,27 @@ def test_sentences_keep_mixed_case_abbreviations():
         "Next.",
     ]
     assert t.sentences("Shows EXP. to the next level. Then.")[0] == "Shows EXP. to the next level."
+
+
+def test_operator_name_becomes_operator_everywhere():
+    assert t.scrub("The operator's call; The operator said; Andrew Orobator, aorobator, ANDREW") == (
+        "Operator's call; Operator said; Operator, Operator, Operator"
+    )
+    assert t.scrub("mimosa andrewsville") == "mimosa andrewsville"
+    result = twin(
+        "<h1>The operator's switch</h1><p>The operator approved (the operator 2026-11-11) it.</p>"
+        "<pre>The operator: go</pre><svg viewBox='0 0 9 9'><text>asked by the operator</text></svg>"
+    )
+    assert "The operator" not in result.markdown.lower() and "andrew" not in result.markdown.lower()
+    assert result.title == "Operator's switch"
+    assert "Operator approved (Operator 2026-11-11) it." in result.markdown
+    svg = result.files["docs/explainers/md/demo/fig-1.svg"].decode()
+    assert "asked by Operator" in svg
+    pages = {
+        **PAGES,
+        "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),
+    }
+    ts = FEATURES_TS.replace("Records the split time.", "Records the split time for the operator.")
+    output = t.generate(t.Inputs(pages, ts, PANELS_TS, NEXT_RUN_TS, SNAPSHOT))
+    for name in ("docs/explainers/README.md", "docs/features.md"):
+        assert "The operator" not in output.files[name].decode().lower()

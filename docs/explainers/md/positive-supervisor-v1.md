@@ -4,7 +4,7 @@
 
 `positive-supervisor-v1` · guidance · bundle arm only · default off
 
-Today's learning (the operator, 2026-10-20): telling the model what to do, and changing what it sees, beat warnings that it is looping. Loop-guard fires were followed by a story milestone only about as often as any turn. This switch keeps every loop detector and rewrites only what the supervisors send.
+Today's learning (Operator, 2026-10-20): telling the model what to do, and changing what it sees, beat warnings that it is looping. Loop-guard fires were followed by a story milestone only about as often as any turn. This switch keeps every loop detector and rewrites only what the supervisors send.
 
 ## The same note, off and on
 

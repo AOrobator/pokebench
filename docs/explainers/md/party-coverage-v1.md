@@ -2,7 +2,7 @@
 
 > Markdown twin of [party-coverage-v1.html](../party-coverage-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`party-coverage-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
+`party-coverage-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
 
 At battle decisions: for each foe type met this run, each of the player's moves used on it and the effectiveness line the game printed right after, then the foe types no party move has drawn "It's super effective!" against. Rows show the types with any printed line and the current foe's type.
 

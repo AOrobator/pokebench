@@ -45,6 +45,6 @@ Latest story line naming a place (turn 33, MOM): "He lives right next door, so y
 ## Status
 
 - Commit bc5565aaf (M1 GREEN). Not yet merged into main.
-- Default OFF. Not in any bundle yet; that waits for the operator's OK.
+- Default OFF. Not in any bundle yet; that waits for Operator's OK.
 - Tests: `packages/agent/src/story-goal-player-name.test.ts` (e9ee's pages, ASH case, two-name case, harness-trust line, both factories). Review round 1: Claude, Grok and GPT lanes LGTM.
 - Not yet measured in runs. The ASH case reuses e9ee's pages with the name swapped, not acfa's own recording.

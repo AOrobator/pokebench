@@ -6,7 +6,7 @@
 
 When a story battle the player cannot run from is on the current map and a party Pokémon is hurt, the harness puts one line at the very top of the game-tool result: each hurt Pokémon's HP, that the battle cannot be run from so heal first, the latest line about healing the model actually heard, and which exit of this map leads there.
 
-The operator, 10:43 PM ET on 2026-10-20: "the heal first line needs to be in both control and the bundle".
+Operator, 10:43 PM ET on 2026-10-20: "the heal first line needs to be in both control and the bundle".
 
 ## The probe it comes from
 

@@ -2,7 +2,7 @@
 
 > Markdown twin of [moving-npc-frame-burst-v1.html](../moving-npc-frame-burst-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`moving-npc-frame-burst-v1` · Default OFF · On in both arms of the current recipe (the operator 2026-11-01: harness support, not a treatment).
+`moving-npc-frame-burst-v1` · Default OFF · On in both arms of the current recipe (Operator 2026-11-01: harness support, not a treatment).
 
 **≤6**screenshots per follow
 

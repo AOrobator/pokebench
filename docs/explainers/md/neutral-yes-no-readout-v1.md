@@ -24,7 +24,7 @@ This mapping lists sequential buttons. B is reported as NO only where the handle
 
 ## Scope and evidence
 
-Needs yes-no-answer-readout-v1. Only changes that feature's added line, for the same ready menus with known selections. Unknown and unsupported menus remain unchanged. OFF preserves the original wording byte for byte. New switch defaults OFF when omitted. The operator approved ON in the current bundle on October 28, 2026; control remains OFF. Existing active runs keep their frozen configuration.
+Needs yes-no-answer-readout-v1. Only changes that feature's added line, for the same ready menus with known selections. Unknown and unsupported menus remain unchanged. OFF preserves the original wording byte for byte. New switch defaults OFF when omitted. Operator approved ON in the current bundle on October 28, 2026; control remains OFF. Existing active runs keep their frozen configuration.
 
 Source: pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881; script_menu.c Task_HandleYesNoInput, menu.c Menu_ProcessInputNoWrap, battle_script_commands.c YES/NO handlers and battle_controller_player.c PlayerHandleYesNoInput. Uses existing verified readers; no new RAM addresses or controls.
 

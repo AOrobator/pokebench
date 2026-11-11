@@ -2,7 +2,7 @@
 
 > Markdown twin of [discovered-gym-checklist-v1.html](../discovered-gym-checklist-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-**discovered-gym-checklist-v1** · Default OFF · Current recipe ON in both arms (the operator 2026-11-01). Candidate implementation; gameplay benefit unmeasured.
+**discovered-gym-checklist-v1** · Default OFF · Current recipe ON in both arms (Operator 2026-11-01). Candidate implementation; gameplay benefit unmeasured.
 
 A gym becomes an obligation only when its identity appears in a successful delivered location, entrance, sign or field-dialogue observation. A town-only mention, hidden object template, historical summary or model claim is insufficient.
 

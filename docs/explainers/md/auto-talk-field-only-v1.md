@@ -4,7 +4,7 @@
 
 `auto-talk-field-only-v1` · guard · needs `auto-talk-v1` · default OFF · bundle arm only
 
-Auto-talk walks the player to someone and presses A. That only makes sense on the free field. Before this switch, a loop that happened during a battle, an evolution or a menu still made auto-talk "fire": it recorded a `not_free` event on every request, and with `field-ownership-feedback-v1` on it sent a SUPERVISOR note into the battle. The operator, 2026-10-22: "firing auto talk during a battle is a bug that needs to be fixed".
+Auto-talk walks the player to someone and presses A. That only makes sense on the free field. Before this switch, a loop that happened during a battle, an evolution or a menu still made auto-talk "fire": it recorded a `not_free` event on every request, and with `field-ownership-feedback-v1` on it sent a SUPERVISOR note into the battle. Operator, 2026-10-22: "firing auto talk during a battle is a bug that needs to be fixed".
 
 ## How often it happened
 
@@ -39,4 +39,4 @@ A post-battle evolution keeps the game's battle flag set (`gMain.inBattle` is cl
 
 ## Status
 
-Default OFF in every preset and in the next-run defaults; not in any arm until the operator adds it. Registered as a pending experiment, not queued or approved. Unit and production-factory tests pass; the cloud review lanes and any measured runs have not happened yet.
+Default OFF in every preset and in the next-run defaults; not in any arm until Operator adds it. Registered as a pending experiment, not queued or approved. Unit and production-factory tests pass; the cloud review lanes and any measured runs have not happened yet.

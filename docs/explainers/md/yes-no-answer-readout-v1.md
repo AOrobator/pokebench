@@ -2,7 +2,7 @@
 
 > Markdown twin of [yes-no-answer-readout-v1.html](../yes-no-answer-readout-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`yes-no-answer-readout-v1` · server readout switch · bundle-only, default off · approved by the operator 2026-10-21 (8:08 PM ET 2026-10-20)
+`yes-no-answer-readout-v1` · server readout switch · bundle-only, default off · approved by Operator 2026-10-21 (8:08 PM ET 2026-10-20)
 
 Run `2026-10-20T19-58-04_qwen36-gpu0_ef9f` set the wall clock and then answered NO on the confirmation, again and again, from turn \~100 to 156 (8:02–8:09 PM ET). The readout said `selected NO; UP/DOWN selects; A accepts selection`, and the model kept pressing A. A decision probe at turn 156 (16 samples per arm) found 0/16 pressed UP then A as recorded, and 8/16 with the line "To answer YES, press UP, then A. Pressing A now answers NO." This switch adds that line.
 

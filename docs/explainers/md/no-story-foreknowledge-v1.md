@@ -2,7 +2,7 @@
 
 > Markdown twin of [no-story-foreknowledge-v1.html](../no-story-foreknowledge-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`no-story-foreknowledge-v1` · observation · default OFF, ON in both arms of the current recipe · narrow scope approved by the operator on 2026-10-27.
+`no-story-foreknowledge-v1` · observation · default OFF, ON in both arms of the current recipe · narrow scope approved by Operator on 2026-10-27.
 
 ## Why
 
@@ -50,4 +50,4 @@ HP, the blackout cost, heal places, BAG items and "cannot be run from" stay in e
 
 ## Status
 
-Landed on main at `f6efe433b`. Default OFF in the registry; ON in both arms (control and bundle) of `experiments/feature-configs/current.json` by the operator's decision on 2026-10-27, so it is not an A/B variable; it is measured with decision probes. OFF is byte for byte the earlier text (golden tests). Tests: `packages/agent/src/no-story-foreknowledge.test.ts`. Measured so far: one exploratory decision probe (study `no-story-foreknowledge-20261027`, 8 recorded contexts × 3 arms × 16 samples, scored after sampling, so descriptive). With the switch on, unshown names left the model's reasoning (TEAM AQUA in Petalburg Woods 12/16 → 0/16) and it still reasoned about healing, but it turned back to heal less often there (5/16 → 1/16); with the advice removed it never did (0/16). No gameplay comparison: the switch is on in both arms.
+Landed on main at `f6efe433b`. Default OFF in the registry; ON in both arms (control and bundle) of `experiments/feature-configs/current.json` by Operator's decision on 2026-10-27, so it is not an A/B variable; it is measured with decision probes. OFF is byte for byte the earlier text (golden tests). Tests: `packages/agent/src/no-story-foreknowledge.test.ts`. Measured so far: one exploratory decision probe (study `no-story-foreknowledge-20261027`, 8 recorded contexts × 3 arms × 16 samples, scored after sampling, so descriptive). With the switch on, unshown names left the model's reasoning (TEAM AQUA in Petalburg Woods 12/16 → 0/16) and it still reasoned about healing, but it turned back to heal less often there (5/16 → 1/16); with the advice removed it never did (0/16). No gameplay comparison: the switch is on in both arms.

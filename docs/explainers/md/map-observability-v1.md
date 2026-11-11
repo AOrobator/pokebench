@@ -4,7 +4,7 @@
 
 `map-observability-v1` gives map elements a shared meaning across gyms and special terrain. The map describes the captured game state. The model still chooses its actions.
 
-**Activation:** enabled in control and bundle for fresh runs by the operator’s October 25 instruction. Active runs and frozen queued runs keep their existing versions. The switch’s explicit OFF state restores the previous observation format, including the selected legacy Mauville setting.
+**Activation:** enabled in control and bundle for fresh runs by Operator’s October 25 instruction. Active runs and frozen queued runs keep their existing versions. The switch’s explicit OFF state restores the previous observation format, including the selected legacy Mauville setting.
 
 ## The same floor symbol can hide different mechanics
 

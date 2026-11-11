@@ -2,7 +2,7 @@
 
 > Markdown twin of [untalked-in-gym-v1.html](../untalked-in-gym-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Bundle arm only, default off. Approved by the operator on 2026-10-27. On a gym map, each game-tool result carries, ahead of the readout, the people on the map the player has not talked to this run, with their tiles. Headers that wrap every result, such as harness-trust-v1's, still come first. Run 9e33 never talked to the RUSTBORO gym guide, so it never heard which type the gym uses.
+Bundle arm only, default off. Approved by Operator on 2026-10-27. On a gym map, each game-tool result carries, ahead of the readout, the people on the map the player has not talked to this run, with their tiles. Headers that wrap every result, such as harness-trust-v1's, still come first. Run 9e33 never talked to the RUSTBORO gym guide, so it never heard which type the gym uses.
 
 ## On the map
 

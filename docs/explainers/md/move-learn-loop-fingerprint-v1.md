@@ -48,6 +48,6 @@ What the model reads is the loop guard's existing cycle warning, in the words th
 ## Status
 
 - RED 4691b3c68, GREEN 0c9732274. Not merged into main.
-- Default OFF. ON in the bundle arm only of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in the bundle arm only of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
 - Tests: `packages/agent/src/move-learn-loop-fingerprint.test.ts`. Multi-model review: not run yet.
 - Not measured in runs. Pending experiment: `experiments/move-learn-loop-fingerprint-v1.json`.

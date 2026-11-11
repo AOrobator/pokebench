@@ -68,3 +68,23 @@ single coupled refresh and actual live proof with original gameplay PIDs preserv
   paused checkpoints with no historical timing stay unknown. RED pause regression
   proves before/after times; the display labels observed progress separately from
   grading. This connects the fast paged data to the existing splits display.
+
+## Freeze and upstream impact
+
+Final focused checks:92 tests passed, viewer type check and changed ESLint clean.
+Browser checks pass Chromium/WebKit desktop1440 and phone375; recorded PNG decodes
+at240x160, four progress pages paint observed split rows, metadata is fetched once,
+legacy card reduction is absent, and ended current views avoid live-frame retries.
+No card-design or frame-routing contract changes. Explicit replay remains separate.
+
+Merged current main before sealing: unrelated foe-item readouts/presets and menu
+null-id switch landed upstream. No overlapping viewer snapshot implementation;
+new registry entries are carried by the same immutable metadata transport. Full
+checks run on the integrated source. Historical November8/10 relay messages were
+replayed into this chat and ignored; they do not authorize new gameplay/probes or
+add any stop conditions. No original recordings or native checkpoints removed.
+
+Integration head161829f25 is the source under full checks (test includes build,
+then lint/vendor/protected visuals). The freeze-record commit initially hit the
+worklog timestamp gate immediately after the merge; this substantive update records
+that source identity and the running checks. No hook was bypassed.

@@ -44,7 +44,7 @@ Untrusted download: the same bounded, non-extracting readers as `verify-release`
 
 **M1 — Source readiness**
 - [x] Worklog committed (`docs(worklog): replay-verify`)
-- [ ] Tests (RED): clock equivalence, inputs, snapshot stream validation, replay loop with a fake emulator (match, divergence, frame slip, prefix, `--all`), integrity, CLI
+- [x] Tests (RED): clock equivalence, inputs, snapshot stream validation, replay loop with a fake emulator (match, divergence, frame slip, prefix, `--all`), integrity, CLI
 - [ ] Implement
 - [ ] Cheap checks, guard deletion
 - [ ] Full gates (`just lint`, `just test`)

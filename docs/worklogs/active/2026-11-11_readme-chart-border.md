@@ -11,9 +11,10 @@ The operator (2026-11-11): "why is the right border so large? looks weird and un
 
 ## Plan
 
-- [ ] `.card{width:fit-content}`; whole-pixel line heights for h1 (36 px), p (22 px) and .note (20 px).
-- [ ] Rebuild with `just readme-charts html`; measure all four outer bands in both PNGs (expect 20 px each at 2x) and confirm there is no cream strip.
+- [x] `.card{width:fit-content}`; whole-pixel line heights for h1 (36 px), p (22 px) and .note (20 px).
+- [x] Rebuild with `just readme-charts html`; measure all four outer bands in both PNGs (expect 20 px each at 2x) and confirm there is no cream strip.
 
 ## Log
 
 - 2026-11-11 5:25 PM: RED. test_card_hugs_the_chart_at_whole_pixel_heights fails.
+- 2026-11-11 5:32 PM: GREEN. `.card{width:fit-content}`; h1, p and .note line heights are 36, 22 and 20 px. 46 tests pass (no-I/O guard); ruff, format and mypy are clean; check-points matches. Rebuilt both PNGs (html stage run against the worktree module, since the recipe's `python -I` resolves the shared venv's editable install to the main checkout). Measured at 2x: left, right, top and bottom outer bands are all 20 px in both PNGs (badges-over-time 2676x2214, badges-for-the-money 2676x1934), and every edge pixel outside the rounded corners is the dark band, so there is no cream strip. Viewed both. Copies are in runs/mockups/readme-chart-border/.

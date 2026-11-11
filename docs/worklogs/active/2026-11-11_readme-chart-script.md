@@ -28,6 +28,7 @@ The charts were drawn by `docs/images/charts/build_charts.py` from hand-copied n
 - 21 tests in `env/tests/env/test_readme_charts.py`, with no IO (fake runs and an in-memory store), 99% branch coverage.
 - `chart-points.json` regenerates byte-identically on the Mac; the HTML is byte-identical before and after the lint cleanup.
 - Plotted figures: Opus chain $679.16, 67d7 $780.00, DeepSeek $9.56, Astra $718.54, Sol $149.92, Qwen3.6 $2.94, Qwen3.6 lane $2.83, GLM $1.21, Qwen3.8 $0.57, Qwen3.8 lane $4.84.
+- 2026-11-11 3:47 PM: full `just lint` failed on `packages/viewer/scripts/readme-charts-png.mjs` (outside the ESLint project service). Gave `scripts/*.mjs` the untyped-script block with `process` and `console` globals. `just lint` is green; `just test` is green (3,340 env tests; readme_charts.py 98%; every floor and the no-I/O proof pass).
 
 ## Follow-ups
 

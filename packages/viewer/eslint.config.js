@@ -12,5 +12,6 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-explicit-any": "error" },
   },
   { files: ["design-tests/*.mjs", "browser-tests/*.mjs"], extends: [tseslint.configs.disableTypeChecked], languageOptions: { globals: { process: "readonly" } } },
+  { files: ["scripts/*.mjs"], extends: [tseslint.configs.disableTypeChecked], languageOptions: { globals: { process: "readonly", console: "readonly" } } },
   { files: ["*.config.{js,ts}"], extends: [tseslint.configs.disableTypeChecked] },
 );

@@ -12,6 +12,7 @@ import hashlib
 import io
 import json
 import lzma
+import math
 import os
 import re
 import sys
@@ -32,6 +33,8 @@ EVENT_LINE_CAP = 16 * 1024 * 1024
 STATE_CAP = 8 * 1024 * 1024
 SIDECAR_CAP = 1024 * 1024
 SUMS_CAP = 1024 * 1024
+TRACE_MAX_MEMBERS = 65536
+TRACE_MEMBER_CAP = 64 * 1024 * 1024
 EXTENSION_CAP = 64 * 1024
 MAX_MEMBERS = 4096
 ROM_CAP = 64 * 1024 * 1024
@@ -53,6 +56,18 @@ KINDS = {
     "final snapshot": re.compile(r"raw-ram-final[A-Za-z0-9._-]*\.json(\.gz|\.xz|\.zst)?"),
     "checkpoints": re.compile(r"checkpoints[A-Za-z0-9._-]*\.tar(\.gz|\.xz|\.zst)?"),
 }
+# Optional: the agent trace only feeds the informational totals, never a check.
+OPTIONAL_KINDS = {
+    "agent trace": re.compile(r"agent-trace[A-Za-z0-9._-]*\.tar(\.gz|\.xz|\.zst)?"),
+}
+CALL_MEMBER = re.compile(r"calls/call-[0-9]+(-[0-9]+)?\.jsonl")
+USAGE_FIELDS = (
+    "inputTokens",
+    "cacheCreationInputTokens",
+    "cacheReadInputTokens",
+    "outputTokens",
+    "thinkingTokens",
+)
 SUM_LINE = re.compile(r"([0-9a-f]{64}) [ *]([A-Za-z0-9][A-Za-z0-9._+-]*)")
 TAR_SUFFIX = re.compile(r".+\.tar(\.gz|\.xz)?")
 EVENT_MEMBER = re.compile(r"events[A-Za-z0-9._-]*\.jsonl")
@@ -165,10 +180,14 @@ def _check(name: str, problems: Problems, success: str) -> Check:
 # --- discovery and integrity ---
 
 
-def discover(names: Sequence[str], listed: Sequence[str] = ()) -> dict[str, str | Check]:
+def discover(
+    names: Sequence[str],
+    listed: Sequence[str] = (),
+    kinds: Mapping[str, re.Pattern[str]] = KINDS,
+) -> dict[str, str | Check]:
     """One file per kind. Of several supported copies, the one SHA256SUMS lists wins."""
     found: dict[str, str | Check] = {}
-    for kind, pattern in KINDS.items():
+    for kind, pattern in kinds.items():
         matches = [name for name in names if pattern.fullmatch(name)]
         supported = [name for name in matches if not name.endswith(".zst")]
         vouched = [name for name in supported if name in listed]
@@ -734,6 +753,109 @@ def checkpoint_checks(
     return checks
 
 
+# --- the agent trace (informational totals) ---
+
+
+@dataclass(frozen=True)
+class TraceTotals:
+    sessions: int
+    results: int
+    tokens: dict[str, int]
+    cost_usd: float
+
+
+def _token_count(value: object) -> int:
+    if type(value) is not int or value < 0:
+        raise ReleaseError(f"agent trace token count {value!r} is not a non-negative integer")
+    return value
+
+
+def _trace_result(event: dict[str, object]) -> tuple[str, float, dict[str, int]]:
+    session, cost, usage = (
+        event.get("session_id"),
+        event.get("total_cost_usd"),
+        event.get("modelUsage"),
+    )
+    if (
+        not isinstance(session, str)
+        or type(cost) not in (int, float)
+        or not math.isfinite(cast(float, cost))
+        or cast(float, cost) < 0
+        or not isinstance(usage, dict)
+    ):
+        raise ReleaseError("agent trace result line lacks session_id, total_cost_usd or modelUsage")
+    sums = dict.fromkeys(USAGE_FIELDS, 0)
+    for fields in usage.values():
+        if not isinstance(fields, dict):
+            raise ReleaseError("agent trace modelUsage entry is not an object")
+        for key in USAGE_FIELDS:
+            if key in fields:
+                sums[key] += _token_count(fields[key])
+    return session, float(cast(float, cost)), sums
+
+
+def scan_agent_trace(stream: BinaryIO, name: str) -> TraceTotals:
+    """Claude Code stream-json `result` lines in calls/call-*.jsonl.
+
+    Each result carries the session's cumulative modelUsage, so a session counts once, at its
+    largest total_cost_usd; sessions are summed. Other members are skipped unread.
+    """
+    best: dict[str, tuple[float, dict[str, int]]] = {}
+    results = members = 0
+    with _open_tar(stream, name) as tar:
+        for member in tar:
+            members += 1
+            if members > TRACE_MAX_MEMBERS:
+                raise ReleaseError(f"agent trace has more than {TRACE_MAX_MEMBERS} members")
+            if member.issym() or member.islnk():
+                raise ReleaseError(f"agent trace member {member.name!r} is a link")
+            if CALL_MEMBER.fullmatch(member.name) is None:
+                continue
+            if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE):
+                raise ReleaseError(f"agent trace member {member.name!r} is not a regular file")
+            if member.size > TRACE_MEMBER_CAP:
+                raise ReleaseError(
+                    f"agent trace member {member.name!r} is larger than {TRACE_MEMBER_CAP} bytes"
+                )
+            body = tar.extractfile(member)
+            assert body is not None
+            for number, line in _lines(cast(BinaryIO, body), EVENT_LINE_CAP, member.name):
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    raise ReleaseError(f"{member.name} line {number} is not JSON") from None
+                if not isinstance(event, dict) or event.get("type") != "result":
+                    continue
+                session, cost, sums = _trace_result(event)
+                results += 1
+                if session not in best or cost > best[session][0]:
+                    best[session] = (cost, sums)
+    if not best:
+        raise ReleaseError("agent trace has no Claude Code result lines")
+    tokens = {key: sum(sums[key] for _, sums in best.values()) for key in USAGE_FIELDS}
+    return TraceTotals(len(best), results, tokens, sum(cost for cost, _ in best.values()))
+
+
+def _plural(count: int, word: str) -> str:
+    return f"{count:,} {word}{'' if count == 1 else 's'}"
+
+
+def _trace_lines(trace: TraceTotals | str | None) -> list[str]:
+    if trace is None:
+        return ["list cost: not in this release (the agent trace is not shipped)"]
+    if isinstance(trace, str):
+        return [f"agent trace: {trace}; tokens and list cost not reported"]
+    t = trace.tokens
+    return [
+        f"tokens (agent trace, {_plural(trace.sessions, 'session')}, "
+        f"{_plural(trace.results, 'result')}): input {t['inputTokens']:,}; "
+        f"cache write {t['cacheCreationInputTokens']:,}; "
+        f"cache read {t['cacheReadInputTokens']:,}; "
+        f"output {t['outputTokens']:,} (thinking {t['thinkingTokens']:,})",
+        f"list cost: ${trace.cost_usd:,.2f} (the agent trace's Claude Code costUSD, list basis)",
+    ]
+
+
 # --- the whole check ---
 
 
@@ -752,6 +874,10 @@ def verify(
     names = files.names()
     sums, sum_problems = _read_sums(files, names)
     found = discover(names, list(sums))
+    optional = discover(names, list(sums), OPTIONAL_KINDS)
+    trace_target = optional["agent trace"]
+    if isinstance(trace_target, str) or not trace_target.detail.startswith("missing"):
+        found |= optional
     digests: dict[str, str] = {}
     read_problems: dict[str, str] = {}
 
@@ -784,6 +910,12 @@ def verify(
     facts, event_problem = stream("events", lambda s, n, _t: scan_event_source(s, n))
     final, final_problem = stream("final snapshot", lambda s, _n, t: read_final_snapshot(s, t))
     cps, cp_problem = stream("checkpoints", lambda s, n, _t: scan_checkpoints(s, n))
+    trace: TraceTotals | str | None = None
+    if "agent trace" in found:
+        totals, trace_problem = stream("agent trace", lambda s, n, _t: scan_agent_trace(s, n))
+        trace = totals if totals is not None else f"unreadable ({trace_problem})"
+        if isinstance(found["agent trace"], Check):
+            trace = trace_problem
     final_name = found["final snapshot"]
 
     checks = [
@@ -811,7 +943,7 @@ def verify(
     checks += checkpoint_checks(
         cps, facts, rom_sha1, cp_problem or (event_problem and f"not checked: {event_problem}")
     )
-    return Report(checks, _totals(facts, final, cps, names))
+    return Report(checks, _totals(facts, final, cps, trace))
 
 
 EVENT_CHECKS = (
@@ -881,7 +1013,7 @@ def _totals(
     facts: EventFacts | None,
     final: FinalSnapshot | None,
     cps: CheckpointFacts | None,
-    names: Sequence[str],
+    trace: TraceTotals | str | None,
 ) -> list[str]:
     lines: list[str] = []
     if facts is not None:
@@ -905,15 +1037,12 @@ def _totals(
             )
         tokens = end.get("tokens")
         if isinstance(tokens, dict) and not any(tokens.values()):
-            lines.append("tokens: not recorded (logged as 0)")
+            lines.append("tokens (event log): not recorded (logged as 0)")
         elif isinstance(tokens, dict):
-            lines.append(f"tokens: input {tokens.get('input')}, output {tokens.get('output')}")
-        traces = [name for name in names if name.startswith("agent-trace")]
-        lines.append(
-            f"list cost: not computed here (the agent trace ships as {', '.join(traces)})"
-            if traces
-            else "list cost: not in this release (the agent trace is not shipped)"
-        )
+            lines.append(
+                f"tokens (event log): input {tokens.get('input')}, output {tokens.get('output')}"
+            )
+        lines += _trace_lines(trace)
         lines.append(f"evidence: {facts.count:,} events, {len(facts.milestones)} milestones")
     if final is not None:
         meta = final.reader.metadata

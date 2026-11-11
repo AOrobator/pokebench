@@ -78,9 +78,10 @@ The input is an untrusted download.
 
 **M1b — Tokens and list cost from the agent trace** (coordinator 17:58Z; The operator's decision card "Land now, tokens next"), branch `claude/verify-release-tokens` off cae3b65f0
 - [x] Write tests: per-session cumulative usage at the max `total_cost_usd`, summed across sessions, multiple models; non-call members ignored; absent and zstd-only trace; malformed result lines; links, member size, member count and line caps. Informational only: a bad trace never fails a check, and the check count stays 15.
-- [ ] COMMIT: `test(verify-release): agent-trace token totals` (RED)
-- [ ] Implement `scan_agent_trace` (bounded, safe streaming tar; only `calls/call-*.jsonl` read; Claude Code stream-json `result` lines)
-- [ ] Cheap checks, guard deletion, full gates, real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
+- [x] COMMIT: `test(verify-release): agent-trace token totals` (RED, 88def9f7a: 12 failed, 65 passed)
+- [x] Implement `scan_agent_trace` (bounded, safe streaming tar via `_BoundedTarInfo`; only `calls/call-*.jsonl` read; links, non-regular call files, >64 MiB members, >65,536 members, lines over 16 MiB, non-JSON and malformed result lines make the trace "unreadable" in the totals; the trace is hashed like every file read). Event-log token line relabelled `tokens (event log)`.
+- [x] Cheap checks: 79/79, ruff, mypy. Guard deletion: 8 guards removed alone; "max cost per session" and the cost type check first survived, pinned by `test_a_later_but_smaller_result_does_not_replace_the_session_total` and a boolean-cost case; all red now. Real release (read-only, folder unchanged): 15/15 PASS, 57.1 s, 273 MB peak; integrity 4 files read; totals exactly as expected below.
+- [ ] Full gates; real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
 - [ ] Codex review (small); stop at ready to land
 
 **M2 — Landing** (the operator)

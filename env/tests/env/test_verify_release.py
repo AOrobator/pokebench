@@ -329,10 +329,10 @@ def test_clean_release_passes_every_check(ext: str) -> None:
     assert ("byte-identical" in binding) == (ext == ".gz")
     assert any("final RAM snapshot: sequence 1" in line for line in report.totals)
     assert any("the agent trace is not shipped" in line for line in report.totals)
-    traced = run(build.files() | {"agent-trace-67d7.tar.xz": b"trace"})
-    assert any("ships as agent-trace-67d7.tar.xz" in line for line in traced.totals)
+    traced = run(build.files() | {"agent-trace-67d7.tar.xz": b"not xz"})
+    assert any(line.startswith("agent trace: unreadable") for line in traced.totals)
     assert any("claude-opus-5-5" in line for line in report.totals)
-    assert any("tokens: not recorded" in line for line in report.totals)
+    assert any("tokens (event log): not recorded" in line for line in report.totals)
     assert any("just replay-verify" in line for line in report.totals)
 
 
@@ -1181,6 +1181,21 @@ def test_trace_totals_take_each_sessions_cumulative_usage_and_sum_sessions(ext: 
     assert "list cost: $3.25 (the agent trace's Claude Code costUSD, list basis)" in report.totals
 
 
+def test_a_later_but_smaller_result_does_not_replace_the_session_total() -> None:
+    big = model_usage(2.5, inp=30, write=300, read=3000, out=15, think=3)
+    small = model_usage(1.0, inp=10, write=100, read=1000, out=5, think=1)
+    build = Build()
+    build.trace = trace_tar(
+        {
+            "calls/call-1-1.jsonl": jsonl(result_line("A", 2.5, {"m": big})),
+            "calls/call-2-1.jsonl": jsonl(result_line("A", 1.0, {"m": small})),
+        }
+    )
+    lines = run(build.files()).totals
+    assert any("input 30; cache write 300" in line for line in lines)
+    assert "list cost: $2.50 (the agent trace's Claude Code costUSD, list basis)" in lines
+
+
 def test_trace_totals_for_the_67d7_shape() -> None:
     usage = model_usage(
         780.5451723999995, inp=7967144, write=75149150, read=574225342, out=1643515, think=361372
@@ -1221,6 +1236,7 @@ def trace_note(members: dict[str, bytes], extra: list[tarfile.TarInfo] | None = 
     "line",
     [
         {**result_line("A", 1.0, {}), "total_cost_usd": "1.0"},
+        {**result_line("A", 1.0, {}), "total_cost_usd": True},
         {**result_line("A", 1.0, {}), "total_cost_usd": -1.0},
         {**result_line("A", 1.0, {}), "session_id": 7},
         result_line("A", 1.0, {"m": {"inputTokens": -1}}),

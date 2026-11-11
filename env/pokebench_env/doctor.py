@@ -223,6 +223,19 @@ FFMPEG_PKGS = (
 FFMPEG_APT = " ".join(f"{pkg}-dev" for pkg in FFMPEG_PKGS)
 
 
+def _system_pkg_config(p: Probes) -> str | None:
+    """The first pkg-config on PATH outside env/.venv, as scripts/build-mgba.sh picks it: the
+    venv's PyPI pkgconf misses the distribution's pkgconfig directories."""
+    venv_bin = p.resolve(p.repo / VENV_PYTHON.parent)
+    for entry in p.env.get("PATH", "").split(":"):
+        if not entry or p.resolve(Path(entry)) == venv_bin:
+            continue
+        candidate = Path(entry) / "pkg-config"
+        if p.is_file(candidate):
+            return str(candidate)
+    return None
+
+
 def check_build_tools(p: Probes) -> list[Check]:
     """What scripts/build-mgba.sh needs: cmake, a C compiler, FFmpeg and libpng with headers."""
     checks: list[Check] = []
@@ -253,13 +266,15 @@ def check_build_tools(p: Probes) -> list[Check]:
                     Check("game", name, "FAIL", f"Homebrew {name} missing", _both(name, apt))
                 )
         return checks
-    if not p.which("pkg-config"):
+    pkg_config = _system_pkg_config(p)
+    if pkg_config is None:
         fix = _both("pkgconf", "pkg-config")
-        checks.append(Check("game", "pkg-config", "FAIL", "pkg-config not found", fix))
+        detail = "no pkg-config outside env/.venv on PATH"
+        checks.append(Check("game", "pkg-config", "FAIL", detail, fix))
         checks += [Check("game", name, "SKIP", "needs pkg-config") for name, _, _ in libraries]
         return checks
     for name, pkgs, apt in libraries:
-        missing = [pkg for pkg in pkgs if p.run(["pkg-config", "--exists", pkg]) is None]
+        missing = [pkg for pkg in pkgs if p.run([pkg_config, "--exists", pkg]) is None]
         if missing:
             detail = f"no headers for {', '.join(missing)}"
             checks.append(Check("game", name, "FAIL", detail, _both(name, apt)))

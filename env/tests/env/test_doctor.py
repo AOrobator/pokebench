@@ -184,7 +184,11 @@ def test_setup_outputs() -> None:
     assert vendor.fix == "git submodule update --init env/vendor/continual-harness"
 
 
-LINUX_PKGS = {("pkg-config", "--exists", pkg): "" for pkg in (*doctor.FFMPEG_PKGS, "libpng")}
+SYSTEM_PKG_CONFIG = "/usr/bin/pkg-config"
+VENV_BIN = "/repo/env/.venv/bin"
+LINUX_PATH = {"PATH": f"{VENV_BIN}:/usr/bin"}
+LINUX_FILES = {Path(VENV_BIN) / "pkg-config", Path(SYSTEM_PKG_CONFIG)}
+LINUX_PKGS = {(SYSTEM_PKG_CONFIG, "--exists", pkg): "" for pkg in (*doctor.FFMPEG_PKGS, "libpng")}
 
 
 def test_macos_build_tools() -> None:
@@ -205,7 +209,13 @@ def test_macos_build_tools() -> None:
 def test_linux_build_tools_use_pkg_config_and_never_brew() -> None:
     asked: list[tuple[str, ...]] = []
     ready = doctor.check_build_tools(
-        probes(system="Linux", tools={"cmake", "gcc", "pkg-config"}, commands=LINUX_PKGS)
+        probes(
+            system="Linux",
+            env=LINUX_PATH,
+            files=LINUX_FILES,
+            tools={"cmake", "gcc"},
+            commands=LINUX_PKGS,
+        )
     )
     assert [c.status for c in ready] == ["PASS"] * 4
     assert by_name(ready)["C toolchain"].detail == "gcc found"
@@ -215,14 +225,29 @@ def test_linux_build_tools_use_pkg_config_and_never_brew() -> None:
         asked.append(tuple(argv))
         return None
 
-    linux = probes(system="Linux", tools={"pkg-config"})
+    linux = probes(system="Linux", env=LINUX_PATH, files=LINUX_FILES, tools=set())
     no_libs = by_name(doctor.check_build_tools(Probes(**{**linux.__dict__, "run": recording})))
-    assert all(argv[0] == "pkg-config" for argv in asked)
+    assert {argv[0] for argv in asked} == {SYSTEM_PKG_CONFIG}
     assert "libswresample" in no_libs["ffmpeg"].detail
     assert "sudo apt install build-essential" in no_libs["C toolchain"].fix
-    no_pkg_config = by_name(doctor.check_build_tools(probes(system="Linux", tools=set())))
+    no_pkg_config = by_name(
+        doctor.check_build_tools(probes(system="Linux", env={"PATH": "/usr/bin"}, files=set()))
+    )
     assert no_pkg_config["pkg-config"].status == "FAIL"
     assert no_pkg_config["libpng"].status == "SKIP"
+
+
+def test_linux_pkg_config_skips_the_venv_copy() -> None:
+    venv_only = probes(
+        system="Linux",
+        env={"PATH": f"::{VENV_BIN}"},
+        files={Path(VENV_BIN) / "pkg-config"},
+        commands={(f"{VENV_BIN}/pkg-config", "--exists", "libpng"): ""},
+    )
+    checks = by_name(doctor.check_build_tools(venv_only))
+    assert checks["pkg-config"].status == "FAIL"
+    assert "outside env/.venv" in checks["pkg-config"].detail
+    assert checks["ffmpeg"].status == "SKIP"
 
 
 def test_linux_runs_every_tier_without_crashing() -> None:

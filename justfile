@@ -70,7 +70,7 @@ doctor *tier:
     [[ -x "$py" ]] || py=$(command -v python3 || true)
     if [[ -z "$py" ]]; then
         echo "FAIL  core   python  no python3 found"
-        echo "                     fix: brew install uv && uv python install 3.11 && just setup"
+        echo "                     fix: macOS: brew install uv  |  Linux: https://docs.astral.sh/uv/; then uv python install 3.11 && just setup"
         exit 1
     fi
     PYTHONPATH="$PWD/env" "$py" -B -m pokebench_env.doctor "$@"

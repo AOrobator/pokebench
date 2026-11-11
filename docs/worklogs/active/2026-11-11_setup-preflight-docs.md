@@ -39,3 +39,5 @@ Follow-ups from the Linux trial, out of scope here: an isMain() helper for impor
 - [x] COMMIT: `fix(charts): parse on Python 3.11 and audit the League and chain stitching` (56e639c12)
 - [x] Codex review-setup-preflight-docs-56e639c12: VERDICT: LGTM (PNGs pixel-identical on 3.11, audit reproduces every plotted point; 1 s rounding note only)
 - [x] docs/images/charts/COSTS.md: provenance of every plotted dollar figure; local-model figures marked as copied from the article and not reproducible from disk
+- [x] Claude lane (claude -p, ~/.claude-review, plan mode) on 640ba5c74..5df0de1ca, packet sha256 4ddffbee…6045043: CHANGES. (1) Linux pkg-config probe used env/.venv/bin/pkg-config (PyPI pkgconf) when the venv is on PATH, false-FAILing ffmpeg/libpng: doctor now picks the first pkg-config on PATH outside env/.venv, as build-mgba.sh does (2 RED tests first). (2) justfile no-python3 fallback suggested brew on Linux: now names both platforms. test_doctor 35 passed; ruff, format, mypy clean. Grok lane unavailable until 11/17 (recorded, the operator said land it)
+- [ ] Claude lane re-review of the fix

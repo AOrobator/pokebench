@@ -19,7 +19,7 @@ import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { readPlace, returnToPlace, type Place } from "./steady-scroll.js";
-import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
+import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceLoading, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -1192,7 +1192,7 @@ export class App {
     const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
     const knowledge = view.start?.harness_features.find(id => KNOWLEDGE_SWITCHES.has(id));
     const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
-    const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
+    const frontier = recording !== undefined ? this.frontier : null, loading = raceLoading(this.frontier, recording !== undefined, this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
     const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = openLegs(race, this.raceOpen);
     draw("race-head", raceHeadline(race, label, now, loading, side)+(this.current?.state.snapshot?.metadata===undefined?"":'<p class="race-sub">Observed progress from the saved state. Grading loads separately; unavailable historical active times stay unknown.</p>'));

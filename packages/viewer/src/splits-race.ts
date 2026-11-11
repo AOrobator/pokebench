@@ -111,6 +111,12 @@ export function raceSide(frontier: Baseline | null, save: boolean, assisted: str
 }
 const NEW_GAME_SIDE = raceSide(null, false, null);
 
+// Still loading only while the frontier request is unsettled, or while a real frontier waits for this
+// run's workbench record. A settled empty frontier (no other run to race) is an answer, not a wait.
+export function raceLoading(frontier: Baseline | null, recordingKnown: boolean, settled: boolean): boolean {
+  return !settled || (frontier !== null && !recordingKnown);
+}
+
 export function raceHeadline(race: Race, label: string, now: number, loading = false, side: RaceSide = NEW_GAME_SIDE): string {
   const run = side.assisted === null ? label : `ASSISTED ${label}`, name = esc(side.name);
   const none = side.save ? `${esc(run)}: no race. No earlier benchmark run from this save has a milestone to race.` : `${esc(run)}: no frontier comparison for this run.`;

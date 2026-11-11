@@ -921,7 +921,7 @@ def test_gateway_replies_are_read_the_way_the_gateway_reads_them(
     assert gateway_calls(log, lambda _n: record) == want
 
 
-# ---------------------------------------------------------------- Piece 12: side files for /broadcast
+# ---------------------------------------------------------- Piece 12: side files for /broadcast
 
 from pokebench_env.broadcast_commentary import cost_rows, scrub_private, thinking_rows  # noqa: E402
 
@@ -932,14 +932,27 @@ def test_scrub_blanks_every_private_kind_and_keeps_the_rest() -> None:
         "ip 10.0.0.2, host box.local, file notes.md, the operator said hi, on mymac today."
     )
     out = scrub_private(text, ["The operator", "mymac", ""])
-    for gone in ("/Users", "https", "a@b.com", "10.0.0.2", "box.local", "notes.md", "The operator", "mymac"):
+    for gone in (
+        "/Users",
+        "https",
+        "a@b.com",
+        "10.0.0.2",
+        "box.local",
+        "notes.md",
+        "The operator",
+        "mymac",
+    ):
         assert gone not in out
     assert out.startswith("Rayquaza at 20/45 HP. See … and …")
     assert "today." in out
 
 
 def test_thinking_rows_keep_turns_with_thinking_scrubbed() -> None:
-    steps = [Step(1, 1.0, "Go to /tmp/x now.", "a"), Step(2, 2.0, "", "b"), Step(3, 3.0, "Throw.", "c")]
+    steps = [
+        Step(1, 1.0, "Go to /tmp/x now.", "a"),
+        Step(2, 2.0, "", "b"),
+        Step(3, 3.0, "Throw.", "c"),
+    ]
     assert thinking_rows(steps, []) == [
         {"turn": 1, "thinking": "Go to … now."},
         {"turn": 3, "thinking": "Throw."},
@@ -947,9 +960,9 @@ def test_thinking_rows_keep_turns_with_thinking_scrubbed() -> None:
 
 
 def test_cost_rows_take_each_requests_last_session_total_in_turn_order() -> None:
-    row = lambda request, attempt, total: json.dumps(  # noqa: E731
-        {"request": request, "attempt": attempt, "session_cost_total_usd": total}
-    )
+    def row(request: int, attempt: int, total: float) -> str:
+        return json.dumps({"request": request, "attempt": attempt, "session_cost_total_usd": total})
+
     log = "\n".join(
         [
             row(2, 1, 0.5),

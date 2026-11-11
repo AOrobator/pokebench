@@ -10,6 +10,8 @@ export type BroadcastItem =
   | { readonly k: "state"; readonly t: number; readonly where: string | null; readonly foe: string | null; readonly badges: readonly string[]; readonly party: readonly BroadcastMon[] }
   | { readonly k: "mile"; readonly t: number; readonly name: string }
   | { readonly k: "use"; readonly t: number; readonly input: number; readonly output: number; readonly cacheRead: number; readonly cacheWrite: number }
+  // Dollars spent so far, as the model's gateway recorded them.
+  | { readonly k: "usd"; readonly t: number; readonly usd: number }
   | { readonly k: "end"; readonly t: number };
 
 export interface BroadcastHeader { readonly run: string; readonly model: string; readonly started: string; readonly kind: "boot" | "save"; readonly save: string | null }
@@ -26,7 +28,7 @@ export interface BroadcastResponse {
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
-const KINDS: ReadonlySet<unknown> = new Set(["turn", "think", "thought", "tool", "press", "frame", "state", "mile", "use", "end"]);
+const KINDS: ReadonlySet<unknown> = new Set(["turn", "think", "thought", "tool", "press", "frame", "state", "mile", "use", "usd", "end"]);
 
 // The server built these from validated events; the check catches a stale page or a proxy's error body.
 export function parseBroadcast(value: unknown): BroadcastResponse {

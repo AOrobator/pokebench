@@ -71,7 +71,11 @@ export interface BroadcastReducer {
   add(line: string): void;
 }
 
-export function createBroadcastReducer(): BroadcastReducer {
+// What a run's own log lacks, from the session gateway's bridge (runs/broadcast/<run>/thinking.jsonl and cost.jsonl).
+export interface BroadcastSide { readonly thinking: ReadonlyMap<number, string>; readonly usd: ReadonlyMap<number, number> }
+const NO_SIDE: BroadcastSide = { thinking: new Map(), usd: new Map() };
+
+export function createBroadcastReducer(side: BroadcastSide = NO_SIDE): BroadcastReducer {
   const items: BroadcastItem[] = [];
   let header: BroadcastHeader | null = null, ended = false, started = 0, streamed = { turn: -1, text: "" }, shown = "";
   const at = (stamp: string): number => seconds(Date.parse(stamp) - started);
@@ -89,9 +93,11 @@ export function createBroadcastReducer(): BroadcastReducer {
     items.push({ k: "state", t: at(state.t), ...view });
   };
   const assistantOf = (event: Static<typeof Assistant>, turn: number): void => {
-    const whole = event.thinking !== undefined && event.thinking !== "" ? event.thinking : event.text ?? "";
+    const whole = event.thinking !== undefined && event.thinking !== "" ? event.thinking : side.thinking.get(turn) ?? event.text ?? "";
     if (whole !== "" && !(streamed.turn === turn && streamed.text === whole)) items.push({ k: "thought", t: at(event.t), turn, d: whole });
     if (event.usage !== undefined) items.push({ k: "use", t: at(event.t), input: event.usage.input, output: event.usage.output, cacheRead: event.usage.cache_read ?? 0, cacheWrite: event.usage.cache_write ?? 0 });
+    const usd = side.usd.get(turn);
+    if (usd !== undefined) items.push({ k: "usd", t: at(event.t), usd });
   };
   const handle = (type: unknown, run: unknown, value: unknown): void => {
     if (type === "run_start") { const event = check(Start, value); if (event !== null && typeof run === "string") startOf(run, event); return; }

@@ -506,6 +506,48 @@ def join_thinking(
     return out, matched, mismatched
 
 
+# PRIVATE finds a URL or path by its start; blanking one needs its whole length.
+WHOLE = {
+    "a url": re.compile(r"\b[a-z][a-z0-9+.-]*://\S*|\bwww\.\S*", re.IGNORECASE),
+    "a file path": re.compile(r"(?<![\w/])(~|\.{1,2})?(/[\w.-]+)+/?|\b[a-z]:\\\S*", re.IGNORECASE),
+}
+
+
+def scrub_private(text: str, names: Sequence[str]) -> str:
+    """The text with every private span the lines are refused for blanked to an ellipsis."""
+    for reason, found in PRIVATE:
+        pattern = WHOLE.get(reason, found)
+        text = pattern.sub("…", text)
+    for name in names:
+        if name:
+            text = re.sub(rf"\b{re.escape(name)}\b", "…", text, flags=re.IGNORECASE)
+    return text
+
+
+def thinking_rows(steps: Sequence[Step], names: Sequence[str]) -> list[dict[str, object]]:
+    """thinking.jsonl for /broadcast: each turn's thinking, scrubbed."""
+    return [
+        {"turn": step.turn, "thinking": scrub_private(step.thinking, names)}
+        for step in steps
+        if step.thinking != ""
+    ]
+
+
+def cost_rows(log: str) -> list[dict[str, object]]:
+    """cost.jsonl for /broadcast: the running dollar total after each request's last try."""
+    totals: dict[int, float] = {}
+    for raw in log.splitlines():
+        try:
+            call = json.loads(raw)
+            request, total = call["request"], call["session_cost_total_usd"]
+        except (ValueError, KeyError, TypeError):
+            continue
+        if type(request) is not int or type(total) not in (int, float):
+            continue
+        totals[request] = float(total)
+    return [{"turn": turn, "usd": totals[turn]} for turn in sorted(totals)]
+
+
 def clock(seconds: float) -> str:
     whole = int(seconds)
     return f"{whole // 3600}:{whole // 60 % 60:02d}:{whole % 60:02d}"
@@ -755,6 +797,7 @@ class Options:
     claude: str = "claude"
     claude_config_dir: str | None = None
     thinking_from: Path | None = None
+    side_only: bool = False
     follow: bool = False
     lines_only: bool = False
     voice_only: bool = False
@@ -767,7 +810,7 @@ class Options:
 
 
 def options_problem(options: Options) -> str | None:
-    writing = not options.voice_only
+    writing = not options.voice_only and not options.side_only
     if Path(options.run).name != options.run:
         return "run must be a run id"
     if options.writer not in ("local", "claude"):
@@ -776,6 +819,12 @@ def options_problem(options: Options) -> str | None:
         return "--speed must be above 0 and at most 4"
     if options.lines_only and options.voice_only:
         return "--lines-only and --voice-only exclude each other"
+    if options.side_only and options.thinking_from is None:
+        return "--side-only needs --thinking-from"
+    if options.side_only and (options.start != 0.0 or options.end != float("inf")):
+        return "--side-only covers the whole run"
+    if options.side_only and (options.lines_only or options.voice_only or options.follow):
+        return "--side-only writes only the side files"
     if options.follow and (options.start != 0.0 or options.end != float("inf")):
         return "--follow takes no time range"
     if options.follow and (options.writer == "claude" or options.lines_only or options.voice_only):
@@ -807,6 +856,11 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
         "--thinking-from",
         type=Path,
         help="claude writer: a session gateway's --bridge folder holding the run's thinking",
+    )
+    parser.add_argument(
+        "--side-only",
+        action="store_true",
+        help="write thinking.jsonl and cost.jsonl for /broadcast from --thinking-from, only",
     )
     parser.add_argument("--follow", action="store_true", help="tail a live run until it ends")
     parser.add_argument("--lines-only", action="store_true", help="write lines, make no voice")
@@ -937,6 +991,26 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         return _synth(args.kokoro, args.voice, args.lang, args.speed)
 
     log_path = args.runs / args.run / "events.jsonl"
+    if args.side_only and args.thinking_from is not None:
+        source: Path = args.thinking_from
+        steps, matched, _ = join_thinking(
+            read_steps(_log_lines(log_path)),
+            gateway_calls(
+                (source / "calls.jsonl").read_text(encoding="utf-8"),
+                lambda name: _read_text(source / "calls" / name),
+            ),
+        )
+        costs = cost_rows((source / "calls.jsonl").read_text(encoding="utf-8"))
+        for name, rows in (
+            ("thinking.jsonl", thinking_rows(steps, private_names())),
+            ("cost.jsonl", costs),
+        ):
+            scratch = folder / f"{name}.tmp"
+            scratch.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            scratch.replace(folder / name)
+        last = f"${costs[-1]['usd']:.2f}" if costs else "none"
+        print(f"{matched} turns of thinking, {len(costs)} costs (last {last}) in {folder}")
+        return 0
     existing = load_lines(target.read_text(encoding="utf-8")) if target.exists() else []
     if args.follow:
         model = args.model or _served_model(endpoint)

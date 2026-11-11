@@ -118,8 +118,8 @@ Coordinator brief 2026-11-11 for the operator: the 67d7 YouTube broadcast narrat
 
 ### Piece 12: 67d7 render fixes (ducking, thinking, API cost)
 Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the game at full level and ducks it about -12 dB under each spoken line (150 ms attack, 400 ms release) with a volume envelope built from the line times, instead of a flat 0.35; (2) THINKING for 67d7 from the bridge, via `runs/broadcast/<run>/thinking.jsonl` (`--side-only --thinking-from`, scrubbed like the lines), filling turns whose events have none; (3) API COST counts up per turn from the bridge's `session_cost_total_usd` via `runs/broadcast/<run>/cost.jsonl`, ending at $780.55. Never touches `runs/<run>/`.
-- [ ] RED
-- [ ] GREEN
+- [x] RED (7c2ed0df0)
+- [x] GREEN: env 122 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean; viewer 150 broadcast tests, broadcast modules 98.8% lines 91.1% branches, eslint and tsc clean on the changed files. `--side-only --thinking-from <bridge>` on 67d7: 1,876 turns of thinking (scrub blanked nothing), 4,124 cost rows, last $780.55. Duck: `volume='1-0.748811*max(...)':eval=frame` with one clipped attack/release ramp per line, balanced max. Store reads the side files once per run tail; event thinking wins over the side file; recorded dollars beat token pricing.
 - [ ] Trial v2 render t=52400-52668, frames checked, ducking measured
 - [ ] Review: Codex via `just tell-codex`
 

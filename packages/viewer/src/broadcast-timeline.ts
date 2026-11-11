@@ -52,6 +52,7 @@ export class BroadcastTimeline {
   private readonly pressList: Of<"press">[] = [];
   private readonly mileList: Of<"mile">[] = [];
   private readonly spent: { t: number; input: number; output: number; cacheRead: number }[] = [];
+  private readonly paid: Of<"usd">[] = [];
   private ended: number | null = null;
 
   get end(): number | null { return this.ended; }
@@ -66,6 +67,7 @@ export class BroadcastTimeline {
       else if (item.k === "press") this.pressList.push(item);
       else if (item.k === "mile") this.mileList.push(item);
       else if (item.k === "end") this.ended = item.t;
+      else if (item.k === "usd") this.paid.push(item);
       else {
         const before = this.spent.at(-1) ?? { input: 0, output: 0, cacheRead: 0 };
         this.spent.push({ t: item.t, input: before.input + item.input, output: before.output + item.output, cacheRead: before.cacheRead + item.cacheRead });
@@ -86,7 +88,9 @@ export class BroadcastTimeline {
     return { turn: item.turn, text: pieces.join("") };
   }
 
+  // Recorded dollars, when the run has them, beat a price worked out from tokens.
   private costAt(t: number, rates: BroadcastRates | null): number | null {
+    if (this.paid.length > 0) return last(this.paid, t)?.usd ?? 0;
     if (rates === null) return null;
     const used = last(this.spent, t);
     return used === null ? 0 : (used.input * rates.input + used.output * rates.output + used.cacheRead * rates.cacheRead) / 1_000_000;

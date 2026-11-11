@@ -1,6 +1,6 @@
 # `just view-release`: open a downloaded release in the viewer
 
-Status: M1 (source readiness) in progress on `claude/view-release` (worktree `~/dev/pokebench-view-release`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("make sure that opening a release in the viewer works"); scope from the coordinator (18:28Z, 18:40Z). Landing needs the operator.
+Status: M1 READY TO LAND (source c4ced78e5 on main 640ba5c74; gates green; GPT round 2 LGTM) on `claude/view-release` (worktree `~/dev/pokebench-view-release`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("make sure that opening a release in the viewer works"); scope from the coordinator (18:28Z, 18:40Z). Landing needs the operator.
 
 ## Problem Statement
 
@@ -44,9 +44,9 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 - [x] Tests (RED)
 - [x] Implement (`view_release.py`, `just view-release`; stacked on `claude/replay-verify` for `verify_release.read_event_source`)
 - [x] Cheap checks: 22/22, ruff, mypy. Guard deletion: 16 guards removed alone; discard-on-failure, run_start type and frame regular-file first survived, pinned by new tests; all red now
-- [ ] Full gates
+- [x] Full gates on c4ced78e5 (rebased onto main 640ba5c74; upstream changed Node/mypy tooling, so the gates were rerun rather than reused): `just lint` exit 0; `just test` exit 0 (agent 3,042, viewer 1,276, env 3,284, gateway 39; floors; no-I/O proof)
 - [x] Close the loop (see Closing the Loop; frontier-headline gap recorded): unpack the real 67d7 release; viewer on a scratch port; background browser click-through of the run page, frontier and splits; desktop (1280, 1440) and phone (375) screenshots opened and looked at; stop the scratch viewer
-- [ ] Codex review (two rounds, then ask)
+- [x] Codex review: round 1 BLOCKING (3 fixed), round 2 LGTM
 
 **M2 — Landing** (the operator)
 
@@ -86,6 +86,10 @@ Base 6c8c42247, head e031ec5cf, SHA-256 1d44f7f5…c3c3. 22 focused passed. `VER
 - [P2] The reuse marker ignored `--raw-ram`. Fixed: the marker records `base` or `raw-ram`; a `base` unpack is refused for `--raw-ram` (remove and rerun), while a `raw-ram` unpack serves both. Test.
 - Guard deletion: each of the six new guards removed alone turns its test red. 26/26.
 - The gate run on e031ec5cf was stopped (superseded).
+
+### Round 2 — GPT (JOB review-gpt-view-release-r2-a2d4c151c)
+
+Delta e031ec5cf..a2d4c151c (SHA-256 0a461faa…3f8e). All three resolved; the reviewer also reproduced the RealFs interleaving in a throwaway directory (winner complete, second publish refused, no staging left). 26/26. `VERDICT: LGTM`. The rebase onto 640ba5c74 was clean, with no conflicts in the reviewed files.
 
 ## Boy Scout Log
 

@@ -3,7 +3,7 @@ import { BASE_MS, START, must } from "../test-support/events.js";
 import { BROWSER_MODULES } from "./browser-modules.js";
 import { FRONTIER_MILESTONES } from "./frontier.js";
 import { RunView } from "./model.js";
-import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex } from "./splits-race.js";
+import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceLoading, raceMap, raceOf, raceRail, raceSwings, runLabel, startIndex } from "./splits-race.js";
 
 const mark = (name: string, at: number) => ({ name, at, derived: false });
 const frontier = (...rows: readonly (readonly [string, number])[]) => ({ run: "front", milestones: rows.map(([name, s]) => ({ name, offsetMs: s * 1000 })) });
@@ -149,5 +149,26 @@ describe("the map", () => {
   it("leaves off a run it cannot place", () => {
     expect(raceMap(map, null, raceOf([], null, 1, -1), "r")).not.toContain("map-run.png");
     expect(raceMap(null, null, raceOf([], null, 1, -1), "r")).toContain("just trainer-page-art");
+  });
+});
+
+describe("when the race is still loading", () => {
+  const front = frontier(["A", 10]);
+  it("settles on no frontier once the server says there is none, workbench record or not", () => {
+    expect(raceLoading(null, false, true)).toBe(false);
+    expect(raceLoading(null, true, true)).toBe(false);
+  });
+  it("still loads while the frontier request is unsettled, or a real frontier waits for the run's record", () => {
+    expect(raceLoading(null, false, false)).toBe(true);
+    expect(raceLoading(null, true, false)).toBe(true);
+    expect(raceLoading(front, false, true)).toBe(true);
+    expect(raceLoading(front, false, false)).toBe(true);
+    expect(raceLoading(front, true, false)).toBe(true);
+    expect(raceLoading(front, true, true)).toBe(false);
+  });
+  it("then reads as the honest no-comparison line, not loading", () => {
+    const html = raceHeadline(raceOf([mark("A", 10)], null, 40, -1), "r", 40, raceLoading(null, false, true));
+    expect(html).toContain("no frontier comparison");
+    expect(html).not.toContain("Loading");
   });
 });

@@ -19,7 +19,7 @@ import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
 import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { readPlace, returnToPlace, type Place } from "./steady-scroll.js";
-import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
+import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceLoading, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
 import { headHtml, sheetHtml } from "./run-head.js";
 import type { Cohort } from "./runs.js";
@@ -29,7 +29,7 @@ import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi 
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { cardRow } from "./card-row.js";
 import { currentSplits } from "./current-public.js";
-import { PROBE_SESSION, WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
+import { PROBE_SESSION, WORKBENCH_POLL_MS, needsCardEnrichment, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { isProbeRun, plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
@@ -742,8 +742,8 @@ export class App {
   // Current snapshots carry bounded card anchors and on-demand saved progress.
   // Legacy producers or an absent card may still need the older enrichment path.
   private needsWorkbenchEnrichment(): boolean {
-    if (this.current === null) return true;
-    return this.runId !== null&&this.current.state.snapshot!==null&&(this.current.state.snapshot.metadata===undefined||this.current.state.snapshot.run.card==null);
+    const snapshot = this.current?.state.snapshot ?? null;
+    return needsCardEnrichment({ projector: this.current !== null, runId: this.runId, projectorRuns: this.current?.state.runs.length ?? 0, snapshot: snapshot === null ? null : { metadata: snapshot.metadata !== undefined, card: snapshot.run.card != null } });
   }
 
   private loadWorkbench(): Promise<void> {
@@ -1192,7 +1192,7 @@ export class App {
     const run = this.runId ?? "", label = runLabel(run), recording = this.workbench?.runs.find(item => item.id === run);
     const knowledge = view.start?.harness_features.find(id => KNOWLEDGE_SWITCHES.has(id));
     const assisted = customLane({ model: recording?.model ?? view.start?.model.id ?? null, experiment: recording?.experiment ?? null, config: recording?.config ?? null }) ?? (knowledge === undefined ? null : `${knowledge} is on`);
-    const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
+    const frontier = recording !== undefined ? this.frontier : null, loading = raceLoading(this.frontier, recording !== undefined, this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
     const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = openLegs(race, this.raceOpen);
     draw("race-head", raceHeadline(race, label, now, loading, side)+(this.current?.state.snapshot?.metadata===undefined?"":'<p class="race-sub">Observed progress from the saved state. Grading loads separately; unavailable historical active times stay unknown.</p>'));

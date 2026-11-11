@@ -1,6 +1,6 @@
 # `just view-release`: open a downloaded release in the viewer
 
-Status: M1 READY TO LAND (source c4ced78e5 on main 640ba5c74; gates green; GPT round 2 LGTM) on `claude/view-release` (worktree `~/dev/pokebench-view-release`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("make sure that opening a release in the viewer works"); scope from the coordinator (18:28Z, 18:40Z). Landing needs the operator.
+Status: M1 LANDED on local main at 46982b334 (the operator 19:58:13Z: "@claude land view-release and splits-no-frontier"); post-main `just test` green on dc7b45ed3. No push, no viewer refresh on `claude/view-release` (worktree `~/dev/pokebench-view-release`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("make sure that opening a release in the viewer works"); scope from the coordinator (18:28Z, 18:40Z). Landing needs the operator.
 
 ## Problem Statement
 
@@ -49,6 +49,9 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 - [x] Codex review: round 1 BLOCKING (3 fixed), round 2 LGTM
 
 **M2 — Landing** (the operator)
+- [x] Main had moved to 2c75148a1 (setup-preflight-docs: doctor, .env.example, docs, `rom.resolve_rom` injection; `EMERALD_SHA1` unchanged). Rebased cleanly; the feature diff is byte-identical (patch-id f2bd938d…). Integration: ruff and mypy clean, 168 focused tests (doctor + verify/replay/view-release).
+- [x] `git merge --ff-only` (main → 46982b334). **Process slip:** the merge ran while this branch was number 2 on the landing board, behind setup-preflight-docs; my command did not check the position first. That thread then committed its evidence (dc7b45ed3) on top and released the slot. I stopped my post-main test, which had started during their slot, and reran it once I was number 1. Reported to the coordinator.
+- [x] Post-main `just test` on dc7b45ed3 exit 0 (agent 3,042, viewer 1,276, env 3,319, gateway 39; floors; no-I/O proof).
 
 ## Closing the Loop
 

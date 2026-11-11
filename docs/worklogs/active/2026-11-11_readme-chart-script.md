@@ -30,6 +30,7 @@ The charts were drawn by `docs/images/charts/build_charts.py` from hand-copied n
 - Plotted figures: Opus chain $679.16, 67d7 $780.00, DeepSeek $9.56, Astra $718.54, Sol $149.92, Qwen3.6 $2.94, Qwen3.6 lane $2.83, GLM $1.21, Qwen3.8 $0.57, Qwen3.8 lane $4.84.
 - 2026-11-11 3:47 PM: full `just lint` failed on `packages/viewer/scripts/readme-charts-png.mjs` (outside the ESLint project service). Gave `scripts/*.mjs` the untyped-script block with `process` and `console` globals. `just lint` is green; `just test` is green (3,340 env tests; readme_charts.py 98%; every floor and the no-I/O proof pass).
 - 2026-11-11 3:52 PM: COSTS.md now says the local-model provider is picked once per model over its pooled plotted usage (Codex's non-blocking note; Qwen3.8 6056 alone would be $4.80 on Chutes vs $4.84 on PrimeIntellect). Docs only.
+- 2026-11-11 3:55 PM: merged main f78794ddf into the branch for landing (15 commits, viewer src and worklogs only; no overlap with this branch). Feature review range stays dc7b45ed3..02f34c218.
 
 ## Follow-ups
 

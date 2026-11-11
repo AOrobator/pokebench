@@ -31,6 +31,7 @@ Changes only the wording of the replacement; every name pattern is still scrubbe
 - [x] Twins regenerated; check clean; no mid-sentence "Operator" remains
 - [x] Round-1 fix (GPT BLOCKING, 2 x P2): positional capitalisation now applies after an absorbed lowercase "the"; text nodes scrub the name to a marker (`scrub_inline`) and `scrub` of the assembled markdown capitalises it, so inline emphasis is not a sentence start. Regression tests for both; regeneration changed 0 files
 - [x] Round-2 fix (GPT BLOCKING, 2 x P2): sentence-start context now passes through an opening link bracket and an inline-code backtick, and inline code defers the name to `scrub` of the assembled text. Conversion-level regression for both; regeneration changed 0 files
+- [x] Round-3 fix (GPT BLOCKING, 1 x P2): the 13-character regex window is replaced by `_starts_sentence`, which skips opening markers, accepts a table cell or a line start (headings, quotes, bullets, numbered items), and otherwise strips closing markdown (emphasis, backticks, quotes, brackets, link targets of any length) back to the punctuation; context is the last 400 characters. Conversion-level regression with bold, a long link and code sentence ends; regeneration changed 0 files
 - [ ] Full gates (CPU window requested first; the first window failed in seconds on a missing node_modules in the new worktree, since installed)
 - [ ] Codex review (covers 79704679f..head, both commits)
 - [ ] Land (the operator approved landing for item 3; item 2 asks for the change)
@@ -50,6 +51,10 @@ Scope 79704679f..55322f221, packet verified, 345 pages match the generator. `VER
 ### Round 2 — GPT (JOB review-gpt-twins-operator-wording-r2-b4849357a)
 
 Delta 55322f221..b4849357a; both round-1 inputs pass, all 345 pages match, no markers survive. `VERDICT: BLOCKING`, two Fix findings, both accepted and fixed in round 3: (1) `<p>Done. <a href="#x">The operator</a> approved it.</p>` gave `[the operator](#x)`; (2) `<p>Approved by <code>The operator</code> yesterday.</p>` gave `` `The operator` ``. The gates started on b4849357a were stopped early and RELEASE sent.
+
+### Round 3 — GPT (JOB review-gpt-twins-operator-wording-r3-f7a221ae4)
+
+Delta b4849357a..f7a221ae4; round-2 inputs pass, 914 generated files match, no markers survive. `VERDICT: BLOCKING`, one Fix: a sentence ending inside formatting (`**Done.** The operator`, `[Done.](#x) the operator`, `` `Done.` the operator ``) left the next sentence lowercase. Fixed in round 4 by parsing the markdown context instead of a fixed regex window. Gates on f7a221ae4 stopped early; RELEASE sent.
 
 ## Boy Scout Log
 

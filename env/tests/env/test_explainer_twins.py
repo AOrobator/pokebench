@@ -581,6 +581,19 @@ def test_operator_name_becomes_the_operator_everywhere():
         in inline.markdown
     )
     assert "\ue000" not in inline.markdown
+    wrapped = twin(
+        "<h1>Ends</h1><p><strong>Done.</strong> The operator approved it."
+        " <a href='https://example.com/a/very/long/path/to/a/page.html#section-two'>Done.</a>"
+        " The operator approved it. <code>Done.</code> The operator approved it. Ask the operator; e.g. The operator.</p>"
+        "<ol><li>The operator picked</li></ol>"
+    )
+    assert (
+        "**Done.** The operator approved it."
+        " [Done.](https://example.com/a/very/long/path/to/a/page.html#section-two)"
+        " The operator approved it. `Done.` The operator approved it. Ask the operator"
+        in wrapped.markdown
+    )
+    assert "1. The operator picked" in wrapped.markdown
     linked = twin(
         "<h1>Links</h1><p><a href='#x'>The operator</a> opened. Done. <a href='#y'>The operator</a> approved it."
         " Approved by <code>The operator</code> yesterday. <code>The operator</code> said.</p>"

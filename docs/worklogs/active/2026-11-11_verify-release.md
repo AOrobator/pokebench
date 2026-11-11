@@ -70,8 +70,9 @@ The input is an untrusted download.
 - [x] Cheap checks: ruff, mypy, focused pytest 50/50; module coverage 97% (`verify_release.py`)
 - [x] Guard deletion check (rule 5): 22 guards removed one at a time, each turns a test red, restored (see Session Log)
 - [x] Real check: 67d7 staging folder outside `runs/`, 15/15 PASS, 27.9 s wall
-- [ ] COMMIT: `feat(verify-release): ...` (GREEN)
-- [ ] Full gates: `just lint`, `just test`, `just verify-vendor`
+- [x] COMMIT: `feat(verify-release): fast release check with the final RAM snapshot` (ea5f06478, GREEN)
+- [ ] Full gates: `just lint` exit 0 (ea5f06478); `just verify-vendor` OK; `just test` running
+- The operator asked (17:09Z, delivered late) why it scanned gigabytes; answered with options (a) full event-log pass ~28 s, (b) first/last line ~1 s, (c) shelve. Coordinator 17:21Z: go with (a).
 - [ ] Review: Codex GPT lane via `just tell-codex`; two-round cap
 - Outcome: `just verify-release <folder>` prints 15 PASS/FAIL lines for a 67d7-style release in well under a minute. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd, per-snapshot RAM. Terminator: review LGTM. Split trigger: any need for emulator execution.
 
@@ -105,7 +106,25 @@ The input is an untrusted download.
 
 ## Multi-Model Review Log
 
-(pending)
+### Principles self-review (`docs/agent-principles.md`)
+
+| ID | Score | Note |
+|---|---|---|
+| PB1 game grades the run | PASS | The headline (game clear, badges, Rayquaza) is read from the final RAM snapshot by native readers; milestone events never stand in for it (INV-2 tests). |
+| PB2 failed runs count | N/A | No run inclusion or exclusion logic. |
+| PB3 one run is an anecdote | N/A | Verifies one published run; makes no population claim. |
+| PB4 declare every advantage | PASS | Reports the switch set's digest; does not hide or reinterpret the lane's assistance (the release README states it). |
+| PB5 change one thing | PASS | No harness behavior change; no feature switch needed (verification tool only). |
+| PB6 long runs | PASS | Real 4.3 GB / 17 h event log streamed in 27.9 s at 99 MB peak. |
+| PB7 no event log, no run | PASS | The event log is mandatory; its absence or damage FAILs every dependent check. |
+| PB8 misbehavior loud and bounded | PASS | Any exception is a named FAIL; caps on lines, records, tar members and member sizes. |
+| PB9 rock-solid-or-ask | PASS | Scope questions went to the operator (pause, cut). |
+| PB10 no carve-outs | PASS | All tests run under the no-I/O guard; fixtures moved into code instead of exempting a read; no floor or exclude changed. Only the disk opener and ROM reader are `pragma: no cover` thin entrypoints. |
+| PB11 verify the pinned dependency | PASS | Checkpoint kinds and `featuresSha256` checked against the harness source (`checkpoint-capture.ts`, `run-evaluation.ts`) and the real 67d7 switch digest. |
+| PB12 macOS privacy prompts | PASS | The ROM path is `~/.roms`; no TCC-protected folders read. |
+| PB13 close the loop | PASS | Real 67d7 output recorded under Closing the Loop; full gates recorded below. |
+
+Zero FAIL rows.
 
 ## Boy Scout Log
 

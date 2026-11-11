@@ -52,7 +52,15 @@ Each turn the harness reads the game's memory, turns it into a text readout the 
 
 ## Quick start
 
-You need an Apple Silicon Mac with Homebrew (`cmake`, `ffmpeg`, `libpng`), Node 26 with pnpm, uv with Python 3.11, and [just](https://github.com/casey/just).
+It runs on macOS on Apple Silicon and on Linux x86_64 (tested on Ubuntu 24.04); Windows is not supported. You need [just](https://github.com/casey/just), Node 26 or newer with pnpm 10.32.1 (`npm install -g corepack`, then `corepack enable pnpm`), [uv](https://docs.astral.sh/uv/) with Python 3.11 (`uv python install 3.11`), cmake with a C toolchain, and FFmpeg and libpng with their headers.
+
+- **macOS:** `xcode-select --install`, then `brew install just node uv cmake ffmpeg libpng`.
+- **Ubuntu or Debian:** install Node from nodejs.org (the distribution's package is too old) and uv with its installer, then:
+
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y just cmake build-essential pkg-config libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpng-dev zlib1g-dev
+  ```
 
 1. Clone with the game-server submodule.
 
@@ -61,32 +69,39 @@ You need an Apple Silicon Mac with Homebrew (`cmake`, `ffmpeg`, `libpng`), Node 
    cd pokebench
    ```
 
-2. Bring your own ROM: Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`. No ROM is included. Set its path in a gitignored `.env`.
+2. Copy the settings template and check the machine. `just doctor` is read-only: it prints PASS, FAIL or SKIP for each prerequisite, with the command that fixes each miss.
 
    ```bash
-   echo "POKEBENCH_ROM=$HOME/.roms/pokemon-emerald.gba" > .env
+   cp .env.example .env
+   just doctor
    ```
 
-3. Install, build the emulator and check the setup.
+3. Install, build the emulator and run the tests. No ROM is needed yet.
 
    ```bash
    just setup
    just build-mgba
+   just lint
+   just test
+   ```
+
+4. Bring your own ROM: Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`. No ROM is included. Set `POKEBENCH_ROM` to its path in `.env`, then boot the game.
+
+   ```bash
    just verify-rom
    just smoke
    ```
 
-4. Point it at a model and start a run. [Connect a model](docs/connect-a-model.md) covers llama.cpp, vLLM and gateways.
+5. Point it at a model and start a run. Set `POKEBENCH_MODEL` and either `POKEBENCH_GATEWAY_URL` or `POKEBENCH_ENDPOINT_FILE` in `.env`; [Connect a model](docs/connect-a-model.md) covers llama.cpp, vLLM and gateways.
 
    ```bash
-   export POKEBENCH_ENDPOINT_FILE="$PWD/endpoint.json"
-   export POKEBENCH_MODEL="your-model-id"
+   just smoke-llm
    just run-agent
    ```
 
    To play with the Rayquaza lane, add `POKEBENCH_PLAY_PRESET=experiments/presets/opus-rayquaza-lane.json`.
 
-5. Watch it at http://127.0.0.1:8790.
+6. Watch it at http://127.0.0.1:8790.
 
    ```bash
    just view

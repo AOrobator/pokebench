@@ -34,12 +34,17 @@ No new input, network or file access; HTML escaping unchanged.
 - [x] Tests (RED): `raceLoading` truth table
 - [x] Implement (`raceLoading` in splits-race.ts; app.ts `drawRace` uses it). RED 529c860db: 3 failed (`raceLoading` missing). GREEN: splits-race tests 48/48; viewer `tsc --noEmit` and eslint clean. Guard: restoring the old rule (any missing workbench record means loading) turns 2 tests red; restored.
 - [ ] Cheap checks; guard deletion; full gates (`just lint`, `just test`)
-- [ ] Browser check: the real 67d7 release in a scratch viewer (single-run root) shows the settled line, at desktop and phone, plus a multi-run root still racing
+- [x] Browser check (multi-run gap recorded as a separate follow-up): the real 67d7 release in a scratch viewer (single-run root) shows the settled line, at desktop and phone, plus a multi-run root still racing
 - [ ] Codex review; stop at ready to land
 
 **M2 — Landing** (the operator); then `just viewer-main` only on the operator's words
 
 ## Closing the Loop
+
+This branch's built viewer, detached on scratch ports (stopped afterwards; the live 8790 viewer untouched), headless Playwright Chromium at 1280×900 and 375×812:
+
+- **Single-run root** (the real 67d7 release unpacked by `view-release`, port 8797). `/api/runs/<id>/frontier` returns `{"state":"ready","frontier":null}`. SPLITS settles within about a second at both widths: headline "ASSISTED …67d7: no frontier comparison for this run.", STORY GRAPH "No frontier run to plot." No page errors; page width equals the viewport. Before the fix it stayed "Loading the frontier run…" for over 10 minutes. Screenshots `runs/mockups/splits-no-frontier/single-{1280,375}.png` (opened and looked at).
+- **Multi-run root** (67d7 plus APFS clones of DeepSeek 37ca's events, frames and checkpoints, port 8798). The server answers a real frontier (37ca), and SPLITS still says "Loading the frontier run…" after 5 minutes, the same as before this change. Cause: without the current-run projector service (503 on `/api/current-runs`, as on any scratch or release root), the client builds its workbench from an empty current-run list, so a real frontier waits for a run record that never comes. On the live 8790 viewer, which has the projector, the same page races (9:02:23 ahead). This is pre-existing and unchanged by this branch; it is a separate follow-up (enrich the workbench from `/api/cards` when the current projector has no runs).
 
 ## Session Log
 

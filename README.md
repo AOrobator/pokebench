@@ -90,6 +90,12 @@ just run-agent
 
 ## Results
 
+![Badges over time: each model's best run, by hours from the start of the run, through the Elite Four and Champion, against the human world record](docs/images/badges-over-time.png)
+
+![Badges for the money: how far each model's best run got against its API cost to that point](docs/images/badges-for-the-money.png)
+
+Each chart shows every model's best run, read from its own recording. Times are wall clock from the start of the run. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded. Rayquaza lane runs are heavily assisted and drawn dotted or hollow. Frontier models are priced at API list price; local models are estimates at the cheapest OpenRouter provider for each model as of 11/8.
+
 | Run | Model | Start | Result |
 |---|---|---|---|
 | 67d7, assisted (Rayquaza knowledge lane) | Claude Opus (`claude-opus-5-5`) | boot | Hall of Fame in one run: 4,124 turns, 17h 16m |

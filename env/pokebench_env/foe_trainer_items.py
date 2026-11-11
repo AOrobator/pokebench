@@ -50,6 +50,19 @@ NO_ITEMS = (
     | 1 << 21
 )
 
+# The turn's chosen actions (src/battle_main.c EWRAM order, anchored on gCurrentTurnActionNumber at
+# 0x02024082 and gBattlescriptCurrInstr at 0x02024214) and gBattleMainFunc (IWRAM).
+BATTLERS_COUNT = 0x0202406C
+BATTLER_POSITIONS = 0x02024076
+BATTLER_BY_TURN_ORDER = 0x0202407E
+CURRENT_TURN_ACTION = 0x02024082
+CHOSEN_ACTIONS = 0x0202421C
+MAIN_FUNC = 0x03005D04
+# HandleTurnActionSelectionState, CheckFocusPunch_ClearVarsBeforeTurnStarts, RunTurnActionsFunctions
+# for this ROM (battle_choices.py, caught_nickname.py).
+SELECT_ACTION, COMMIT_ACTION, RUN_TURN_ACTIONS = 0x0803BE75, 0x0803D2E9, 0x0803D819
+B_ACTION_USE_ITEM = 1
+
 # HP each potion restores (src/data/pokemon/item_effects.h; MAX POTION's full heal is 255 there).
 POTIONS = {"POTION": 20, "SUPER POTION": 50, "HYPER POTION": 200, "MAX POTION": 255}
 CURES = {"FULL HEAL", "ANTIDOTE", "BURN HEAL", "ICE HEAL", "AWAKENING", "PARLYZ HEAL"}
@@ -60,7 +73,6 @@ FIRST_TURN = {
     "X SPECIAL",
     "X ACCURACY",
     "DIRE HIT",
-    "GUARD SPEC.",
 }
 
 
@@ -102,6 +114,30 @@ def _ewram(read: ReadMemory, address: int) -> int | None:
     return pointer if 0x02000000 <= pointer < 0x02040000 else None
 
 
+def _chosen_not_shown(read: ReadMemory) -> int:
+    """Opponent item actions the AI has chosen this turn that have not run yet.
+
+    ShouldUseItem zeroes the slot when the AI chooses the item, during action selection while the
+    player's own menu is open; the game shows "<TRAINER> used <ITEM>!" only when that action runs
+    (HandleAction_UseItem, in turn order). Until then the zeroed slot is still the trainer's.
+    """
+    count = min(_exact(read, BATTLERS_COUNT, 1)[0], 4)
+    positions = _exact(read, BATTLER_POSITIONS, 4)
+    chosen = _exact(read, CHOSEN_ACTIONS, 4)
+    order = list(_exact(read, BATTLER_BY_TURN_ORDER, 4)[:count])
+    current = _exact(read, CURRENT_TURN_ACTION, 1)[0]
+    main = int.from_bytes(_exact(read, MAIN_FUNC, 4), "little")
+    pending = 0
+    for battler in range(count):
+        if not positions[battler] & 1 or chosen[battler] != B_ACTION_USE_ITEM:
+            continue
+        if main in (SELECT_ACTION, COMMIT_ACTION) or (
+            main == RUN_TURN_ACTIONS and battler in order and order.index(battler) > current
+        ):
+            pending += 1
+    return pending
+
+
 def read_foe_trainer_items(read: ReadMemory, in_battle: bool) -> FoeTrainerItems | None:
     """None outside a trainer battle that carries items, and while the battle history is not
     yet this battle's (the game fills it as the battle starts)."""
@@ -128,11 +164,15 @@ def read_foe_trainer_items(read: ReadMemory, in_battle: bool) -> FoeTrainerItems
     ):
         return None
     names = [read_item_name(read, item) for item in carried]
+    zeroed = [s for s in range(items_no) if slots[s] == 0]
+    # The latest choice zeroed the highest such slot: the AI takes the first usable slot in order.
+    pending = _chosen_not_shown(read) if zeroed else 0
+    used = set(zeroed[: max(len(zeroed) - pending, 0)])
     return FoeTrainerItems(
         trainer_id=trainer_id,
         items_no=items_no,
-        left=tuple(FoeItem(s, names[s]) for s in range(items_no) if slots[s] != 0),
-        used=tuple(FoeItem(s, names[s]) for s in range(items_no) if slots[s] == 0),
+        left=tuple(FoeItem(s, names[s]) for s in range(items_no) if s not in used),
+        used=tuple(FoeItem(s, names[s]) for s in range(items_no) if s in used),
     )
 
 
@@ -167,7 +207,12 @@ def left_line(items: FoeTrainerItems) -> str:
         rules.append("FULL RESTORE when its POKéMON in battle is below 1/4 of its max HP")
     potions = [name for name in POTIONS if name in names]
     if potions:
-        amounts = ", ".join(f"{name} {POTIONS[name]}" for name in potions)
+        amounts = ", ".join(
+            f"{name} 255, the game's full-heal value"
+            if name == "MAX POTION"
+            else f"{name} {POTIONS[name]}"
+            for name in potions
+        )
         rules.append(
             f"{' or '.join(potions)} when its POKéMON is below 1/4 of its max HP or is missing "
             f"more HP than the item restores ({amounts})"
@@ -178,6 +223,10 @@ def left_line(items: FoeTrainerItems) -> str:
     boosts = sorted(names & FIRST_TURN)
     if boosts:
         rules.append(f"{' or '.join(boosts)} on its POKéMON's first turn in battle")
+    if "GUARD SPEC." in names:
+        rules.append(
+            "GUARD SPEC. on its POKéMON's first turn in battle when no MIST is up on its side"
+        )
     if not rules:
         return head
     return (

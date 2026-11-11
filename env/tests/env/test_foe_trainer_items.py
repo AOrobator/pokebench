@@ -289,3 +289,69 @@ def test_factory_reads_a_bad_rom_row_as_nothing(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(rerender, "read_game_state", lambda *_args, **_kwargs: seen)
     on = rerender.read_state(m.read, MapNames({}), active_ui=True, off=frozenset())
     assert on.foe_trainer_items is None
+
+
+def turn(m: Memory, main: int, chosen: list[int], order: list[int], current: int) -> None:
+    m.put(0x0202406C, bytes([2]))
+    m.put(0x02024076, bytes([0, 1, 0, 0]))
+    m.put(0x0202421C, bytes(chosen + [0xFF] * (4 - len(chosen))))
+    m.put(0x0202407E, bytes(order + [0] * (4 - len(order))))
+    m.put(0x02024082, bytes([current]))
+    m.put(0x03005D04, struct.pack("<I", main))
+
+
+SELECT, COMMIT, RUN = 0x0803BE75, 0x0803D2E9, 0x0803D819
+
+
+def glacia_after_choosing(
+    main: int, chosen: list[int], order: list[int], current: int
+) -> FoeTrainerItems | None:
+    m = Memory()
+    battle(m, GLACIA, [FULL_RESTORE, FULL_RESTORE], [0, FULL_RESTORE], 2)
+    turn(m, main, chosen, order, current)
+    return read_foe_trainer_items(m.read, True)
+
+
+def test_an_item_chosen_this_turn_is_not_shown_before_it_runs() -> None:
+    # Run 67d7 raw RAM 105176 (turn 3933): GLACIA's AI had chosen FULL RESTORE, slot 0 already
+    # zeroed, while the player's menu was open; the game showed it only at 105187.
+    full = (FoeItem(0, "FULL RESTORE"), FoeItem(1, "FULL RESTORE"))
+    for main in (SELECT, COMMIT):
+        items = glacia_after_choosing(main, [0xFF, 1], [1, 0], 2)
+        assert items is not None and items.used == () and items.left == full
+    later = glacia_after_choosing(RUN, [0, 1], [0, 1], 0)
+    assert later is not None and later.used == () and later.left == full
+
+
+def test_the_item_counts_as_used_once_its_action_runs_or_the_turn_is_over() -> None:
+    for main, current in ((RUN, 0), (RUN, 1), (0x0803E019, 2)):
+        items = glacia_after_choosing(main, [0, 1], [1, 0], current)
+        assert items is not None
+        assert items.used == (FoeItem(0, "FULL RESTORE"),)
+    shown = glacia_after_choosing(SELECT, [0xFF, 0], [1, 0], 2)
+    assert shown is not None and shown.used == (FoeItem(0, "FULL RESTORE"),)
+
+
+def test_only_the_latest_zeroed_slot_waits_and_only_for_the_foe() -> None:
+    m = Memory()
+    battle(m, WALLACE, [FULL_RESTORE] * 4, [0, 0, FULL_RESTORE, FULL_RESTORE], 4)
+    turn(m, SELECT, [0xFF, 1], [1, 0], 2)
+    items = read_foe_trainer_items(m.read, True)
+    assert items is not None
+    assert [i.slot for i in items.used] == [0]
+    assert [i.slot for i in items.left] == [1, 2, 3]
+    turn(m, SELECT, [1, 0], [1, 0], 2)
+    player = read_foe_trainer_items(m.read, True)
+    assert player is not None and [i.slot for i in player.used] == [0, 1]
+
+
+def test_max_potion_reads_as_the_games_full_heal_value() -> None:
+    items = FoeTrainerItems(trainer_id=1, items_no=1, left=(FoeItem(0, "MAX POTION"),), used=())
+    assert "(MAX POTION 255, the game's full-heal value)" in left_line(items)
+
+
+def test_guard_spec_also_needs_no_mist() -> None:
+    items = FoeTrainerItems(trainer_id=1, items_no=1, left=(FoeItem(0, "GUARD SPEC."),), used=())
+    assert left_line(items).endswith(
+        "GUARD SPEC. on its POKéMON's first turn in battle when no MIST is up on its side."
+    )

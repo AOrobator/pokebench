@@ -11,7 +11,8 @@ import {semanticWalk} from "./semantic-targets.js";
 import {HEALING_AND_STATUS} from "./supplies.js";
 
 export const LEAGUE_LOBBY="EVER GRANDE CITY POKEMON LEAGUE 1F";
-// pret data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc (the lobby mart) and src/data/items.h prices.
+// pret data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc (the lobby mart; its OnTransition sets the respawn to
+// HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE) and src/data/items.h prices.
 const PRICES="HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600 and REVIVE ₽1,500";
 const GAME=new Set(["observe","press","navigate_to","battle_action","choose_evolution"]);
 
@@ -24,7 +25,7 @@ export function leagueStockUpText(s:Snapshot):string {
  return [
   "POKéMON LEAGUE: past the north door the ELITE FOUR and then the CHAMPION are fought one after another, with no POKéMON CENTER in between, so until you win or lose the only healing is what is in your BAG.",
   "Each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION carries 4.",
-  "A loss sends you back to the last POKéMON CENTER you used, takes half your money, and you start again from the first ELITE FOUR room.",
+  "A loss sends you back to this lobby, takes half your money, and you start again from the first ELITE FOUR room.",
   "Becoming CHAMPION is the end goal of this game, so money kept back now has no later use.",
   `This lobby's POKéMON MART sells ${PRICES}.`,
   `You have ${money}; BAG healing and status items: ${healing}. How much to buy is your call.`,

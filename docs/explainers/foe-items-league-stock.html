@@ -164,7 +164,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <tr><td>FULL RESTORE</td><td>its POKéMON in battle is below 1/4 of its max HP (and not fainted)</td></tr>
 <tr><td>POTION 20, SUPER POTION 50, HYPER POTION 200, MAX POTION 255</td><td>below 1/4 of max HP, or missing more HP than the item restores</td></tr>
 <tr><td>FULL HEAL, ANTIDOTE, BURN HEAL, ICE HEAL, AWAKENING, PARLYZ HEAL</td><td>its POKéMON has a condition the item cures</td></tr>
-<tr><td>X items, DIRE HIT, GUARD SPEC.</td><td>its POKéMON's first turn in battle</td></tr>
+<tr><td>X items, DIRE HIT</td><td>its POKéMON's first turn in battle</td></tr><tr><td>GUARD SPEC.</td><td>its POKéMON's first turn in battle, when no MIST is up on its side</td></tr>
 </table>
 </section>
 
@@ -188,12 +188,14 @@ main hr{border:0;border-top:4px double #9fb2c8}
 </svg>
 <figcaption>The first offsets tried (+0x28/+0x30) read zeros on 67d7's RAM; pret's UsedMoves is 16 bytes, which puts trainerItems at +0x48. The unit test pins that arithmetic.</figcaption>
 </figure>
+<p><strong>Chosen is not shown.</strong> The AI empties the slot when it <em>chooses</em> the item, during action selection while your own menu is open; the game prints "&lt;TRAINER&gt; used FULL RESTORE!" only when that action runs, in turn order. While the foe's chosen action is an item and it has not run yet (selection, or later in the turn order than the current action), the newest empty slot still counts as left, so neither line gives away the coming heal. Run 67d7, GLACIA, turn 3933: the slot was empty at raw RAM 105176 while Opus chose QUICK ATTACK; the item ran at 105187.</p>
+
 </section>
 
 <section class="card">
 <h2>The League lobby paragraph</h2>
 <p>Run 67d7 at turn 3880 would have read, after its own money and bag:</p>
-<pre>POKéMON LEAGUE: past the north door the ELITE FOUR and then the CHAMPION are fought one after another, with no POKéMON CENTER in between, so until you win or lose the only healing is what is in your BAG. Each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION carries 4. A loss sends you back to the last POKéMON CENTER you used, takes half your money, and you start again from the first ELITE FOUR room. Becoming CHAMPION is the end goal of this game, so money kept back now has no later use. This lobby's POKéMON MART sells HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600 and REVIVE ₽1,500. You have ₽130,696; BAG healing and status items: none. How much to buy is your call.</pre>
+<pre>POKéMON LEAGUE: past the north door the ELITE FOUR and then the CHAMPION are fought one after another, with no POKéMON CENTER in between, so until you win or lose the only healing is what is in your BAG. Each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION carries 4. A loss sends you back to this lobby, takes half your money, and you start again from the first ELITE FOUR room. Becoming CHAMPION is the end goal of this game, so money kept back now has no later use. This lobby's POKéMON MART sells HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600 and REVIVE ₽1,500. You have ₽130,696; BAG healing and status items: none. How much to buy is your call.</pre>
 <p>Prices: pret <code>EverGrandeCity_PokemonLeague_1F</code> mart and <code>items.h</code>. It speaks once per arrival, on a field screen, never in battle.</p>
 </section>
 

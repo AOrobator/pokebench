@@ -9,6 +9,7 @@ import {LeagueStockUp,LEAGUE_LOBBY,leagueStockUpText,withLeagueStockUp} from "./
 import {Supplies,suppliesLine,sellingHere,withSupplies} from "./supplies.js";
 import {isCheckedPress,type CheckedPressTool} from "./game-tools.js";
 import {playGameTools} from "./play-wiring.js";
+import {serverOff,serverOffWith} from "../test-support/server-features.js";
 
 const OFF=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,false])) as FeatureSet;
 const bag=[
@@ -21,7 +22,7 @@ const lobby:GameStateSnapshot=parseGameState({...IN_GAME,location:LEAGUE_LOBBY,m
 const empty:GameStateSnapshot={...lobby,resources:{...resources,bag:[]}};
 const outside:GameStateSnapshot={...lobby,location:"EVER GRANDE CITY",map_id:[0,15]};
 
-const TEXT="POKéMON LEAGUE: past the north door the ELITE FOUR and then the CHAMPION are fought one after another, with no POKéMON CENTER in between, so until you win or lose the only healing is what is in your BAG. Each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION carries 4. A loss sends you back to the last POKéMON CENTER you used, takes half your money, and you start again from the first ELITE FOUR room. Becoming CHAMPION is the end goal of this game, so money kept back now has no later use. This lobby's POKéMON MART sells HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600 and REVIVE ₽1,500.";
+const TEXT="POKéMON LEAGUE: past the north door the ELITE FOUR and then the CHAMPION are fought one after another, with no POKéMON CENTER in between, so until you win or lose the only healing is what is in your BAG. Each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION carries 4. A loss sends you back to this lobby, takes half your money, and you start again from the first ELITE FOUR room. Becoming CHAMPION is the end goal of this game, so money kept back now has no later use. This lobby's POKéMON MART sells HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600 and REVIVE ₽1,500.";
 
 it("states the lobby facts, the player's money and healing items, and leaves the amount to the model",()=>{
  expect(leagueStockUpText(lobby)).toBe(`${TEXT} You have ₽130,696; BAG healing and status items: FULL RESTORE ×2. How much to buy is your call.`);
@@ -99,8 +100,7 @@ it("supplies-v1: one line on arrival where things are sold and when the buy list
 
 it("registers three default-off switches in order, two of them server-side",()=>{
  const ids=["foe-item-recap-v1","foe-trainer-items-v1","league-stock-up-v1"] as const;
- const at=SWITCHABLE_FEATURES.indexOf("game-clear-completion-v1");
- expect(ids.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([at+1,at+2,at+3]);
+ expect(ids.map(id=>SWITCHABLE_FEATURES.indexOf(id))).toEqual([385,386,387]);
  for(const id of ids){
   expect(featureInfo(id).description).toContain(" Off: ");
   expect(normalizeFeatures(Object.fromEntries(SWITCHABLE_FEATURES.filter(f=>!ids.includes(f as never)).map(f=>[f,false])) as never)[id]).toBe(false);
@@ -111,4 +111,8 @@ it("registers three default-off switches in order, two of them server-side",()=>
  expect(SERVER_FEATURES).toContain("foe-item-recap-v1");
  expect(SERVER_FEATURES).toContain("foe-trainer-items-v1");
  expect(SERVER_FEATURES).not.toContain("league-stock-up-v1");
+ const off=Object.fromEntries(SWITCHABLE_FEATURES.map(id=>[id,id==="ram-state-v1"])) as FeatureSet;
+ expect(serverOff({...off,"foe-item-recap-v1":true})).toEqual(serverOffWith(off,{on:["foe-item-recap-v1"]}));
+ expect(serverOff({...off,"foe-trainer-items-v1":true})).toEqual(serverOffWith(off,{on:["foe-trainer-items-v1"]}));
+ expect(serverOff({...off,"league-stock-up-v1":true})).toEqual(serverOff(off));
 });

@@ -24,7 +24,7 @@ You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf
 |---|---|---|---|
 | [just](https://github.com/casey/just) | runs every command here | `just` | `just` |
 | Node.js 26 or newer | agent and viewer; older Node exits 0 without running them | `node` | from nodejs.org or nvm |
-| pnpm 10.32.1 | Node packages, pinned in `package.json` | `corepack enable pnpm` | `corepack enable pnpm` |
+| pnpm 10.32.1 | Node packages, pinned in `package.json`; Node 25+ no longer bundles corepack | `npm install -g corepack`, then `corepack enable pnpm` | `npm install -g corepack`, then `corepack enable pnpm` |
 | [uv](https://docs.astral.sh/uv/) and Python 3.11 | Python environment | `uv`, then `uv python install 3.11` | uv installer, then `uv python install 3.11` |
 | cmake and a C toolchain | building mGBA | `cmake`; `xcode-select --install` | `cmake build-essential` |
 | FFmpeg and libpng, with headers | building mGBA | `ffmpeg libpng` | `libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpng-dev pkg-config` |

@@ -142,7 +142,7 @@ def _pinned_pnpm(p: Probes) -> str | None:
 def check_pnpm(p: Probes) -> Check:
     out = p.run(["pnpm", "--version"])
     pinned = _pinned_pnpm(p)
-    fix = "corepack enable pnpm"
+    fix = "npm install -g corepack && corepack enable pnpm"
     if out is None:
         return Check("core", "pnpm", "FAIL", "pnpm not found", fix)
     if pinned is not None and out != pinned:

@@ -17,7 +17,9 @@ Branch `claude/setup-preflight-docs`. Approved by the operator: setup/verify/exp
 - [ ] README charts: v2 redone in the article's chart style with every model's best run (power-on or main-menu starts, Opus chain stitched at checkpoints); waiting for the operator's OK before committing
 - [x] docs/results.md: added the 13 best runs behind the charts (5f0f, 429f, 9f4c, 3300, the Opus chain 6302/1121/69d8/d718, 3bb0, d41e, 6056, 7da5, 6bbd)
 - [x] COMMIT: `feat(setup): just doctor preflight, .env.example and project docs` (39b9b2d24)
-- [ ] Codex review requested
+- [x] COMMIT: `docs(results): add every model's best run behind the README charts` (e4147afdb)
+- [x] pnpm setup on Node 25+: corepack is no longer bundled, so README and `just doctor`'s fix say `npm install -g corepack`, then `corepack enable pnpm`; test_doctor 32 passed, ruff and mypy clean on the touched files
+- [ ] Codex review requested (review-setup-preflight-docs-39b9b2d24; asked to cover the later commits too)
 
 Follow-ups from the Linux trial, out of scope here: an isMain() helper for import.meta.main; .npmrc engine-strict and .node-version; a Linux branch in build-mgba.sh; mypy ignore codes that depend on the mGBA build; smoke.py hiding server stderr; the verify_release hint naming a nonexistent `just replay-verify`; a port parameter for `just view`; build-stamp not writing dist/build-stamp.json.
 

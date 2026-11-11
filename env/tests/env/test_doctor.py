@@ -143,11 +143,11 @@ def test_old_or_missing_node_fails_with_an_install_fix() -> None:
 
 def test_pnpm_must_be_the_pinned_corepack_version() -> None:
     gone = doctor.check_pnpm(probes(commands={("pnpm", "--version"): None}))
-    assert gone.fix == "corepack enable pnpm"
+    assert gone.fix == "npm install -g corepack && corepack enable pnpm"
     other = doctor.check_pnpm(probes(commands={("pnpm", "--version"): "9.15.0"}))
     assert other.status == "FAIL"
     assert "pins 10.32.1" in other.detail
-    assert other.fix == "corepack enable pnpm"
+    assert other.fix == "npm install -g corepack && corepack enable pnpm"
     unpinned = doctor.check_pnpm(probes(texts={REPO / "package.json": "{}"}))
     assert unpinned.detail == "10.32.1"
     broken = doctor.check_pnpm(probes(texts={REPO / "package.json": "not json"}))

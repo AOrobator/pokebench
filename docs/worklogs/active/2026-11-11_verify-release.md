@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 READY TO LAND (source 52ec2dd79; gates green; GPT round 4 LGTM). Landing (M2) and closeout (M3) need the operator. on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z). Post-main `just test` green. M1b (tokens) in progress on `claude/verify-release-tokens`; M3 closeout needs the operator. No push, no viewer refresh. on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
 
 ## Problem Statement
 
@@ -87,8 +87,8 @@ The input is an untrusted download.
   - The gate run started on 055b6bd2d was stopped (files changed mid-run); gates rerun on the fixed head.
 
 **M2 — Landing** (the operator)
-- [ ] ASK USER: land
-- [ ] FF merge via landing board, post-main `just test`
+- [x] ASK USER: land — the operator, 18:00:04Z: "land it"
+- [x] FF merge via landing board: `just land-join` (number 1), `git merge --ff-only cae3b65f0` (main 608c01540 → cae3b65f0; main had not moved, so all gates and reviews carry over unchanged). Post-main `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors; no-I/O proof). Not pushed; `just viewer-main` not run (not needed: no viewer or runtime change).
 
 **M3 — Closeout** (the operator)
 - [ ] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`

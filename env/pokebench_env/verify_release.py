@@ -297,14 +297,16 @@ def scan_events(stream: BinaryIO) -> EventFacts:
     return facts
 
 
-def scan_event_source(stream: BinaryIO, name: str) -> EventFacts:
-    """An events*.jsonl (already decompressed by the caller), or a tar whose only member is one."""
+def read_event_source(stream: BinaryIO, name: str, consume: Callable[[BinaryIO], T]) -> T:
+    """Hand an events*.jsonl stream (already decompressed by the caller, or the only member of an
+    events*.tar) to `consume`."""
     if not _is_tar(name):
-        return scan_events(stream)
-    facts: EventFacts | None = None
+        return consume(stream)
+    result: T | None = None
+    seen = False
     with _open_tar(stream, name) as tar:
         for member in tar:
-            if facts is not None:
+            if seen:
                 raise ReleaseError(f"event archive has a second member {member.name!r}")
             if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE) or not EVENT_MEMBER.fullmatch(
                 member.name
@@ -314,10 +316,16 @@ def scan_event_source(stream: BinaryIO, name: str) -> EventFacts:
                 )
             body = tar.extractfile(member)
             assert body is not None
-            facts = scan_events(cast(BinaryIO, body))
-    if facts is None:
+            result = consume(cast(BinaryIO, body))
+            seen = True
+    if not seen:
         raise ReleaseError("event archive is empty")
-    return facts
+    return cast(T, result)
+
+
+def scan_event_source(stream: BinaryIO, name: str) -> EventFacts:
+    """An events*.jsonl (already decompressed by the caller), or a tar whose only member is one."""
+    return read_event_source(stream, name, scan_events)
 
 
 def features_sha256(features: Mapping[str, bool]) -> str:

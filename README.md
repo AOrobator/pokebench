@@ -1,4 +1,4 @@
-![PokéBench, harness engineering for long-horizon game agents](docs/images/pokebench-header.png)
+![PokéBench, harness engineering for long-horizon game agents](docs/images/pokebench-header.webp)
 
 # PokéBench
 

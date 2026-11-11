@@ -31,7 +31,7 @@ No new input, network or file access; HTML escaping unchanged.
 
 **M1 — Source readiness**
 - [x] Worklog
-- [ ] Tests (RED): `raceLoading` truth table
+- [x] Tests (RED): `raceLoading` truth table
 - [ ] Implement
 - [ ] Cheap checks; guard deletion; full gates (`just lint`, `just test`)
 - [ ] Browser check: the real 67d7 release in a scratch viewer (single-run root) shows the settled line, at desktop and phone, plus a multi-run root still racing

@@ -44,5 +44,5 @@ disproved-beliefs-bound-v1 (default off, needs disproved-beliefs-v1) applies the
 
 - Not landed on main, so not in any run yet.
 - Budgets count code points (as the instruction-memory cap does). Focused tests pass: 7 refusal-bound and 8 contradiction-bound tests, including the production context path, and 73 with the existing refusal-ledger and disproved-beliefs tests (receipt: `runs/analysis/bounded-input-20261028/replays/refusal-ledger-bound-v1.focused.txt`).
-- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per Operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
+- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per the operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
 - Review and gates: three-lane review in progress; full gate on the frozen head under the relayed CPU grant. No measured runs yet.

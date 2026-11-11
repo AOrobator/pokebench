@@ -2,7 +2,7 @@
 
 > Markdown twin of [turn-drought-clock-v1.html](../turn-drought-clock-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Switch `turn-drought-clock-v1`: guard group, needs `stall-briefing-v1`, default OFF, ON in the bundle arm of `bundle-v-control` and `bundle-v-control-2h` (Operator, 2026-10-22: "make it turn based", ON in the bundle).
+Switch `turn-drought-clock-v1`: guard group, needs `stall-briefing-v1`, default OFF, ON in the bundle arm of `bundle-v-control` and `bundle-v-control-2h` (the operator, 2026-10-22: "make it turn based", ON in the bundle).
 
 ## The problem
 

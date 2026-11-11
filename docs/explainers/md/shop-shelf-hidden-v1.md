@@ -2,7 +2,7 @@
 
 > Markdown twin of [shop-shelf-hidden-v1.html](../shop-shelf-hidden-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`shop-shelf-hidden-v1` stops the harness offering shop shelves as things to interact with. Registered default off; on in both arms of the current and Rayquaza recipes (Operator 2026-11-05).
+`shop-shelf-hidden-v1` stops the harness offering shop shelves as things to interact with. Registered default off; on in both arms of the current and Rayquaza recipes (the operator 2026-11-05).
 
 ## Why
 
@@ -26,13 +26,13 @@ Source pokeemerald 731ad5b, and every map header of the US ROM.
 
 | Listed thing | In the ROM | What A does | With the switch on |
 |---|---|---|---|
-| Shop shelf, behavior 0xE5 | 269 tiles, 18 maps | `EventScript_ShopShelf`: one flavor line | Hidden, as Operator asked |
+| Shop shelf, behavior 0xE5 | 269 tiles, 18 maps | `EventScript_ShopShelf`: one flavor line | Hidden, as the operator asked |
 | Sign with no script | 2 events, METEOR FALLS 1F 1R and 2R, at (9,58), outside the map | Cannot be reached | Hidden |
 | Vase, trash can, bookshelves | 216 tiles in all | Their own flavor scripts | Listed: they have scripts |
 | Other script tiles, signs, secret bases | Every other listed event | Their own scripts | Listed |
 | Hidden items | 112 | An item | Listed |
 
-A shop shelf does have a script. It is the one scripted thing hidden, because Operator named it. Pressing A at a shelf still shows the game's text.
+A shop shelf does have a script. It is the one scripted thing hidden, because the operator named it. Pressing A at a shelf still shows the game's text.
 
 ## Replay of recorded Mart turns
 

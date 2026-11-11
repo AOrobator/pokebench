@@ -4,7 +4,7 @@ Harness switch · guard · `heal-before-trainers-v1` · needs `low-hp-trainer-wa
 
 > Markdown twin of [heal-before-trainers-v1.html](../heal-before-trainers-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-A simple v1 of "heal before trainer fights" (Operator, 2026-10-17). On the free field, when a trainer the player has not beaten is loaded on the current map and the party is weak, the tool result says so and names the nearest place the player has been to that heals the party. Everything it says comes from game memory, the ROM's map table and the game's own text.
+A simple v1 of "heal before trainer fights" (the operator, 2026-10-17). On the free field, when a trainer the player has not beaten is loaded on the current map and the party is weak, the tool result says so and names the nearest place the player has been to that heals the party. Everything it says comes from game memory, the ROM's map table and the game's own text.
 
 ## The run that prompted it
 
@@ -61,7 +61,7 @@ It names each trainer once while the party stays weak on that map; a trainer tha
 | Home, MOM | `SaveBlock2.playerGender`; flags 0x52, 0x12F, 0xD8, 0x85, badge 5; vars 0x4082, 0x408C | BRENDANS HOUSE 1F; MOM heals |
 | Quoted words | `sText_NoRunningFromTrainers`, `sText_NoPPLeft` (src/battle_message.c); `gText_WouldYouLikeToRestYourPkmn`; `PlayersHouse_1F_Text_YouShouldRestABit` |  |
 
-A pytest reads e046's real RAM (seq 16066 and 16287) with Operator's ROM through the production reader and gets exactly the facts pokeemerald's source names for those objects and moves. The facts reach the agent as `heal_before_trainers` in the state JSON, only while the switch is on; the readout text never changes.
+A pytest reads e046's real RAM (seq 16066 and 16287) with the operator's ROM through the production reader and gets exactly the facts pokeemerald's source names for those objects and moves. The facts reach the agent as `heal_before_trainers` in the state JSON, only while the switch is on; the readout text never changes.
 
 ## Measured on 14 recorded runs
 

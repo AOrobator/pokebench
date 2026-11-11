@@ -8,7 +8,7 @@ A short system-prompt section saying that in this game, people tell you where to
 
 ## Why
 
-Operator, 2026-10-16: the point of Pokémon is exploring, talking to people and finding things out, and then those hints help you move forward. The model was doing the opposite: it moved on after one conversation and treated hints as small talk.
+The operator, 2026-10-16: the point of Pokémon is exploring, talking to people and finding things out, and then those hints help you move forward. The model was doing the opposite: it moved on after one conversation and treated hints as small talk.
 
 ## The failure it targets
 

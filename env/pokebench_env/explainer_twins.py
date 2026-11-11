@@ -76,19 +76,46 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"(?<![\w./~-])(?:claude|codex)/[A-Za-z0-9][\w./-]*[\w]"),
         "a working branch",
     ),
-    (
-        re.compile(r"\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I),
-        "Operator",
-    ),
 )
+
+_NAME = re.compile(r"(?:\b(the)\s+)?\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I)
+_OPERATOR = "\ue000"
+_OPENERS = "*_~`[\"'\u201c\u2018"
+_CLOSERS = re.compile(r"(?:\]\([^()\s]*\)|[*_~`\"'\u201d\u2019)\]])+$")
+_NAME_LINE_LEAD = re.compile(r"[ \t]*(?:[#>*+-]+[ \t]*|\d+[.)][ \t]*)*$")
+
+
+def _starts_sentence(before: str) -> bool:
+    before = before.rstrip(_OPENERS)
+    if before.rstrip(" \t").endswith("|"):
+        return True
+    if _NAME_LINE_LEAD.fullmatch(before.rsplit("\n", 1)[-1]):
+        return True
+    if not before[-1:].isspace():
+        return False
+    return _CLOSERS.sub("", before.rstrip()).endswith((".", "!", "?"))
+
+
+def _mark_name(match: re.Match[str]) -> str:
+    return "The operator" if match.group(1) == "The" else _OPERATOR
+
+
+def scrub_inline(text: str) -> str:
+    """Scrub a fragment of a larger text; the operator's name stays a marker that `scrub` of the
+    assembled text capitalises from its context."""
+    for pattern, replacement in _SCRUBS:
+        text = pattern.sub(replacement, text)
+    return _NAME.sub(_mark_name, text)
 
 
 def scrub(text: str) -> str:
     """Remove machine paths, tailnet hosts, private IPs, chat ids, emails, branch names and the
-    operator's real name (written as Operator, the operator's decision 2026-11-11)."""
-    for pattern, replacement in _SCRUBS:
-        text = pattern.sub(replacement, text)
-    return text
+    operator's real name (written as "the operator", the operator's decision 2026-11-11)."""
+    parts = scrub_inline(text).split(_OPERATOR)
+    out = [parts[0]]
+    for part in parts[1:]:
+        out += ["The operator" if _starts_sentence("".join(out)) else "the operator", part]
+    return "".join(out)
 
 
 # ---------------------------------------------------------------- tiny DOM
@@ -632,7 +659,7 @@ class Renderer:
 
     def inline_one(self, node: Node | str) -> str:
         if isinstance(node, str):
-            return escape_text(_WS.sub(" ", scrub(node)))
+            return escape_text(_WS.sub(" ", scrub_inline(node)))
         tag = node.tag
         if tag in SKIP:
             return ""
@@ -643,7 +670,7 @@ class Renderer:
         if tag == "img":
             return self.page.image(node)
         if tag == "code" or tag == "kbd" or tag == "samp" or tag == "tt":
-            return code_span(scrub(node.text()))
+            return code_span(scrub_inline(node.text()))
         inner = self.inline(node.children)
         if node.attrs.get("class") and tag not in {"a"} and inner.strip(_SPACE):
             inner = SOFT + inner + SOFT

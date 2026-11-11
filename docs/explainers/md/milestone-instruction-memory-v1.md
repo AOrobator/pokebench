@@ -2,7 +2,7 @@
 
 > Markdown twin of [milestone-instruction-memory-v1.html](../milestone-instruction-memory-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Keep the evidence. Stop repeating completed scenes. Switch: `milestone-instruction-memory-v1`. Default and control OFF; bundle treatment ON at Operator’s request. This page shows actual offline replay, not measured gameplay benefit.
+Keep the evidence. Stop repeating completed scenes. Switch: `milestone-instruction-memory-v1`. Default and control OFF; bundle treatment ON at the operator’s request. This page shows actual offline replay, not measured gameplay benefit.
 
 ## What the switch changes
 

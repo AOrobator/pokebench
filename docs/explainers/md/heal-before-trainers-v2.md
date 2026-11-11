@@ -67,5 +67,5 @@ Result 14717 in RUSTBORO CITY gets nothing from this switch: the city has no tra
 
 ## Status
 
-- Tests: pytest on b300 RAM windows with Operator's ROM (ROXANNE 265, JOSH 320, TOMMY 321, MARC 571 match `include/constants/opponents.h`), the b300 replay on and off, thresholds, the arm, the event, and `playGameTools`.
+- Tests: pytest on b300 RAM windows with the operator's ROM (ROXANNE 265, JOSH 320, TOMMY 321, MARC 571 match `include/constants/opponents.h`), the b300 replay on and off, thresholds, the arm, the event, and `playGameTools`.
 - Pending experiment `experiments/heal-before-trainers-v2.json`, not queued. No measured runs.

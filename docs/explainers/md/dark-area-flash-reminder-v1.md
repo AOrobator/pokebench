@@ -83,5 +83,5 @@ The gate reads only what the state already reports, so a state without a bag rea
 
 - `dark-area-flash.test.ts` 21/21; the module at 100% lines and functions, 98% branches; the wiring test fails with the hookup removed.
 - Focused agent files 19/384 green; viewer 9 files/645 green; the recipe test covers four current definitions, both arms, every phase; `tsc` and `eslint` clean on the changed files.
-- Multi-model review is waived by Operator (2026-11-01: “land it reviews are waived”). No reviewer verdict exists for this change.
+- Multi-model review is waived by the operator (2026-11-01: “land it reviews are waived”). No reviewer verdict exists for this change.
 - Not proven: no recorded run has ever reported flash level 1 on a dark map, so the “already lit, stay silent” branch rests on the decomp alone; only 24/8 and 24/9 are confirmed against an independently audited map table.

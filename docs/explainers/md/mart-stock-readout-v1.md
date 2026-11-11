@@ -2,7 +2,7 @@
 
 > Markdown twin of [mart-stock-readout-v1.html](../mart-stock-readout-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`mart-stock-readout-v1` · server readout switch · on in both arms of current (Operator 2026-11-01); registered default off · Rustboro gym strategy report, proposal 4 (2026-10-21)
+`mart-stock-readout-v1` · server readout switch · on in both arms of current (the operator 2026-11-01); registered default off · Rustboro gym strategy report, proposal 4 (2026-10-21)
 
 None of the 11 runs that reached ROXANNE between Oct 19 and 21 had bought anything first, though they arrived holding ¥4,286–6,960. Run `2026-10-21T06-28-18_qwen36-gpu0_1331` did open the RUSTBORO CITY MART buy list (turns 680–690). The readout named only the first row, gave no price and no description, and lost track of the cursor as soon as it moved. The game itself shows one description at a time, for the highlighted row only.
 

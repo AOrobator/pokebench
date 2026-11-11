@@ -22,7 +22,7 @@ Any other model error — a dead process, a 502, a timeout — waits until the l
 
 ## What it never does
 
-It never cuts text. It drops whole turns only, through the fitters that already exist, so a message is never truncated mid-sentence. It never hides a lane failure either: two consecutive lane errors are absorbed and recorded, the third ends the run as `model_error`, and a refusal nothing can be dropped to satisfy ends it on the next refusal, not after a loop. The turn budget, Operator stop and the loop guard still end runs exactly as before.
+It never cuts text. It drops whole turns only, through the fitters that already exist, so a message is never truncated mid-sentence. It never hides a lane failure either: two consecutive lane errors are absorbed and recorded, the third ends the run as `model_error`, and a refusal nothing can be dropped to satisfy ends it on the next refusal, not after a loop. The turn budget, the operator stop and the loop guard still end runs exactly as before.
 
 ## The gate
 

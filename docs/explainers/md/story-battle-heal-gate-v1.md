@@ -4,7 +4,7 @@
 
 `story-battle-heal-gate-v1` · guard · bundle arm only · default off · needs `heal-before-trainers-v2`
 
-While any party Pokémon (not an egg) is below its max HP, the harness does not start an action that would start a trainer battle the player has not won and cannot run from. It says so in the game's words, names each hurt Pokémon's HP and the places the run knows of that heal the party, and the model can go ahead by calling again with `confirm: true`. Operator asked for it at 8:53 PM ET on 2026-10-20: "yes i also want the gate built", then "the gate could also be useful for the gym".
+While any party Pokémon (not an egg) is below its max HP, the harness does not start an action that would start a trainer battle the player has not won and cannot run from. It says so in the game's words, names each hurt Pokémon's HP and the places the run knows of that heal the party, and the model can go ahead by calling again with `confirm: true`. The operator asked for it at 8:53 PM ET on 2026-10-20: "yes i also want the gate built", then "the gate could also be useful for the gym".
 
 ## What happened in 97a0
 
@@ -72,4 +72,4 @@ The route passes HIKER MARC's template tile (1,6), so the walk would also end ne
 
 ## Status
 
-Gates and the Claude and Grok review are recorded in the worklog. Not measured: the pending experiment `experiments/story-battle-heal-gate-v1.json` waits for Operator.
+Gates and the Claude and Grok review are recorded in the worklog. Not measured: the pending experiment `experiments/story-battle-heal-gate-v1.json` waits for the operator.

@@ -22,7 +22,7 @@ Times are wall-clock hours from the start of the run. The Qwen runs start from a
 
 ![Badges for the money: how far each model's best run got against its API cost to that point](docs/images/badges-for-the-money.png)
 
-Each chart shows every model's best run, read from its own recording. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded. Rayquaza lane runs are heavily assisted and drawn dotted or hollow. Frontier models are priced at API list price; local models are estimates at the cheapest OpenRouter provider for each model as of 11/8.
+Each chart shows every model's best run, read from its own recording. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded. Rayquaza lane runs are heavily assisted and drawn dotted or hollow. Frontier models are priced at API list price; local models are estimates at the cheapest OpenRouter provider for each model's recorded tokens, as of 11/11.
 
 DeepSeek V4.1 Flash also took the Stone Badge 55m 13s after power-on (run `80c8`, turn 223), and from a Fortree City checkpoint it earned the Feather Badge at turn 86 (run `ee2a`). The [results ledger](docs/results.md) lists these runs with their harness commits, presets, budgets and evidence.
 

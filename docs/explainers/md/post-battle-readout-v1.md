@@ -70,6 +70,6 @@ Applied by the game server: registered in `SERVER_FEATURES` in `packages/agent/s
 ## Status
 
 - RED 9cedd233c, GREEN 5fa06e15e. Not merged into main.
-- Default OFF. ON in the bundle arm only of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in the bundle arm only of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
 - Tests: `env/tests/env/test_post_battle_readout.py` (OFF golden written before the switch existed). Multi-model review: not run yet.
 - Not measured in runs. Pending experiment: `experiments/post-battle-readout-v1.json`.

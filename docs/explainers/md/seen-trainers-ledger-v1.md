@@ -2,7 +2,7 @@
 
 > Markdown twin of [seen-trainers-ledger-v1.html](../seen-trainers-ledger-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`seen-trainers-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
+`seen-trainers-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
 
 In the Training block: the trainers heal-before-trainers-v2 listed on each map the player stood on this run, by map: not beaten, battled and not beaten, or beaten, by the name a battle showed or else the sprite kind and tile. Fully beaten maps collapse to a count.
 

@@ -2,7 +2,7 @@
 
 > Markdown twin of [type-gap-team-v1.html](../type-gap-team-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Bundle arm only, default off. Approved by Operator on 2026-10-27. It puts three things side by side for each gym whose leader is not beaten yet: what this run has seen of the gym's types, the attacking types the game's own type chart makes super effective against them, and which of those the party has. It never advises and never names a place the run has not been.
+Bundle arm only, default off. Approved by the operator on 2026-10-27. It puts three things side by side for each gym whose leader is not beaten yet: what this run has seen of the gym's types, the attacking types the game's own type chart makes super effective against them, and which of those the party has. It never advises and never names a place the run has not been.
 
 ## Why
 

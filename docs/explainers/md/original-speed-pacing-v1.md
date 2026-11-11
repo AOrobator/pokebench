@@ -4,7 +4,7 @@ Game-clock switch · original-speed-pacing-v1 · default off
 
 > Markdown twin of [original-speed-pacing-v1.html](../original-speed-pacing-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Operator goal is an actual 80 core frames per second during normal play. The switch changes the game-loop clock policy; it does not promise that frame publication, WebSocket delivery, SVG image-load completion, or compositor paint also run at 80.
+The operator goal is an actual 80 core frames per second during normal play. The switch changes the game-loop clock policy; it does not promise that frame publication, WebSocket delivery, SVG image-load completion, or compositor paint also run at 80.
 
 ### ON · original-speed target
 

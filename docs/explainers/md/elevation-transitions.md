@@ -84,5 +84,5 @@ The rule is now behind a switch so it can be A/B tested. It is ON by default, so
 - Test fixtures are real 15×15 windows decoded from pokeemerald map.bin: `packages/agent/test-support/elevation-maps.json`.
 - Review: Claude, Codex and Grok all LGTM after three rounds (round 1 fixed leaving a 15 tile; round 2 added the search-identity and ledge-onto-15 tests).
 - Not done: no live run on the pier or Route 110; no measured benchmark runs; not merged to main.
-- 2026-10-14: switch added on a working branch (default ON, planner-only). It is queued as an A/B experiment, position 2, waiting for Operator’s approval. No measured runs yet.
+- 2026-10-14: switch added on a working branch (default ON, planner-only). It is queued as an A/B experiment, position 2, waiting for the operator’s approval. No measured runs yet.
 - Still open elsewhere: sand, cave and bridge behaviors are walls to the planner; the model's text map does not show elevation.

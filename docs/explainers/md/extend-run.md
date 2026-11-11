@@ -20,7 +20,7 @@ The 20,000-turn limit is unchanged. Stop, Abort, model errors and other existing
 
 The fixed runner waits for the agent process to exit, including when it adopts a child from a previous runner. It does not launch the next trial on that GPU merely because the original time cap passed.
 
-The original evaluation horizon remains in `run_start`. Experiment metrics retain that cutoff; later milestones belong to Operator-extended continuation. Activity History records the old and new caps, and replay shows the effective cap.
+The original evaluation horizon remains in `run_start`. Experiment metrics retain that cutoff; later milestones belong to the operator-extended continuation. Activity History records the old and new caps, and replay shows the effective cap.
 
 ## Availability
 

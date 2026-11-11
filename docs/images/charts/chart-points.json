@@ -1,0 +1,180 @@
+{
+  "prices_as_of": "2026-11-11",
+  "series": [
+    {
+      "label": "Claude Opus 5.5",
+      "runs": [
+        "2026-11-07T02-24-52_claude-opus-5-5_6302",
+        "2026-11-07T10-06-29_claude-opus-5-5_1121",
+        "2026-11-07T16-42-59_claude-opus-5-5_69d8",
+        "2026-11-07T21-23-08_claude-opus-5-5_d718"
+      ],
+      "milestones": {
+        "STONE_BADGE": 3210,
+        "KNUCKLE_BADGE": 6614,
+        "DYNAMO_BADGE": 11175,
+        "HEAT_BADGE": 18663,
+        "BALANCE_BADGE": 21353,
+        "FEATHER_BADGE": 29223,
+        "MIND_BADGE": 39138,
+        "RAIN_BADGE": 47090,
+        "ELITE_FOUR_SIDNEY_DEFEATED": 54130,
+        "ELITE_FOUR_PHOEBE_DEFEATED": 54521,
+        "ELITE_FOUR_GLACIA_DEFEATED": 58911
+      },
+      "furthest": "ELITE_FOUR_GLACIA_DEFEATED",
+      "cost_usd": 679.16,
+      "cost_kind": "pinned",
+      "price": null
+    },
+    {
+      "label": "Claude Opus 5.5, Rayquaza lane*",
+      "runs": [
+        "2026-11-10T15-37-43_opus-rayquaza-boot_67d7"
+      ],
+      "milestones": {
+        "STONE_BADGE": 3049,
+        "KNUCKLE_BADGE": 15314,
+        "DYNAMO_BADGE": 12754,
+        "HEAT_BADGE": 20738,
+        "BALANCE_BADGE": 22441,
+        "FEATHER_BADGE": 29714,
+        "MIND_BADGE": 40812,
+        "RAIN_BADGE": 50832,
+        "ELITE_FOUR_SIDNEY_DEFEATED": 58866,
+        "ELITE_FOUR_PHOEBE_DEFEATED": 59242,
+        "ELITE_FOUR_GLACIA_DEFEATED": 60832,
+        "ELITE_FOUR_DRAKE_DEFEATED": 61289,
+        "WALLACE_DEFEATED": 62041,
+        "GAME_CLEAR_CONFIRMED": 62162
+      },
+      "furthest": "GAME_CLEAR_CONFIRMED",
+      "cost_usd": 780.0,
+      "cost_kind": "pinned",
+      "price": null
+    },
+    {
+      "label": "DeepSeek V4.1 Flash",
+      "runs": [
+        "2026-11-04T16-25-02_deepseek-deepseek-v4.1-flash_5f0f"
+      ],
+      "milestones": {
+        "STONE_BADGE": 2986,
+        "KNUCKLE_BADGE": 6911,
+        "DYNAMO_BADGE": 13020,
+        "HEAT_BADGE": 23261,
+        "BALANCE_BADGE": 25621
+      },
+      "furthest": "BALANCE_BADGE",
+      "cost_usd": 9.56,
+      "cost_kind": "events",
+      "price": "deepseek-v4.1-flash"
+    },
+    {
+      "label": "GPT-6 Astra",
+      "runs": [
+        "2026-10-25T10-50-57_gpt-6-astra_429f"
+      ],
+      "milestones": {
+        "STONE_BADGE": 6825,
+        "KNUCKLE_BADGE": 14031,
+        "DYNAMO_BADGE": 22037,
+        "HEAT_BADGE": 39407
+      },
+      "furthest": "HEAT_BADGE",
+      "cost_usd": 718.54,
+      "cost_kind": "pinned",
+      "price": null
+    },
+    {
+      "label": "GPT-6.1 Sol",
+      "runs": [
+        "2026-11-07T01-55-08_gpt-6.1-sol_3300"
+      ],
+      "milestones": {
+        "STONE_BADGE": 12413,
+        "KNUCKLE_BADGE": 34335,
+        "DYNAMO_BADGE": 42999
+      },
+      "furthest": "DYNAMO_BADGE",
+      "cost_usd": 149.92,
+      "cost_kind": "codex",
+      "price": "gpt-6.1-sol"
+    },
+    {
+      "label": "Qwen3.6 35B-A3B",
+      "runs": [
+        "2026-10-24T19-31-52_qwen36-gpu1_d41e"
+      ],
+      "milestones": {
+        "STONE_BADGE": 13189,
+        "KNUCKLE_BADGE": 43062,
+        "DYNAMO_BADGE": 71877
+      },
+      "furthest": "DYNAMO_BADGE",
+      "cost_usd": 2.94,
+      "cost_kind": "events",
+      "price": "qwen3.6-35b-a3b"
+    },
+    {
+      "label": "Qwen3.6 35B-A3B, Rayquaza lane*",
+      "runs": [
+        "2026-11-08T18-33-33_rayquaza-lane-qwen36_3bb0"
+      ],
+      "milestones": {
+        "STONE_BADGE": 2582,
+        "KNUCKLE_BADGE": 50070,
+        "DYNAMO_BADGE": 15174,
+        "HEAT_BADGE": 48269,
+        "BALANCE_BADGE": 72826
+      },
+      "furthest": "BALANCE_BADGE",
+      "cost_usd": 2.83,
+      "cost_kind": "events",
+      "price": "qwen3.6-35b-a3b"
+    },
+    {
+      "label": "GLM-5.3 Flash",
+      "runs": [
+        "2026-10-24T19-37-24_glm53-mac_6bbd"
+      ],
+      "milestones": {
+        "STONE_BADGE": 21208,
+        "DYNAMO_BADGE": 79726
+      },
+      "furthest": "DYNAMO_BADGE",
+      "cost_usd": 1.21,
+      "cost_kind": "events",
+      "price": "glm-5.3-flash"
+    },
+    {
+      "label": "Qwen3.8 27B",
+      "runs": [
+        "2026-11-01T01-37-02_hyperqwen-gpu0_7da5"
+      ],
+      "milestones": {
+        "STONE_BADGE": 8115
+      },
+      "furthest": "STONE_BADGE",
+      "cost_usd": 0.57,
+      "cost_kind": "events",
+      "price": "qwen3.8-27b"
+    },
+    {
+      "label": "Qwen3.8 27B, Rayquaza lane*",
+      "runs": [
+        "2026-11-07T00-28-59_rayquaza-lane-qwen_6056"
+      ],
+      "milestones": {
+        "STONE_BADGE": 4247,
+        "KNUCKLE_BADGE": 62509,
+        "DYNAMO_BADGE": 33559,
+        "HEAT_BADGE": 57751
+      },
+      "furthest": "KNUCKLE_BADGE",
+      "cost_usd": 4.84,
+      "cost_kind": "events",
+      "price": "qwen3.8-27b"
+    }
+  ]
+}

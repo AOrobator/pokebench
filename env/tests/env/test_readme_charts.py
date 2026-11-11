@@ -18,14 +18,17 @@ def ms(name, t, turn=1, origin="observed"):
     return ev("milestone", t, name=name, turn=turn, origin=origin)
 
 
-def turn(t, i=1000, c=0, o=10):
-    return ev("assistant", t, usage={"input": i, "cache_read": c, "output": o})
+def turn(t, i=1000, c=0, o=10, w=0):
+    return ev(
+        "assistant", t, usage={"input": i, "cache_read": c, "output": o, "cache_write": w}
+    )
 
 
 PRICES = {
     "as_of": "2026-11-11",
     "models": {
         "flat": {"input": 1.0, "cache_read": 0.5, "output": 2.0},
+        "writes": {"input": 1.0, "cache_read": 0.5, "output": 2.0, "cache_write": 1.25},
         "peaky": {
             "input": 1.0,
             "cache_read": 0.0,
@@ -44,7 +47,7 @@ def test_scan_keeps_first_observed_and_marks_held_milestones():
         "r",
         [
             '{"type":"state","t":"x"}',
-            start(path="/a/b/MAGMA_HIDEOUT.state"),
+            start(path="/runs/prev/checkpoints/MAGMA_HIDEOUT.state"),
             ms("STONE_BADGE", "2026-11-07T10:00:00.000-05:00", origin="present_at_start"),
             ms("KNUCKLE_BADGE", "2026-11-07T11:00:00.000-05:00", turn=5),
             ms("KNUCKLE_BADGE", "2026-11-07T12:00:00.000-05:00", turn=9),
@@ -52,6 +55,7 @@ def test_scan_keeps_first_observed_and_marks_held_milestones():
         ],
     )
     assert scan.checkpoint == "MAGMA_HIDEOUT"
+    assert scan.checkpoint_run == "prev"
     assert scan.milestones["STONE_BADGE"][0] == -1
     assert scan.milestones["KNUCKLE_BADGE"][:2] == (5, 3600.0)
 
@@ -120,7 +124,7 @@ def test_stitch_adds_each_cut_to_the_next_leg():
     b = leg(
         "b",
         [
-            start("2026-11-07T12:00:00.000-05:00", path="/x/CHECK.state"),
+            start("2026-11-07T12:00:00.000-05:00", path="/runs/a/checkpoints/CHECK.state"),
             ms("STONE_BADGE", "2026-11-07T12:00:00.000-05:00", origin="present_at_start"),
             ms("KNUCKLE_BADGE", "2026-11-07T12:05:00.000-05:00"),
         ],
@@ -130,9 +134,19 @@ def test_stitch_adds_each_cut_to_the_next_leg():
 
 def test_stitch_needs_the_checkpoint_milestone():
     a = leg("a", [start()])
-    b = leg("b", [start(path="/x/NOWHERE.state")])
+    b = leg("b", [start(path="/runs/a/checkpoints/NOWHERE.state")])
     with pytest.raises(rc.ChartError, match="no observed NOWHERE"):
         rc.stitch([a, b])
+
+
+def test_stitch_needs_the_checkpoint_from_the_previous_leg():
+    a = leg("a", [start(), ms("CHECK", "2026-11-07T10:20:00.000-05:00")])
+    b = leg("b", [start(path="/runs/other/checkpoints/CHECK.state")])
+    with pytest.raises(rc.ChartError, match="loaded a checkpoint from other, not a"):
+        rc.stitch([a, b])
+    held = leg("c", [start()])
+    with pytest.raises(rc.ChartError, match="loaded no checkpoint"):
+        rc.stitch([a, held])
 
 
 def test_badges_count_in_the_order_earned_and_league_rows_are_fixed():
@@ -168,6 +182,15 @@ def test_usage_cost_stops_at_the_milestone_and_doubles_peak_hours():
     assert rc.usage_cost(flat, "STONE_BADGE", prices["flat"]) == pytest.approx(1 + 1 + 2)
 
 
+def test_usage_cost_prices_cache_writes_at_their_rate_or_the_input_rate():
+    prices = rc.parse_prices(PRICES)
+    scan = leg("r", [start(), turn("2026-11-07T10:01:00.000-05:00", i=0, o=0, w=1_000_000)])
+    assert prices["flat"].cache_write == 1.0
+    assert rc.usage_cost(scan, "STONE_BADGE", prices["flat"]) == pytest.approx(1.0)
+    assert prices["writes"].cache_write == 1.25
+    assert rc.usage_cost(scan, "STONE_BADGE", prices["writes"]) == pytest.approx(1.25)
+
+
 def test_codex_cost_takes_the_last_reading_at_or_before_the_milestone():
     price = rc.Price(2.0, 0.1, 10.0)
     readings = [
@@ -185,6 +208,28 @@ def test_codex_cost_takes_the_last_reading_at_or_before_the_milestone():
 def test_prices_need_a_models_table():
     with pytest.raises(rc.ChartError):
         rc.parse_prices({})
+
+
+FLAT = {"input": 1, "cache_read": 0.5, "output": 2}
+
+
+@pytest.mark.parametrize(
+    ("model", "message"),
+    [
+        ([], "m: expected an object"),
+        ({"cache_read": 0.5, "output": 2}, "m input: expected a number"),
+        ({**FLAT, "input": "1"}, "m input: expected a number"),
+        ({**FLAT, "cache_write": True}, "m cache_write: expected a number"),
+        ({**FLAT, "peak": []}, "m peak: expected an object"),
+        ({**FLAT, "peak": {"multiplier": "2"}}, "m peak multiplier: expected a number"),
+        ({**FLAT, "peak": {"local_hours": [[1]]}}, "m peak hours: expected"),
+        ({**FLAT, "peak": {"local_hours": [[1, 2.5]]}}, "m peak hours: expected"),
+        ({**FLAT, "peak": {"local_hours": "1-5"}}, "m peak local_hours: expected a list"),
+    ],
+)
+def test_prices_reject_bad_shapes(model, message):
+    with pytest.raises(rc.ChartError, match=message):
+        rc.parse_prices({"models": {"m": model}})
 
 
 # ---------------------------------------------------------------- points and pages
@@ -232,7 +277,7 @@ RUNS = FakeRuns(
         "codex": [start(), ms("STONE_BADGE", "2026-11-07T11:00:00.000-05:00")],
         "pinned": [start(), ms("STONE_BADGE", "2026-11-07T10:30:00.000-05:00")],
         "next": [
-            start(path="/x/STONE_BADGE.state"),
+            start(path="/runs/local/checkpoints/STONE_BADGE.state"),
             ms("KNUCKLE_BADGE", "2026-11-07T10:05:00.000-05:00"),
         ],
     },
@@ -298,6 +343,32 @@ def test_series_list_is_required():
         rc.parse_series({})
 
 
+GOOD = one("X", ["r"], {"kind": "pinned", "usd": 1})
+
+
+@pytest.mark.parametrize(
+    ("series", "message"),
+    [
+        ("X", "series 1: expected an object"),
+        ({**GOOD, "label": 3}, "series 1 label: expected text"),
+        ({**GOOD, "color": None}, "X color: expected text"),
+        ({**GOOD, "assisted": "yes"}, "X assisted: expected true or false"),
+        ({**GOOD, "runs": []}, "X runs: expected at least one run"),
+        ({**GOOD, "runs": ["r", 2]}, "X run: expected text"),
+        ({**GOOD, "cost": []}, "X cost: expected an object"),
+        ({**GOOD, "cost": {"kind": "magic"}}, "unknown cost kind"),
+        ({**GOOD, "cost": {"kind": "events", "price": 5}}, "X price: expected text"),
+        ({**GOOD, "cost": {"kind": "pinned", "usd": "1"}}, "X usd: expected a number"),
+        ({**GOOD, "cost": {"kind": "pinned", "usd": 1, "estimated": 1}}, "X estimated"),
+        ({**GOOD, "label_offset": [1, 2]}, "X label_offset: expected"),
+        ({**GOOD, "label_offset": [1, "2", "end"]}, "X label_offset: expected"),
+    ],
+)
+def test_series_reject_bad_shapes(series, message):
+    with pytest.raises(rc.ChartError, match=message):
+        rc.parse_series({"series": [series]})
+
+
 def test_pages_plot_every_line_and_mark_assisted_runs():
     data = chart_data(SERIES)
     points = rc.build_points(data, PRICES, RUNS)
@@ -359,6 +430,12 @@ def test_command_writes_points_then_pages_and_checks_drift():
 def test_command_usage_and_errors():
     said = []
     assert rc.run([], store(), RUNS, said.append) == 2
+    assert rc.run(["pionts"], store(), RUNS, said.append) == 2
+    assert said[-1] == "error: unknown stage 'pionts'; " + rc.USAGE
+    s = store()
+    s.files[rc.CHART_DATA] = "{not json"
+    assert rc.run(["html"], s, RUNS, said.append) == 1
+    assert said[-1].startswith(f"error: {rc.CHART_DATA} is not JSON")
     s = store()
     s.files[rc.PRICES] = "{}"
     assert rc.run(["points"], s, RUNS, said.append) == 1

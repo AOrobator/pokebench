@@ -12,9 +12,9 @@ You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf
 
 See `CLAUDE.md` for workflow and `docs/worklogs/` for history.
 
-## About this repository
+## About this repo
 
-PokeBench is a research project. This is its public copy, published from a private working repository, with its full development history. Values such as `/Users/user`, `*.example` hosts and IDs beginning `00000000-` are placeholders. References to the local inference stack and to some other tooling point at private setups that are not included.
+I build PokeBench in a private repo and publish it here, so the commit history is the real one. Paths like `/Users/user`, hosts ending in `.example` and IDs starting with `00000000-` stand in for details from my own machines. The local inference stack and a few other tools the docs mention are private setups I haven't published.
 
 ## Licence and notices
 

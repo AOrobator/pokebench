@@ -1,7 +1,5 @@
 # PokeBench agent principles
 
-> **DRAFT — pending operator review.** Drafted by an agent at the operator's request (2026-10-11) as a minimal starting point, adapted from `~/dev/local-inference-stack/docs/agent-principles.md`. Until the operator approves it, the principles self-review keeps scoring the local-inference-stack file (see `CLAUDE.md`).
-
 **Purpose:** the judgment calls that keep PokeBench honest as a benchmark and workable as a long-running harness project. Each entry names the default, how it is enforced, and the local-inference-stack principle it descends from (`SI-Pn`), so the evidence behind it can be traced.
 
 - **Principles** explain the judgment call.

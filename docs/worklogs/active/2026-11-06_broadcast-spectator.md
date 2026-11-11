@@ -122,10 +122,12 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
 - [x] GREEN: env 122 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean; viewer 150 broadcast tests, broadcast modules 98.8% lines 91.1% branches, eslint and tsc clean on the changed files. `--side-only --thinking-from <bridge>` on 67d7: 1,876 turns of thinking (scrub blanked nothing), 4,124 cost rows, last $780.55. Duck: `volume='1-0.748811*max(...)':eval=frame` with one clipped attack/release ramp per line, balanced max. Store reads the side files once per run tail; event thinking wins over the side file; recorded dollars beat token pricing.
 - [x] Ducking dropped (the operator 11/11: "i dont think we need to duck audio the video sounds fine"): broadcast-render.ts and its test restored to a6bec58b5, game flat at 0.35 as in v1. Measured before dropping it, on the first v2 render: game -22.9 dB between lines, -34.9 dB under them; voice about 9 dB over the ducked game; mix peak -3.7 dB.
 - [x] THINKING scroll (the operator 11/11: "it should start from the top and scroll down if its long"): the panel shows the whole thought from its top; past a hold of 15% of the time until the next thought, it scrolls to the end by 85% of it (20 s assumed live), scrollTop a function of t so render frames repeat. RED c38d3f29d; GREEN: viewer broadcast 152 tests. Scrub fix: env 127 tests, module 99%, lint clean.
-- [ ] Trial v2 render t=52400-52668, frames checked, ducking measured
-- [ ] Review: Codex via `just tell-codex`
+- [x] Trial v2 render t=52400-52668 at 30 fps from 6d512bcac to runs/broadcast/67d7-trial/67d7-sky-pillar-rayquaza-trial-v2.mp4 (4:28). Frames viewed at 0.5, 120 and 267.5 s: THINKING top-anchored (Opus thinking on turn 3461), API COST $649.47 → $651.28 → $654.09, matching cost.jsonl at turns 3433/3461; run total $780.55 at turn 4124. Audio identical to v1 (RMS -29.2 dB, peak -3.6 dB). The white game box at 0.5 s is a warp fade, also in v1.
+- [x] Review: Codex via `just tell-codex`
   - Round 1, GPT on a6bec58b5..83af8282d (packet sha f91eb9b4): BLOCKING, real and reproduced: the scrub blanked only the first part of a path with spaces or parentheses. Fix: a path or URL is blanked from its start to the end of its line (fail closed).
   - Round 2, GPT on 83af8282d..14eb976be (packet sha b8d139bc): scrub fix confirmed; BLOCKING, real and reproduced in Chromium and WebKit: the bottom fade kept the end of a fully scrolled thought washed out. Fix: 48 px of room after the last line (CSS only).
+  - Round 3, GPT on 14eb976be..5f41f6d91 (sha f41ed3fa): LGTM, rechecked in Chromium and WebKit at four widths.
+  - Round 4, GPT on 5f41f6d91..6d512bcac, the ducking revert (sha 0cdcabae): LGTM; render files byte-identical to a6bec58b5, 151 tests. Not landed, per the brief.
 
 ## Closing the Loop
 

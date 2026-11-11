@@ -2,7 +2,7 @@
 
 > Markdown twin of [grass-strides-v1.html](../grass-strides-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Default off in the registry; on in both arms (control and bundle) of the current fixed-run recipe, by Operator's decision on 2026-10-27. When it is on, a `navigate_to` stride may cross ordinary tall grass, so the player can run there instead of being forced to walk. Needs `safe-navigation-strides-v1` and `automatic-running-v1`.
+Default off in the registry; on in both arms (control and bundle) of the current fixed-run recipe, by the operator's decision on 2026-10-27. When it is on, a `navigate_to` stride may cross ordinary tall grass, so the player can run there instead of being forced to walk. Needs `safe-navigation-strides-v1` and `automatic-running-v1`.
 
 ## Why
 

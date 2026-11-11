@@ -4,7 +4,7 @@
 
 ## Establish the return point before continuing
 
-Switch: `town-center-checkpoint-v1`. Registered default OFF; enabled in both control and bundle in the shared current configuration, as Operator requested. The first eligible field decision of a town visit gets the short instruction that won the matched-encoding comparison.
+Switch: `town-center-checkpoint-v1`. Registered default OFF; enabled in both control and bundle in the shared current configuration, as the operator requested. The first eligible field decision of a town visit gets the short instruction that won the matched-encoding comparison.
 
 Entering a Center sets the local blackout return point even with a healthy party. Talking to the nurse restores HP, PP and status. The reminder asks for entry first, recovery if needed, then the current objective.
 

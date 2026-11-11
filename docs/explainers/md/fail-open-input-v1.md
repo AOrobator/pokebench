@@ -4,7 +4,7 @@
 
 `fail-open-input-v1` · agent switch · bundle-only, default off
 
-Operator, 2026-10-20: a fail-open design for boxes or UI the harness does not recognize, so the model decides from what is on screen, and B can dismiss them. Before this switch, when the automatic text advance stopped on a hold it could not name, the rest of the model's batch was dropped.
+The operator, 2026-10-20: a fail-open design for boxes or UI the harness does not recognize, so the model decides from what is on screen, and B can dismiss them. Before this switch, when the automatic text advance stopped on a hold it could not name, the rest of the model's batch was dropped.
 
 ## Which stops fail open
 

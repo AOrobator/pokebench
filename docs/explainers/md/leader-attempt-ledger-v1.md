@@ -2,7 +2,7 @@
 
 > Markdown twin of [leader-attempt-ledger-v1.html](../leader-attempt-ledger-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`leader-attempt-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
+`leader-attempt-ledger-v1` · agent readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
 
 On a gym map's field, and at a ready battle decision against a GYM LEADER, each earlier battle with that leader this run: the party's levels and EXP. Points, the BAG, each of the leader's POKéMON seen with the HP it was left at or fainted, the outcome the game wrote, and the money before and after; then the party now.
 

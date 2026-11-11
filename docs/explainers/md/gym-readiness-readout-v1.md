@@ -4,7 +4,7 @@
 
 `gym-readiness-readout-v1` · agent readout switch · bundle-only, default off
 
-Six recorded runs reached the Rustboro gym with a lone TORCHIC at Lv12–15. ROXANNE won all six battles, and only one run fought the gym's other trainers (evidence). This switch puts the party's levels next to what the run has already seen of the gym, so the model can judge for itself. Operator approved it on 2026-10-20.
+Six recorded runs reached the Rustboro gym with a lone TORCHIC at Lv12–15. ROXANNE won all six battles, and only one run fought the gym's other trainers (evidence). This switch puts the party's levels next to what the run has already seen of the gym, so the model can judge for itself. The operator approved it on 2026-10-20.
 
 ## What the model reads (recorded run a8f9, turn 1106)
 

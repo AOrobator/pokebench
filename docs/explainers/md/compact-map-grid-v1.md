@@ -78,5 +78,5 @@ A wiring test renders a full server readout with the switch off and on. The text
 
 - Not landed on main, so not in any run yet.
 - Focused tests pass: 210 compact Python tests and the TS registry tests. Review round 1 found the negative-origin header bug, now fixed.
-- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per Operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
+- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per the operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
 - Review and gates: three-lane review in progress; full gate on the frozen head under the relayed CPU grant. No measured runs yet.

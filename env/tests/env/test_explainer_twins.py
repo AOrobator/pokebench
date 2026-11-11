@@ -547,20 +547,70 @@ def test_sentences_keep_mixed_case_abbreviations():
     assert t.sentences("Shows EXP. to the next level. Then.")[0] == "Shows EXP. to the next level."
 
 
-def test_operator_name_becomes_operator_everywhere():
+def test_operator_name_becomes_the_operator_everywhere():
     assert t.scrub("The operator's call; The operator said; Andrew Orobator, aorobator, ANDREW") == (
-        "Operator's call; Operator said; Operator, Operator, Operator"
+        "The operator's call; the operator said; the operator, the operator, the operator"
     )
+    assert t.scrub("Approved by the operator. The operator then picked it (the operator 2026-11-01).") == (
+        "Approved by the operator. The operator then picked it (the operator 2026-11-01)."
+    )
+    assert t.scrub("asked the operator; The operator said") == "asked the operator; The operator said"
+    assert t.scrub("- The operator picked\n| The operator |\n## The operator's call") == (
+        "- The operator picked\n| The operator |\n## The operator's call"
+    )
+    assert t.scrub("the operator picked it.") == "The operator picked it."
+    assert t.scrub("Done. the operator picked it.") == "Done. The operator picked it."
+    assert t.scrub("- the operator picked it") == "- The operator picked it"
+    assert t.scrub("Done. **The operator** picked") == "Done. **The operator** picked"
     assert t.scrub("mimosa andrewsville") == "mimosa andrewsville"
     result = twin(
         "<h1>The operator's switch</h1><p>The operator approved (the operator 2026-11-11) it.</p>"
         "<pre>The operator: go</pre><svg viewBox='0 0 9 9'><text>asked by the operator</text></svg>"
     )
     assert "The operator" not in result.markdown.lower() and "andrew" not in result.markdown.lower()
-    assert result.title == "Operator's switch"
-    assert "Operator approved (Operator 2026-11-11) it." in result.markdown
+    assert result.title == "The operator's switch"
+    assert "The operator approved (the operator 2026-11-11) it." in result.markdown
     svg = result.files["docs/explainers/md/demo/fig-1.svg"].decode()
-    assert "asked by Operator" in svg
+    assert "asked by the operator" in svg
+    inline = twin(
+        "<h1>Inline</h1><p>Approved by <strong>The operator</strong> yesterday. <em>The operator</em> then"
+        " <a href='#x'>asked the operator</a>.</p>"
+    )
+    assert (
+        "Approved by **the operator** yesterday. *The operator* then [asked the operator](#x)."
+        in inline.markdown
+    )
+    assert "\ue000" not in inline.markdown
+    wrapped = twin(
+        "<h1>Ends</h1><p><strong>Done.</strong> The operator approved it."
+        " <a href='https://example.com/a/very/long/path/to/a/page.html#section-two'>Done.</a>"
+        " The operator approved it. <code>Done.</code> The operator approved it. Ask the operator; e.g. The operator.</p>"
+        "<ol><li>The operator picked</li></ol>"
+    )
+    assert (
+        "**Done.** The operator approved it."
+        " [Done.](https://example.com/a/very/long/path/to/a/page.html#section-two)"
+        " The operator approved it. `Done.` The operator approved it. Ask the operator"
+        in wrapped.markdown
+    )
+    assert "1. The operator picked" in wrapped.markdown
+    far = "https://example.org/" + "a" * 420
+    quoted = twin(
+        f"<h1>Far</h1><p><a href='{far}'>Done.</a> The operator approved it. 'the operator said.'"
+        " \u2018the operator too.\u2019</p>"
+    )
+    assert (
+        f"[Done.]({far}) The operator approved it. 'The operator said.'"
+        " \u2018The operator too.\u2019" in quoted.markdown
+    )
+    linked = twin(
+        "<h1>Links</h1><p><a href='#x'>The operator</a> opened. Done. <a href='#y'>The operator</a> approved it."
+        " Approved by <code>The operator</code> yesterday. <code>The operator</code> said.</p>"
+    )
+    assert (
+        "[The operator](#x) opened. Done. [The operator](#y) approved it."
+        " Approved by `the operator` yesterday. `The operator` said." in linked.markdown
+    )
     pages = {
         **PAGES,
         "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),
@@ -569,3 +619,4 @@ def test_operator_name_becomes_operator_everywhere():
     output = t.generate(t.Inputs(pages, ts, PANELS_TS, NEXT_RUN_TS, SNAPSHOT))
     for name in ("docs/explainers/README.md", "docs/features.md"):
         assert "The operator" not in output.files[name].decode().lower()
+    assert not [name for name, data in output.files.items() if "\ue000".encode() in data]

@@ -18,7 +18,7 @@ On turn 1,533 of DeepSeek run 274b, standing at (0,10) on LAVARIDGE TOWN GYM B1F
 
 ## What the model reads now
 
-Recorded example, turn 1,533 of run 274b, re-rendered from the run's raw RAM with the visits the run really made up to that turn. The pad groups match the table Operator approved.
+Recorded example, turn 1,533 of run 274b, re-rendered from the run's raw RAM with the visits the run really made up to that turn. The pad groups match the table the operator approved.
 
 ```
 Warps by landing area (pad → landing tile; facts about each pad, not a route): Temporary objects and scripts may block these terrain paths. Entrance activation uses the map’s default terrain; scripts may change entrances.

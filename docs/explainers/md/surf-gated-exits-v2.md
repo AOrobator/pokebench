@@ -8,7 +8,7 @@ The notes surf-gated-exits-v1 adds to water-only exits say only that the water c
 
 ## Why
 
-Operator decision (Operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the Balance Badge or SURF, so naming them is route foreknowledge (PB4). Operator rule (2:17 PM): say what the game would show. Pressing A at surfable water starts `EventScript_UseSurf` (and its `gText_WantToUseSurf` prompt) only from `GetInteractedWaterScript` (src/field_control_avatar.c:448-461), and only when `FLAG_BADGE05_GET` is set, `PartyHasMonWithSurf()` is true and the player faces surfable water. Otherwise, away from a waterfall, it returns no script and the game shows nothing, so the readout states only the observable fact.
+Operator decision (the operator, 2026-10-17 1:59 PM): on Route 103 the player has not been told about the Balance Badge or SURF, so naming them is route foreknowledge (PB4). Operator rule (2:17 PM): say what the game would show. Pressing A at surfable water starts `EventScript_UseSurf` (and its `gText_WantToUseSurf` prompt) only from `GetInteractedWaterScript` (src/field_control_avatar.c:448-461), and only when `FLAG_BADGE05_GET` is set, `PartyHasMonWithSurf()` is true and the player faces surfable water. Otherwise, away from a waterfall, it returns no script and the game shows nothing, so the readout states only the observable fact.
 
 ## What the model reads
 

@@ -8,7 +8,7 @@ An exit the player can reach only across water is not listed as an exit until th
 
 ## Why
 
-Operator's rule: "For the exit lists, if an exit requires surf, but the user doesn't have the HM or the gym badge that enables surf, we shouldn't mark it as an exit."
+The operator's rule: "For the exit lists, if an exit requires surf, but the user doesn't have the HM or the gym badge that enables surf, we shouldn't mark it as an exit."
 
 Run `4caa` spent turns 198 to 597 on ROUTE103. 145 readouts said `Exits here you have not taken: (45,6) -> ALTERING CAVE (map 24/106); EAST edge -> ROUTE110 (map 0/25)`, and 12 of its 19 supervisor briefings listed the same two. The model kept calling `navigate_to 79,8` and `navigate_to 45,6`. Both are across the route's water. The player had no badges and one TORCHIC (SCRATCH, GROWL, FOCUS ENERGY).
 
@@ -56,7 +56,7 @@ Warp to ALTERING CAVE (map 24/106) at (45,6), elevation 0; movement; activation 
 Warp destination at (45,6): ALTERING CAVE (not an exit you can use now: across water, needs Surf)
 ```
 
-*Exit lists drop the exit, as Operator asked. The readout's map facts keep it with a note: deleting the east connection would make the readout say the map has no east edge, which is false too. The walk-off instruction is replaced, because it is the lure. Nothing else in the readout changes.*
+*Exit lists drop the exit, as the operator asked. The readout's map facts keep it with a note: deleting the east connection would make the readout say the map has no east edge, which is false too. The walk-off instruction is replaced, because it is the lure. Nothing else in the readout changes.*
 
 ```
 OFF (recorded stall briefing, 4caa seq 6219)

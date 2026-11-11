@@ -14,7 +14,7 @@ Run `2026-10-16T12-42-29_qwen36-gpu0_4caa` (bundle arm, cook phase) had just bea
 I have defeated MAY. My Torchic is at 9/25 HP. The dialogue indicated I should head back to the LAB (Rustboro City).
 ```
 
-The lab is in Littleroot. No tool result or dialogue page in that run ever named Rustboro. Its first turn already read "head towards the first Gym Leader in Rustboro City": the goal sentence was the only source. Operator (2026-10-16): "I have a feeling that this is because of the system prompt where we're telling it to reach the first gym."
+The lab is in Littleroot. No tool result or dialogue page in that run ever named Rustboro. Its first turn already read "head towards the first Gym Leader in Rustboro City": the goal sentence was the only source. The operator (2026-10-16): "I have a feeling that this is because of the system prompt where we're telling it to reach the first gym."
 
 ## The one sentence that changes
 
@@ -48,7 +48,7 @@ Every model run started on 2026-10-15, or on 2026-10-16 before 3:00 PM New York 
 
 ## What to watch in the bundle arm (pre-registered)
 
-This switch joins the bundle arm of bundle-v-control (Operator, 2026-10-16). The diagnostic below was fixed before any run with the switch on. It checks the mechanism; it is not causal evidence and it grades nothing.
+This switch joins the bundle arm of bundle-v-control (the operator, 2026-10-16). The diagnostic below was fixed before any run with the switch on. It checks the mechanism; it is not causal evidence and it grades nothing.
 
 - **Rustboro before the game:** per run, the number of turns whose reasoning names Rustboro before any tool result or dialogue page did. Baseline: bundle cook runs, 11 of 12 runs, 736 turns. Expected with the switch: near zero; any left come from the model's own memory of the series.
 - **Gym before the game:** runs whose reasoning names a gym before Mom's TV line. Baseline 8 of 67 runs.

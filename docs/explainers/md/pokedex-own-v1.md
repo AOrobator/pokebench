@@ -2,7 +2,7 @@
 
 > Markdown twin of [pokedex-own-v1.html](../pokedex-own-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`pokedex-own-v1` · server readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (Operator, 2026-10-21: "both sets")
+`pokedex-own-v1` · server readout switch · bundle-only, default off · Rustboro gym strategy report, training and catching sets (the operator, 2026-10-21: "both sets")
 
 Once the POKéDEX is received, a line after the Party line gives the POKéDEX list's HOENN SEEN and OWN counts and the party size. In a wild battle, one more line per foe says whether that species is in the OWN list.
 

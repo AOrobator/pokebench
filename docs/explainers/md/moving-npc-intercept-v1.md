@@ -2,7 +2,7 @@
 
 > Markdown twin of [moving-npc-intercept-v1.html](../moving-npc-intercept-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`moving-npc-intercept-v1` · guidance switch · registry default OFF · on in both arms of the current recipe (Operator, 2026-11-03: "go, this should be on in both arms"). Needs `moving-npc-target-v1`.
+`moving-npc-intercept-v1` · guidance switch · registry default OFF · on in both arms of the current recipe (the operator, 2026-11-03: "go, this should be on in both arms"). Needs `moving-npc-target-v1`.
 
 ## Why
 

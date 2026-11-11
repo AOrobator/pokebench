@@ -70,7 +70,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Gym evidence](md/gym-evidence-v1.md) · [HTML](gym-evidence-v1.html) — The model defeated Josh, Tommy and Marc, left to heal, and then claimed the Gym was finished.
 - [Gym readiness readout](md/gym-readiness-readout-v1.md) · [HTML](gym-readiness-readout-v1.html) — Six recorded runs reached the Rustboro gym with a lone TORCHIC at Lv12–15.
 - [Gym type gap (type-gap-team-v1)](md/type-gap-team-v1.md) · [HTML](type-gap-team-v1.html) — It puts three things side by side for each gym whose leader is not beaten yet: what this run has seen of the gym's types, the attacking types the game's own type chart makes super effective against them, and which of…
-- [Gym type gap, last message (type-gap-team-last-message-v1)](md/type-gap-team-last-message-v1.md) · [HTML](type-gap-team-last-message-v1.html) — Operator picked "Build the placement switch" on 2026-10-27 after the type-gap decision probes.
+- [Gym type gap, last message (type-gap-team-last-message-v1)](md/type-gap-team-last-message-v1.md) · [HTML](type-gap-team-last-message-v1.html) — The operator picked "Build the placement switch" on 2026-10-27 after the type-gap decision probes.
 - [Immediate leader loss comparison](md/leader-loss-immediate-v1.md) · [HTML](leader-loss-immediate-v1.html) — A verified loss reaches the very next decision, including outside the gym.
 - [Input cuts](md/input-cuts-v1.md) · [HTML](input-cuts-v1.html) — Four lines in a result repeat something that same result already shows.
 - [Interface guidance](md/interface-guidance-v1.md) · [HTML](interface-guidance-v1.html) — In run 0517, turn 1027 delivered the scientist's MATCH CALL instructions.
@@ -99,7 +99,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Observed battle action history](md/battle-action-history-v1.md) · [HTML](battle-action-history-v1.html) — Keep what the game printed beside what the next observation measured.
 - [Observed trainer Pokémon](md/trainer-observed-party-v1.md) · [HTML](trainer-observed-party-v1.html) — Run 2026-10-22T20-40-54_glm53-mac_0d5d delivered WINGULL Lv18 at result 138432, its faint at 138711, and GROVYLE Lv20 at 139096.
 - [Off-screen people and objects](md/offscreen-objects-v1.md) · [HTML](offscreen-objects-v1.html) — The readout shows only a 15×15 window around the player.
-- [One current map](md/map-observability-v1.md) · [HTML](map-observability-v1.html) — Activation: enabled in control and bundle for fresh runs by Operator’s October 25 instruction.
+- [One current map](md/map-observability-v1.md) · [HTML](map-observability-v1.html) — Activation: enabled in control and bundle for fresh runs by the operator’s October 25 instruction.
 - [One name for the current map](md/current-map-display-name-v1.md) · [HTML](current-map-display-name-v1.html) — When the model asks navigate_to_target for a target on a map it is not on, the tool refuses, sends no input, and says where the player is.
 - [PARTY COVERAGE](md/party-coverage-v1.md) · [HTML](party-coverage-v1.html) — At battle decisions: for each foe type met this run, each of the player's moves used on it and the effectiveness line the game printed right after, then the foe types no party move has drawn "It's super effective!"…
 - [Party item confirmation](md/party-item-confirmation-v1.md) · [HTML](party-item-confirmation-v1.html) — A completed Potion message can wait for a button while its printer task stays active.
@@ -136,7 +136,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Story line campaign steps](md/story-line-campaign-flags-v1.md) · [HTML](story-line-campaign-flags-v1.html) — The game server reads a fixed set of early flags, ending around route104 cindy defeated.
 - [Story line done on event](md/story-line-done-on-event-v1.md) · [HTML](story-line-done-on-event-v1.html) — A line counted as done on first entry to its place plus any later step, and a place milestone on that same arrival was enough.
 - [Story line start steps](md/story-line-start-steps-v1.md) · [HTML](story-line-start-steps-v1.html) — A checkpoint run begins with badges and story steps it never earned on screen.
-- [Supplies (supplies-v1)](md/supplies-v1.md) · [HTML](supplies-v1.html) — Approved by Operator on 2026-10-27, reworked the same day at Operator's request.
+- [Supplies (supplies-v1)](md/supplies-v1.md) · [HTML](supplies-v1.html) — Approved by the operator on 2026-10-27, reworked the same day at the operator's request.
 - [Surf movement and refusals](md/surf-navigation-correctness-v1.md) · [HTML](surf-navigation-correctness-v1.html) — A direction batch previously refused the first ocean tile while the player was already surfing.
 - [Surf-gated exits](md/surf-gated-exits-v1.md) · [HTML](surf-gated-exits-v1.html) — An exit the player can reach only across water is not listed as an exit until the player can use Surf.
 - [Surf-gated exits v2](md/surf-gated-exits-v2.md) · [HTML](surf-gated-exits-v2.html) — The notes surf-gated-exits-v1 adds to water-only exits say only that the water cannot be crossed yet; they no longer name the Balance Badge or SURF.
@@ -166,7 +166,7 @@ Prompt text, navigation tools and automatic input handling that help the model a
 - [A goal on another map is not a map change](md/cross-map-goal-v1.md) · [HTML](cross-map-goal-v1.html) — Navigate_to takes a map_id with every target.
 - [Advisory instruction goals](md/instruction-goal-advisory-v1.md) · [HTML](instruction-goal-advisory-v1.html) — With the instruction ledger enabled, pending dialogue and rejected bookkeeping no longer prevent a game-changing tool from reaching its ordinary validation.
 - [Align cache window rewrites](md/cache-aligned-window-v1.md) · [HTML](cache-aligned-window-v1.html) — Both experiment arms use this policy when explicitly selected.
-- [Auto-bike](md/bike-navigation-v1.md) · [HTML](bike-navigation-v1.html) — Three switches, all default off, all in the bundle arm only (Operator 2026-11-03: "i agree with ur changes, u can build it").
+- [Auto-bike](md/bike-navigation-v1.md) · [HTML](bike-navigation-v1.html) — Three switches, all default off, all in the bundle arm only (the operator 2026-11-03: "i agree with ur changes, u can build it").
 - [Automatic running](md/automatic-running-v1.md) · [HTML](automatic-running-v1.html) — When this switch is ON, running is a harness decision, not a model choice.
 - [Away note in town buildings](md/away-note-buildings-v1.md) · [HTML](away-note-buildings-v1.html) — With harness-trust-v1, a SUPERVISOR note follows the header when the player's own last two moves both took them farther from the place the Story goal line names.
 - [Badge resets cycles](md/badge-resets-cycles-v1.md) · [HTML](badge-resets-cycles-v1.html) — Run 37ca was told "You are stalling.
@@ -198,7 +198,7 @@ Prompt text, navigation tools and automatic input handling that help the model a
 - [Every tool in the system prompt](md/tool-prompt-docs-v1.md) · [HTML](tool-prompt-docs-v1.html) — The model is given a list of tools, each with its own short description, and a system prompt that explains how to play.
 - [Explicit evolution decision](md/evolution-decision-v1.md) · [HTML](evolution-decision-v1.html) — The model chooses whether to evolve or cancel.
 - [Explore a new edge. Don’t mistake it for a verified route.](md/navigation-refusal-reasons-v3.md) · [HTML](navigation-refusal-reasons-v3.html) — Control run 7945 was below a one-way ledge in Petalburg Woods.
-- [Fail-open input](md/fail-open-input-v1.md) · [HTML](fail-open-input-v1.html) — Operator, 2026-10-20: a fail-open design for boxes or UI the harness does not recognize, so the model decides from what is on screen, and B can dismiss them.
+- [Fail-open input](md/fail-open-input-v1.md) · [HTML](fail-open-input-v1.html) — The operator, 2026-10-20: a fail-open design for boxes or UI the harness does not recognize, so the model decides from what is on screen, and B can dismiss them.
 - [Family and repeat conversations](md/explorer-family-guidance-v1.md) · [HTML](explorer-family-guidance-v1.html) — No experiment launched or gameplay benefit established.
 - [Finish the message. Then make a new choice.](md/pending-field-dialogue-v1.md) · [HTML](pending-field-dialogue-v1.html) — An ordinary dialogue box can appear just after navigation returns.
 - [Focused supervisor briefings](md/supervisor-briefing-v2.md) · [HTML](supervisor-briefing-v2.html) — Make the next decision easier to see
@@ -236,7 +236,7 @@ Prompt text, navigation tools and automatic input handling that help the model a
 - [Pick up the Master Ball](md/opus-rq-master-ball-v1.md) · [HTML](opus-rq-master-ball-v1.html) — Free field in Aqua Hideout B1F with a readable bag.
 - [Plan the corridor. Validate each step. Stop at its end.](md/safe-navigation-strides-v1.md) · [HTML](safe-navigation-strides-v1.html) — A* still routes to the coordinate the model chooses.
 - [PokéNav call auto-advance](md/pokenav-call-auto-advance-v1.md) · [HTML](pokenav-call-auto-advance-v1.html) — Qwen run 88ea spent 116 turns and about 22 minutes inside the forced tutorial.
-- [Positive supervisor](md/positive-supervisor-v1.md) · [HTML](positive-supervisor-v1.html) — Today's learning (Operator, 2026-10-20): telling the model what to do, and changing what it sees, beat warnings that it is looping.
+- [Positive supervisor](md/positive-supervisor-v1.md) · [HTML](positive-supervisor-v1.html) — Today's learning (the operator, 2026-10-20): telling the model what to do, and changing what it sees, beat warnings that it is looping.
 - [Presence penalty 1.5](md/presence-penalty-v1.md) · [HTML](presence-penalty-v1.html) — With the switch on, every chat request the agent sends the model carries presence_penalty: 1.5.
 - [Push-back press results](md/pushback-press-result-v1.md) · [HTML](pushback-press-result-v1.html) — Scripts move the player while dialogue auto-advance pages their message, between two snapshots of one press, and between one call and the next.
 - [Quoted destination evidence](md/citation-evidence-v1.md) · [HTML](citation-evidence-v1.html) — The model selects where to walk.
@@ -313,9 +313,9 @@ Checks that catch a stuck or looping model, refuse unsafe actions, or end a stal
 - [First visit cycle credit](md/first-visit-cycle-credit-v1.md) · [HTML](first-visit-cycle-credit-v1.html) — In run ee2a the map_cycle note fired on MT PYRE 1F at turn 370.
 - [Fixed-point breaker](md/fixed-point-breaker-v1.md) · [HTML](fixed-point-breaker-v1.html) — A fixed point is a turn the model keeps repeating: the same call, and the game state the same afterwards.
 - [Fresh retry](md/fresh-retry-v1.md) · [HTML](fresh-retry-v1.html) — When the model answers without calling a tool, the harness nudges it and asks again.
-- [Gym heal warning](md/gym-heal-warning-v1.md) · [HTML](gym-heal-warning-v1.html) — Operator, 2026-10-20: "the supervisor warning for when it enters a gym without full HP is the right way to go".
+- [Gym heal warning](md/gym-heal-warning-v1.md) · [HTML](gym-heal-warning-v1.html) — The operator, 2026-10-20: "the supervisor warning for when it enters a gym without full HP is the right way to go".
 - [Gym puzzle supervisor hold](md/gym-puzzle-supervisor-hold-v1.md) · [HTML](gym-puzzle-supervisor-hold-v1.html) — Run 37ca (DeepSeek) entered the FORTREE CITY GYM at turn 1773 and came close to its last gate.
-- [Heal before trainers](md/heal-before-trainers-v1.md) · [HTML](heal-before-trainers-v1.html) — A simple v1 of "heal before trainer fights" (Operator, 2026-10-17).
+- [Heal before trainers](md/heal-before-trainers-v1.md) · [HTML](heal-before-trainers-v1.html) — A simple v1 of "heal before trainer fights" (the operator, 2026-10-17).
 - [Heal before trainers v2](md/heal-before-trainers-v2.md) · [HTML](heal-before-trainers-v2.html) — V1 only saw trainers the game had loaded near the camera, and only knew POKéMON CENTERs the player had walked into.
 - [Heal before trainers: BAG items](md/bag-healing-items-v1.md) · [HTML](bag-healing-items-v1.html) — The model could see its POTION all along, but nothing ever connected it to the weak lead in front of a trainer.
 - [Ineffective loops](md/ineffective-loops-v1.md) · [HTML](ineffective-loops-v1.html) — Two kinds of repetition today's loop guard misses.
@@ -342,7 +342,7 @@ Checks that catch a stuck or looping model, refuse unsafe actions, or end a stal
 - [Progress-aware cycle warnings](md/progress-aware-cycles-v1.md) · [HTML](progress-aware-cycles-v1.html) — A healing gate can tell the player to leave a battle and heal.
 - [Provider wait pause](md/provider-wait-pause-v1.md) · [HTML](provider-wait-pause-v1.html) — When the gateway pauses a run during a model request, PokéBench freezes the emulator and suspends the active wall clock.
 - [Push-back loop detection](md/pushback-loop-detection-v1.md) · [HTML](pushback-loop-detection-v1.html) — Some game scripts stop the player and walk them back: the Littleroot twin before the player has a POKéMON, and PROF. BIRCH on Route 101 ("Wh-Where are you going?!").
-- [Random starter pick](md/random-starter-v1.md) · [HTML](random-starter-v1.html) — Operator, 2026-10-22: most long runs chose Torchic, so there is little long-play data on the other two starters.
+- [Random starter pick](md/random-starter-v1.md) · [HTML](random-starter-v1.html) — The operator, 2026-10-22: most long runs chose Torchic, so there is little long-play data on the other two starters.
 - [Recognize a repeated map trigger before five minutes pass.](md/trigger-script-loop-v1.md) · [HTML](trigger-script-loop-v1.html) — A coordinate trigger can run the same story script through several row wrappers.
 - [Recovery note off the battle screen](md/recovery-note-field-only-v1.md) · [HTML](recovery-note-field-only-v1.html) — Navigation-recovery-v1 sends its open note (NAVIGATION RECOVERY: The repeated map cycle remains unresolved…) with every model request until the episode resolves.
 - [Reopened dialogue loop](md/reopened-dialogue-loop-v1.md) · [HTML](reopened-dialogue-loop-v1.html) — A press can show a sign and close it before the result comes back.

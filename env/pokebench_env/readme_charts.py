@@ -89,6 +89,18 @@ def num(value: object, what: str) -> float:
     return float(value)
 
 
+def as_text(value: object, what: str) -> str:
+    if not isinstance(value, str):
+        raise ChartError(f"{what}: expected text")
+    return value
+
+
+def flag(value: object, what: str) -> bool:
+    if not isinstance(value, bool):
+        raise ChartError(f"{what}: expected true or false")
+    return value
+
+
 # ---------------------------------------------------------------- parsing the run logs
 
 
@@ -102,6 +114,7 @@ class Usage:
     input: int
     cache_read: int
     output: int
+    cache_write: int = 0
 
 
 @dataclass(frozen=True)
@@ -111,6 +124,8 @@ class RunScan:
     run: str
     t0: str
     checkpoint: str | None
+    # the run folder the checkpoint was saved in (runs/<run>/checkpoints/<milestone>.state)
+    checkpoint_run: str | None
     # milestone name -> (turn, seconds from run_start, event time); first observed only.
     # Milestones already held at the start are recorded with turn -1.
     milestones: Mapping[str, tuple[int, float, str]]
@@ -125,6 +140,7 @@ def scan_events(run: str, lines: Iterable[str]) -> RunScan:
     t0: datetime | None = None
     t0_text = ""
     checkpoint: str | None = None
+    checkpoint_run: str | None = None
     seen: dict[str, tuple[int, float, str]] = {}
     usage: list[tuple[Usage, frozenset[str]]] = []
     observed: frozenset[str] = frozenset()
@@ -138,7 +154,9 @@ def scan_events(run: str, lines: Iterable[str]) -> RunScan:
             t0 = ts(t0_text)
             state = event.get("start_state")
             path = state.get("path") if isinstance(state, dict) else None
-            checkpoint = Path(path).stem if isinstance(path, str) else None
+            if isinstance(path, str):
+                checkpoint = Path(path).stem
+                checkpoint_run = Path(path).parent.parent.name
         elif kind == "milestone":
             name = event.get("name")
             if not isinstance(name, str) or name in seen:
@@ -160,13 +178,14 @@ def scan_events(run: str, lines: Iterable[str]) -> RunScan:
                         int(u.get("input", 0)),
                         int(u.get("cache_read", 0)),
                         int(u.get("output", 0)),
+                        int(u.get("cache_write", 0)),
                     ),
                     observed,
                 )
             )
     if t0 is None:
         raise ChartError(f"{run}: no run_start event")
-    return RunScan(run, t0_text, checkpoint, seen, usage)
+    return RunScan(run, t0_text, checkpoint, checkpoint_run, seen, usage)
 
 
 @dataclass(frozen=True)
@@ -209,6 +228,12 @@ class Price:
     output: float
     peak_multiplier: float = 1.0
     peak_hours: tuple[tuple[int, int], ...] = ()
+    # cache writes cost the input rate unless prices.json gives their own rate
+    cache_write_rate: float | None = None
+
+    @property
+    def cache_write(self) -> float:
+        return self.input if self.cache_write_rate is None else self.cache_write_rate
 
     def factor(self, t: str) -> float:
         """Peak windows are local wall-clock hours of the event's own timestamp."""
@@ -218,21 +243,37 @@ class Price:
         return 1.0
 
 
+def hour_window(value: object, what: str) -> tuple[int, int]:
+    pair = as_list(value, what)
+    if len(pair) != 2 or not all(isinstance(h, int) and not isinstance(h, bool) for h in pair):
+        raise ChartError(f"{what}: expected [start, end) whole hours")
+    lo, hi = pair
+    assert isinstance(lo, int) and isinstance(hi, int)
+    return lo, hi
+
+
+def parse_price(key: str, value: object) -> Price:
+    raw = as_map(value, key)
+    peak = as_map(raw.get("peak", {}), f"{key} peak")
+    write = raw.get("cache_write")
+    return Price(
+        num(raw.get("input"), f"{key} input"),
+        num(raw.get("cache_read"), f"{key} cache_read"),
+        num(raw.get("output"), f"{key} output"),
+        num(peak.get("multiplier", 1.0), f"{key} peak multiplier"),
+        tuple(
+            hour_window(w, f"{key} peak hours")
+            for w in as_list(peak.get("local_hours", []), f"{key} peak local_hours")
+        ),
+        None if write is None else num(write, f"{key} cache_write"),
+    )
+
+
 def parse_prices(doc: Mapping[str, object]) -> dict[str, Price]:
     models = doc.get("models")
     if not isinstance(models, dict):
         raise ChartError("prices.json: no models")
-    out: dict[str, Price] = {}
-    for key, raw in models.items():
-        peak = raw.get("peak") or {}
-        out[key] = Price(
-            float(raw["input"]),
-            float(raw["cache_read"]),
-            float(raw["output"]),
-            float(peak.get("multiplier", 1.0)),
-            tuple((int(lo), int(hi)) for lo, hi in peak.get("local_hours", [])),
-        )
-    return out
+    return {str(key): parse_price(str(key), raw) for key, raw in models.items()}
 
 
 def stitch(legs: Sequence[RunScan]) -> dict[str, float]:
@@ -246,7 +287,14 @@ def stitch(legs: Sequence[RunScan]) -> dict[str, float]:
     for i, leg in enumerate(legs):
         cut_at = math.inf
         if i + 1 < len(legs):
-            cut = legs[i + 1].checkpoint
+            nxt = legs[i + 1]
+            cut = nxt.checkpoint
+            if cut is None:
+                raise ChartError(f"{nxt.run}: loaded no checkpoint to stitch after {leg.run}")
+            if nxt.checkpoint_run != leg.run:
+                raise ChartError(
+                    f"{nxt.run}: loaded a checkpoint from {nxt.checkpoint_run}, not {leg.run}"
+                )
             hit = leg.milestones.get(cut or "")
             if not hit or hit[0] < 0:
                 raise ChartError(f"{leg.run}: no observed {cut} to stitch the next leg at")
@@ -282,7 +330,12 @@ def usage_cost(leg: RunScan, until: str, price: Price) -> float:
     for u, before in leg.usage:
         if until in before:
             break
-        per_m = u.input * price.input + u.cache_read * price.cache_read + u.output * price.output
+        per_m = (
+            u.input * price.input
+            + u.cache_read * price.cache_read
+            + u.cache_write * price.cache_write
+            + u.output * price.output
+        )
         total += per_m * price.factor(u.t) / 1e6
     return total
 
@@ -316,28 +369,52 @@ class Series:
     label_offset: tuple[float, float, str] | None
 
 
+COST_KINDS = ("events", "codex", "pinned")
+
+
+def label_offset(value: object, what: str) -> tuple[float, float, str] | None:
+    if value is None:
+        return None
+    raw = as_list(value, what)
+    if (
+        len(raw) != 3
+        or not all(isinstance(v, int | float) and not isinstance(v, bool) for v in raw[:2])
+        or not isinstance(raw[2], str)
+    ):
+        raise ChartError(f"{what}: expected [dx, dy, anchor]")
+    return num(raw[0], what), num(raw[1], what), raw[2]
+
+
+def parse_one_series(i: int, value: object) -> Series:
+    s = as_map(value, f"series {i}")
+    label = as_text(s.get("label"), f"series {i} label")
+    runs = tuple(as_text(r, f"{label} run") for r in as_list(s.get("runs"), f"{label} runs"))
+    if not runs:
+        raise ChartError(f"{label} runs: expected at least one run")
+    cost = as_map(s.get("cost"), f"{label} cost")
+    kind = cost.get("kind")
+    if kind not in COST_KINDS:
+        raise ChartError(f"{label}: unknown cost kind {kind!r}")
+    price = cost.get("price")
+    usd = cost.get("usd")
+    return Series(
+        label,
+        as_text(s.get("color"), f"{label} color"),
+        flag(s.get("assisted", False), f"{label} assisted"),
+        runs,
+        str(kind),
+        None if price is None else as_text(price, f"{label} price"),
+        None if usd is None else num(usd, f"{label} usd"),
+        flag(cost.get("estimated", False), f"{label} estimated"),
+        label_offset(s.get("label_offset"), f"{label} label_offset"),
+    )
+
+
 def parse_series(doc: Mapping[str, object]) -> list[Series]:
     raw = doc.get("series")
     if not isinstance(raw, list):
         raise ChartError("chart-data.json: no series")
-    out = []
-    for s in raw:
-        cost = s["cost"]
-        offset = s.get("label_offset")
-        out.append(
-            Series(
-                str(s["label"]),
-                str(s["color"]),
-                bool(s.get("assisted", False)),
-                tuple(str(r) for r in s["runs"]),
-                str(cost["kind"]),
-                cost.get("price"),
-                float(cost["usd"]) if "usd" in cost else None,
-                bool(cost.get("estimated", False)),
-                (float(offset[0]), float(offset[1]), str(offset[2])) if offset else None,
-            )
-        )
-    return out
+    return [parse_one_series(i + 1, s) for i, s in enumerate(raw)]
 
 
 # ---------------------------------------------------------------- stage 1: points
@@ -374,7 +451,7 @@ def build_points(
                 usd = codex_cost(
                     scan_codex_native(runs.codex_native(last.run)), last.milestones[top][2], price
                 )
-            else:
+            else:  # pragma: no cover - parse_series admits only COST_KINDS
                 raise ChartError(f"{s.label}: unknown cost kind {s.cost_kind!r}")
         series_out.append(
             {
@@ -701,14 +778,28 @@ def dump(doc: Mapping[str, object]) -> str:
 USAGE = "usage: readme_charts (points | html | check-points)"
 
 
+STAGES = ("points", "html", "check-points")
+
+
+def load(store: Store, rel: str) -> dict[str, object]:
+    try:
+        doc = json.loads(store.read(rel))
+    except json.JSONDecodeError as err:
+        raise ChartError(f"{rel} is not JSON: {err}") from err
+    return as_map(doc, rel)
+
+
 def run(argv: Sequence[str], store: Store, runs: Runs, say: Callable[[str], None]) -> int:
-    if len(argv) != 1 or argv[0] not in ("points", "html", "check-points"):
+    if len(argv) != 1:
         say(USAGE)
         return 2
-    chart_data = json.loads(store.read(CHART_DATA))
+    if argv[0] not in STAGES:
+        say(f"error: unknown stage {argv[0]!r}; {USAGE}")
+        return 2
     try:
+        chart_data = load(store, CHART_DATA)
         if argv[0] in ("points", "check-points"):
-            fresh = dump(build_points(chart_data, json.loads(store.read(PRICES)), runs))
+            fresh = dump(build_points(chart_data, load(store, PRICES), runs))
             if argv[0] == "check-points":
                 if fresh != store.read(POINTS):
                     say(f"{POINTS} differs from the run logs; run `just readme-charts`")
@@ -718,7 +809,7 @@ def run(argv: Sequence[str], store: Store, runs: Runs, say: Callable[[str], None
             store.write(POINTS, fresh)
             say(f"wrote {POINTS}")
             return 0
-        for rel, body in build_pages(chart_data, json.loads(store.read(POINTS))).items():
+        for rel, body in build_pages(chart_data, load(store, POINTS)).items():
             store.write(rel, body)
             say(f"wrote {rel}")
         return 0

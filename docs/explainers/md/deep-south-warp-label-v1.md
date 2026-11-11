@@ -36,5 +36,5 @@ The game prints no text for the tile, so the label is the plain fact: a warp you
 ## Status
 
 - Tests: `env/tests/env/test_deep_south_warp_label.py` (OFF byte parity, ON label, nothing else changes, default-off registration).
-- Registered default OFF; ON in both arms of the current recipe and the control 24h preset (Operator, 2026-11-02: “the label fix should be on in both arms”).
+- Registered default OFF; ON in both arms of the current recipe and the control 24h preset (the operator, 2026-11-02: “the label fix should be on in both arms”).
 - Not measured. No runs were started for this change.

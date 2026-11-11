@@ -8,7 +8,7 @@ Every observe, press and navigate_to result on the free overworld gets one block
 
 ## Why a v2
 
-The PokeBench review of 2026-10-17 (harness engineer, evaluation integrity, data scientist, ML engineer) found four problems with `instruction-ledger-v1`. Operator then decided to drop `dialogue-log-v1` and `note_contradiction` and build this switch instead. v1 itself is unchanged; it is a separate switch.
+The PokeBench review of 2026-10-17 (harness engineer, evaluation integrity, data scientist, ML engineer) found four problems with `instruction-ledger-v1`. The operator then decided to drop `dialogue-log-v1` and `note_contradiction` and build this switch instead. v1 itself is unchanged; it is a separate switch.
 
 | v1 | v2 |
 |---|---|
@@ -70,7 +70,7 @@ Rooms visited, newest first, with the last line heard in each:
 
 *One claim: the newest conversation with a person is pinned, and signs and objects never are. Recorded run `2026-10-16T16-46-59_qwen36-gpu0_2fb4`, results at seq 6401 (turn 256) and 8319 (turn 320).*
 
-Who said a line, in this order (operator decision, Operator 2026-10-17 4:49 PM):
+Who said a line, in this order (operator decision, the operator 2026-10-17 4:49 PM):
 
 1. The game's own `NAME:` prefix ("MAY: Well, it's time…"), moved out of the quote. Pages that continue that message keep the name.
 2. Else the person the player faced, described by how they look on screen: "the woman you talked to", "the man", "the boy", "the girl", "the old man", "the scientist", "the nurse" or "the clerk". If the game printed a name for that same sprite on that map in the same conversation (one `NAME:` prefix, one faced person), that name is used from then on. Internal sprite ids such as WOMAN_4 or RIVAL_MAY_NORMAL are never printed.

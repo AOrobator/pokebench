@@ -254,8 +254,10 @@ explainer-twins-snapshot events:
 # Rebuild the README charts. `points` re-derives every plotted time and cost from the run logs
 # (needs runs/) into docs/images/charts/chart-points.json; `html` redraws from that committed file
 # alone. Either way the chart pages are rendered to docs/images/*.png. Inputs: chart-data.json, prices.json.
+[positional-arguments]
 readme-charts stage="points":
-    if [ "{{stage}}" = points ]; then uv run --project env python -I -m pokebench_env.readme_charts points; fi
+    case "$1" in points|html) ;; *) echo "error: unknown stage '$1'; usage: just readme-charts [points|html]" >&2; exit 2 ;; esac
+    if [ "$1" = points ]; then uv run --project env python -I -m pokebench_env.readme_charts points; fi
     uv run --project env python -I -m pokebench_env.readme_charts html
     pnpm --filter @pokebench/viewer exec node scripts/readme-charts-png.mjs "{{justfile_directory()}}"
 

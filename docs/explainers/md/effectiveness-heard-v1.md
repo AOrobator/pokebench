@@ -2,7 +2,7 @@
 
 > Markdown twin of [effectiveness-heard-v1.html](../effectiveness-heard-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`effectiveness-heard-v1` · agent switch · bundle-only, default off · needs `battle-text-auto-advance-v1` · approved by Operator 2026-10-21
+`effectiveness-heard-v1` · agent switch · bundle-only, default off · needs `battle-text-auto-advance-v1` · approved by the operator 2026-10-21
 
 At ROXANNE, run `2026-10-20T20-26-22_qwen36-gpu1_97a0` used EMBER on her GEODUDE calling it super effective against ROCK, although the game had printed "It's not very effective…" right after the previous EMBER. This switch keeps a record of what the game printed right after each of the player's moves this run, by move and the foe it hit, with turns, and shows it at battle decisions and move-learning prompts. Only the game's words: nothing is computed from a type chart and nothing advises.
 

@@ -10,7 +10,7 @@ The Party line names a Pokémon's status with the label the game's own party and
 
 bd60 T688-706 (seq 18617-19141): for 19 turns the readout said `TORCHIC … STATUS 8` while its HP fell from 13 to 0 on the field, ending in a field-poison whiteout. 8 is the poison bit; nothing told the model the Pokémon was poisoned.
 
-Operator rule (Operator, 2026-10-17): model-facing text says what the game itself would show. The game shows one ailment icon, picked by `GetAilmentFromStatus`, labelled with its own strings; it shows no sleep turn count and no separate bad-poison mark, so neither does the readout.
+Operator rule (the operator, 2026-10-17): model-facing text says what the game itself would show. The game shows one ailment icon, picked by `GetAilmentFromStatus`, labelled with its own strings; it shows no sleep turn count and no separate bad-poison mark, so neither does the readout.
 
 ## What the model reads
 

@@ -33,6 +33,6 @@ By design, a beaten trainer who is also an untalked story character stays a rank
 ## Status
 
 - Commit acc661b8 (M5 GREEN). Not yet merged into main.
-- Default OFF. Not in any bundle yet; that waits for Operator's OK.
+- Default OFF. Not in any bundle yet; that waits for the operator's OK.
 - Tests: `packages/agent/src/auto-talk-v2.test.ts`. Review round 1: Claude, Grok and GPT lanes LGTM.
 - Not yet measured in runs.

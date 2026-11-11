@@ -47,6 +47,6 @@ The worklog's M2 section records a replay of the GLM runs through the production
 ## Status
 
 - Commit b23f1ece (M2 GREEN), built on `progress-aware-cycles-v1` from main. Not yet merged into main.
-- Default OFF. Not in any bundle yet; that waits for Operator's OK.
+- Default OFF. Not in any bundle yet; that waits for the operator's OK.
 - Tests: `packages/agent/src/drought-battle-heal-hold.test.ts` (recorded heal warnings from acfa seq 3857, 4811, 6838 and run 8892 seq 12979). Multi-model review: see the worklog's M2 section.
 - Not yet measured in runs.

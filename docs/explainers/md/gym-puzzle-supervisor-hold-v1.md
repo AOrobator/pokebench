@@ -2,7 +2,7 @@
 
 > Markdown twin of [gym-puzzle-supervisor-hold-v1.html](../gym-puzzle-supervisor-hold-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`gym-puzzle-supervisor-hold-v1`. Correctness fix, on in both arms of the current recipe (Operator 2026-11-07). Default off in the registry.
+`gym-puzzle-supervisor-hold-v1`. Correctness fix, on in both arms of the current recipe (the operator 2026-11-07). Default off in the registry.
 
 ## The problem
 

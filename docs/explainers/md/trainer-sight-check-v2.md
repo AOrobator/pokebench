@@ -45,6 +45,6 @@ Limits, by design: only the call's first walk is checked; later route segments o
 ## Status
 
 - Commit f31463bf (M4 GREEN). Not yet merged into main.
-- Default OFF. Not in any bundle yet; that waits for Operator's OK.
+- Default OFF. Not in any bundle yet; that waits for the operator's OK.
 - Tests: `packages/agent/src/trainer-sight-check-v2.test.ts` (b300 gym state and sight reply as the stand-in game; exclusion tested at the navigation layer). Review round 1: Claude, Grok and GPT lanes LGTM.
 - Not yet measured in runs. Whether later segments need checking is to be watched in long runs.

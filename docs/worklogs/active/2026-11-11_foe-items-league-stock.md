@@ -52,8 +52,8 @@ No new network surface. Reads emulator memory the server already reads. No new f
 - [x] Review round 5 (head b17b89d49, diff sha256 85c03162…5d21): Claude subagent LGTM; Codex gpt-5.6-sol LGTM. Non-blocking: a one-frame gap between the AI zeroing the slot and gChosenActionByBattler being set, unreachable at settled observation points.
 - [x] Fallback reviewer (fresh sonnet subagent, head b17b89d49): BLOCKING: the pending slot was assumed to be the highest emptied slot, but ShouldUseItem scans from slot 0, so a mixed-item trainer could show a hidden POTION and keep a used FULL RESTORE as left. Also: recap-only state JSON carried left/items_no; the AI may switch instead of using an item. Fix: match the pending slot by gBattleStruct->chosenItem (+0xC0, 19 on 67d7 105176); state JSON keeps only trainer_id and used without foe-trainer-items-v1 (schema fields optional); rule text says "Unless it switches POKéMON". Tests 31/31 env, 8/8 league. 67d7: hidden through 105189, used from 105190.
 - [x] Review round 6 (head ca3a84250, diff sha256 ea9aa84a…3417): Claude subagent LGTM, Codex gpt-5.6-sol LGTM, fallback sonnet subagent LGTM. Grok out until 11/17.
-- [ ] Gates in a CPU window (requested 13:40Z via tell-claude; no relay listening; asked the coordinator twice): just test, just lint, pnpm -r build, just verify-vendor
-- [ ] Review: Codex/GPT lane LGTM (Grok out until 11/17), Claude lane
+- [x] Gates (window: The operator "sure" 2026-11-11 9:23 AM via the coordinator; head 441a6858f): just lint exit 0; just test exit 0 (agent 248 files/3025, viewer 117/1265, env 3121 + gateway 39, all floors, no-I/O guards OK; includes pnpm -r build); just verify-vendor OK. Fresh worktree venv needed main's mgba binding symlinked.: just test, just lint, pnpm -r build, just verify-vendor
+- [x] Review: Codex/GPT, Claude and fallback lanes LGTM on ca3a84250 (Grok out until 11/17)
 - [ ] Show the operator; land fast-forward; just viewer-main
 
 ## Closing the Loop

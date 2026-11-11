@@ -103,3 +103,33 @@ Full gates passed on integrated source: agent3038, viewer1276, env3121, gateway3
 coverage floors/no-I/O, lint/vendor and protected trainer visuals3/3. Browser card
 stability under held refresh and error/recovery remains an explicit completion
 receipt, separate from the already passing happy-path/progress/native fixture proof.
+
+## Landing and completed proof receipts
+
+Round-two frozen base3ae49f1e0 / headea8998449, digest
+03f2ddeb65f9bad7562df7ff0311ba1275d07e1afe270161b0877c29f9f8d510:
+independent Claude and GPT both VERDICT: LGTM. Grok waived under the operator's standing
+2026-10-22 all-branches waiver; no Grok review is claimed. Docs-only round-two
+rollback clarification retains the executable evidence from the same source.
+
+Final native rehearsal: compact summary1661 bytes, detail44825, 234 milestones
+across4 pages; current/progress reads consume zero source-log bytes. Checkpoint
+restart retains generation and suffix-only data reads after independent receipt
+change. Initial recovery reads1504630 suffix/clock bytes; it is not a zero-read
+reconstruction. Original recording untouched.
+
+Card fault/recovery rehearsal: Chromium1440/375 and WebKit1440/375 sampled683,
+691,601,601 animation frames respectively with zero missing selected cards.
+Held same-epoch pagination, injected display error, HTTP503 and recovery covered;
+phone opens the existing run sheet. Final current/progress/failure screenshots
+opened and inspected. Native happy path loads metadata once,4 progress pages,
+no legacy card reduction and no browser errors. Reference grading withheld only
+in isolated rehearsal; live verification remains separate.
+
+Landed fast-forward on main at ea899844965b460c5784ac035c0d81716ed538a1.
+Required post-main just test passed (build, all suites/coverage and no-I/O proof).
+Consistent preactivation SQLite backup saved with node:sqlite backup under
+runs/proofs/viewer-snapshot-boundaries/pre-activation.sqlite (404951040 bytes).
+Resolved actual preactivation served tree3ae49f1e0 (another owner's refresh since
+the earlier6d5a67339 observation). No original source/cache/checkpoint deleted.
+Evidence lives in runs/proofs/viewer-snapshot-boundaries; activation follows.

@@ -43,11 +43,12 @@ Ubuntu's own `nodejs` package is older than Node 26; use a release from nodejs.o
 1. Clone with the vendored game server:
 
    ```bash
-   git clone --recurse-submodules <repository-url> pokebench
+   git clone <repository-url> pokebench
    cd pokebench
+   git submodule update --init env/vendor/continual-harness
    ```
 
-   In an existing clone, run `git submodule update --init env/vendor/continual-harness`.
+   Initialise only that submodule. The game server has a nested submodule with no URL, so `git clone --recurse-submodules` ends with an error.
 2. Copy the settings template and check the machine:
 
    ```bash

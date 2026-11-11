@@ -108,6 +108,8 @@ The input is an untrusted download.
 
 ## Session Log
 
+- 2026-11-11 18:30 ET: Quick-start rehearsal from a fresh clone of public main 780321615 on the gpubox (Linux) and the Mac: setup, build-mgba, lint, test, verify-rom and smoke all green on both. Two fixes on this branch: README step 1 clones plainly and initialises only `env/vendor/continual-harness` (the vendor has a nested `pokered` submodule with no URL, so `--recurse-submodules` exits 128); `.env.example` comments out the placeholder `POKEBENCH_MODEL` and `POKEBENCH_GATEWAY_URL`, so a fresh `just doctor` reports the model tier as SKIP (16 passed, 0 failed, 2 skipped, exit 0) instead of FAIL.
+
 - 2026-11-11: worktree from main `608c01540`. Discovery: 67d7 has 189,738 events (4.3 GB), 109,028 raw-RAM snapshots (16 GB gz), 202 checkpoint pairs. The last state event (seq 189736) references snapshot 109027 with the sha256 of `raw-ram/00109027.json.gz`. Max event line 462,570 bytes.
 - 17:09Z pause, then 17:10Z scope cut (see above). Before the pause: 57/57 tests on the full-scan design; WIP commit 66b87cd7c.
 - After the cut: 50/50 tests; ruff and mypy clean on the changed files.

@@ -295,9 +295,16 @@ def check_rom(p: Probes) -> Check:
     return Check("game", "ROM", "PASS", "SHA-1 matches Pokémon Emerald (USA, Europe)")
 
 
+def _host(url: str) -> tuple[str, str | None]:
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme, parsed.hostname
+    except ValueError:
+        return "", None
+
+
 def _loopback(url: str) -> bool:
-    parsed = urlparse(url)
-    return parsed.scheme == "http" and parsed.hostname == "127.0.0.1"
+    return _host(url) == ("http", "127.0.0.1")
 
 
 def _endpoint(p: Probes) -> tuple[str, Mapping[str, str]] | Check:
@@ -342,8 +349,8 @@ def _endpoint(p: Probes) -> tuple[str, Mapping[str, str]] | Check:
             )
         return base.rstrip("/"), {"Authorization": f"Bearer {key}"}
     if gateway:
-        parsed = urlparse(gateway)
-        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        scheme, host = _host(gateway)
+        if scheme not in ("http", "https") or not host:
             return Check(
                 "model",
                 "endpoint",

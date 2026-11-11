@@ -73,7 +73,7 @@ doctor *tier:
         echo "                     fix: brew install uv && uv python install 3.11 && just setup"
         exit 1
     fi
-    PYTHONPATH="$PWD/env" "$py" -m pokebench_env.doctor "$@"
+    PYTHONPATH="$PWD/env" "$py" -B -m pokebench_env.doctor "$@"
 
 # Recover route103_rival for older runs from their raw-RAM archives into runs/<id>/derived/ (events.jsonl untouched).
 backfill-route103 +runs:

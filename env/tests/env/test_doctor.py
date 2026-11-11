@@ -293,6 +293,7 @@ def test_endpoint_file_reaches_models_with_its_key() -> None:
         (json.dumps({"base_url": "https://127.0.0.1:8080/v1", "api_key": "k"}), "127.0.0.1"),
         (json.dumps([1]), "127.0.0.1"),
         (json.dumps({"base_url": "http://127.0.0.1:8080/v1", "api_key": ""}), "api_key"),
+        (json.dumps({"base_url": "http://[::1", "api_key": "k"}), "127.0.0.1"),
     ],
 )
 def test_bad_endpoint_files_fail(text: str | None, needle: str) -> None:
@@ -320,6 +321,9 @@ def test_gateway() -> None:
     bad = doctor.check_model(probes(env={"POKEBENCH_GATEWAY_URL": "ftp://x"}))
     assert bad[0].status == "FAIL"
     assert "http(s)" in bad[0].detail
+    malformed = doctor.check_model(probes(env={"POKEBENCH_GATEWAY_URL": "http://[zz]/v1"}))
+    assert malformed[0].status == "FAIL"
+    assert "http(s)" in malformed[0].detail
 
 
 def test_unreachable_or_odd_endpoints() -> None:

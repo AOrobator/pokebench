@@ -12,10 +12,6 @@ You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf
 
 See `CLAUDE.md` for workflow and `docs/worklogs/` for history.
 
-## About this repo
-
-I build PokeBench in a private repo and publish it here, so the commit history is the real one. Paths like `/Users/user`, hosts ending in `.example` and IDs starting with `00000000-` stand in for details from my own machines. The local inference stack and a few other tools the docs mention are private setups I haven't published.
-
 ## Licence and notices
 
 The project's own code and documentation are under the [MIT License](LICENSE). See `CITATION.cff` to cite it. Bundled fonts keep their own licence, listed in `packages/viewer/static/fonts/NOTICE.md`, and `env/vendor/continual-harness` is a separate project under its own licence.

@@ -22,3 +22,10 @@ it("classifies any one of the four Opus decisions as heavily assisted",()=>{
   expect(customLaneOfStart({model:{id:"claude-opus-5-5"},harness_features:[id]})).toBe(`${id} is on`);
  }
 });
+it("classifies the foe-items and League stock-up knowledge as heavily assisted, but not the recap or supplies",()=>{
+ const start=(id:string)=>({model:{id:"m"},harness_features:[id]});
+ expect(customLaneOfStart(start("foe-trainer-items-v1"))).toBe("foe-trainer-items-v1 is on");
+ expect(customLaneOfStart(start("league-stock-up-v1"))).toBe("league-stock-up-v1 is on");
+ expect(customLaneOfStart(start("foe-item-recap-v1"))).toBeNull();
+ expect(customLaneOfStart(start("supplies-v1"))).toBeNull();
+});

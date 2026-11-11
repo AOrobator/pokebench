@@ -10,7 +10,7 @@ import frozenLane from "../test-support/recipes-frozen/rayquaza-lane-36826cea3.j
 import {readFeatureRecipe} from "./fixed-definition.js";
 import {armFeatures,FixedDesignError,materializeFixedSource,parseFixedDefinition,resolveFeatureRecipe,type FeatureRecipe} from "./fixed-design.js";
 
-const LANE_ON=["just-in-time-prompt-v2","jit-guide-reuse-v1","rq-slim-prompt-v1","rq-milestone-guide-v1","rq-battle-explainer-v1","rq-no-grind-note-v1","rq-checkpoint-recovery-v1","rq-mach-dash-v1"];
+const LANE_ON=["just-in-time-prompt-v2","jit-guide-reuse-v1","rq-slim-prompt-v1","rq-milestone-guide-v1","rq-battle-explainer-v1","rq-no-grind-note-v1","rq-checkpoint-recovery-v1","rq-mach-dash-v1","foe-trainer-items-v1","league-stock-up-v1"];
 const LANE_OFF=["context-exact-count-v1","no-story-foreknowledge-v1","story-route-plan-v1","town-center-checkpoint-v1"];
 const reader=(files:Readonly<Record<string,unknown>>)=>(id:string):string=>{
  if(!Object.hasOwn(files,id))throw new Error(`no recipe ${id}`);
@@ -19,7 +19,7 @@ const reader=(files:Readonly<Record<string,unknown>>)=>(id:string):string=>{
 const resolved=(lane:unknown,base:unknown):FeatureRecipe=>JSON.parse(resolveFeatureRecipe(JSON.stringify(lane),reader({current:base}))) as FeatureRecipe;
 const sorted=(list:readonly string[]):string[]=>[...list].sort();
 // The frozen recipes predate this overlay entry.
-const atFreeze={...overlay,on:Object.fromEntries(Object.entries(overlay.on).filter(([id])=>id!=="rq-no-grind-note-v1"&&id!=="rq-checkpoint-recovery-v1"&&id!=="rq-mach-dash-v1"))};
+const atFreeze={...overlay,on:Object.fromEntries(Object.entries(overlay.on).filter(([id])=>id!=="rq-no-grind-note-v1"&&id!=="rq-checkpoint-recovery-v1"&&id!=="rq-mach-dash-v1"&&id!=="foe-trainer-items-v1"&&id!=="league-stock-up-v1"))};
 const small={version:1,id:"current",romSha1:"a".repeat(40),controlBase:{path:"p.json",presetId:"p",sha256:"b".repeat(64)},
  switches:["treat-a","treat-b"],offInBoth:["off-a"],onInBoth:["on-a"],features:{"treat-a":false,"treat-b":false,"off-a":false,"on-a":true,"plain":false}};
 const because=(ids:readonly string[]):Record<string,string>=>Object.fromEntries(ids.map(id=>[id,"a reason"]));
@@ -117,7 +117,7 @@ describe("reading an overlay",()=>{
   const before=parseFixedDefinition(source,files(current));
   const expected=resolveFeatureRecipe(JSON.stringify(overlay),files(current));
   expect(before.sha256).toBe(createHash("sha256").update(JSON.stringify([source,expected])).digest("hex"));
-  const promoted="supplies-v1";
+  const promoted="untalked-in-gym-v1";
   expect(current.switches).toContain(promoted);
   const changed={...current,switches:current.switches.filter(id=>id!==promoted),onInBoth:[...current.onInBoth,promoted],features:{...current.features,[promoted]:true}};
   expect(parseFixedDefinition(source,files(changed)).sha256).not.toBe(before.sha256);

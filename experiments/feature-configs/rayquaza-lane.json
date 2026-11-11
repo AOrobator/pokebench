@@ -10,7 +10,9 @@
     "rq-battle-explainer-v1": "Adds a short battle note drawn from recorded mistakes.",
     "rq-no-grind-note-v1": "The note must never send a run to grind or hunt (the operator 2026-11-07).",
     "rq-checkpoint-recovery-v1": "A skipped checkpoint row must not stall the guide (the operator 2026-11-07).",
-    "rq-mach-dash-v1": "The second Sky Pillar climb crosses cracked floor that needs MACH BIKE top speed."
+    "rq-mach-dash-v1": "The second Sky Pillar climb crosses cracked floor that needs MACH BIKE top speed.",
+    "foe-trainer-items-v1": "Custom-lane knowledge: the foe trainer's items left and when its AI uses them (the operator 2026-11-11).",
+    "league-stock-up-v1": "Custom-lane knowledge: the League lobby stock-up facts before the Elite Four (the operator 2026-11-11)."
   },
   "off": {
     "context-exact-count-v1": "It can drop a turn holding JIT guidance.",

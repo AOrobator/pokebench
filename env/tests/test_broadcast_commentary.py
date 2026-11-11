@@ -892,10 +892,13 @@ def test_thinking_joins_a_step_only_when_turn_and_text_match() -> None:
     ("result", "text"),
     [
         ('```json\n{"name":"press","arguments":{},"text":"Fenced."}\n```', "Fenced."),
-        ('I will heal first.\n{"name":"press","arguments":{},"text":"After prose."}', "After prose."),
+        (
+            'I will heal first.\n{"name":"press","arguments":{},"text":"After prose."}',
+            "After prose.",
+        ),
         ('{"oops": 1} then {"name":"press","arguments":{}}', ""),
         ('{"name":"press","text":{"a":1}}', '{"a": 1}'),
-        ('nothing {here', None),
+        ("nothing {here", None),
     ],
 )
 def test_gateway_replies_are_read_the_way_the_gateway_reads_them(

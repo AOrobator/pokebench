@@ -414,6 +414,35 @@ def read_steps(lines: Iterable[str], start: float = 0, end: float = float("inf")
 GatewayCall = tuple[int, str, str]
 
 
+def _json_candidates(text: str) -> Iterator[object]:
+    """The session gateway's reading of a reply: the whole text, unfenced, or each object in it."""
+    stripped = text.strip()
+    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", stripped, re.S)
+    if fenced:
+        stripped = fenced[1]
+    try:
+        yield json.loads(stripped)
+        return
+    except ValueError:
+        pass
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"\{", stripped):
+        try:
+            value, _ = decoder.raw_decode(stripped, match.start())
+        except ValueError:
+            continue
+        yield value
+
+
+def _reply_text(result: str) -> str | None:
+    """The `text` the gateway put on the assistant event, or None when it found no reply."""
+    for candidate in _json_candidates(result):
+        if isinstance(candidate, dict) and "name" in candidate:
+            note = candidate.get("text", "")
+            return note if isinstance(note, str) else json.dumps(note)
+    return None
+
+
 def _record_reply(record: str) -> tuple[str, str] | None:
     """A gateway call record's reply text and its thinking, or None without a reply object."""
     thinking: list[str] = []
@@ -433,12 +462,7 @@ def _record_reply(record: str) -> tuple[str, str] | None:
                     thinking.append(part if isinstance(part, str) else "")
         elif event.get("type") == "result":
             result = event.get("result")
-            try:
-                reply = json.loads(result) if isinstance(result, str) else None
-            except ValueError:
-                continue
-            said = reply.get("text") if isinstance(reply, dict) else None
-            text = said if isinstance(said, str) else None
+            text = _reply_text(result) if isinstance(result, str) else None
     return None if text is None else (text, "".join(thinking))
 
 

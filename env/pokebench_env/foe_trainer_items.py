@@ -58,9 +58,9 @@ BATTLER_BY_TURN_ORDER = 0x0202407E
 CURRENT_TURN_ACTION = 0x02024082
 CHOSEN_ACTIONS = 0x0202421C
 MAIN_FUNC = 0x03005D04
-# HandleTurnActionSelectionState, CheckFocusPunch_ClearVarsBeforeTurnStarts, RunTurnActionsFunctions
-# for this ROM (battle_choices.py, caught_nickname.py).
-SELECT_ACTION, COMMIT_ACTION, RUN_TURN_ACTIONS = 0x0803BE75, 0x0803D2E9, 0x0803D819
+# HandleTurnActionSelectionState and CheckFocusPunch_ClearVarsBeforeTurnStarts for this ROM
+# (battle_choices.py).
+SELECT_ACTION, COMMIT_ACTION = 0x0803BE75, 0x0803D2E9
 B_ACTION_USE_ITEM = 1
 
 # HP each potion restores (src/data/pokemon/item_effects.h; MAX POTION's full heal is 255 there).
@@ -131,8 +131,11 @@ def _chosen_not_shown(read: ReadMemory) -> int:
     for battler in range(count):
         if not positions[battler] & 1 or chosen[battler] != B_ACTION_USE_ITEM:
             continue
+        # Selection keeps last turn's action number; after it, the action counts as shown only
+        # once it has finished and the turn has moved past it (HandleAction_UseItem installs
+        # a script whose message prints over later frames).
         if main in (SELECT_ACTION, COMMIT_ACTION) or (
-            main == RUN_TURN_ACTIONS and battler in order and order.index(battler) > current
+            battler in order and order.index(battler) >= current
         ):
             pending += 1
     return pending

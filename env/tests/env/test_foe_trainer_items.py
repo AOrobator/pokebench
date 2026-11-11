@@ -300,7 +300,7 @@ def turn(m: Memory, main: int, chosen: list[int], order: list[int], current: int
     m.put(0x03005D04, struct.pack("<I", main))
 
 
-SELECT, COMMIT, RUN = 0x0803BE75, 0x0803D2E9, 0x0803D819
+SELECT, COMMIT, RUN, SCRIPT = 0x0803BE75, 0x0803D2E9, 0x0803D819, 0x0803E019
 
 
 def glacia_after_choosing(
@@ -319,12 +319,14 @@ def test_an_item_chosen_this_turn_is_not_shown_before_it_runs() -> None:
     for main in (SELECT, COMMIT):
         items = glacia_after_choosing(main, [0xFF, 1], [1, 0], 2)
         assert items is not None and items.used == () and items.left == full
-    later = glacia_after_choosing(RUN, [0, 1], [0, 1], 0)
-    assert later is not None and later.used == () and later.left == full
+    for main, order, current in ((RUN, [0, 1], 0), (RUN, [1, 0], 0), (SCRIPT, [1, 0], 0)):
+        # Later in the turn order, or the current action whose message is still to come.
+        later = glacia_after_choosing(main, [0, 1], order, current)
+        assert later is not None and later.used == () and later.left == full
 
 
 def test_the_item_counts_as_used_once_its_action_runs_or_the_turn_is_over() -> None:
-    for main, current in ((RUN, 0), (RUN, 1), (0x0803E019, 2)):
+    for main, current in ((RUN, 1), (SCRIPT, 1), (SCRIPT, 2), (0x08000001, 2)):
         items = glacia_after_choosing(main, [0, 1], [1, 0], current)
         assert items is not None
         assert items.used == (FoeItem(0, "FULL RESTORE"),)

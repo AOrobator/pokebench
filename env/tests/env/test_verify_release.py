@@ -165,6 +165,7 @@ class Build:
         # The full raw-RAM log ships for the replay; verify-release must never open it.
         self.raw_log = b"zstd raw-RAM log for the replay"
         self.final_ref_sha256: str | None = None
+        self.events_tar = False
         self.tar_name = "checkpoints-67d7.tar"
 
     def add(self, event_type: str, turn: int, **body: object) -> None:
@@ -219,14 +220,30 @@ class Build:
             ref = event.get("raw_ram")
             if isinstance(ref, dict) and ref["sequence"] == 1:
                 ref["sha256"] = self.final_ref_sha256 or sha256(final)
+        events = self.names["events"] + self.ext, pack(self.event_bytes())
+        if self.events_tar:
+            events = (
+                "events-67d7.tar" + self.ext,
+                pack(one_member_tar("events.jsonl", self.event_bytes())),
+            )
         files = {
-            self.names["events"] + self.ext: pack(self.event_bytes()),
+            events[0]: events[1],
             self.names["final"] + self.ext: final,
             self.tar_name + self.ext: pack(self.tar_bytes()),
             "raw-ram-67d7.jsonl.zst": self.raw_log,
         }
         sums = "".join(f"{sha256(data)}  {name}\n" for name, data in files.items())
         return files | {"SHA256SUMS": sums.encode()}
+
+
+def one_member_tar(name: str, body: bytes, kind: bytes = tarfile.REGTYPE) -> bytes:
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w") as tar:
+        info = tarfile.TarInfo(name)
+        info.type = kind
+        info.size = len(body) if kind == tarfile.REGTYPE else 0
+        tar.addfile(info, io.BytesIO(body) if kind == tarfile.REGTYPE else None)
+    return out.getvalue()
 
 
 class MemoryRelease:
@@ -308,6 +325,9 @@ def test_clean_release_passes_every_check(ext: str) -> None:
     assert "sequence 1" in binding
     assert ("byte-identical" in binding) == (ext == ".gz")
     assert any("final RAM snapshot: sequence 1" in line for line in report.totals)
+    assert any("the agent trace is not shipped" in line for line in report.totals)
+    traced = run(build.files() | {"agent-trace-67d7.tar.xz": b"trace"})
+    assert any("ships as agent-trace-67d7.tar.xz" in line for line in traced.totals)
     assert any("claude-opus-5-5" in line for line in report.totals)
     assert any("tokens: not recorded" in line for line in report.totals)
     assert any("just replay-verify" in line for line in report.totals)
@@ -412,11 +432,51 @@ def test_zstd_only_is_a_named_failure_and_a_supported_copy_wins() -> None:
     assert "events: run_start" not in failed(run(both))
 
 
-def test_two_supported_copies_are_ambiguous() -> None:
+def test_the_copy_sha256sums_lists_wins_and_two_listed_copies_are_ambiguous() -> None:
     build = Build()
     files = build.files()
-    files["events-67d7.jsonl.gz"] = gzip.compress(build.event_bytes())
-    assert "ambiguous" in failed(run(files))["events: run_start"]
+    files["events-67d7.jsonl.gz"] = gzip.compress(build.event_bytes())  # stale, unlisted
+    report = run(files)
+    assert report.ok
+    assert "events-67d7.jsonl.gz" not in str(report.checks)
+    assert "ambiguous" in failed(run(resum(files)))["events: run_start"]
+
+
+def test_discovery_on_the_real_67d7_release_names() -> None:
+    names = [
+        "SHA256SUMS",
+        "VERIFY.md",
+        "agent-trace-67d7.tar.xz",
+        "checkpoints-67d7.tar.xz",
+        "checkpoints-67d7.tar.zst",
+        "events-67d7.jsonl.xz",
+        "events-67d7.jsonl.zst",
+        "events-67d7.tar.xz",
+        "events.jsonl.zst",
+        "logs-67d7.tar.xz",
+        "raw-ram-67d7.jsonl.xz",
+        "raw-ram-67d7.jsonl.zst",
+        "raw-ram-final.json.gz",
+        "replay-67d7.tar.xz",
+        "screenshots-67d7.tar.xz",
+        "unpack_raw_ram.py",
+    ]
+    listed = [
+        "events-67d7.tar.xz",
+        "agent-trace-67d7.tar.xz",
+        "raw-ram-67d7.jsonl.xz",
+        "raw-ram-final.json.gz",
+        "unpack_raw_ram.py",
+        "checkpoints-67d7.tar.xz",
+        "screenshots-67d7.tar.xz",
+        "logs-67d7.tar.xz",
+        "replay-67d7.tar.xz",
+    ]
+    assert vr.discover(names, listed) == {
+        "events": "events-67d7.tar.xz",
+        "final snapshot": "raw-ram-final.json.gz",
+        "checkpoints": "checkpoints-67d7.tar.xz",
+    }
 
 
 def test_integrity_failures() -> None:
@@ -686,6 +746,42 @@ def test_trailing_data_after_the_final_record_fails() -> None:
     assert "Extra data" in failed(run(files))["final snapshot"]
 
 
+@pytest.mark.parametrize("ext", ["", ".gz", ".xz"])
+def test_events_inside_a_tar_with_the_real_final_snapshot_name(ext: str) -> None:
+    build = Build()
+    build.ext = ext
+    build.events_tar = True
+    build.names["final"] = "raw-ram-final.json"
+    report = run(build.files())
+    assert failed(report) == {}
+    assert "10 events" in result(report, "events: order").detail
+
+
+def test_event_tar_must_hold_exactly_one_events_jsonl() -> None:
+    build = Build()
+    build.events_tar = True
+    files = build.files()
+
+    def with_tar(body: bytes) -> dict[str, str]:
+        files["events-67d7.tar"] = body
+        return failed(run(resum(files)))
+
+    two = io.BytesIO()
+    with tarfile.open(fileobj=two, mode="w") as tar:
+        for name in ("events.jsonl", "extra.jsonl"):
+            info = tarfile.TarInfo(name)
+            info.size = len(build.event_bytes())
+            tar.addfile(info, io.BytesIO(build.event_bytes()))
+    assert "second member" in with_tar(two.getvalue())["events: order"]
+    assert "not a plain" in with_tar(one_member_tar("notes.txt", b"x"))["events: order"]
+    assert "not a plain" in with_tar(one_member_tar("../events.jsonl", b"x"))["events: order"]
+    link = one_member_tar("events.jsonl", b"", tarfile.SYMTYPE)
+    assert "not a plain" in with_tar(link)["events: order"]
+    empty = io.BytesIO()
+    tarfile.open(fileobj=empty, mode="w").close()
+    assert "empty" in with_tar(empty.getvalue())["events: order"]
+
+
 # --- checkpoints ---
 
 
@@ -832,6 +928,29 @@ def test_oversized_extension_headers_fail_before_tarfile_reads_them() -> None:
         tar.addfile(long_name, io.BytesIO(b""))
     files["checkpoints-67d7.tar"] = out.getvalue()
     assert "extension header" in failed(run(resum(files)))["checkpoints: archive"]
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"GNU.sparse.major": "1", "GNU.sparse.minor": "0", "GNU.sparse.realsize": "16"},
+        {"GNU.sparse.map": "0,0,0,16", "GNU.sparse.realsize": "16"},
+        {"GNU.sparse.size": "16", "GNU.sparse.offset": "0", "GNU.sparse.numbytes": "16"},
+    ],
+)
+def test_pax_sparse_members_fail_before_their_map_is_read(headers: dict[str, str]) -> None:
+    build = Build()
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        info = tarfile.TarInfo("checkpoints/GAME_CLEAR_FINAL.state")
+        # GNU sparse 1.0 declares a 100,000-entry map that is never there: refused before reading.
+        body = b"100000\n".ljust(512, b"\0")
+        info.size = len(body)
+        info.pax_headers = headers
+        tar.addfile(info, io.BytesIO(body))
+    files = build.files()
+    files["checkpoints-67d7.tar"] = out.getvalue()
+    assert "PAX sparse" in failed(run(resum(files)))["checkpoints: archive"]
 
 
 def test_sparse_members_fail() -> None:

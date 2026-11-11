@@ -26,11 +26,11 @@ Release layout (one file per kind, chosen by name and extension):
 | Kind | Name | Compression |
 |---|---|---|
 | Checksums | `SHA256SUMS` | none |
-| Event log | `events*.jsonl[.gz|.xz]` | by extension |
-| Final RAM snapshot | `raw-ram-final*.json[.gz|.xz]`, one `raw-ram/*.json.gz` record (the run's last) | by extension |
+| Event log | `events*.jsonl[.gz|.xz]`, or `events*.tar[.gz|.xz]` whose only member is a plain `events*.jsonl` (the 67d7 release ships `events-67d7.tar.xz`) | by extension |
+| Final RAM snapshot | `raw-ram-final*.json[.gz|.xz]` (the 67d7 release ships `raw-ram-final.json.gz`), one `raw-ram/*.json.gz` record (the run's last) | by extension |
 | Checkpoints | `checkpoints*.tar[.gz|.xz]` with `checkpoints/*.state` + `*.json` | by extension |
 
-zstd is not supported (no stdlib codec, no new dependency). A `.zst` copy is ignored when a supported copy of the same kind exists, and is a named FAIL when it is the only one. Other files (the full raw-RAM log, screenshots, logs, replay) may be listed in `SHA256SUMS`; they must exist but are not hashed here (`sha256sum -c SHA256SUMS` covers them).
+When several supported copies of one kind exist, the one `SHA256SUMS` lists wins; stale unlisted copies are ignored, two listed copies are ambiguous. zstd is not supported (no stdlib codec, no new dependency). A `.zst` copy is ignored when a supported copy of the same kind exists, and is a named FAIL when it is the only one. Other files (the full raw-RAM log, screenshots, logs, replay) may be listed in `SHA256SUMS`; they must exist but are not hashed here (`sha256sum -c SHA256SUMS` covers them).
 
 Checks:
 
@@ -134,6 +134,18 @@ Packet base 608c01540, head f5262a74c, diff SHA-256 70612537…63e6af, `/private
 - Fix [P2] `_integrity`: `SHA256SUMS` was read with `read(SIDECAR_CAP)` and silently truncated. Fixed: own `SUMS_CAP` (1 MiB), read cap+1, overflow is a named integrity FAIL. Test: a manifest one byte over the cap FAILs; at the cap the absent file is reported missing.
 - Guard deletion: each new guard removed alone turns its test red; restored. Focused 54/54; ruff and mypy clean; real 67d7 rerun 15/15 PASS, 28.4 s.
 - No objection from the reviewer to the scope or the recompressed-snapshot binding policy.
+
+### Round 2 — GPT (JOB review-gpt-verify-release-r2-b4e9023b1)
+
+Base 608c01540, head b4e9023b1, cumulative SHA-256 ce2375e4…d9a375, delta 593bf1ab…dfd30c. Both digests verified; focused 54 passed. Round-1 P2 resolved; oversized PAX/GNU long-name and type-S sparse rejected. `VERDICT: BLOCKING` on one new finding:
+
+- Fix [P1] PAX sparse (GNU 0.0/0.1/1.0) still reached tarfile's sparse-map parsing through a small PAX header on a regular member; 1.0 reads a caller-sized map before the member is yielded (~21 MB traced for ~400 KB of map, scalable). Fixed: `_BoundedTarInfo` overrides `_proc_gnusparse_00/01/10`, which `_proc_pax` calls on the header's own TarInfo before reading any map, to raise. Test: one PAX header per sparse version on `GAME_CLEAR_FINAL.state` declaring a 100,000-entry map that is never present; each FAILs `checkpoints: archive`. Guard deletion: each override removed alone turns its case red.
+
+### Release layout (coordinator 17:28Z: final xz package)
+
+`runs/release-staging/67d7` ships `events-67d7.tar.xz` (one member, `events.jsonl`), `raw-ram-final.json.gz` (byte copy of `00109027.json.gz`), `checkpoints-67d7.tar.xz`, the raw-RAM log as `raw-ram-67d7.jsonl.xz` (never opened), agent trace, screenshots, logs, replay, `unpack_raw_ram.py`, `SHA256SUMS`, `VERIFY.md`, plus stale unlisted `.zst`/`.jsonl.xz` copies. Changes: events may be a tar holding exactly one plain `events*.jsonl` (second member, other names, links and empty archives FAIL); discovery prefers the copy `SHA256SUMS` lists; totals name a shipped agent trace instead of saying none ships. Tests: events-in-tar for plain/gz/xz with the unsuffixed final name, event-tar member rules, listed-copy preference and listed-twice ambiguity, discovery on the real 67d7 file names. Guard deletion: each new rule removed alone turns a test red; restored. Focused 62/62; ruff and mypy clean.
+
+Real run on the final release, `just verify-release ~/dev/pokebench/runs/release-staging/67d7` (read-only; the folder listing is identical before and after): 15/15 PASS, exit 0, 47.5 s real, 280 MB peak RSS (xz decoding the 4.3 GB event log).
 
 ## Boy Scout Log
 

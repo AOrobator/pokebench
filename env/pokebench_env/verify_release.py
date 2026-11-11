@@ -49,11 +49,12 @@ RUN_END_SAVE = "RUN_END"
 FORBIDDEN_EVENTS = ("human_input", "human_sample", "operator_control")
 
 KINDS = {
-    "events": re.compile(r"events[A-Za-z0-9._-]*\.jsonl(\.gz|\.xz|\.zst)?"),
+    "events": re.compile(r"events[A-Za-z0-9._-]*\.(jsonl|tar)(\.gz|\.xz|\.zst)?"),
     "final snapshot": re.compile(r"raw-ram-final[A-Za-z0-9._-]*\.json(\.gz|\.xz|\.zst)?"),
     "checkpoints": re.compile(r"checkpoints[A-Za-z0-9._-]*\.tar(\.gz|\.xz|\.zst)?"),
 }
 SUM_LINE = re.compile(r"([0-9a-f]{64}) [ *]([A-Za-z0-9][A-Za-z0-9._+-]*)")
+EVENT_MEMBER = re.compile(r"events[A-Za-z0-9._-]*\.jsonl")
 MEMBER_NAME = re.compile(r"checkpoints/([A-Z0-9_]{1,128})\.(state|json)")
 
 
@@ -158,12 +159,16 @@ def _check(name: str, problems: Problems, success: str) -> Check:
 # --- discovery and integrity ---
 
 
-def discover(names: Sequence[str]) -> dict[str, str | Check]:
+def discover(names: Sequence[str], listed: Sequence[str] = ()) -> dict[str, str | Check]:
+    """One file per kind. Of several supported copies, the one SHA256SUMS lists wins."""
     found: dict[str, str | Check] = {}
     for kind, pattern in KINDS.items():
         matches = [name for name in names if pattern.fullmatch(name)]
         supported = [name for name in matches if not name.endswith(".zst")]
-        if len(supported) == 1:
+        vouched = [name for name in supported if name in listed]
+        if len(supported) > 1 and len(vouched) == 1:
+            found[kind] = vouched[0]
+        elif len(supported) == 1:
             found[kind] = supported[0]
         elif supported:
             found[kind] = Check(kind, False, f"ambiguous {kind} files: {', '.join(supported)}")
@@ -264,6 +269,29 @@ def scan_events(stream: BinaryIO) -> EventFacts:
             facts.run_end = event
         if kind in FORBIDDEN_EVENTS:
             facts.forbidden[cast(str, kind)] = facts.forbidden.get(cast(str, kind), 0) + 1
+    return facts
+
+
+def scan_event_source(stream: BinaryIO, name: str) -> EventFacts:
+    """An events*.jsonl (already decompressed by the caller), or a tar whose only member is one."""
+    if ".tar" not in name:
+        return scan_events(stream)
+    facts: EventFacts | None = None
+    with _open_tar(stream, name) as tar:
+        for member in tar:
+            if facts is not None:
+                raise ReleaseError(f"event archive has a second member {member.name!r}")
+            if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE) or not EVENT_MEMBER.fullmatch(
+                member.name
+            ):
+                raise ReleaseError(
+                    f"event archive member {member.name!r} is not a plain events*.jsonl file"
+                )
+            body = tar.extractfile(member)
+            assert body is not None
+            facts = scan_events(cast(BinaryIO, body))
+    if facts is None:
+        raise ReleaseError("event archive is empty")
     return facts
 
 
@@ -530,13 +558,23 @@ class _BoundedTarInfo(tarfile.TarInfo):
     def _proc_member(self, tar: tarfile.TarFile) -> tarfile.TarInfo:
         if self.type in EXTENSION_TYPES and self.size > EXTENSION_CAP:
             raise ReleaseError(
-                f"checkpoint archive has a {self.size}-byte extension header "
-                f"(limit {EXTENSION_CAP})"
+                f"archive has a {self.size}-byte extension header (limit {EXTENSION_CAP})"
             )
         if self.type == tarfile.GNUTYPE_SPARSE:
-            raise ReleaseError("checkpoint archive has a sparse member")
+            raise ReleaseError("archive has a sparse member")
         member: tarfile.TarInfo = super()._proc_member(tar)  # type: ignore[misc]
         return member
+
+    # _proc_pax dispatches PAX sparse maps (GNU 0.0, 0.1, 1.0) through these before a member is
+    # yielded; 1.0 reads a caller-sized map from the archive. Refuse them all before any of that.
+    def _proc_gnusparse_00(self, *_args: object) -> None:
+        raise ReleaseError("archive has a PAX sparse member")
+
+    def _proc_gnusparse_01(self, *_args: object) -> None:
+        raise ReleaseError("archive has a PAX sparse member")
+
+    def _proc_gnusparse_10(self, *_args: object) -> None:
+        raise ReleaseError("archive has a PAX sparse member")
 
 
 def _open_tar(stream: BinaryIO, name: str) -> tarfile.TarFile:
@@ -706,7 +744,8 @@ def verify(
     rom_problem: str | None,
 ) -> Report:
     names = files.names()
-    found = discover(names)
+    sums, sum_problems = _read_sums(files, names)
+    found = discover(names, list(sums))
     digests: dict[str, str] = {}
     read_problems: dict[str, str] = {}
 
@@ -725,8 +764,8 @@ def verify(
             problem = ""
             try:
                 buffered = cast(BinaryIO, io.BufferedReader(tee, CHUNK))
-                # tarfile decompresses the checkpoint archive itself ("r|xz"/"r|gz").
-                source = buffered if kind == "checkpoints" else _decoder(target, buffered)
+                # tarfile decompresses archives itself ("r|xz"/"r|gz").
+                source = buffered if ".tar" in target else _decoder(target, buffered)
                 result = scan(source, target, tee)
             except Exception as error:  # noqa: BLE001 - fail closed: any failure is a named FAIL
                 problem = f"{target}: {_failure(error)}"
@@ -736,13 +775,13 @@ def verify(
                 read_problems[target] = f"cannot be read to the end: {error}"
             return result, problem
 
-    facts, event_problem = stream("events", lambda s, _n, _t: scan_events(s))
+    facts, event_problem = stream("events", lambda s, n, _t: scan_event_source(s, n))
     final, final_problem = stream("final snapshot", lambda s, _n, t: read_final_snapshot(s, t))
     cps, cp_problem = stream("checkpoints", lambda s, n, _t: scan_checkpoints(s, n))
     final_name = found["final snapshot"]
 
     checks = [
-        _integrity(files, names, found, digests, read_problems),
+        _integrity(names, found, sums, sum_problems, digests, read_problems),
         _rom_check(rom, rom_problem, rom_sha1),
     ]
     if facts is None:
@@ -766,7 +805,7 @@ def verify(
     checks += checkpoint_checks(
         cps, facts, rom_sha1, cp_problem or (event_problem and f"not checked: {event_problem}")
     )
-    return Report(checks, _totals(facts, final, cps))
+    return Report(checks, _totals(facts, final, cps, names))
 
 
 EVENT_CHECKS = (
@@ -779,23 +818,30 @@ EVENT_CHECKS = (
 )
 
 
-def _integrity(
-    files: ReleaseFiles,
-    names: Sequence[str],
-    found: Mapping[str, str | Check],
-    digests: dict[str, str],
-    read_problems: Mapping[str, str],
-) -> Check:
+def _read_sums(files: ReleaseFiles, names: Sequence[str]) -> tuple[dict[str, str], Problems]:
     problems = Problems()
     if "SHA256SUMS" not in names:
         problems.add("missing SHA256SUMS")
-        return _check("integrity", problems, "")
+        return {}, problems
     with files.open("SHA256SUMS") as raw:
         body = raw.read(SUMS_CAP + 1)
     if len(body) > SUMS_CAP:
         problems.add(f"SHA256SUMS is larger than {SUMS_CAP} bytes")
+        return {}, problems
+    return parse_sums(body)
+
+
+def _integrity(
+    names: Sequence[str],
+    found: Mapping[str, str | Check],
+    sums: Mapping[str, str],
+    sum_problems: Problems,
+    digests: dict[str, str],
+    read_problems: Mapping[str, str],
+) -> Check:
+    problems = sum_problems
+    if not sums and problems:
         return _check("integrity", problems, "")
-    sums, problems = parse_sums(body)
     for target in found.values():
         if isinstance(target, str) and target not in sums:
             problems.add(f"{target}: not listed in SHA256SUMS")
@@ -826,7 +872,10 @@ def _rom_check(rom: bytes | None, problem: str | None, rom_sha1: str) -> Check:
 
 
 def _totals(
-    facts: EventFacts | None, final: FinalSnapshot | None, cps: CheckpointFacts | None
+    facts: EventFacts | None,
+    final: FinalSnapshot | None,
+    cps: CheckpointFacts | None,
+    names: Sequence[str],
 ) -> list[str]:
     lines: list[str] = []
     if facts is not None:
@@ -853,7 +902,12 @@ def _totals(
             lines.append("tokens: not recorded (logged as 0)")
         elif isinstance(tokens, dict):
             lines.append(f"tokens: input {tokens.get('input')}, output {tokens.get('output')}")
-        lines.append("list cost: not in this release (the agent trace is not shipped)")
+        traces = [name for name in names if name.startswith("agent-trace")]
+        lines.append(
+            f"list cost: not computed here (the agent trace ships as {', '.join(traces)})"
+            if traces
+            else "list cost: not in this release (the agent trace is not shipped)"
+        )
         lines.append(f"evidence: {facts.count:,} events, {len(facts.milestones)} milestones")
     if final is not None:
         meta = final.reader.metadata

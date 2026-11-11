@@ -25,6 +25,7 @@ import {frozenRecipeToWrite,type LaunchedRecipeReads} from "./fixed-launched-rec
 import {laneDriftReport,type LaneRunReads} from "./fixed-lane-drift.js";
 import { pidAlive } from "./lease.js";
 import { randomSuffix } from "./next-run.js";
+import { isMain } from "@pokebench/agent/is-main";
 
 export interface FixedCliDeps {
   readonly root: string;
@@ -453,7 +454,7 @@ export function productionFixedHost(deps: FixedHostDeps): FixedHost {
 }
 
 /* v8 ignore start -- process wiring, exercised by the dry run */
-if (import.meta.main) {
+if (isMain(import.meta)) {
   const here = fileURLToPath(new URL(".", import.meta.url));
   const gitIn = (cwd: string, args: readonly string[]): string => execFileSync("git", [...args], { cwd, encoding: "utf8" });
   const root = mainCheckout(here, gitIn), runsRoot = join(root, "runs");

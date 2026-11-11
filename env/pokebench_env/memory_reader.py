@@ -105,7 +105,7 @@ def read_canonical_ram(core: NativeCore, address: int, length: int) -> bytes | N
     # mGBA 0.10.5 GBALoad8 reads these exact wram/iwram backing bytes;
     # busRead8 passes a null cycle counter. Mirrors and all other regions
     # deliberately stay on the bus, including side-effectful I/O/Flash.
-    from mgba._pylib import ffi  # type: ignore[import-untyped]
+    from mgba._pylib import ffi
 
     native_size = ffi.new("size_t*")
     pointer = core._core.getMemoryBlock(core._core, base >> 24, native_size)

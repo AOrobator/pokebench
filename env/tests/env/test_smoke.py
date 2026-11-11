@@ -55,5 +55,6 @@ def test_smoke_fails_if_server_never_becomes_healthy() -> None:
 
 def test_smoke_fails_fast_if_server_process_exits() -> None:
     process = FakeProcess(exit_code=1)
-    with pytest.raises(SmokeError, match="exited with code 1"):
+    with pytest.raises(SmokeError, match="exited with code 1") as raised:
         run_smoke(FakeClient(health_sequence=[False]), process, sleep=lambda _: None, attempts=3)
+    assert "the server's own error is in its output above" in str(raised.value)

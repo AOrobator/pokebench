@@ -71,6 +71,10 @@
     "./budget-extensions": {
       "types": "./src/budget-extensions.ts",
       "default": "./dist/budget-extensions.js"
+    },
+    "./is-main": {
+      "types": "./src/is-main.ts",
+      "default": "./dist/is-main.js"
     }
   },
   "scripts": {

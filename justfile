@@ -184,9 +184,9 @@ probe-decision run turn *flags: build
 runs-prune percent: build
     node packages/agent/dist/runs-cli.js prune {{percent}}
 
-# PokeBench viewer on 127.0.0.1:8790: live runs follow events.jsonl, finished runs replay from frames/.
-view run_id="": build
-    node packages/viewer/dist/cli.js {{quote(run_id)}}
+# PokeBench viewer on 127.0.0.1 (port 8790 unless given, e.g. `just view "" 8799`): live runs follow events.jsonl, finished runs replay from frames/.
+view run_id="" port="8790": build
+    node packages/viewer/dist/cli.js --port {{quote(port)}} {{quote(run_id)}}
 
 # Restart the long-lived viewer on 8790 from a clean worktree at main. Run after every merge, and
 # always before a fixed-run launch check from a newer pin: a viewer built before the pin cannot read

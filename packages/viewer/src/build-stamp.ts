@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMain } from "@pokebench/agent/is-main";
 
 export interface BuildIdentity { readonly commit: string; readonly dirty: boolean }
 export type BuildRelation = "older" | "newer" | "unknown";
@@ -75,7 +76,7 @@ export function skewOf(viewer: ViewerBuild | null, run: BuildIdentity): Skew | n
   return { head, describe: (count, first, startless = false) => `${head}.${startless ? " It cannot read this run's run_start, so the run is not graded." : ""} It skipped ${String(count)} event${count === 1 ? "" : "s"} it cannot read; first: ${first}` };
 }
 
-if (import.meta.main) {
+if (isMain(import.meta)) {
   const here = dirname(fileURLToPath(import.meta.url));
   const stamp = writeBuildStamp(here, args => execFileSync("git", [...args], { cwd: here, encoding: "utf8" }));
   console.log(`viewer build stamp ${short(stamp.commit)}${stamp.dirty ? " (dirty)" : ""}`);

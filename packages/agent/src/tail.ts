@@ -2,6 +2,7 @@ import { open } from "node:fs/promises";
 import { join } from "node:path";
 import { parseEvent, type RunEvent } from "./events.js";
 import { formatBytes } from "./format.js";
+import { isMain } from "./is-main.js";
 
 const THINKING_CHARS = 120;
 
@@ -191,7 +192,7 @@ export async function tailRun(argv: readonly string[], runsRoot: string, print: 
   return 0;
 }
 
-if (import.meta.main) {
+if (isMain(import.meta)) {
   process.exitCode = await tailRun(process.argv.slice(2), new URL("../../../runs/", import.meta.url).pathname, (line) => {
     console.log(line);
   });

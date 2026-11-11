@@ -476,7 +476,7 @@ def main() -> None:  # pragma: no cover - entrypoint, exercised by `just smoke`
 
     epoch = restored_epoch(os.environ)
     if epoch is not None:
-        from mgba._pylib import lib  # type: ignore[import-untyped]
+        from mgba._pylib import lib
 
         install_restored_clock(
             cast(type[ClockEmulator], EmeraldEmulator),

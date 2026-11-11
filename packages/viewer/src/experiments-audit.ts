@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMain } from "@pokebench/agent/is-main";
 // Completeness check for recorded comparison provenance: every run whose run_start names an experiment
 // (evaluation.experiment) must have an internal cohort mapping.
 export interface AuditFinding { readonly run: string; readonly experiment: string; readonly problem: string }
@@ -58,7 +59,7 @@ export async function auditMain(argv: readonly string[], deps: AuditDeps): Promi
   return 1;
 }
 /* v8 ignore start -- process wiring */
-if (import.meta.main) {
+if (isMain(import.meta)) {
   const { cohortIndex } = await import("./workbench-store.js"), { mainCheckout } = await import("./fixed-source.js");
   const here = fileURLToPath(new URL(".", import.meta.url));
   const runsRoot = join(mainCheckout(here, (cwd, args) => execFileSync("git", [...args], { cwd, encoding: "utf8" })), "runs");

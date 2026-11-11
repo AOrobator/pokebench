@@ -1,6 +1,6 @@
 # Viewer: fill the workbench from /api/cards when the current projector has no runs
 
-Status: M1 in progress on `claude/workbench-without-projector` (worktree `~/dev/pokebench-workbench-no-projector`), off main 640ba5c74. Approved by the coordinator 2026-11-11 19:50Z as the follow-up to splits-no-frontier. Landing needs the operator's own @mention.
+Status: M1 READY TO LAND (source 4a56b2f85 on main 22e7432f4; gates green; GPT LGTM) on `claude/workbench-without-projector` (worktree `~/dev/pokebench-workbench-no-projector`), off main 640ba5c74. Approved by the coordinator 2026-11-11 19:50Z as the follow-up to splits-no-frontier. Landing needs the operator's own @mention.
 
 ## Problem Statement
 
@@ -33,9 +33,9 @@ No new endpoint or input; `/api/cards` is already fetched and validated by `pars
 - [x] Worklog
 - [x] Tests (RED)
 - [x] Implement (`needsCardEnrichment` in workbench-data.ts; app.ts uses it); viewer tsc and eslint clean; workbench tests 25/25. Guard: removing the projectorRuns===0 line turns the new test red; restored.
-- [ ] Full gates
+- [x] Full gates on 0bec933d6 (rebased onto main 22e7432f4): `just lint` exit 0; `just test` exit 0 (agent 3,042, viewer 1,281, env 3,319, gateway 39; floors; no-I/O proof)
 - [x] Browser check: scratch multi-run root (67d7 + 37ca clone) with no projector, where SPLITS races the frontier; single-run root still settles (with splits-no-frontier) or is unchanged
-- [ ] Codex review; ready to land
+- [x] Codex review: GPT LGTM; ready to land
 
 **M2 — Landing** (the operator's own @mention); `just viewer-main` only on the operator's words
 
@@ -52,6 +52,10 @@ This branch's built viewer, detached on scratch ports (stopped afterwards; 8790 
 ## Surprises
 
 ## Multi-Model Review Log
+
+### Round 1 — GPT (JOB review-gpt-workbench-no-projector-0bec933d6)
+
+Base 22e7432f4, head 0bec933d6, SHA-256 c6309728…aac. The only new true case is projector mode with a selected run and zero projector rows; with projector rows the earlier predicate holds, so the live viewer gets no extra cards polling. Traced loadWorkbench deduplication, epoch/generation rejection and the currentChanged merge: no fetch loop, no projector overwrite. The no-projector fallback refreshes cards on the existing 5 s timer. Screenshots inspected. `VERDICT: LGTM`.
 
 ## Boy Scout Log
 

@@ -1,6 +1,6 @@
 # SPLITS: settle when there is no frontier to race
 
-Status: M1 in progress on `claude/splits-no-frontier` (worktree `~/dev/pokebench-splits-no-frontier`), off main 640ba5c74. Asked for by the coordinator 2026-11-11 19:23Z, from the view-release browser check. Landing needs the operator.
+Status: M1 READY TO LAND (source 793b4124c; gates green; GPT LGTM) on `claude/splits-no-frontier` (worktree `~/dev/pokebench-splits-no-frontier`), off main 640ba5c74. Asked for by the coordinator 2026-11-11 19:23Z, from the view-release browser check. Landing needs the operator.
 
 ## Problem Statement
 
@@ -33,9 +33,9 @@ No new input, network or file access; HTML escaping unchanged.
 - [x] Worklog
 - [x] Tests (RED): `raceLoading` truth table
 - [x] Implement (`raceLoading` in splits-race.ts; app.ts `drawRace` uses it). RED 529c860db: 3 failed (`raceLoading` missing). GREEN: splits-race tests 48/48; viewer `tsc --noEmit` and eslint clean. Guard: restoring the old rule (any missing workbench record means loading) turns 2 tests red; restored.
-- [ ] Cheap checks; guard deletion; full gates (`just lint`, `just test`)
+- [x] Cheap checks; guard deletion; full gates on d3c52da64: `just lint` exit 0; `just test` exit 0 (agent 3,042, viewer 1,279, env 3,258, gateway 39; floors; no-I/O proof)
 - [x] Browser check (multi-run gap recorded as a separate follow-up): the real 67d7 release in a scratch viewer (single-run root) shows the settled line, at desktop and phone, plus a multi-run root still racing
-- [ ] Codex review; stop at ready to land
+- [x] Codex review: GPT LGTM; stopped at ready to land
 
 **M2 — Landing** (the operator); then `just viewer-main` only on the operator's words
 
@@ -51,6 +51,10 @@ This branch's built viewer, detached on scratch ports (stopped afterwards; the l
 ## Surprises
 
 ## Multi-Model Review Log
+
+### Round 1 — GPT (JOB review-gpt-splits-no-frontier-d3c52da64)
+
+Base 640ba5c74, head d3c52da64, SHA-256 5b00df33…a1705. Traced the frontier-cache ready/stale/loading responses, loadFrontier settlement and retry, selection reset, and drawRace headline and graph gating: only a settled null frontier can show no comparison without a workbench record. Screenshots inspected. `VERDICT: LGTM`. The coordinator confirmed no switch is needed (viewer-only).
 
 ## Boy Scout Log
 

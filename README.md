@@ -22,19 +22,21 @@ Times are wall-clock hours from the start of the run. The Qwen runs start from a
 
 Every run is recorded, and the viewer replays it with the game screen, the model's thinking, its tool calls and a timeline of button presses and milestones.
 
-![The viewer replaying the end of Opus's single-run clear](docs/images/viewer-run.png)
+![The viewer replaying the end of Opus's single-run clear](docs/images/viewer-run.webp)
 
-The frontier shows the best run overall next to the best unhelped run, and the splits page races any run against the frontier milestone by milestone.
+The frontier page puts the best run overall beside the best unhelped one, and plots every recorded run against the story checkpoints.
 
-![The story frontier, with the heavily assisted Opus clear beside the best unhelped run](docs/images/viewer-frontier.png)
+![The story frontier, with the heavily assisted Opus clear beside the best unhelped run](docs/images/viewer-frontier.webp)
 
-![The splits page racing Opus's clear against the frontier, grouped by badge](docs/images/viewer-splits.png)
+The splits page races one run against the frontier, badge by badge, with the story graph and where both runs are on the map.
+
+![The splits page racing Opus's clear against the frontier, grouped by badge](docs/images/viewer-splits.webp)
 
 ## How it works
 
 Each turn the harness reads the game's memory, turns it into a text readout the model can act on (where it is, the exits, the people, the battle state), and gives the model tools such as `navigate_to_target` and `battle_action`. The model decides, the harness carries out the buttons and reports what happened, and the next turn starts.
 
-![One real turn: the game, what the model sees, what it decides, and what the harness does](docs/images/harness-loop.png)
+![One real turn: the game, what the model sees, what it decides, and what the harness does](docs/images/harness-loop.webp)
 
 - **Agent:** TypeScript on [pi](https://github.com/badlogic/pi-mono), talking to any OpenAI-compatible endpoint.
 - **Environment:** a native mGBA build driving the [continual-harness](https://github.com/sethkarten/continual-harness) game server, the starter kit for the [PokéAgent Challenge](https://pokeagent.github.io/) (NeurIPS 2025), vendored unmodified at a pinned commit.

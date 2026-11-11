@@ -402,3 +402,385 @@ def test_a_bad_line_in_the_log_is_skipped() -> None:
     bad = '{"type":"assistant","t":"2026-11-06T12:00:09.500-05:00"}\nnot json\n'
     run = FakeRun(HEAD + bad + thought(1, 1, "a") + END)
     assert [line.turn for line in follow(run.deps(), [])] == [1]
+
+
+# ---------------------------------------------------------------- Piece 11: Claude-written lines
+
+from pokebench_env.broadcast_commentary import (  # noqa: E402
+    BATCH,
+    Batch,
+    ClaudeReply,
+    Done,
+    Step,
+    batch_prompt,
+    claude_argv,
+    claude_env,
+    covered_turns,
+    parse_args,
+    parse_batch,
+    parse_claude,
+    private_reason,
+    read_steps,
+    run_claude,
+    tool_summary,
+    write_claude_lines,
+)
+
+
+def test_steps_keep_every_assistant_turn_with_its_text_and_tool_call() -> None:
+    lines = [
+        START,
+        event(2, "turn_start", 1),
+        event(3, "assistant", 1, thinking="", text="Heading north."),
+        event(3, "tool_call", 1, name="navigate_to", args={"x": 14, "y": 7}),
+        event(4, "turn_start", 2),
+        event(5, "assistant", 2, thinking="Rayquaza is here.", text="Throwing the ball."),
+        event(5, "tool_call", 2, name="press", args={"buttons": ["A"]}),
+        event(6, "tool_call", 9, name="observe", args={}),
+        "garbage",
+    ]
+    assert read_steps(lines) == [
+        Step(1, 2.0, "", "Heading north.", ('navigate_to {"x":14,"y":7}',)),
+        Step(2, 4.0, "Rayquaza is here.", "Throwing the ball.", ('press {"buttons":["A"]}',)),
+    ]
+    assert [s.turn for s in read_steps(lines, 3, 10)] == [2]
+
+
+def test_steps_tolerate_missing_fields() -> None:
+    lines = [START, event(3, "assistant", 1), event(3, "tool_call", 1, args={})]
+    assert read_steps(lines) == [Step(1, 3.0, "", "", ("? {}",))]
+    assert read_steps([event(3, "assistant", 1)]) == []
+
+
+def test_tool_summary_is_the_name_and_compact_arguments() -> None:
+    assert tool_summary("observe", {}) == "observe {}"
+    assert tool_summary("press", None) == "press"
+
+
+def test_the_prompt_carries_every_turn_and_the_earlier_lines() -> None:
+    steps = [Step(10, 3725.4, "think", "said", ("press {}",)), Step(11, 3730.0, "", "", ())]
+    prompt = batch_prompt(steps, ["I'm off to the tower."])
+    assert "I'm off to the tower." in prompt
+    body = json.loads(prompt[prompt.index("[{") : prompt.rindex("}]") + 2])
+    assert body[0] == {
+        "turn": 10,
+        "at": "1:02:05",
+        "thinking": "think",
+        "said": "said",
+        "did": ["press {}"],
+    }
+    assert body[1]["turn"] == 11
+    assert "(none)" in batch_prompt(steps, [])
+
+
+@pytest.mark.parametrize(
+    ("reply", "want"),
+    [
+        ('[{"turn": 1, "line": "Hi."}, {"turn": 2, "line": ""}]', {1: "Hi.", 2: ""}),
+        ('```json\n[{"turn": 2, "line": "Go."}]\n```', {2: "Go."}),
+        ("Here you go: [] done", {}),
+        ("not json", None),
+        ('{"turn": 1}', None),
+        ('[{"turn": 7, "line": "x"}]', None),
+        ('[{"turn": 1, "line": 3}]', None),
+        ('[{"turn": "1", "line": "x"}]', None),
+        ('[{"turn": true, "line": "x"}]', None),
+        ('[{"turn": 1, "line": "a"}, {"turn": 1, "line": "b"}]', None),
+        ("[1]", None),
+        ("[", None),
+    ],
+)
+def test_a_batch_reply_parses_only_when_every_turn_is_in_the_batch(
+    reply: str, want: dict[int, str] | None
+) -> None:
+    assert parse_batch(reply, {1, 2}) == want
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "I saved it in /Users/me/run.",
+        "Look at ~/dev/thing.",
+        "See https://example.com now.",
+        "Off to www.example.org today.",
+        "The box at 192.168.1.20 helps.",
+        "Mail me at someone@example.com.",
+        "My host viewer.example.ts.net is busy.",
+        "Running on localhost again.",
+        "The operator would like this.",
+        "The events.jsonl file grew.",
+        "Check C:\\games now.",
+    ],
+)
+def test_private_details_are_refused(line: str) -> None:
+    assert private_reason(line, ["The operator", "Orobator"]) is not None
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Rayquaza is mine, caught with the Master Ball!",
+        "I'll run from this Golbat and keep climbing.",
+        "Mr. Briney and/or the sailor can help.",
+        "Two down, 3/4 of the way there.",
+        "Andrewsville is not a word here.",
+    ],
+)
+def test_ordinary_lines_pass_the_privacy_scrub(line: str) -> None:
+    assert private_reason(line, ["The operator", ""]) is None
+
+
+def reply(text: str, cost: float = 0.01, error: str | None = None) -> ClaudeReply:
+    return ClaudeReply(text=text, cost=cost, error=error)
+
+
+def steps(*turns: int) -> list[Step]:
+    return [Step(n, float(n * 10), "", f"turn {n}", ()) for n in turns]
+
+
+def answer(pairs: dict[int, str]) -> str:
+    return json.dumps([{"turn": k, "line": v} for k, v in pairs.items()])
+
+
+def test_claude_lines_come_in_batches_with_earlier_lines_for_continuity() -> None:
+    prompts: list[str] = []
+    answers = iter(
+        [
+            answer({1: "I'm heading for the tower.", 2: ""}),
+            answer({3: "Rayquaza, here I come!"}),
+        ]
+    )
+
+    def ask(prompt: str) -> ClaudeReply:
+        prompts.append(prompt)
+        return reply(next(answers))
+
+    saved: list[list[Line]] = []
+    batches: list[Batch] = []
+    done = write_claude_lines(
+        steps(1, 2, 3), [], set(), ask, saved.append, batches.append, lambda _m: None, [], size=2
+    )
+    assert done.lines == [
+        Line(1, 10.0, "I'm heading for the tower.", "t000001.wav"),
+        Line(3, 30.0, "Rayquaza, here I come!", "t000003.wav"),
+    ]
+    assert "I'm heading for the tower." in prompts[1]
+    assert [(b.first, b.last, b.turns, b.lines, b.tries, b.ok) for b in batches] == [
+        (1, 2, 2, 1, 1, True),
+        (3, 3, 1, 1, 1, True),
+    ]
+    assert done == Done(done.lines, calls=2, cost=0.02, retries=0, refused=0, failed=0)
+    assert saved[-1] == done.lines
+    assert len(saved) == 3
+
+
+def test_a_bad_batch_is_retried_and_then_given_up() -> None:
+    logs: list[str] = []
+    answers = iter(
+        ["not json", answer({1: "Got it."}), "nope", "nope", "nope", answer({5: "Done."})]
+    )
+    batches: list[Batch] = []
+    done = write_claude_lines(
+        steps(1, 2, 3, 4, 5),
+        [],
+        set(),
+        lambda _p: reply(next(answers)),
+        lambda _l: None,
+        batches.append,
+        logs.append,
+        [],
+        size=2,
+    )
+    assert [line.turn for line in done.lines] == [1, 5]
+    assert done.calls == 6
+    assert done.retries == 3
+    assert done.failed == 1
+    assert [b.ok for b in batches] == [True, False, True]
+    assert any("turns 3-4" in log for log in logs)
+
+
+def test_long_jargon_and_private_lines_are_dropped_and_logged() -> None:
+    logs: list[str] = []
+    pairs = {1: "word " * 25, 2: "I'll press A.", 3: "Saved in /Users/x.", 4: "The operator cheers.", 5: "Fine."}
+    done = write_claude_lines(
+        steps(1, 2, 3, 4, 5),
+        [],
+        set(),
+        lambda _p: reply(answer(pairs)),
+        lambda _l: None,
+        lambda _b: None,
+        logs.append,
+        ["The operator"],
+    )
+    assert [line.text for line in done.lines] == ["Fine."]
+    assert done.refused == 4
+    assert sum("refused" in log for log in logs) == 4
+
+
+def test_covered_turns_and_old_lines_are_not_asked_again() -> None:
+    prompts: list[str] = []
+
+    def ask(prompt: str) -> ClaudeReply:
+        prompts.append(prompt)
+        return reply(answer({3: "New."}))
+
+    old = Line(2, 20.0, "Old.", "t000002.wav", seconds=1.0)
+    done = write_claude_lines(
+        steps(1, 2, 3), [old], {1}, ask, lambda _l: None, lambda _b: None, lambda _m: None, []
+    )
+    assert [line.turn for line in done.lines] == [2, 3]
+    assert '"turn":1' not in prompts[0].replace(" ", "")
+    assert "Old." in prompts[0]
+    nothing = write_claude_lines(
+        steps(1), [], {1}, ask, lambda _l: None, lambda _b: None, lambda _m: None, []
+    )
+    assert nothing.calls == 0
+
+
+def test_a_claude_that_keeps_failing_stops_the_job_with_lines_saved() -> None:
+    answers = iter([reply(answer({1: "First."})), *[reply("", 0, "auth expired")] * 3])
+    saved: list[list[Line]] = []
+    with pytest.raises(RuntimeError, match="auth expired"):
+        write_claude_lines(
+            steps(1, 2),
+            [],
+            set(),
+            lambda _p: next(answers),
+            saved.append,
+            lambda _b: None,
+            lambda _m: None,
+            [],
+            size=1,
+        )
+    assert [line.turn for line in saved[-1]] == [1]
+
+
+def test_one_failed_call_then_a_good_one_carries_on() -> None:
+    answers = iter([reply("", 0, "overloaded"), reply(answer({1: "Back."}), 0.02)])
+    done = write_claude_lines(
+        steps(1), [], set(), lambda _p: next(answers), lambda _l: None, lambda _b: None,
+        lambda _m: None, [],
+    )
+    assert [line.text for line in done.lines] == ["Back."]
+    assert (done.calls, done.retries, done.cost) == (2, 1, 0.02)
+
+
+def test_covered_turns_come_from_the_batch_log() -> None:
+    log = "\n".join(
+        [
+            json.dumps(asdict_batch(Batch(1, 3, 3, 1, 1, 0.01, True, [1, 2, 3]))),
+            json.dumps(asdict_batch(Batch(4, 5, 2, 0, 3, 0.03, False, [4, 5]))),
+            "junk",
+            json.dumps({"ok": True, "covered": "x"}),
+        ]
+    )
+    assert covered_turns(log) == {1, 2, 3}
+
+
+def asdict_batch(batch: Batch) -> dict[str, object]:
+    from dataclasses import asdict
+
+    return asdict(batch)
+
+
+def test_the_claude_call_has_no_tools_no_session_and_its_own_system_prompt() -> None:
+    argv = claude_argv("claude", "claude-sonnet-5-5")
+    assert argv[:4] == ["claude", "-p", "--model", "claude-sonnet-5-5"]
+    assert argv[argv.index("--output-format") + 1] == "json"
+    assert argv[argv.index("--tools") + 1] == ""
+    assert argv[argv.index("--setting-sources") + 1] == ""
+    assert "--no-session-persistence" in argv
+    assert "--strict-mcp-config" in argv
+    assert "Pokemon" in argv[argv.index("--system-prompt") + 1]
+
+
+def test_the_claude_env_keeps_only_the_basics_and_the_chosen_login() -> None:
+    source = {"HOME": "/h", "PATH": "/p", "LC_ALL": "C", "ANTHROPIC_API_KEY": "k", "SECRET": "s"}
+    assert claude_env(source, None) == {"HOME": "/h", "PATH": "/p", "LC_ALL": "C"}
+    assert claude_env(source, "/h/.claude-review")["CLAUDE_CONFIG_DIR"] == "/h/.claude-review"
+
+
+@pytest.mark.parametrize(
+    ("stdout", "code", "want"),
+    [
+        ('{"result": "[]", "is_error": false, "total_cost_usd": 0.5}', 0, reply("[]", 0.5)),
+        (
+            '{"result": "OAuth expired", "is_error": true, "total_cost_usd": 0}',
+            1,
+            reply("", 0.0, "OAuth expired"),
+        ),
+        ('{"result": 5}', 0, reply("", 0.0)),
+        ("crash", 2, reply("", 0.0, "claude exited 2: oops")),
+        ("[1]", 0, reply("", 0.0, "claude exited 0: oops")),
+    ],
+)
+def test_claude_output_is_read_into_text_cost_and_error(
+    stdout: str, code: int, want: ClaudeReply
+) -> None:
+    assert parse_claude(stdout, "oops", code) == want
+
+
+def test_run_claude_passes_the_prompt_on_stdin_from_an_empty_folder() -> None:
+    seen: list[tuple[list[str], str, str, dict[str, str]]] = []
+
+    def runner(
+        argv: list[str], stdin: str, cwd: str, env: dict[str, str]
+    ) -> tuple[str, str, int]:
+        seen.append((argv, stdin, cwd, env))
+        return '{"result": "[]", "total_cost_usd": 0.1}', "", 0
+
+    got = run_claude(runner, ["claude"], "/empty", {"HOME": "/h"}, "the prompt")
+    assert got == reply("[]", 0.1)
+    assert seen == [(["claude"], "the prompt", "/empty", {"HOME": "/h"})]
+
+
+def test_a_runner_that_raises_is_a_failed_call() -> None:
+    def runner(
+        argv: list[str], stdin: str, cwd: str, env: dict[str, str]
+    ) -> tuple[str, str, int]:
+        raise TimeoutError("timed out after 600s")
+
+    assert run_claude(runner, [], "/e", {}, "p") == reply("", 0.0, "timed out after 600s")
+
+
+def test_default_flags_keep_todays_voice_and_writer() -> None:
+    args = parse_args(["run1", "--endpoint", "http://127.0.0.1:9/v1"])
+    assert (args.voice, args.lang, args.speed, args.writer) == ("af_heart", "en-us", 1.05, "local")
+    assert (args.lines_only, args.voice_only, args.out) == (False, False, None)
+
+
+def test_claude_writer_flags() -> None:
+    args = parse_args(
+        [
+            "run1", "100", "200", "--writer", "claude", "--claude-model", "claude-sonnet-5-5",
+            "--voice", "bm_lewis", "--lang", "en-gb", "--speed", "0.95", "--lines-only",
+        ]
+    )
+    assert (args.voice, args.lang, args.speed) == ("bm_lewis", "en-gb", 0.95)
+    assert (args.start, args.end, args.claude_model, args.lines_only) == (
+        100.0, 200.0, "claude-sonnet-5-5", True
+    )
+    assert parse_args(["run1", "--voice-only"]).voice_only is True
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["../x", "--endpoint", "http://127.0.0.1:9/v1"],
+        ["run1"],
+        ["run1", "--endpoint", "https://api.example.com/v1"],
+        ["run1", "--writer", "claude"],
+        ["run1", "--writer", "claude", "--claude-model", "m", "--follow"],
+        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--follow", "5"],
+        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--lines-only", "--voice-only"],
+        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--follow", "--voice-only"],
+        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--speed", "0"],
+    ],
+)
+def test_bad_flag_combinations_are_refused(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        parse_args(argv)
+
+
+def test_batch_size_is_twenty_to_thirty() -> None:
+    assert 20 <= BATCH <= 30

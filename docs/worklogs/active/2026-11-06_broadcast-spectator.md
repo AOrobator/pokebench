@@ -105,6 +105,14 @@ The operator 2026-11-07: "i'd rather the music /sound toggle not be overlayed on
 - [x] Gates on e114d4dac: lint, 2,734 agent, 1,235 viewer, 3,051 env, 38 gateway, verify-vendor; later delta is CSS only
 - [x] Review: Claude, GPT, fallback LGTM on 5c6d20818
 
+### Piece 11: Claude-written lines and voice flags
+Coordinator brief 2026-11-11 for the operator: the 67d7 YouTube broadcast narrated by Claude Sonnet lines voiced with Kokoro bm_lewis (the operator's choices, 11/11). `--writer claude --claude-model <id>` calls headless `claude -p --output-format json` (no tools, no session, empty cwd, env allowlist as in scripts/claude-gateway) on batches of 25 consecutive assistant turns (thinking, the turn's own text, its tool call), with the last 4 lines for continuity; Sonnet may leave routine turns empty. A batch whose JSON does not parse or names turns outside it is retried 3 times then skipped; three call failures in a row stop the job with lines saved. Every line passes MAX_WORDS, the jargon check and a privacy scrub (paths, URLs, IPs, hostnames, e-mail, the operator's name from the login's full name). `claude-batches.jsonl` records each batch's turns, cost and tries, so a resume skips covered turns. `--voice/--lang/--speed` (defaults af_heart, en-us, 1.05, unchanged), `--lines-only`, `--voice-only`, `--out`. Default behaviour is unchanged. `claude-sonnet-5-5` checked with one live call; the default login is expired, `~/.claude-review` works (`--claude-config-dir`).
+- [x] RED
+- [ ] GREEN
+- [ ] Gates
+- [ ] Trial: 67d7 Sky Pillar climb through the Rayquaza catch, bm_lewis, short render
+- [ ] Review: Codex via `just tell-codex`
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

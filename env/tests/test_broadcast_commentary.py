@@ -450,6 +450,7 @@ def test_steps_tolerate_missing_fields() -> None:
     lines = [START, event(3, "assistant", 1), event(3, "tool_call", 1, args={})]
     assert read_steps(lines) == [Step(1, 3.0, "", "", ("? {}",))]
     assert read_steps([event(3, "assistant", 1)]) == []
+    assert read_steps([START, event(3, "assistant", 1).replace('"turn":1', '"turn":"x"')]) == []
 
 
 def test_tool_summary_is_the_name_and_compact_arguments() -> None:
@@ -601,7 +602,13 @@ def test_a_bad_batch_is_retried_and_then_given_up() -> None:
 
 def test_long_jargon_and_private_lines_are_dropped_and_logged() -> None:
     logs: list[str] = []
-    pairs = {1: "word " * 25, 2: "I'll press A.", 3: "Saved in /Users/x.", 4: "The operator cheers.", 5: "Fine."}
+    pairs = {
+        1: "word " * 25,
+        2: "I'll press A.",
+        3: "Saved in /Users/x.",
+        4: "The operator cheers.",
+        5: "Fine.",
+    }
     done = write_claude_lines(
         steps(1, 2, 3, 4, 5),
         [],
@@ -658,8 +665,14 @@ def test_a_claude_that_keeps_failing_stops_the_job_with_lines_saved() -> None:
 def test_one_failed_call_then_a_good_one_carries_on() -> None:
     answers = iter([reply("", 0, "overloaded"), reply(answer({1: "Back."}), 0.02)])
     done = write_claude_lines(
-        steps(1), [], set(), lambda _p: next(answers), lambda _l: None, lambda _b: None,
-        lambda _m: None, [],
+        steps(1),
+        [],
+        set(),
+        lambda _p: next(answers),
+        lambda _l: None,
+        lambda _b: None,
+        lambda _m: None,
+        [],
     )
     assert [line.text for line in done.lines] == ["Back."]
     assert (done.calls, done.retries, done.cost) == (2, 1, 0.02)
@@ -723,9 +736,7 @@ def test_claude_output_is_read_into_text_cost_and_error(
 def test_run_claude_passes_the_prompt_on_stdin_from_an_empty_folder() -> None:
     seen: list[tuple[list[str], str, str, dict[str, str]]] = []
 
-    def runner(
-        argv: list[str], stdin: str, cwd: str, env: dict[str, str]
-    ) -> tuple[str, str, int]:
+    def runner(argv: list[str], stdin: str, cwd: str, env: dict[str, str]) -> tuple[str, str, int]:
         seen.append((argv, stdin, cwd, env))
         return '{"result": "[]", "total_cost_usd": 0.1}', "", 0
 
@@ -735,9 +746,7 @@ def test_run_claude_passes_the_prompt_on_stdin_from_an_empty_folder() -> None:
 
 
 def test_a_runner_that_raises_is_a_failed_call() -> None:
-    def runner(
-        argv: list[str], stdin: str, cwd: str, env: dict[str, str]
-    ) -> tuple[str, str, int]:
+    def runner(argv: list[str], stdin: str, cwd: str, env: dict[str, str]) -> tuple[str, str, int]:
         raise TimeoutError("timed out after 600s")
 
     assert run_claude(runner, [], "/e", {}, "p") == reply("", 0.0, "timed out after 600s")
@@ -752,13 +761,28 @@ def test_default_flags_keep_todays_voice_and_writer() -> None:
 def test_claude_writer_flags() -> None:
     args = parse_args(
         [
-            "run1", "100", "200", "--writer", "claude", "--claude-model", "claude-sonnet-5-5",
-            "--voice", "bm_lewis", "--lang", "en-gb", "--speed", "0.95", "--lines-only",
+            "run1",
+            "100",
+            "200",
+            "--writer",
+            "claude",
+            "--claude-model",
+            "claude-sonnet-5-5",
+            "--voice",
+            "bm_lewis",
+            "--lang",
+            "en-gb",
+            "--speed",
+            "0.95",
+            "--lines-only",
         ]
     )
     assert (args.voice, args.lang, args.speed) == ("bm_lewis", "en-gb", 0.95)
     assert (args.start, args.end, args.claude_model, args.lines_only) == (
-        100.0, 200.0, "claude-sonnet-5-5", True
+        100.0,
+        200.0,
+        "claude-sonnet-5-5",
+        True,
     )
     assert parse_args(["run1", "--voice-only"]).voice_only is True
 
@@ -771,7 +795,7 @@ def test_claude_writer_flags() -> None:
         ["run1", "--endpoint", "https://api.example.com/v1"],
         ["run1", "--writer", "claude"],
         ["run1", "--writer", "claude", "--claude-model", "m", "--follow"],
-        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--follow", "5"],
+        ["run1", "5", "--endpoint", "http://127.0.0.1:9/v1", "--follow"],
         ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--lines-only", "--voice-only"],
         ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--follow", "--voice-only"],
         ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--speed", "0"],

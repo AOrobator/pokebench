@@ -346,8 +346,10 @@ fixed-run *args: build
 broadcast-render *args: build
     nice -n 10 node packages/viewer/dist/broadcast-render-cli.js "$@"
 
-# One spoken line per turn, voiced with Kokoro, into runs/broadcast/<run>/; --follow tails a live run. Needs a local
-# OpenAI-style --endpoint. Kokoro's two model files come from $KOKORO_MODELS or ~/.cache/pokebench/kokoro.
+# One spoken line per turn, voiced with Kokoro, into runs/broadcast/<run>/ (or --out); --follow tails a live run. Needs a local
+# OpenAI-style --endpoint, or --writer claude --claude-model <id> for batches written by headless claude -p.
+# --voice/--lang/--speed pick the Kokoro voice; --lines-only and --voice-only split writing from voicing.
+# Kokoro's two model files come from $KOKORO_MODELS or ~/.cache/pokebench/kokoro.
 [positional-arguments]
 broadcast-commentary *args:
     PYTHONPATH="$PWD/env" nice -n 10 uv run --project env --with kokoro-onnx python -m pokebench_env.broadcast_commentary "$@"

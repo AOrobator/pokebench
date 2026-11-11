@@ -129,6 +129,7 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
   - Round 2, GPT on 83af8282d..14eb976be (packet sha b8d139bc): scrub fix confirmed; BLOCKING, real and reproduced in Chromium and WebKit: the bottom fade kept the end of a fully scrolled thought washed out. Fix: 48 px of room after the last line (CSS only).
   - Round 3, GPT on 14eb976be..5f41f6d91 (sha f41ed3fa): LGTM, rechecked in Chromium and WebKit at four widths.
   - Round 4, GPT on 5f41f6d91..6d512bcac, the ducking revert (sha 0cdcabae): LGTM; render files byte-identical to a6bec58b5, 151 tests. Not landed, per the brief.
+  - Landing round on the whole packet main..971cded0d (sha 0acb16cb, main c213b0c51 merged in; boundary and principles in runs/reviews/broadcast-claude-lines/landing-*): Claude CLI (~/.claude-review, plan mode) LGTM; fallback subagent (Sonnet) LGTM; GPT LGTM per round above. Cursor/Grok out of usage until 11/17, so Claude + GPT + fallback per the operator's standing rule. Follow-ups, not in this branch: `--out` could point inside runs/<run> (refuse it in options_problem); `cost_rows` trusts request = turn with no text check and can go backwards if a request number repeats (clamp, or join like thinking); a run's own event thinking is shown unscrubbed (as before); the scrub has no token pattern and misses relative and UNC paths.
 
 ## Closing the Loop
 

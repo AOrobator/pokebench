@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" role="img" aria-label="Tile grid: a westward route crosses trainer A's sight tiles; trainer B is the talk target and its sight is ignored" width="900" height="400">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f4ee;--fg:#172a29;--panel:#ffffff;--line:#36735b;--muted:#546562;--off:#a8432c;--offbg:#fbeeea;--on:#2c7a4b;--onbg:#e8f4ec;--tile:#eef3ea;--seen:#f6d7a8;--excl:#dfe6ee;--route:#2d5f8a;--grid:#b9c8bf}
+*{box-sizing:border-box}
+svg{min-width:680px;width:100%;height:auto}
+svg text{fill:var(--fg);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .small{font-size:13px;fill:var(--muted)}
+svg .coord{font-size:11px;fill:var(--muted)}
+svg .tile{fill:var(--tile);stroke:var(--grid);stroke-width:1}
+svg .seen{fill:var(--seen);stroke:var(--grid);stroke-width:1}
+svg .excl{fill:var(--excl);stroke:var(--grid);stroke-width:1}
+svg .route{stroke:var(--route);stroke-width:5;fill:none;stroke-linecap:round}
+svg .offbox{fill:var(--offbg);stroke:var(--off);stroke-width:2}
+svg .onbox{fill:var(--onbg);stroke:var(--on);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="400" style="fill:#ffffff;stroke:none" /><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2d5f8a" /></marker></defs>
+<g transform="translate(40,30)">
+
+<g>
+<rect class="tile" x="0" y="0" width="550" height="300" />
+<path d="M50 0V300M100 0V300M150 0V300M200 0V300M250 0V300M300 0V300M350 0V300M400 0V300M450 0V300M500 0V300M0 50H550M0 100H550M0 150H550M0 200H550M0 250H550" stroke="#b9c8bf" stroke-width="1" />
+</g>
+<rect class="seen" x="200" y="100" width="50" height="50" />
+<rect class="seen" x="200" y="150" width="50" height="50" />
+<rect class="seen" x="200" y="200" width="50" height="50" />
+<rect class="excl" x="350" y="150" width="50" height="50" />
+<rect class="excl" x="350" y="100" width="50" height="50" />
+<circle cx="225" cy="75" r="18" fill="#a8432c" /><text x="219" y="81" fill="#ffffff" style="fill:#fff">A</text>
+<text x="252" y="70" class="small">facing down, sight 3</text>
+<circle cx="375" cy="225" r="18" fill="#546562" /><text x="369" y="231" style="fill:#fff">B</text>
+<text x="402" y="246" class="small">facing up, sight 2</text>
+<circle cx="525" cy="175" r="16" fill="#2d5f8a" /><text x="517" y="181" style="fill:#fff">P</text>
+<path class="route" d="M505 175 H12" marker-end="url(#ar)" />
+<text x="0" y="325" class="coord">x=0</text><text x="200" y="325" class="coord">x=4</text><text x="350" y="325" class="coord">x=7</text><text x="500" y="325" class="coord">x=10</text>
+<text x="-34" y="180" class="coord">y=3</text>
+<text x="0" y="350" class="small">Orange: tiles A can see. Grey-blue: tiles B can see. Blue line: the WEST route, 10 steps from (10,3) to (0,3).</text>
+</g>
+<rect class="offbox" x="620" y="30" width="270" height="140" rx="8" />
+<text x="633" y="55">Call 1: target WEST connection</text>
+<text x="633" y="80" class="small">The route crosses (4,3), a tile A sees,</text>
+<text x="633" y="98" class="small">at step 6 of 10.</text>
+<text x="633" y="126">Not walked. The result</text>
+<text x="633" y="148">names A and the tile.</text>
+<rect class="onbox" x="620" y="190" width="270" height="170" rx="8" />
+<text x="633" y="215">Call 2: target object B</text>
+<text x="633" y="240" class="small">The route to B's approach tile (7,3)</text>
+<text x="633" y="258" class="small">is in B's own sight. B is the one the</text>
+<text x="633" y="276" class="small">call goes to talk to, so B is left out.</text>
+<text x="633" y="304">Clear: walks. A is still</text>
+<text x="633" y="326">checked and does not see</text>
+<text x="633" y="348">(9,3) to (7,3).</text>
+</svg>

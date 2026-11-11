@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 470" role="img" aria-label="PokeAgent execution" width="460" height="470">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ef;--card:#fffdf8;--fg:#1f2328;--muted:#5d6470;--line:#d9d4c7;--ours:#0f8a7e;--ours-soft:#d5efeb;--theirs:#c46a12;--theirs-soft:#f8e4cc;
+--ground:#ece6d6;--grass:#b9dca0;--blade:#5f9a45;--water:#a9cdea;--wave:#4f8cc0;--bldg:#b7aea0;--tree:#8fb98a;--treec:#4e8a4c;--door:#8b5a2b;--npc:#d9534f;--fog:rgba(40,40,40,.42);--goal:#e6b422;--gridline:rgba(0,0,0,.06);--node:#fff}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#15171a;--card:#1d2024;--fg:#e8e6e1;--muted:#a2a8b2;--line:#33373d;--ours:#3cc7b7;--ours-soft:#173a37;--theirs:#f0a050;--theirs-soft:#3d2a16;
+--ground:#3a3730;--grass:#3e5a33;--blade:#86c26a;--water:#2f4d68;--wave:#7fb6e3;--bldg:#5d5850;--tree:#33503a;--treec:#5f9d5c;--door:#c08a55;--npc:#ef6b67;--fog:rgba(0,0,0,.55);--goal:#f4c842;--gridline:rgba(255,255,255,.05);--node:#25292e}}
+:root[data-theme="dark"]{--bg:#15171a;--card:#1d2024;--fg:#e8e6e1;--muted:#a2a8b2;--line:#33373d;--ours:#3cc7b7;--ours-soft:#173a37;--theirs:#f0a050;--theirs-soft:#3d2a16;
+--ground:#3a3730;--grass:#3e5a33;--blade:#86c26a;--water:#2f4d68;--wave:#7fb6e3;--bldg:#5d5850;--tree:#33503a;--treec:#5f9d5c;--door:#c08a55;--npc:#ef6b67;--fog:rgba(0,0,0,.55);--goal:#f4c842;--gridline:rgba(255,255,255,.05);--node:#25292e}
+*{box-sizing:border-box}
+svg{width:100%;height:auto;display:block}
+.box{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.box.t{stroke:var(--theirs);fill:var(--theirs-soft)}
+.bt{font-size:13px;fill:var(--fg);font-weight:600;text-anchor:middle}
+.bs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.arr{stroke:var(--muted);stroke-width:1.6;fill:none}
+.arr.t{stroke:var(--theirs)}
+.lab{font-size:11px;fill:var(--muted)}
+:root{--open:#cfe6f7;--closed:#efe3c4;--cur:#f6c453;--gk:#2f6fb3;--hk:#a0522d;--fk:#1f2328}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--open:#1f3a52;--closed:#3c3526;--cur:#8a6a17;--gk:#7fb3ea;--hk:#e39a6f;--fk:#f1efe9}}
+:root[data-theme="dark"]{--open:#1f3a52;--closed:#3c3526;--cur:#8a6a17;--gk:#7fb3ea;--hk:#e39a6f;--fk:#f1efe9}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="460" height="470" style="fill:#ffffff;stroke:none" /><defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke" /></marker></defs>
+<rect x="60" y="10" width="340" height="52" rx="10" class="box t" /><text x="230" y="32" class="bt">MCP navigate_to(x, y, …)</text><text x="230" y="50" class="bs">optional variance, consider_npcs, blocked_coords</text>
+<rect x="60" y="96" width="340" height="52" rx="10" class="box t" /><text x="230" y="118" class="bt">goal blocked? swap in nearest reachable</text><text x="230" y="136" class="bs">_find_nearest_reachable</text>
+<rect x="60" y="182" width="340" height="52" rx="10" class="box t" /><text x="230" y="204" class="bt">A* over the whole map</text><text x="230" y="222" class="bs">unreachable: partial path, capped at 15 steps</text>
+<rect x="60" y="268" width="340" height="52" rx="10" class="box t" /><text x="230" y="290" class="bt">tiles to buttons</text><text x="230" y="308" class="bs">UP UP RIGHT RIGHT RIGHT DOWN …</text>
+<rect x="60" y="354" width="340" height="52" rx="10" class="box t" /><text x="230" y="376" class="bt">take_action queues the whole list</text><text x="230" y="394" class="bs">no checks between steps</text>
+<path d="M230 62V92" class="arr t" marker-end="url(#ah3)" /><path d="M230 148V178" class="arr t" marker-end="url(#ah3)" /><path d="M230 234V264" class="arr t" marker-end="url(#ah3)" /><path d="M230 320V350" class="arr t" marker-end="url(#ah3)" />
+<text x="230" y="440" class="lab" text-anchor="middle">If an NPC steps in or a door warps you early,</text><text x="230" y="456" class="lab" text-anchor="middle">the remaining buttons still play.</text>
+</svg>

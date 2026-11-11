@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 168" width="700" height="168" role="img" aria-label="One reopen: A ends on the clock transition, the next A closes it">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;height:auto}
+svg{width:700px;max-width:none}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none;marker-end:url(#arrow)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="168" style="fill:#ffffff;stroke:none" /><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1.2 L 8 5 L 0 8.8 z" fill="currentColor" /></marker></defs>
+<rect class="navb" x="8" y="28" width="150" height="72" rx="8" />
+<text class="t" x="20" y="52">Press A</text>
+<text class="s" x="20" y="72">facing the clock</text>
+<text class="s" x="20" y="88">(5,2)</text>
+<rect class="prior" x="198" y="16" width="230" height="96" rx="8" />
+<text class="t" x="210" y="40">Result: clock transition</text>
+<text class="s" x="210" y="62">input not ready</text>
+<text class="s" x="210" y="78">minute ticks, 9:58 then 10:02</text>
+<text class="s" x="210" y="98">guard used to stop here</text>
+<rect class="game" x="468" y="28" width="220" height="72" rx="8" />
+<text class="t" x="480" y="52">Next A closes it</text>
+<text class="s" x="480" y="72">A or B closes clock</text>
+<text class="s" x="480" y="88">same tile again</text>
+<path class="arr" d="M 158 64 H 194" />
+<path class="arr" d="M 428 64 H 464" />
+</svg>

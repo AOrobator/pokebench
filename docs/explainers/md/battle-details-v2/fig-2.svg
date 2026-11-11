@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360" width="700" role="img" aria-label="The order of checks the game runs when RUN is chosen" height="360">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --bld:#d9d5ca; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --bld:#3a3c40; --ground:#1f2420; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="360" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke" /></marker></defs>
+<g>
+<rect x="20" y="14" width="300" height="34" rx="6" class="box" /><text x="30" y="36" class="s">1. Trainer battle in Frontier or Trainer Hill?</text>
+<rect x="380" y="14" width="300" height="34" rx="6" class="navb" /><text x="390" y="36" class="s">asks whether to forfeit</text>
+<rect x="20" y="62" width="300" height="34" rx="6" class="box" /><text x="30" y="84" class="s">2. Trainer battle (not link)?</text>
+<rect x="380" y="62" width="300" height="34" rx="6" class="prior" /><text x="390" y="84" class="s">REFUSED "No! There's no running from a TRAINER battle!"</text>
+<rect x="20" y="110" width="300" height="34" rx="6" class="box" /><text x="30" y="132" class="s">3. SMOKE BALL, link battle or RUN AWAY?</text>
+<rect x="380" y="110" width="300" height="34" rx="6" class="game" /><text x="390" y="132" class="s">allowed — always escapes</text>
+<rect x="20" y="158" width="300" height="34" rx="6" class="box" /><text x="30" y="180" class="s">4. Foe SHADOW TAG / ARENA TRAP / MAGNET PULL?</text>
+<rect x="380" y="158" width="300" height="34" rx="6" class="prior" /><text x="390" y="180" class="s">REFUSED "Wild X prevents escape with …!"</text>
+<rect x="20" y="206" width="300" height="34" rx="6" class="box" /><text x="30" y="228" class="s">5. Wrapped, MEAN LOOK/BLOCK or INGRAIN?</text>
+<rect x="380" y="206" width="300" height="34" rx="6" class="prior" /><text x="390" y="228" class="s">REFUSED "Can't escape!"</text>
+<rect x="20" y="254" width="300" height="34" rx="6" class="box" /><text x="30" y="276" class="s">6. First battle (PROF. BIRCH rescue)?</text>
+<rect x="380" y="254" width="300" height="34" rx="6" class="prior hot" /><text x="390" y="276" class="s">REFUSED "PROF. BIRCH: Don't leave me like this!"</text>
+<rect x="20" y="302" width="300" height="44" rx="6" class="box" /><text x="30" y="320" class="s">7. Wild single battle: your Spe ≥ foe Spe?</text><text x="30" y="336" class="s">yes: guaranteed · no: not guaranteed (odds not computed)</text>
+<rect x="380" y="302" width="300" height="44" rx="6" class="game" /><text x="390" y="320" class="s">allowed — guaranteed, or not guaranteed</text><text x="390" y="336" class="s">(odds not computed; the try counter is not read)</text>
+</g>
+<path d="M320 31H378" class="arr" marker-end="url(#a)" /><path d="M320 79H378" class="arr" marker-end="url(#a)" /><path d="M320 127H378" class="arr" marker-end="url(#a)" /><path d="M320 175H378" class="arr" marker-end="url(#a)" /><path d="M320 223H378" class="arr" marker-end="url(#a)" /><path d="M320 271H378" class="arr" marker-end="url(#a)" /><path d="M320 324H378" class="arr" marker-end="url(#a)" />
+</svg>

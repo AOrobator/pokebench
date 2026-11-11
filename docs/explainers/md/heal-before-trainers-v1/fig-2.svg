@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 250" width="700" role="img" aria-label="The three conditions" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){svg{max-width:none;width:640px}}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game);stroke-width:2.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="250" style="fill:#ffffff;stroke:none" /><rect x="10" y="20" width="200" height="120" rx="8" class="box" /><text x="24" y="44" class="t">Free field</text>
+<text x="24" y="68">overworld, not in battle</text><text x="24" y="88">field controls unlocked</text><text x="24" y="108">the player's own party</text><text x="24" y="128" class="s">(a trainer who spotted you locks them)</text>
+<rect x="250" y="20" width="200" height="120" rx="8" class="nav" /><text x="264" y="44" class="t">Unbeaten trainer here</text>
+<text x="264" y="68">object loaded and shown</text><text x="264" y="88">script starts: trainerbattle</text><text x="264" y="108">its trainer flag is clear</text><text x="264" y="128" class="s">(read by the game server)</text>
+<rect x="490" y="20" width="200" height="120" rx="8" class="prior" /><text x="504" y="44" class="t">Weak party (any)</text>
+<text x="504" y="68">a Pokémon (not an egg) fainted</text><text x="504" y="88">the lead below half HP</text><text x="504" y="108">every damaging move</text><text x="504" y="124">of the lead at 0 PP</text>
+<path class="arr g" d="M110 140 L330 200" /><path class="arr g" d="M350 140 L350 200" /><path class="arr g" d="M590 140 L370 200" />
+<rect x="230" y="200" width="240" height="40" rx="20" class="game hot" /><text x="262" y="225" class="t">paragraph + recorded event</text>
+</svg>

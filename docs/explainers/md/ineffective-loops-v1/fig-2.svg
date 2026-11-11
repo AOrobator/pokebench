@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="Decision flow for one completed call" width="720" height="300">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f; --water:#cfe3f7;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}
+svg{min-width:600px}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)}
+.arr.p{stroke:var(--prior)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="300" style="fill:#ffffff;stroke:none" /><rect x="10" y="10" width="190" height="44" class="box" /><text x="20" y="30" class="t">Game call completes</text><text x="20" y="46" class="s">press, navigate_to, observe</text>
+ <rect x="250" y="10" width="220" height="44" class="prior" /><text x="260" y="30">battle, open menu/naming, or a</text><text x="260" y="46">conversation not heard yet?</text>
+ <rect x="520" y="10" width="190" height="44" class="game" /><text x="530" y="30" class="t">clear the moves</text><text x="530" y="46" class="s">new information</text>
+ <path d="M200 32 L250 32" class="arr" /><path d="M470 32 L520 32" class="arr g" /><text x="482" y="26" class="s">yes</text>
+ <rect x="250" y="84" width="220" height="58" class="box" /><text x="260" y="104">a move? navigate_to, or a press</text><text x="260" y="120">with a direction from free controls; no</text><text x="260" y="136">message during or after the call</text>
+ <path d="M360 54 L360 84" class="arr" /><text x="366" y="74" class="s">no</text>
+ <rect x="520" y="90" width="190" height="44" class="box" /><text x="530" y="110">neutral: A, B, menu cursor,</text><text x="530" y="126">a conversation heard again</text>
+ <path d="M470 112 L520 112" class="arr" /><text x="482" y="106" class="s">no</text>
+ <rect x="250" y="172" width="220" height="44" class="box" /><text x="260" y="192">record tile + target</text><text x="260" y="208" class="s">per map; 12 kept; map change restarts</text>
+ <path d="M360 142 L360 172" class="arr" /><text x="366" y="162" class="s">yes</text>
+ <rect x="250" y="244" width="220" height="50" class="navb" /><text x="260" y="264">newest tile ended 3 moves, ≤2 tiles</text><text x="260" y="282">since the first, targets alternate?</text>
+ <path d="M360 216 L360 244" class="arr" />
+ <rect x="520" y="246" width="190" height="46" class="prior hot" /><text x="530" y="266" class="t">cycle warning</text><text x="530" y="282" class="s">+ supervisor briefing</text>
+ <path d="M470 268 L520 268" class="arr p" /><text x="482" y="262" class="s">yes</text>
+</svg>

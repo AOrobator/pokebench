@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 162" role="img" aria-label="Break-even table: the planner detours when half the skipped grass tiles exceeds the extra steps." width="480" height="162"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f8f3; --fg:#1d2420; --soft:#5a665e; --rule:#d8dfd5; --panel:#ffffff;
+ --grass:#7fc46a; --grass-ink:#2f6e2a; --ground:#efe4c8; --tile-edge:#cdbf98;
+ --route:#d1433a; --muted:#8b968e;
+ --go:#d1433a; --go-ink:#ffffff; --thru:#e7ece4; --thru-ink:#4c574f; --tie:#f0cf6b; --tie-ink:#4a3a05;
+ --display:ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg{min-width:0}
+svg text{font-family:var(--mono);fill:var(--soft);font-size:11px;text-anchor:middle}
+svg .ax.end{text-anchor:end}
+svg .go{fill:var(--go)}
+svg .thru{fill:var(--thru)}
+svg .tie{fill:var(--tie)}
+svg .cv{font-size:12px}
+svg .got{fill:var(--go-ink)}
+svg .thrut{fill:var(--thru-ink)}
+svg .tiet{fill:var(--tie-ink)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="480" height="162" style="fill:#ffffff;stroke:none" /><text x="58" y="51.0" class="ax end">+2 steps</text>
+<rect x="71" y="31" width="38" height="32" rx="4" class="thru" />
+<text x="90.0" y="51.0" class="cv thrut">0.5</text>
+<rect x="111" y="31" width="38" height="32" rx="4" class="thru" />
+<text x="130.0" y="51.0" class="cv thrut">1</text>
+<rect x="151" y="31" width="38" height="32" rx="4" class="thru" />
+<text x="170.0" y="51.0" class="cv thrut">1.5</text>
+<rect x="191" y="31" width="38" height="32" rx="4" class="tie" />
+<text x="210.0" y="51.0" class="cv tiet">2</text>
+<rect x="231" y="31" width="38" height="32" rx="4" class="go" />
+<text x="250.0" y="51.0" class="cv got">2.5</text>
+<rect x="271" y="31" width="38" height="32" rx="4" class="go" />
+<text x="290.0" y="51.0" class="cv got">3</text>
+<rect x="311" y="31" width="38" height="32" rx="4" class="go" />
+<text x="330.0" y="51.0" class="cv got">3.5</text>
+<rect x="351" y="31" width="38" height="32" rx="4" class="go" />
+<text x="370.0" y="51.0" class="cv got">4</text>
+<rect x="391" y="31" width="38" height="32" rx="4" class="go" />
+<text x="410.0" y="51.0" class="cv got">4.5</text>
+<rect x="431" y="31" width="38" height="32" rx="4" class="go" />
+<text x="450.0" y="51.0" class="cv got">5</text>
+<text x="58" y="85.0" class="ax end">+4 steps</text>
+<rect x="71" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="90.0" y="85.0" class="cv thrut">0.5</text>
+<rect x="111" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="130.0" y="85.0" class="cv thrut">1</text>
+<rect x="151" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="170.0" y="85.0" class="cv thrut">1.5</text>
+<rect x="191" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="210.0" y="85.0" class="cv thrut">2</text>
+<rect x="231" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="250.0" y="85.0" class="cv thrut">2.5</text>
+<rect x="271" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="290.0" y="85.0" class="cv thrut">3</text>
+<rect x="311" y="65" width="38" height="32" rx="4" class="thru" />
+<text x="330.0" y="85.0" class="cv thrut">3.5</text>
+<rect x="351" y="65" width="38" height="32" rx="4" class="tie" />
+<text x="370.0" y="85.0" class="cv tiet">4</text>
+<rect x="391" y="65" width="38" height="32" rx="4" class="go" />
+<text x="410.0" y="85.0" class="cv got">4.5</text>
+<rect x="431" y="65" width="38" height="32" rx="4" class="go" />
+<text x="450.0" y="85.0" class="cv got">5</text>
+<text x="58" y="119.0" class="ax end">+6 steps</text>
+<rect x="71" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="90.0" y="119.0" class="cv thrut">0.5</text>
+<rect x="111" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="130.0" y="119.0" class="cv thrut">1</text>
+<rect x="151" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="170.0" y="119.0" class="cv thrut">1.5</text>
+<rect x="191" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="210.0" y="119.0" class="cv thrut">2</text>
+<rect x="231" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="250.0" y="119.0" class="cv thrut">2.5</text>
+<rect x="271" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="290.0" y="119.0" class="cv thrut">3</text>
+<rect x="311" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="330.0" y="119.0" class="cv thrut">3.5</text>
+<rect x="351" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="370.0" y="119.0" class="cv thrut">4</text>
+<rect x="391" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="410.0" y="119.0" class="cv thrut">4.5</text>
+<rect x="431" y="99" width="38" height="32" rx="4" class="thru" />
+<text x="450.0" y="119.0" class="cv thrut">5</text>
+<text x="90.0" y="20" class="ax">1</text>
+<text x="130.0" y="20" class="ax">2</text>
+<text x="170.0" y="20" class="ax">3</text>
+<text x="210.0" y="20" class="ax">4</text>
+<text x="250.0" y="20" class="ax">5</text>
+<text x="290.0" y="20" class="ax">6</text>
+<text x="330.0" y="20" class="ax">7</text>
+<text x="370.0" y="20" class="ax">8</text>
+<text x="410.0" y="20" class="ax">9</text>
+<text x="450.0" y="20" class="ax">10</text>
+<text x="270" y="156" class="ax">grass tiles the detour skips</text></svg>

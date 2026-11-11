@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="The busy predicate as four checks">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea;--warn:#a86a12}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925;--warn:#e0b05a}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="250" style="fill:#ffffff;stroke:none" /><rect x="10" y="20" width="200" height="70" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="20" y="42">exactly one task is</text><text x="20" y="60" class="mono">Task_EvolutionScene</text><text x="20" y="78" class="small">0x0813E571 · or trade 0x0813F1B9</text>
+<rect x="225" y="20" width="200" height="70" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="235" y="42">tState (data[0]) is</text><text x="235" y="60" class="mono">22 EVOSTATE_REPLACE_MOVE</text><text x="235" y="78" class="small">trade scene: 20</text>
+<rect x="440" y="20" width="200" height="70" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="450" y="42">MVSTATE (data[6])</text><text x="450" y="60" class="mono">not 4, 5 or 6</text><text x="450" y="78" class="small">4 YES/NO · 5/6 summary hand-off</text>
+<rect x="655" y="20" width="195" height="70" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="665" y="42">battle message state</text><text x="665" y="60" class="mono">not waiting_for_input</text><text x="665" y="78" class="small">a page waiting for A/B is ready</text>
+<line x1="210" y1="55" x2="225" y2="55" stroke="var(--fg)" /><line x1="425" y1="55" x2="440" y2="55" stroke="var(--fg)" /><line x1="640" y1="55" x2="655" y2="55" stroke="var(--fg)" />
+<rect x="300" y="130" width="260" height="46" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" /><text x="315" y="158">all four hold → busy, keep waiting</text>
+<line x1="430" y1="90" x2="430" y2="130" stroke="var(--fg)" />
+<text x="10" y="208">Any check fails → not busy → capture now. Recorded fixtures (raw RAM from 97a0):</text>
+<text x="10" y="228" class="small">busy: evo-intro3-printing (MVSTATE 2), evo-delete-printing (3), evo-stop-printing (3)</text>
+<text x="10" y="244" class="small">not busy: evo-intro3-waiting, evo-delete-box (4), evo-stop-box (4), battle-delete-box, battle-stop-box, summary-forget</text>
+</svg>

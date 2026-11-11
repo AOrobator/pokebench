@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 330" width="690" height="330" role="img" aria-label="Column x=10 on Route 101 from y=19 up to the ledge at y=13">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--floor:#e9efe3;--grass:#9fd08a;--ledge:#c9a46a;--walk:#2b6b9d;--stop:#c0392b;--dash:#8a96a3}
+*{box-sizing:border-box}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="690" height="330" style="fill:#ffffff;stroke:none" /><text x="20" y="20" font-weight="700">OFF (one-step cut)</text>
+ <text x="370" y="20" font-weight="700">ON (longest valid prefix)</text>
+ <g>
+  <rect x="100" y="40" width="40" height="38" fill="var(--ledge)" stroke="#7a5a2a" />
+  <text x="104" y="64">ledge ↓</text>
+  <rect x="100" y="78" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="116" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="154" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="192" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="230" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="268" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <text x="46" y="64">(10,13)</text><text x="46" y="102">(10,14)</text><text x="46" y="140">(10,15)</text><text x="46" y="178">(10,16)</text><text x="46" y="216">(10,17)</text><text x="46" y="254">(10,18)</text><text x="46" y="292">(10,19)</text>
+ </g>
+ <circle cx="120" cy="287" r="8" fill="var(--walk)" />
+ <path d="M120 279 V253" stroke="var(--walk)" stroke-width="4" marker-end="url(#a)" />
+ <path d="M120 245 V70" stroke="var(--dash)" stroke-width="2" stroke-dasharray="5 5" />
+ <text x="150" y="254">walked 1 tile</text>
+ <text x="150" y="160">7 presses dropped</text>
+ <text x="150" y="178">no reason given</text>
+ <g transform="translate(350,0)">
+  <rect x="100" y="40" width="40" height="38" fill="var(--ledge)" stroke="#7a5a2a" />
+  <text x="104" y="64">ledge ↓</text>
+  <rect x="100" y="78" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="116" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="154" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="192" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="230" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <rect x="100" y="268" width="40" height="38" fill="var(--floor)" stroke="#bbb" />
+  <text x="46" y="64">(10,13)</text><text x="46" y="102">(10,14)</text><text x="46" y="140">(10,15)</text><text x="46" y="178">(10,16)</text><text x="46" y="216">(10,17)</text><text x="46" y="254">(10,18)</text><text x="46" y="292">(10,19)</text>
+ </g>
+ <circle cx="470" cy="287" r="8" fill="var(--walk)" />
+ <path d="M470 279 V105" stroke="var(--walk)" stroke-width="4" marker-end="url(#a)" />
+ <path d="M462 84 L478 72 M462 72 L478 84" stroke="var(--stop)" stroke-width="3" />
+ <text x="500" y="200">walked 5 tiles</text>
+ <text x="500" y="50">stopped before the ledge:</text>
+ <text x="500" y="66">"(10,13) is a ledge; it can</text>
+ <text x="500" y="82">be hopped only going DOWN"</text>
+ <defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="var(--walk)" /></marker></defs>
+</svg>

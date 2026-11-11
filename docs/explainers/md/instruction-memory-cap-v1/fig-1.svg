@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" role="img" aria-label="Instruction memory size by turn in run a702, with the 16,000 character cap" width="640" height="260">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1e2c44;--muted:#5a6b82;--keep:#2f7d4f;--drop:#b0413e;--line:#9fb2c8;--cap:#d08a1c;--soft:#eef3fa}
+svg{display:block;min-width:560px;max-width:100%;height:auto}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="260" style="fill:#ffffff;stroke:none" /><line x1="60" y1="220" x2="620" y2="220" stroke="var(--line)" /><line x1="60" y1="20" x2="60" y2="220" stroke="var(--line)" />
+<g font-size="11" fill="var(--muted)"><text x="54" y="224" text-anchor="end">0</text><text x="54" y="164" text-anchor="end">20K</text><text x="54" y="104" text-anchor="end">40K</text><text x="54" y="44" text-anchor="end">60K</text>
+<text x="102" y="238" text-anchor="middle">100</text><text x="187" y="238" text-anchor="middle">300</text><text x="272" y="238" text-anchor="middle">500</text><text x="357" y="238" text-anchor="middle">700</text><text x="442" y="238" text-anchor="middle">900</text><text x="527" y="238" text-anchor="middle">1100</text><text x="612" y="238" text-anchor="middle">1301</text><text x="340" y="254" text-anchor="middle">turn</text></g>
+<line x1="60" y1="172" x2="620" y2="172" stroke="var(--cap)" stroke-dasharray="6 4" stroke-width="2" /><text x="616" y="166" font-size="11" fill="var(--cap)" text-anchor="end">cap 16,000 chars</text>
+<polyline fill="none" stroke="var(--drop)" stroke-width="2.5" points="102,205.1 187,190.8 272,168.6 357,133.4 442,113.3 527,80.9 612,58.1" />
+<g fill="var(--drop)"><circle cx="102" cy="205.1" r="3" /><circle cx="187" cy="190.8" r="3" /><circle cx="272" cy="168.6" r="3" /><circle cx="357" cy="133.4" r="3" /><circle cx="442" cy="113.3" r="3" /><circle cx="527" cy="80.9" r="3" /><circle cx="612" cy="58.1" r="3" /></g>
+<g font-size="11" fill="var(--ink)"><text x="102" y="198" text-anchor="middle">5.0K</text><text x="357" y="126" text-anchor="middle">28.9K</text><text x="612" y="50" text-anchor="end">54.0K</text></g>
+</svg>

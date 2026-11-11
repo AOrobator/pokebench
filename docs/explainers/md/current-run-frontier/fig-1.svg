@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 260" role="img" aria-label="Recorded events and read-only health determine whether a run pulses" width="680" height="260"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f6f8fb;--fg:#26364b;--box:#fff;--line:#627a93;--live:#2583bd}
+@media(min-width:1000000px){:root{--bg:#17212d;--fg:#e5edf5;--box:#253546;--line:#a4b6c9;--live:#69b7ed}}
+svg{width:100%;height:auto}
+rect{fill:var(--box);stroke:var(--line)}
+text{fill:var(--fg);font:14px system-ui}
+path{fill:none;stroke:var(--line);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="680" height="260" style="fill:#ffffff;stroke:none" /><rect x="10" y="15" width="200" height="55" rx="8" /><text x="25" y="47">Validated recorded events</text><rect x="10" y="95" width="200" height="55" rx="8" /><text x="25" y="127">Read-only local health</text><path d="M210 42H270V80H320M210 122H270V80" /><text x="275" y="68">status</text><rect x="320" y="15" width="340" height="45" rx="8" /><text x="338" y="43">Live → glow + pulse + latest-point halo</text><rect x="320" y="80" width="340" height="45" rx="8" /><text x="338" y="108">Paused → visible, static</text><rect x="320" y="145" width="340" height="45" rx="8" /><text x="338" y="173">Ended / disconnected → no live highlight</text><text x="12" y="230">Failed polling withdraws the active claim. Reduced motion keeps a static glow.</text></svg>

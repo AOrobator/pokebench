@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 380" width="860" style="min-width:680px" role="img" aria-label="Route 104 and Petalburg Woods: three woods mouths land in three different parts of Route 104" height="380">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#a86b12;--wall:#c9c3b6;--grass:#cfe3c4}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e0a94f;--wall:#4a463e;--grass:#2c4630}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="380" style="fill:#ffffff;stroke:none" /><text x="20" y="22">ROUTE 104 (map 0/19)</text>
+<text x="500" y="22">PETALBURG WOODS (map 24/11)</text>
+<rect x="20" y="36" width="300" height="104" rx="6" fill="var(--grass)" stroke="var(--line)" />
+<text x="32" y="58">north part</text>
+<text x="32" y="78" class="small">NORTH edge → RUSTBORO CITY (map 0/3)</text>
+<text x="32" y="94" class="small">(5,18) → ROUTE 104 (map 17/1)</text>
+<text x="32" y="122">(10,30) (11,30)</text>
+<rect x="20" y="150" width="300" height="20" fill="var(--wall)" /><text x="30" y="164" class="small">rows 31–37: solid wall, no walk between the parts</text>
+<rect x="20" y="180" width="300" height="150" rx="6" fill="var(--grass)" stroke="var(--line)" />
+<text x="32" y="202">south part (you are at (11,39))</text>
+<text x="32" y="222">(10,38) (11,38)</text>
+<text x="32" y="246" class="small">EAST edge → PETALBURG CITY (map 0/0)</text>
+<text x="32" y="262" class="small">(17,50) → ROUTE 104 (map 17/0)</text>
+<rect x="200" y="280" width="110" height="40" rx="5" fill="none" stroke="var(--warn)" stroke-dasharray="4 3" />
+<text x="208" y="298">(32,42) (33,42)</text><text x="208" y="313" class="small">ledges drop south</text>
+<rect x="500" y="36" width="340" height="294" rx="6" fill="var(--grass)" stroke="var(--line)" />
+<text x="514" y="60">(14,5) (15,5)  north mouth</text>
+<text x="514" y="314">(16,38) (17,38)</text><text x="700" y="314">(36,38) (37,38)</text>
+<text x="514" y="180" class="small">the whole woods floods as one area</text>
+<line x1="510" y1="56" x2="190" y2="118" stroke="var(--keep)" stroke-width="2" />
+<line x1="510" y1="310" x2="140" y2="218" stroke="var(--accent)" stroke-width="2" />
+<line x1="696" y1="310" x2="312" y2="296" stroke="var(--warn)" stroke-width="2" />
+<text x="330" y="80" class="small">arrives at (10,30)</text>
+<text x="330" y="246" class="small">arrives at (10,38)</text>
+<text x="420" y="292" class="small">arrives at (32,42)</text>
+<text x="20" y="360" class="small">Same name, three different places: only the north mouth lands where the NORTH edge to RUSTBORO CITY can be walked to.</text>
+</svg>

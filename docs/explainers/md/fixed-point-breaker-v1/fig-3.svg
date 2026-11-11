@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" width="420" style="max-width:520px" role="img" aria-label="Auto-talk on Route 103" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="420" height="300" style="fill:#ffffff;stroke:none" /><g stroke="var(--line)">
+<rect x="20" y="20" width="380" height="260" fill="var(--panel)" />
+</g>
+<rect x="180" y="40" width="20" height="20" fill="var(--drop)" /><text x="206" y="55">MAY (10,3)</text>
+<rect x="180" y="60" width="20" height="20" fill="none" stroke="var(--keep)" stroke-width="2" /><text x="206" y="75">stand here, face UP, press A</text>
+<rect x="260" y="160" width="20" height="20" fill="var(--accent)" /><text x="286" y="175">BOY_1 (second)</text>
+<rect x="140" y="200" width="20" height="20" fill="var(--muted)" /><text x="40" y="236">sign (last; read from below)</text>
+<circle cx="290" cy="130" r="9" fill="var(--fg)" /><text x="304" y="134">player</text>
+<path d="M290 130 L190 130 L190 80" fill="none" stroke="var(--keep)" stroke-width="3" marker-end="url(#a)" />
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--keep)" /></marker></defs>
+</svg>

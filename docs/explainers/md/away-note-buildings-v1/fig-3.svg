@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 110" width="720" height="110" role="img" aria-label="Wiring">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--floor:#e9efe3;--grass:#9fd08a;--ledge:#c9a46a;--wall:#55606c;--walk:#2b6b9d;--later:#6aa0c8;--stop:#c0392b;--ok:#2e7d32;--dash:#8a96a3;--hi:#fff4c2}
+*{box-sizing:border-box}
+svg{display:block;width:100%;height:auto;min-width:560px}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="110" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--fg)" /></marker></defs>
+ <rect x="10" y="30" width="140" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="20" y="52">run preset</text><text x="20" y="70">features</text>
+ <rect x="180" y="30" width="160" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="190" y="52">play-wiring.ts</text><text x="190" y="70">TrustOptions.buildings</text>
+ <rect x="370" y="30" width="160" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="380" y="52">withHarnessTrust</text><text x="380" y="70">WalkAway(…, buildings)</text>
+ <rect x="560" y="30" width="150" height="50" rx="8" fill="var(--card)" stroke="var(--walk)" stroke-width="3" /><text x="570" y="52">buildingOf(here,</text><text x="570" y="70">place, map table)</text>
+ <path d="M150 55 H176" stroke="var(--fg)" marker-end="url(#b)" /><path d="M340 55 H366" stroke="var(--fg)" marker-end="url(#b)" /><path d="M530 55 H556" stroke="var(--fg)" marker-end="url(#b)" />
+</svg>

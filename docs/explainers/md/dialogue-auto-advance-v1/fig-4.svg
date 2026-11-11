@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-label="T95 batch RIGHT,RIGHT,DOWN,DOWN: before the fix the second RIGHT was sent after MOM's text was already in the buffer; after the fix the batch stops there" width="760" height="220">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f8f7f3;--ink:#1d1c1a;--muted:#67635b;--panel:#fff;--edge:#ddd8ce;--accent:#2f5d9e;--bad:#b3352b;--good:#2e7d4f;--warn:#a8701a}
+@media(min-width:1000000px){:root{--bg:#151514;--ink:#ecebe7;--muted:#a19d94;--panel:#1f1f1d;--edge:#35342f;--accent:#7fa8e6;--bad:#ee7d72;--good:#6cc495;--warn:#e0b060}}
+*{box-sizing:border-box}
+svg text{fill:var(--ink);font:12px -apple-system,sans-serif}
+svg .m{fill:var(--muted)}
+svg .b{fill:var(--bad)}
+svg .g{fill:var(--good)}
+svg .box{fill:none;stroke:var(--edge);stroke-width:1.5}
+svg .hl{fill:none;stroke:var(--accent);stroke-width:2.5}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="220" style="fill:#ffffff;stroke:none" /><text x="10" y="20">State seq</text><text x="110" y="20" class="m">1628</text><text x="260" y="20" class="m">1634</text><text x="420" y="20" class="m">1638…1668</text><text x="640" y="20" class="m">1670</text>
+<text x="10" y="45" class="m">dialogue text</text><text x="110" y="45">none</text><text x="260" y="45" class="b">MOM: RED, how do…</text><text x="420" y="45">pages 1–5</text><text x="640" y="45">none</text>
+<text x="10" y="65" class="m">message phase</text><text x="110" y="65">none</text><text x="260" y="65" class="b">none (not yet)</text><text x="420" y="65">printing / waits</text><text x="640" y="65">none, free</text>
+<text x="10" y="110">Before</text><rect class="box" x="100" y="92" width="80" height="26" /><text x="112" y="110">RIGHT</text>
+<rect x="250" y="92" width="80" height="26" fill="none" stroke="var(--bad)" stroke-width="2" /><text x="262" y="110" class="b">RIGHT sent</text><text x="345" y="110" class="m">then B×5; result: "then RIGHT: dialogue advanced"</text>
+<text x="10" y="160">After</text><rect class="box" x="100" y="142" width="80" height="26" /><text x="112" y="160">RIGHT</text>
+<rect class="hl" x="250" y="142" width="160" height="26" /><text x="258" y="160">text appeared: stop</text><text x="420" y="160" class="g">B×5; "3 remaining inputs not sent: RIGHT, DOWN, DOWN"</text>
+<text x="10" y="192" class="m">State 1634 (frame 21587) already holds MOM's text but no message phase; the phase first reads at 1638 (frame 21617).</text><text x="10" y="208" class="m">The batch now stops on new or changed text as well as on the phase.</text>
+</svg>

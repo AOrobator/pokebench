@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Off: You line and moves from the battle copy; on: from the party slot, after the battle has ended" width="900" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f4ee;--fg:#172a29;--panel:#ffffff;--line:#36735b;--muted:#546562;--off:#a8432c;--offbg:#fbeeea;--on:#2c7a4b;--onbg:#e8f4ec;--tile:#eef3ea;--grid:#b9c8bf;--player:#2d5f8a}
+*{box-sizing:border-box}
+svg{min-width:680px;width:100%;height:auto}
+svg text{fill:var(--fg);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .small{font-size:13px;fill:var(--muted)}
+svg .box{fill:var(--panel);stroke:var(--line);stroke-width:2}
+svg .offbox{fill:var(--offbg);stroke:var(--off);stroke-width:2}
+svg .onbox{fill:var(--onbg);stroke:var(--on);stroke-width:2}
+svg .offarrow{stroke:var(--off);stroke-width:2;fill:none;stroke-dasharray:6 4}
+svg .onarrow{stroke:var(--on);stroke-width:2.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="p1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a8432c" /></marker><marker id="p2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2c7a4b" /></marker></defs>
+<rect class="box" x="20" y="30" width="250" height="100" rx="8" /><text x="36" y="58">battle copy (gBattleMons)</text><text x="36" y="84" class="small">TORCHIC · FIRE</text><text x="36" y="104" class="small">SCRATCH GROWL FOCUS ENERGY EMBER</text>
+<rect class="box" x="20" y="170" width="250" height="100" rx="8" /><text x="36" y="198">party slot 1 (gPlayerParty)</text><text x="36" y="224" class="small">COMBUSKEN · FIRE/FIGHTING</text><text x="36" y="244" class="small">DOUBLE KICK GROWL FOCUS ENERGY EMBER</text>
+<rect class="offbox" x="400" y="30" width="480" height="100" rx="8" /><text x="416" y="58">OFF battle block on the evolution screen</text><text x="416" y="84" class="small">finishing (outcome won) · Actions line · You TORCHIC</text><text x="416" y="104" class="small">Your moves 1 SCRATCH …</text>
+<rect class="onbox" x="400" y="170" width="480" height="100" rx="8" /><text x="416" y="198">ON</text><text x="416" y="224" class="small">ended (outcome won) · no Actions line · You COMBUSKEN</text><text x="416" y="244" class="small">Your moves (from the party) 1 DOUBLE KICK …</text>
+<path class="offarrow" d="M270 80H396" marker-end="url(#p1)" />
+<path class="onarrow" d="M270 220H396" marker-end="url(#p2)" />
+</svg>

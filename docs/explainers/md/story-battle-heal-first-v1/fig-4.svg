@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 130" width="760" style="min-width:700px" role="img" aria-label="Wiring" height="130">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;--grass:#cfe3bf;--water:#bcd6ee;--may:#c2416b;--box:#f6f3ec;--hl:#fff3c4}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925;--grass:#2f4a2a;--water:#24405a;--may:#e27a9c;--box:#24231f;--hl:#4a4224}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+svg .box{fill:var(--box);stroke:var(--line)}
+svg .hl{fill:var(--hl);stroke:var(--accent);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="130" style="fill:#ffffff;stroke:none" /><defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#888" /></marker></defs>
+<rect class="box" x="20" y="30" width="150" height="50" /><text x="30" y="52">fixed-run preset</text><text class="small" x="30" y="68">onInBoth: true</text>
+<rect class="box" x="200" y="30" width="150" height="50" /><text x="210" y="52">playGameTools</text><text class="small" x="210" y="68">all game tools</text>
+<rect class="hl" x="380" y="30" width="170" height="50" /><text x="390" y="52">withHealFirst</text><text class="small" x="390" y="68">outermost; reads the state</text>
+<rect class="box" x="580" y="30" width="160" height="50" /><text x="590" y="52">heal_first_line event</text><text class="small" x="590" y="68">Activity History, raw</text>
+<path d="M170,55H198" stroke="#888" stroke-width="1.5" marker-end="url(#c)" /><path d="M350,55H378" stroke="#888" stroke-width="1.5" marker-end="url(#c)" /><path d="M550,55H578" stroke="#888" stroke-width="1.5" marker-end="url(#c)" />
+<text class="small" x="380" y="104">Hears pages from the recorder's dialogue_auto_advance and tool_result events.</text>
+<text class="small" x="580" y="104">No timeline mark.</text>
+</svg>

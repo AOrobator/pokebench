@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 120" width="690" height="120" role="img" aria-label="Wiring">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--floor:#e9efe3;--grass:#9fd08a;--ledge:#c9a46a;--walk:#2b6b9d;--stop:#c0392b;--dash:#8a96a3}
+*{box-sizing:border-box}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="690" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--fg)" /></marker></defs><rect x="10" y="30" width="140" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="20" y="52">run preset</text><text x="20" y="70">features</text>
+ <rect x="180" y="30" width="150" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="190" y="52">toolSwitches()</text><text x="190" y="70">rules from 5 switches</text>
+ <rect x="360" y="30" width="150" height="50" rx="8" fill="var(--card)" stroke="var(--walk)" stroke-width="3" /><text x="370" y="52">press tool guard</text><text x="370" y="70">walkPrefix</text>
+ <rect x="540" y="30" width="140" height="50" rx="8" fill="var(--card)" stroke="var(--dash)" /><text x="550" y="52">requestedStep</text><text x="550" y="70">navigation.ts</text>
+ <path d="M150 55 H176" stroke="var(--fg)" marker-end="url(#b)" /><path d="M330 55 H356" stroke="var(--fg)" marker-end="url(#b)" /><path d="M510 55 H536" stroke="var(--fg)" marker-end="url(#b)" />
+</svg>

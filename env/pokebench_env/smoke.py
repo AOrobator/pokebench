@@ -55,7 +55,10 @@ def run_smoke(
         for attempt in range(attempts):
             code = process.poll()
             if code is not None:
-                raise SmokeError(f"game server exited with code {code} before becoming healthy")
+                raise SmokeError(
+                    f"game server exited with code {code} before becoming healthy;"
+                    " the server's own error is in its output above"
+                )
             if _healthy(client):
                 break
             if attempt < attempts - 1:

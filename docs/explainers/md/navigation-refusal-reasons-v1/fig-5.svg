@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 120" role="img" aria-label="Switch wiring from FeatureSet to the navigate_to tool" width="900" height="120">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor:#f3ead6;--wall:#7d776d;--water:#8cc3ea;--npc:#8c8f86;--obj:#b08a5a;--shadow:rgba(30,30,20,.10)}
+@media (min-width:1000000px){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor:#3a362c;--wall:#5b5750;--water:#3f78a8;--npc:#6d7068;--obj:#8a6a3a;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+svg{display:block;max-width:100%;height:auto}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.node.hot rect{fill:color-mix(in srgb,var(--accent2) 22%,var(--card));stroke:var(--accent2);stroke-width:2}
+.nt{font:600 13px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}
+.ns{font:11.5px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" /></marker>
+</defs><g class="node"><rect x="10" y="30" width="190" height="56" rx="10" /><text x="105" y="55" class="nt">run preset / FeatureSet</text><text x="105" y="74" class="ns">navigation-refusal-reasons-v1</text></g>
+<path class="flow" d="M200 58 L260 58" marker-end="url(#a)" />
+<g class="node"><rect x="262" y="30" width="190" height="56" rx="10" /><text x="357" y="55" class="nt">withNavigation()</text><text x="357" y="74" class="ns">refusalReasons port</text></g>
+<path class="flow" d="M452 58 L512 58" marker-end="url(#a)" />
+<g class="node hot"><rect x="514" y="30" width="190" height="56" rx="10" /><text x="609" y="55" class="nt">navigate_to execute</text><text x="609" y="74" class="ns">unreadyReason / targetReason</text></g>
+<path class="flow" d="M704 58 L764 58" marker-end="url(#a)" />
+<g class="node"><rect x="766" y="30" width="124" height="56" rx="10" /><text x="828" y="55" class="nt">tool result</text><text x="828" y="74" class="ns">"Navigation: …"</text></g>
+</svg>

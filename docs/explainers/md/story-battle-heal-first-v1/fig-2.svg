@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" style="min-width:700px" role="img" aria-label="Decision flow" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;--grass:#cfe3bf;--water:#bcd6ee;--may:#c2416b;--box:#f6f3ec;--hl:#fff3c4}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925;--grass:#2f4a2a;--water:#24405a;--may:#e27a9c;--box:#24231f;--hl:#4a4224}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+svg .box{fill:var(--box);stroke:var(--line)}
+svg .yes{fill:var(--fill);stroke:var(--keep);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#888" /></marker></defs>
+<rect class="box" x="20" y="20" width="220" height="56" /><text x="30" y="42">The result's own state:</text><text class="small" x="30" y="60">overworld, not in battle, controls free,</text><text class="small" x="30" y="72">the player's party</text>
+<rect class="box" x="270" y="20" width="220" height="56" /><text x="280" y="42">Every Pokémon (not an egg)</text><text class="small" x="280" y="60">reads its HP; one is below max</text>
+<rect class="box" x="520" y="20" width="220" height="56" /><text x="530" y="42">An unbeaten story battle</text><text class="small" x="530" y="60">on this map (table below)</text>
+<path d="M240,48H268" stroke="#888" stroke-width="1.5" marker-end="url(#b)" /><path d="M490,48H518" stroke="#888" stroke-width="1.5" marker-end="url(#b)" />
+<path d="M630,76V110" stroke="#888" stroke-width="1.5" marker-end="url(#b)" />
+<rect class="yes" x="20" y="114" width="720" height="40" /><text x="30" y="132">1. Each hurt Pokémon: "TORCHIC has 5/22 HP."   2. "MAY's battle cannot be run from, so heal before talking to her."</text><text class="small" x="30" y="148">Always both, when it fires.</text>
+<path d="M380,154V180" stroke="#888" stroke-width="1.5" marker-end="url(#b)" />
+<rect class="box" x="20" y="184" width="350" height="56" /><text x="30" y="204">3. Heard a heal line this run?</text><text class="small" x="30" y="222">latest delivered field page naming a POKéMON</text><text class="small" x="30" y="234">CENTER, or MOM's "I think you should rest a bit."</text>
+<rect class="box" x="390" y="184" width="350" height="56" /><text x="400" y="204">4. Does an exit of this map lead there?</text><text class="small" x="400" y="222">the game's map table: connection edge or warp</text><text class="small" x="400" y="234">left out if not, or if the player is there</text>
+<path d="M370,212H388" stroke="#888" stroke-width="1.5" marker-end="url(#b)" />
+<text class="small" x="20" y="268">Nothing heard: lines 1 and 2 only. The harness never names a place the game has not named to the model.</text>
+<text class="small" x="20" y="286">Any condition false: the result is unchanged and nothing is recorded.</text>
+</svg>

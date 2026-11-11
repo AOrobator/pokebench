@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="Pages of the turn 621 and 630 conversations with their recorded speaker and the credit the switch gives">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1d2433;--muted:#5b6475;--off:#b03a2e;--on:#1f7a4d;--line:#c9d1e0;--box:#f4f7fc}
+text{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px}
+text{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px}
+text{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="300" style="fill:#ffffff;stroke:none" /><style>text{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:13px}</style>
+<text x="10" y="20" font-weight="700">Turn 621, Rusturf Tunnel (recorded speaker → credit with the switch on)</text>
+<rect x="10" y="30" width="580" height="24" fill="#f4f7fc" stroke="#c9d1e0" /><text x="18" y="47">EXPERT_M: "PEEKO! Am I glad to see you're safe!"</text><text x="610" y="47" fill="#5b6475">unchanged (before the name)</text>
+<rect x="10" y="58" width="580" height="24" fill="#e6f4ec" stroke="#1f7a4d" /><text x="18" y="75">EXPERT_M: "They call me MR. BRINEY. And, you are?"</text><text x="610" y="75" fill="#1f7a4d">→ MR. BRINEY (introduces)</text>
+<rect x="10" y="86" width="580" height="24" fill="#e6f4ec" stroke="#1f7a4d" /><text x="18" y="103">EXPERT_M: "You can usually find me in my cottage by the sea near PETALBURG WOODS."</text><text x="610" y="103" fill="#1f7a4d">→ MR. BRINEY: names PETALBURG WOODS</text>
+<text x="10" y="140" font-weight="700">Turn 630, Devon Corp 3F</text>
+<rect x="10" y="150" width="580" height="24" fill="#f4f7fc" stroke="#c9d1e0" /><text x="18" y="167">MAN_2: "Could I get you to deliver that to the SHIPYARD in SLATEPORT?"</text><text x="610" y="167" fill="#5b6475">unchanged (the employee, before)</text>
+<rect x="10" y="178" width="580" height="24" fill="#e6f4ec" stroke="#1f7a4d" /><text x="18" y="195">MAN_2: "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION."</text><text x="610" y="195" fill="#1f7a4d">→ MR. STONE (introduces)</text>
+<rect x="10" y="206" width="580" height="24" fill="#e6f4ec" stroke="#1f7a4d" /><text x="18" y="223">MAN_2: "Well, on the way, could you stop off in DEWFORD TOWN?"</text><text x="610" y="223" fill="#1f7a4d">→ MR. STONE: names DEWFORD TOWN</text>
+<rect x="10" y="234" width="580" height="24" fill="#e6f4ec" stroke="#1f7a4d" /><text x="18" y="251">MR. STONE (printed prefix): "MR. STONE: That device…"</text><text x="610" y="251" fill="#1f7a4d">→ MR. STONE (same printed name)</text>
+<text x="10" y="285" fill="#5b6475">The dialogue memory and the readout keep the recorded sprite labels; only Story-line eligibility changes.</text>
+</svg>

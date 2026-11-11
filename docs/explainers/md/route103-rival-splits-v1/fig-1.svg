@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 200" width="860" role="img" aria-label="Rival battle timeline from a recorded run" height="200">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f4f7fa; --card:#fff; --ink:#22303c; --muted:#5a6b7a; --line:#c9d4de; --yes:#2f7d4f; --no:#b0413e; --accent:#3a6ea5; --box:#e8eef4;}
+@media (min-width:1000000px){:root{--bg:#141a20; --card:#1d252d; --ink:#e3e9ee; --muted:#9aabb9; --line:#3a4651; --yes:#6cc28f; --no:#e07a76; --accent:#7fb0e6; --box:#26303a;}}
+svg text{fill:var(--ink); font:12px system-ui, sans-serif;}
+svg .muted{fill:var(--muted);}
+svg .yes{fill:var(--yes);}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="200" style="fill:#ffffff;stroke:none" /><g>
+<rect x="10" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2" /><text x="20" y="62">Battle starts</text><text x="20" y="80" class="muted">opponent 0 → 535</text><text x="20" y="96" class="muted">frame 148,843</text>
+<rect x="180" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2" /><text x="190" y="62">Rival beaten</text><text x="190" y="80" class="muted">flag 0x717 set</text><text x="190" y="96" class="muted">frame 151,983</text>
+<rect x="350" y="40" width="150" height="64" rx="8" fill="var(--box)" stroke="var(--line)" /><text x="360" y="62">Sends you back</text><text x="360" y="80" class="muted">flag 0x82, lab 4</text><text x="360" y="96" class="muted">frame 152,367</text>
+<rect x="520" y="40" width="100" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2" /><text x="530" y="62">Oldale</text><text x="530" y="80" class="muted">rival 1 → 2</text>
+<rect x="640" y="40" width="100" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2" /><text x="650" y="62">Route 101</text><text x="650" y="80" class="muted">lab 4</text>
+<rect x="760" y="40" width="90" height="64" rx="8" fill="var(--box)" stroke="var(--accent)" stroke-width="2" /><text x="770" y="62">Littleroot</text><text x="770" y="80" class="muted">lab 4</text>
+</g>
+<g fill="none" stroke="var(--ink)" stroke-width="1.5"><path d="M160 72 H176" /><path d="M330 72 H346" /><path d="M500 72 H516" /><path d="M620 72 H636" /><path d="M740 72 H756" /></g>
+<text x="10" y="140" class="yes">Blue boxes are the new splits. The grey box is the existing RIVAL_BATTLE_WON, now labelled "Rival sends you back".</text>
+<text x="10" y="162" class="muted">Frames from run 2026-10-16T02-23-17_qwen36-gpu1_sh02 (cook run, May with Torchic), read from its raw RAM archive.</text>
+</svg>

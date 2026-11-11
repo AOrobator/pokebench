@@ -2,6 +2,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileS
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RUN_ID_PATTERN } from "@pokebench/agent/events";
+import { isMain } from "@pokebench/agent/is-main";
 // Operator rule (2026-10-27): an aborted or stopped run is not an exclusion. A run leaves results only
 // when the operator records an exclusion with a reason, in runs/exclusions/<run-id>.json; run logs are never edited.
 export const EXCLUSIONS_DIR = "exclusions";
@@ -54,7 +55,7 @@ export function main(argv: readonly string[], root: string, io: ExclusionIo): nu
 }
 
 /* v8 ignore start -- process wiring */
-if (import.meta.main) {
+if (isMain(import.meta)) {
   const { execFileSync } = await import("node:child_process"), { mainCheckout } = await import("./fixed-source.js");
   const here = fileURLToPath(new URL(".", import.meta.url));
   const root = process.env.POKEBENCH_RUNS_ROOT ?? join(mainCheckout(here, (cwd, args) => execFileSync("git", [...args], { cwd, encoding: "utf8" })), "runs");

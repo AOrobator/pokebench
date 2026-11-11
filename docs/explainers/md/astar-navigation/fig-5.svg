@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 300" role="img" aria-label="Data pipelines for both harnesses" width="980" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ef;--card:#fffdf8;--fg:#1f2328;--muted:#5d6470;--line:#d9d4c7;--ours:#0f8a7e;--ours-soft:#d5efeb;--theirs:#c46a12;--theirs-soft:#f8e4cc;
+--ground:#ece6d6;--grass:#b9dca0;--blade:#5f9a45;--water:#a9cdea;--wave:#4f8cc0;--bldg:#b7aea0;--tree:#8fb98a;--treec:#4e8a4c;--door:#8b5a2b;--npc:#d9534f;--fog:rgba(40,40,40,.42);--goal:#e6b422;--gridline:rgba(0,0,0,.06);--node:#fff}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#15171a;--card:#1d2024;--fg:#e8e6e1;--muted:#a2a8b2;--line:#33373d;--ours:#3cc7b7;--ours-soft:#173a37;--theirs:#f0a050;--theirs-soft:#3d2a16;
+--ground:#3a3730;--grass:#3e5a33;--blade:#86c26a;--water:#2f4d68;--wave:#7fb6e3;--bldg:#5d5850;--tree:#33503a;--treec:#5f9d5c;--door:#c08a55;--npc:#ef6b67;--fog:rgba(0,0,0,.55);--goal:#f4c842;--gridline:rgba(255,255,255,.05);--node:#25292e}}
+:root[data-theme="dark"]{--bg:#15171a;--card:#1d2024;--fg:#e8e6e1;--muted:#a2a8b2;--line:#33373d;--ours:#3cc7b7;--ours-soft:#173a37;--theirs:#f0a050;--theirs-soft:#3d2a16;
+--ground:#3a3730;--grass:#3e5a33;--blade:#86c26a;--water:#2f4d68;--wave:#7fb6e3;--bldg:#5d5850;--tree:#33503a;--treec:#5f9d5c;--door:#c08a55;--npc:#ef6b67;--fog:rgba(0,0,0,.55);--goal:#f4c842;--gridline:rgba(255,255,255,.05);--node:#25292e}
+*{box-sizing:border-box}
+svg{width:100%;height:auto;display:block}
+.box{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.box.o{stroke:var(--ours);fill:var(--ours-soft)}
+.box.t{stroke:var(--theirs);fill:var(--theirs-soft)}
+.bt{font-size:13px;fill:var(--fg);font-weight:600;text-anchor:middle}
+.bs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.arr{stroke:var(--muted);stroke-width:1.6;fill:none}
+.arr.o{stroke:var(--ours)}
+.arr.t{stroke:var(--theirs)}
+.lab{font-size:11px;fill:var(--muted)}
+.lane{font-size:12px;font-weight:700;letter-spacing:.06em}
+.lane.o{fill:var(--ours)}
+.lane.t{fill:var(--theirs)}
+:root{--open:#cfe6f7;--closed:#efe3c4;--cur:#f6c453;--gk:#2f6fb3;--hk:#a0522d;--fk:#1f2328}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--open:#1f3a52;--closed:#3c3526;--cur:#8a6a17;--gk:#7fb3ea;--hk:#e39a6f;--fk:#f1efe9}}
+:root[data-theme="dark"]{--open:#1f3a52;--closed:#3c3526;--cur:#8a6a17;--gk:#7fb3ea;--hk:#e39a6f;--fk:#f1efe9}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="980" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke" /></marker></defs>
+<text x="10" y="22" class="lane o">OURS</text>
+<rect x="10" y="34" width="190" height="72" rx="10" class="box o" /><text x="105" y="64" class="bt">mGBA RAM</text><text x="105" y="84" class="bs">map buffer, objects, warps</text>
+<rect x="250" y="34" width="210" height="72" rx="10" class="box o" /><text x="355" y="60" class="bt">read_local_map</text><text x="355" y="78" class="bs">15×15: collision, elevation,</text><text x="355" y="93" class="bs">behavior byte per tile</text>
+<rect x="510" y="34" width="200" height="72" rx="10" class="box o" /><text x="610" y="64" class="bt">navigation_grid</text><text x="610" y="84" class="bs">+ topology (map width, height)</text>
+<rect x="760" y="34" width="210" height="72" rx="10" class="box o" /><text x="865" y="64" class="bt">planNavigation (TS)</text><text x="865" y="84" class="bs">bounded A*, re-run each step</text>
+<path d="M200 70H246" class="arr o" marker-end="url(#ah)" /><path d="M460 70H506" class="arr o" marker-end="url(#ah)" /><path d="M710 70H756" class="arr o" marker-end="url(#ah)" />
+<path d="M865 106 C865 138 105 138 105 110" class="arr o" stroke-dasharray="4 4" marker-end="url(#ah)" /><text x="485" y="156" class="lab" text-anchor="middle">after every press, read RAM again</text>
+<text x="10" y="178" class="lane t">POKEAGENT'S</text>
+<rect x="10" y="190" width="190" height="72" rx="10" class="box t" /><text x="105" y="216" class="bt">pokeemerald JSON</text><text x="105" y="234" class="bs">on disk, picked by location</text><text x="105" y="249" class="bs">name and badge count</text>
+<rect x="250" y="190" width="210" height="72" rx="10" class="box t" /><text x="355" y="216" class="bt">build_json_map_for_llm</text><text x="355" y="234" class="bs">whole-map ASCII grid</text><text x="355" y="249" class="bs">. # ~ W D S ledges</text>
+<rect x="510" y="190" width="200" height="72" rx="10" class="box t" /><text x="610" y="216" class="bt">blocked set</text><text x="610" y="234" class="bs">walls, water, NPCs, extra</text><text x="610" y="249" class="bs">coords; doors unblocked</text>
+<rect x="760" y="190" width="210" height="72" rx="10" class="box t" /><text x="865" y="220" class="bt">Pathfinder._astar (Py)</text><text x="865" y="240" class="bs">heap A*, grass costs 1.5</text>
+<path d="M200 226H246" class="arr t" marker-end="url(#ah)" /><path d="M460 226H506" class="arr t" marker-end="url(#ah)" /><path d="M710 226H756" class="arr t" marker-end="url(#ah)" />
+<text x="355" y="290" class="lab" text-anchor="middle">live tile overlay only for a few dynamic maps</text><path d="M355 278V266" class="arr t" marker-end="url(#ah)" />
+</svg>

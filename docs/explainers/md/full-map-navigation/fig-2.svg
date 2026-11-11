@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150" role="img" aria-label="Sample of the whole-map text: two header rows of column labels, then one row per map row with its y coordinate and one character per tile." width="640" height="150">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f3f5f1;--panel:#ffffff;--fg:#1c2420;--muted:#5d6a62;--line:#c9d2cb;
+ --grass:#3f8f4f;--route:#1f6fb2;--warn:#c4502a;--soft:#e4ebe5;--water:#7fb6d9;
+ --display:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}
+svg{width:100%;height:auto;min-width:520px;display:block}
+.ts{fill:var(--muted);font:11px var(--body)}
+.tm{fill:var(--fg);font:11px var(--mono)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="150" style="fill:#ffffff;stroke:none" /><text class="tm" x="16" y="24" xml:space="preserve">     0         10        20</text>
+   <text class="tm" x="16" y="40" xml:space="preserve">     0123456789012345678901</text>
+   <text class="tm" x="16" y="56" xml:space="preserve">   0 ####......gggg....####</text>
+   <text class="tm" x="16" y="72" xml:space="preserve">   1 ##.....N..gggg......W#</text>
+   <text class="tm" x="16" y="88" xml:space="preserve">   2 #.....@...~~~~........</text>
+   <text class="tm" x="16" y="104" xml:space="preserve">   3 #.........~~~~...#####</text>
+   <text class="ts" x="300" y="40">column labels (world X)</text>
+   <text class="ts" x="300" y="72">@ player · N object · W warp</text>
+   <text class="ts" x="300" y="88"># collision · g grass · ~ water</text>
+   <text class="ts" x="16" y="134">Illustrative rows. An 80×80 map is about 7 KB of text per observation.</text>
+  </svg>

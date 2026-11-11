@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 235" role="img" aria-label="Returned observations enter memory; internal measurements stay outside it" width="940" height="235"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--panel:#fff;--edge:#b8c1b2;--accent:#28613b}
+@media(min-width:1000000px){:root{--bg:#151c17;--ink:#e2eadf;--panel:#202b22;--edge:#536650;--accent:#a5db8d}}
+*{box-sizing:border-box}
+svg{width:100%;min-width:570px;height:auto}
+rect{fill:var(--panel);stroke:var(--edge);stroke-width:2}
+text{fill:var(--ink);font:15px system-ui}
+path{stroke:var(--accent);stroke-width:2;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="940" height="235" style="fill:#ffffff;stroke:none" /><rect x="5" y="12" width="220" height="80" rx="12" /><text x="20" y="45">Tool returns an observation</text><text x="20" y="72">Exact recorded state link</text><path d="M225 52H320" /><text x="239" y="39">delivered</text><rect x="320" y="12" width="265" height="80" rx="12" /><text x="337" y="45">Bounded evidence ledger</text><text x="337" y="72">Room · quotes · attempts</text><path d="M585 52H680" /><text x="598" y="39">next turn</text><rect x="680" y="12" width="250" height="80" rx="12" /><text x="697" y="45">Model receives exact context</text><text x="697" y="72">Timeline + history record it</text><rect x="5" y="140" width="270" height="80" rx="12" /><text x="20" y="172">Internal measurement samples</text><text x="20" y="199">Retained for offline diagnostics</text><text x="318" y="173">No delivery link → no memory fact</text><text x="318" y="202">Unknown input effects stay unverified</text></svg>

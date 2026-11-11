@@ -6,6 +6,7 @@ import { RUN_ID_PATTERN } from "./events.js";
 import { FRAME_CAP_BYTES, FrameStore, START_LIMIT } from "./frames.js";
 import { formatBytes } from "./format.js";
 import { readRun, summarize, summaryLines } from "./summary.js";
+import { isMain } from "./is-main.js";
 
 const USAGE = "usage: runs-cli disk | runs-cli prune <percent 0-100> | runs-cli summary [run_id ...]";
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
@@ -69,7 +70,7 @@ export function main(argv: readonly string[], print: (line: string) => void, run
   return runsCli(argv, runsRoot, FRAME_CAP_BYTES, print);
 }
 
-if (import.meta.main) {
+if (isMain(import.meta)) {
   process.exitCode = main(process.argv.slice(2), (line) => {
     console.log(line);
   });

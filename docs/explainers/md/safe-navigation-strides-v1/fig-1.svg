@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 190" role="img" aria-label="A running press moves two tiles although the executor expects one" width="400" height="190"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:light-dark(#faf9f5,#15191b);--fg:light-dark(#24312e,#e1eae7);--muted:light-dark(#586864,#a8b8b2);--line:light-dark(#cad6cf,#40554b);--route:light-dark(#196778,#69cadb);--stop:light-dark(#a34d26,#eab28b)}
+*{box-sizing:border-box}
+svg{width:100%;height:auto}
+svg text{font:14px system-ui;fill:var(--fg)}
+.line{stroke:var(--line)}
+.route{stroke:var(--route)}
+.stop{stroke:var(--stop)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="400" height="190" style="fill:#ffffff;stroke:none" /><path d="M35 80H350" class="line" fill="none" stroke-width="2" /><g class="line" stroke-width="1"><path d="M35 55V105M105 55V105M175 55V105M245 55V105M315 55V105" /></g><path d="M35 80H175" class="route" stroke-width="5" /><circle cx="35" cy="80" r="7" fill="var(--route)" /><path d="M165 68L185 92M185 68L165 92" class="stop" stroke-width="3" /><text x="20" y="35">One press, two running tiles</text><text x="75" y="135">Expected endpoint</text><text x="115" y="175">Executor stops: unexpected movement</text></svg>

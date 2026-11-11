@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="Drought briefings on the wall clock and on the action clock">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--act:#2b6b9d;--nudge:#c0392b;--reset:#2e8b57;--held:#b8860b;--dash:#8a96a3}
+*{box-sizing:border-box}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="250" style="fill:#ffffff;stroke:none" /><text x="10" y="20" font-weight="bold">OFF: a briefing every 5 minutes of play</text>
+ <text x="10" y="52">Qwen (28 actions / 5 min)</text>
+ <line x1="200" y1="48" x2="840" y2="48" stroke="var(--dash)" />
+ <g fill="var(--act)"><rect x="200" y="42" width="196" height="12" opacity=".35" /><rect x="420" y="42" width="196" height="12" opacity=".35" /><rect x="640" y="42" width="196" height="12" opacity=".35" /></g>
+ <g fill="var(--nudge)"><circle cx="410" cy="48" r="7" /><circle cx="630" cy="48" r="7" /></g>
+ <text x="10" y="92">GLM (6 actions / 5 min)</text>
+ <line x1="200" y1="88" x2="840" y2="88" stroke="var(--dash)" />
+ <g fill="var(--act)"><rect x="200" y="82" width="42" height="12" opacity=".35" /><rect x="420" y="82" width="42" height="12" opacity=".35" /><rect x="640" y="82" width="42" height="12" opacity=".35" /></g>
+ <g fill="var(--nudge)"><circle cx="410" cy="88" r="7" /><circle cx="630" cy="88" r="7" /></g>
+ <text x="200" y="115" fill="var(--muted)">0 min</text><text x="395" y="115" fill="var(--muted)">5 min</text><text x="615" y="115" fill="var(--muted)">10 min</text>
+ <text x="10" y="150" font-weight="bold">ON: a briefing every 30 actions with no progress</text>
+ <text x="10" y="182">Qwen</text>
+ <line x1="200" y1="178" x2="840" y2="178" stroke="var(--dash)" />
+ <g fill="var(--nudge)"><circle cx="435" cy="178" r="7" /><circle cx="670" cy="178" r="7" /></g>
+ <text x="10" y="222">GLM</text>
+ <line x1="200" y1="218" x2="840" y2="218" stroke="var(--dash)" />
+ <g fill="var(--nudge)"><circle cx="840" cy="218" r="7" /></g>
+ <text x="660" y="240" fill="var(--muted)">30 GLM actions ≈ 25 min</text>
+ <text x="380" y="200" fill="var(--muted)">30 actions</text><text x="615" y="200" fill="var(--muted)">60 actions</text>
+</svg>

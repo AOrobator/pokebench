@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" role="img" aria-label="Three evidence sources feed one gym record" width="760" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#283038;--muted:#5a6b80;--line:#c9d6e6;--on:#2f7d4a;--off:#9a3b3b;--hi:#fff4c2}
+svg{min-width:640px;max-width:100%;height:auto}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="250" style="fill:#ffffff;stroke:none" /><rect x="10" y="20" width="220" height="60" rx="8" fill="#eef3fa" stroke="#345779" stroke-width="2" /><text x="120" y="45" text-anchor="middle" font-size="14">Battle RAM (main source)</text><text x="120" y="65" text-anchor="middle" font-size="11">gym-map trainer battles: foe types</text>
+<rect x="10" y="95" width="220" height="60" rx="8" fill="#eef3fa" stroke="#345779" stroke-width="2" /><text x="120" y="120" text-anchor="middle" font-size="14">Gym guide's sentence</text><text x="120" y="140" text-anchor="middle" font-size="12">only the ROM guides' five patterns</text>
+<rect x="10" y="170" width="220" height="60" rx="8" fill="#eef3fa" stroke="#345779" stroke-width="2" /><text x="120" y="195" text-anchor="middle" font-size="14">Gym sign</text><text x="120" y="215" text-anchor="middle" font-size="12">type only from "X-loving"</text>
+<line x1="230" y1="50" x2="330" y2="125" stroke="#345779" stroke-width="2" marker-end="url(#a)" /><line x1="230" y1="125" x2="330" y2="125" stroke="#345779" stroke-width="2" marker-end="url(#a)" /><line x1="230" y1="200" x2="330" y2="125" stroke="#345779" stroke-width="2" marker-end="url(#a)" />
+<rect x="335" y="90" width="170" height="70" rx="8" fill="#fff4c2" stroke="#283038" stroke-width="2" /><text x="420" y="120" text-anchor="middle" font-size="14">gym record</text><text x="420" y="140" text-anchor="middle" font-size="12">quotes kept whole</text>
+<line x1="505" y1="125" x2="560" y2="125" stroke="#345779" stroke-width="2" marker-end="url(#a)" />
+<rect x="565" y="70" width="185" height="110" rx="8" fill="#eef3fa" stroke="#345779" stroke-width="2" /><text x="657" y="98" text-anchor="middle" font-size="13">covered when:</text><text x="657" y="120" text-anchor="middle" font-size="12">badge flag clear</text><text x="657" y="140" text-anchor="middle" font-size="12">and one source</text><text x="657" y="160" text-anchor="middle" font-size="12">gives a type</text>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#345779" /></marker></defs>
+</svg>

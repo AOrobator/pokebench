@@ -12,6 +12,7 @@ import { HumanRestarts, RunQueue, endpointFromEnv, healthProbe, nextRunsLine, ra
 import { leasePool } from "./lease.js";
 import { readEndpoint } from "@pokebench/agent/local-endpoint";
 import { startViewer, type Viewer, type ViewerOptions } from "./server.js";
+import { isMain } from "@pokebench/agent/is-main";
 
 export const DEFAULT_PORT = 8790;
 // Game server port for runs the viewer queues (comparison cohorts use 8070).
@@ -154,7 +155,7 @@ export function closeOnSignals(viewer: Pick<Viewer, "close">, on: (signal: "SIGT
   on("SIGINT", shutdown);
 }
 
-if (import.meta.main) {
+if (isMain(import.meta)) {
   const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
   main(process.argv.slice(2), {
     repoRunsRoot: here("../../../runs"),

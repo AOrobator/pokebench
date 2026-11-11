@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 260" width="860" height="260" role="img" aria-label="cycling road cross section">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f5ef; --fg:#1f2522; --soft:#5f6b64; --rule:#e2ded2; --panel:#fffdf8; --chip:#efece3;
+ --good:#2f9e5b; --bad:#e0483e; --warn:#e3a12f; --accent:#5b6cf0;
+ --ground:#efe0bd; --ground2:#e2cf9f; --floor:#f2e6cf; --wall:#7c8794; --wall2:#5f6a77; --wall-hi:#a9b3be;
+ --grass:#7cc36a; --blade:#3f8a3a; --water:#6fb1e6; --wave:#e8f5ff; --sand:#f4d98f; --grain:#c9a54c;
+ --counter:#c08a52; --counter2:#9a6a3a; --bridge:#c9a06a; --plank:#8f6a3c;
+ --term:#14181d; --term-fg:#cfd8d3; --term-dim:#5f6d68;
+ --sky1:#dff0ff; --sky2:#f6fbff; --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#121614; --fg:#e7ece8; --soft:#9aa69f; --rule:#29312d; --panel:#1a201d; --chip:#232b27;
+ --ground:#5b5139; --ground2:#71654a; --floor:#4e4636; --wall:#465059; --wall2:#343c44; --wall-hi:#66727e;
+ --grass:#3f7d3a; --blade:#9ed98f; --water:#2f6a9a; --wave:#9cc9ef; --sand:#8a7536; --grain:#c7ad5f;
+ --counter:#86603a; --counter2:#634526; --bridge:#7d6440; --plank:#b38a55;
+ --term:#0b0e11; --sky1:#1c2a38; --sky2:#151d26; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121614; --fg:#e7ece8; --soft:#9aa69f; --rule:#29312d; --panel:#1a201d; --chip:#232b27;
+ --ground:#5b5139; --ground2:#71654a; --floor:#4e4636; --wall:#465059; --wall2:#343c44; --wall-hi:#66727e;
+ --grass:#3f7d3a; --blade:#9ed98f; --water:#2f6a9a; --wave:#9cc9ef; --sand:#8a7536; --grain:#c7ad5f;
+ --counter:#86603a; --counter2:#634526; --bridge:#7d6440; --plank:#b38a55;
+ --term:#0b0e11; --sky1:#1c2a38; --sky2:#151d26; color-scheme:dark}
+*{box-sizing:border-box}
+svg{display:block;max-width:none}
+.a-shadow{fill:#000;opacity:.18}
+.x-bg{fill:var(--bad)}
+.x-ink{stroke:#fff;stroke-width:2.2;stroke-linecap:round}
+.b-bad rect{fill:var(--bad)}
+.b-ok rect{fill:var(--good)}
+.b-bad text,.b-ok text{font:600 11.5px var(--body);fill:#fff;text-anchor:middle}
+.sky1{stop-color:var(--sky1)}
+.sky2{stop-color:var(--sky2)}
+.xs-ground{fill:var(--grass)}
+.xs-edge{stroke:var(--blade);stroke-width:2}
+.xs-deck{fill:var(--bridge);stroke:var(--plank);stroke-width:2}
+.xs-pillar{fill:var(--wall)}
+.xs-rail{stroke:var(--plank);stroke-width:3}
+.xs-lab{font:600 12.5px var(--body);fill:var(--fg)}
+.xs-small{font:11px var(--mono);fill:var(--soft)}
+.xs-try{fill:none;stroke:var(--bad);stroke-width:2.5;stroke-dasharray:6 5}
+.xs-ok{fill:none;stroke:var(--good);stroke-width:2.5}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="260" style="fill:#ffffff;stroke:none" /><defs><marker id="head-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e0483e" /></marker>
+<marker id="head-ok" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f9e5b" /></marker>
+</defs><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sky1" /><stop offset="1" class="sky2" /></linearGradient></defs>
+ <rect x="0" y="0" width="860" height="260" rx="14" fill="url(#sky)" />
+ <rect x="0" y="196" width="860" height="64" class="xs-ground" />
+ <path d="M0 196 H860" class="xs-edge" />
+ <rect x="250" y="96" width="360" height="22" rx="4" class="xs-deck" />
+ <rect x="268" y="118" width="16" height="78" class="xs-pillar" /><rect x="576" y="118" width="16" height="78" class="xs-pillar" />
+ <path d="M250 96 H610" class="xs-rail" />
+ <text x="430" y="88" class="xs-lab" text-anchor="middle">Cycling Road deck · elevation 4</text>
+ <text x="430" y="226" class="xs-lab" text-anchor="middle">walkway under the deck · elevation 15 (multi-level)</text>
+ <text x="110" y="226" class="xs-lab" text-anchor="middle">grass · elevation 3</text>
+ <text x="750" y="226" class="xs-lab" text-anchor="middle">grass · elevation 3</text>
+ <g><ellipse cx="390" cy="190" rx="8" ry="2.5" class="a-shadow" /><circle cx="390" cy="181" r="8" fill="#ffe0bd" stroke="#3a2a1e" stroke-width="1.4" /><path d="M381.5 180 a8.5 8.5 0 0 1 17 0 z" fill="#e2453b" stroke="#3a2a1e" stroke-width="1.4" /><rect x="387" y="174" width="6" height="3" rx="1" fill="#fff" /></g>
+ <text x="390" y="160" class="xs-small" text-anchor="middle">you: elevation 3</text>
+ <path d="M410 176 C 470 150, 480 140, 500 122" class="xs-try" marker-end="url(#head-bad)" />
+ <g transform="translate(470,146)"><circle r="8" class="x-bg" /><path d="M-3.5 -3.5 L3.5 3.5 M3.5 -3.5 L-3.5 3.5" class="x-ink" /></g>
+ <g class="b-bad"><rect x="520" y="139" width="167.20000000000002" height="22" rx="11" /><text x="603.6" y="154">step onto e4: refused</text></g>
+ <path d="M120 186 H360" class="xs-ok" marker-end="url(#head-ok)" />
+ <g class="b-ok"><rect x="130" y="149" width="152.8" height="22" rx="11" /><text x="206.4" y="164">walking under: fine</text></g>
+</svg>

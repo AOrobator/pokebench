@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 130" role="img" aria-label="Mechanism" width="760" height="130"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f5f6f8;--fg:#162333;--card:#fff;--accent:#2b6b9d}
+@media(min-width:1000000px){:root{--bg:#101820;--fg:#e6edf4;--card:#192633;--accent:#80c9ff}}
+*{box-sizing:border-box}
+svg{min-width:690px;width:100%;color:var(--accent)}
+rect{fill:var(--card);stroke:var(--accent)}
+path{fill:none;stroke:currentColor}
+text{fill:var(--fg);font:12px system-ui}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="130" style="fill:#ffffff;stroke:none" /><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="currentColor" /></marker></defs><rect x="5" y="35" width="175" height="60" rx="8" /><text x="92" y="69" text-anchor="middle">Direction batch</text><path d="M181 65H193" marker-end="url(#a)" /><rect x="195" y="35" width="175" height="60" rx="8" /><text x="282" y="69" text-anchor="middle">Guard would reject</text><path d="M371 65H383" marker-end="url(#a)" /><rect x="385" y="35" width="175" height="60" rx="8" /><text x="472" y="69" text-anchor="middle">One ordinary press</text><path d="M561 65H573" marker-end="url(#a)" /><rect x="575" y="35" width="175" height="60" rx="8" /><text x="662" y="69" text-anchor="middle">Observe result</text></svg>

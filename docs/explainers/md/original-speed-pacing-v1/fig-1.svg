@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" role="img" aria-labelledby="timing-title timing-desc" width="900" height="340">
+      <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light;--bg:#f6f4ee;--fg:#20242a;--muted:#606873;--card:#fff;--line:#d5d2c8;--blue:#1769aa;--blue-bg:#e9f3fb;--green:#176b4b;--green-bg:#e7f5ee;--amber:#8b5a00;--amber-bg:#fff4d8;--red:#9b3b35;--red-bg:#fae9e7;--svg-grid:#d9e0e7;--shadow:0 10px 28px rgba(25,31,38,.08)}
+@media(min-width:1000000px){:root{color-scheme:dark;--bg:#14171b;--fg:#edf0f3;--muted:#abb3bd;--card:#1c2127;--line:#373e47;--blue:#78bdf1;--blue-bg:#172d3e;--green:#72d4a9;--green-bg:#173229;--amber:#f2c56e;--amber-bg:#392d15;--red:#f09a94;--red-bg:#3c2423;--svg-grid:#333b45;--shadow:none}}
+*{box-sizing:border-box}
+svg{display:block;min-width:760px;width:100%;height:auto}
+svg text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--fg)}
+svg .muted{fill:var(--muted)}
+svg .axis{stroke:var(--muted);stroke-width:2}
+svg .gridline{stroke:var(--svg-grid);stroke-width:1}
+svg .work{fill:var(--amber-bg);stroke:var(--amber);stroke-width:2}
+svg .sleep{fill:var(--blue-bg);stroke:var(--blue);stroke-width:2}
+svg .offbox{fill:var(--green-bg);stroke:var(--green);stroke-width:2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="340" style="fill:#ffffff;stroke:none" /><title id="timing-title">Additive sleep compared with deadline pacing</title>
+      <desc id="timing-desc">The old loop adds a full 12.5 millisecond sleep after work. The candidate fits work and remaining sleep inside one 12.5 millisecond deadline period. The OFF policy uses the same method with a 16.743 millisecond period.</desc>
+      <text x="24" y="32" font-size="20" font-weight="700">One normal-play frame</text>
+      <text x="24" y="62" font-size="15" class="muted">Configured 80 FPS means a 12.500 ms period.</text>
+
+      <text x="24" y="112" font-size="16" font-weight="700">Vendor additive reference</text>
+      <rect x="230" y="84" width="180" height="52" rx="8" class="work" />
+      <text x="320" y="107" text-anchor="middle" font-size="14" font-weight="700">frame work</text>
+      <text x="320" y="126" text-anchor="middle" font-size="12" class="muted">variable time</text>
+      <rect x="410" y="84" width="280" height="52" rx="8" class="sleep" />
+      <text x="550" y="116" text-anchor="middle" font-size="14" font-weight="700">then sleep 12.500 ms</text>
+      <line x1="230" y1="147" x2="690" y2="147" class="axis" />
+      <text x="690" y="170" text-anchor="end" font-size="13" class="muted">period = work + 12.500 ms</text>
+
+      <text x="24" y="228" font-size="16" font-weight="700">Deadline policy · ON</text>
+      <rect x="230" y="198" width="180" height="52" rx="8" class="work" />
+      <text x="320" y="229" text-anchor="middle" font-size="14" font-weight="700">frame work</text>
+      <rect x="410" y="198" width="280" height="52" rx="8" class="sleep" />
+      <text x="550" y="220" text-anchor="middle" font-size="14" font-weight="700">sleep only the remainder</text>
+      <text x="550" y="240" text-anchor="middle" font-size="12" class="muted">deadline − now</text>
+      <line x1="230" y1="261" x2="690" y2="261" class="axis" />
+      <line x1="230" y1="190" x2="230" y2="272" class="gridline" />
+      <line x1="690" y1="190" x2="690" y2="272" class="gridline" />
+      <text x="230" y="290" text-anchor="middle" font-size="13" class="muted">deadline 0</text>
+      <text x="690" y="290" text-anchor="middle" font-size="13" font-weight="700">deadline +12.500 ms</text>
+
+      <rect x="230" y="307" width="460" height="25" rx="7" class="offbox" />
+      <text x="460" y="325" text-anchor="middle" font-size="13" font-weight="700">OFF uses the same deadline rule with a 16.743 ms base period</text>
+    </svg>

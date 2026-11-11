@@ -32,6 +32,7 @@ coverage: test
 
 lint:
     pnpm -r lint
+    just explainer-twins-check
     cd env && uv run ruff check . && uv run ruff format --check . && uv run mypy
     uv run --project env ruff check scripts/claude-gateway && uv run --project env ruff format --check scripts/claude-gateway
     uv run --project env mypy --strict scripts/claude-gateway/claude_gateway.py scripts/claude-gateway/replay.py scripts/claude-gateway/preflight.py
@@ -43,8 +44,42 @@ build:
 build-mgba:
     bash scripts/build-mgba.sh
 
+# Check a downloaded release folder with only your ROM (POKEBENCH_ROM): SHA256SUMS, the event log,
+# the checkpoints and the final RAM snapshot. Read-only; -I keeps the release folder off sys.path.
+[positional-arguments]
+verify-release folder:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.verify_release "$1"
+
+# Replay a downloaded release from power-on with its logged inputs and recorded clock, and compare
+# the emulator's RAM with every recorded snapshot (default frames 0-150,000; --frames N; --all).
+[positional-arguments]
+replay-verify folder *args:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.replay_verify "$@"
+
+# Open a downloaded release in the viewer: check it, unpack it into runs/releases/<run-id>/ (--raw-ram
+# also rebuilds raw-ram/), then serve it on 127.0.0.1 on a free port (--port N; never 8790).
+[positional-arguments]
+view-release folder *args: build
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.view_release "$@"
+
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
+
+# Read-only setup preflight: PASS/FAIL/SKIP per check, with the fix for each miss. Tiers build up:
+# core (enough for just test), game (adds just smoke: mGBA, ROM), model (adds the run's endpoint;
+# SKIP when none is set). Exit 1 only when a check that ran fails. Changes nothing.
+[positional-arguments]
+doctor *tier:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    py=env/.venv/bin/python
+    [[ -x "$py" ]] || py=$(command -v python3 || true)
+    if [[ -z "$py" ]]; then
+        echo "FAIL  core   python  no python3 found"
+        echo "                     fix: macOS: brew install uv  |  Linux: https://docs.astral.sh/uv/; then uv python install 3.11 && just setup"
+        exit 1
+    fi
+    PYTHONPATH="$PWD/env" "$py" -B -m pokebench_env.doctor "$@"
 
 # Recover route103_rival for older runs from their raw-RAM archives into runs/<id>/derived/ (events.jsonl untouched).
 backfill-route103 +runs:
@@ -171,9 +206,9 @@ probe-decision run turn *flags: build
 runs-prune percent: build
     node packages/agent/dist/runs-cli.js prune {{percent}}
 
-# PokeBench viewer on 127.0.0.1:8790: live runs follow events.jsonl, finished runs replay from frames/.
-view run_id="": build
-    node packages/viewer/dist/cli.js {{quote(run_id)}}
+# PokeBench viewer on 127.0.0.1 (port 8790 unless given, e.g. `just view "" 8799`): live runs follow events.jsonl, finished runs replay from frames/.
+view run_id="" port="8790": build
+    node packages/viewer/dist/cli.js --port {{quote(port)}} {{quote(run_id)}}
 
 # Restart the long-lived viewer on 8790 from a clean worktree at main. Run after every merge, and
 # always before a fixed-run launch check from a newer pin: a viewer built before the pin cannot read
@@ -201,6 +236,20 @@ pages:
 # Fail if any given HTML page would make a network request when it loads.
 pages-check +files:
     scripts/pages.sh check {{files}}
+
+# Regenerate the Markdown twins of docs/explainers/*.html (docs/explainers/md/), the explainer
+# index docs/explainers/README.md and the switch table docs/features.md. The HTML is the source.
+explainer-twins:
+    uv run --project env python -I -m pokebench_env.explainer_twins write
+
+# Fail if any generated explainer twin, the index or docs/features.md differs from a fresh build.
+explainer-twins-check:
+    uv run --project env python -I -m pokebench_env.explainer_twins check
+
+# Refresh the committed run-67d7 feature snapshot from that run's event log (docs/features.md column).
+[positional-arguments]
+explainer-twins-snapshot events:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.explainer_twins snapshot "$(realpath "$1")"
 
 # Replace viewer font URLs in the given pages with inline data: URIs.
 pages-inline-fonts +files:

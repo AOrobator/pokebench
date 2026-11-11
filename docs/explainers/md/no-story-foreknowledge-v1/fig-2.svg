@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 230" role="img" aria-label="Only the absent list is filtered; the here list that every reader parses is untouched" width="760" height="230">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--fg:#172a29;--muted:#546562;--line:#36735b;--off:#a8432c;--offbg:#fbeeea;--on:#2c7a4b;--onbg:#e8f4ec;--panel:#ffffff;--keep:#2a62b8;--keepbg:#eaf1fb}
+svg{min-width:680px;width:100%;height:auto}
+svg text{fill:var(--fg);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .small{font-size:12px;fill:var(--muted)}
+svg .box{fill:var(--panel);stroke:var(--line);stroke-width:2}
+svg .onbox{fill:var(--onbg);stroke:var(--on);stroke-width:2.5}
+svg .keepbox{fill:var(--keepbg);stroke:var(--keep);stroke-width:2}
+svg .arrow{stroke:var(--line);stroke-width:2;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="230" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#36735b" /></marker></defs>
+<rect class="box" x="10" y="80" width="140" height="70" rx="8" />
+<text x="80" y="110" text-anchor="middle">game server</text>
+<text class="small" x="80" y="130" text-anchor="middle">Python untouched</text>
+<rect class="box" x="190" y="60" width="200" height="110" rx="8" />
+<text x="290" y="88" text-anchor="middle">game-tool wrappers</text>
+<text class="small" x="290" y="110" text-anchor="middle">people ledger, heal-first,</text>
+<text class="small" x="290" y="126" text-anchor="middle">harness-trust read the full line;</text>
+<text class="small" x="290" y="142" text-anchor="middle">warnings use role words</text>
+<rect class="onbox" x="430" y="70" width="140" height="90" rx="8" />
+<text x="500" y="100" text-anchor="middle">withShownCast</text>
+<text class="small" x="500" y="120" text-anchor="middle">outermost, ON only</text>
+<text class="small" x="500" y="138" text-anchor="middle">filters the absent list</text>
+<rect class="box" x="610" y="20" width="140" height="56" rx="8" />
+<text x="680" y="53" text-anchor="middle">model</text>
+<rect class="keepbox" x="610" y="100" width="140" height="120" rx="8" />
+<text x="680" y="124" text-anchor="middle">recorded result</text>
+<text class="small" x="680" y="146" text-anchor="middle">stall gate, loop</text>
+<text class="small" x="680" y="162" text-anchor="middle">recovery: same</text>
+<text class="small" x="680" y="178" text-anchor="middle">"here" roster.</text>
+<text class="small" x="680" y="198" text-anchor="middle">beliefs ledger:</text>
+<text class="small" x="680" y="214" text-anchor="middle">whole absent cast</text>
+<path class="arrow" d="M150,115H188" marker-end="url(#b)" />
+<path class="arrow" d="M390,115H428" marker-end="url(#b)" />
+<path class="arrow" d="M570,100L608,50" marker-end="url(#b)" />
+<path class="arrow" d="M570,130L608,150" marker-end="url(#b)" />
+</svg>

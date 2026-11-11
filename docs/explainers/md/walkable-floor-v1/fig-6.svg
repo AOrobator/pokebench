@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Decision flow for one step" width="900" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#fff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#c9792a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e3dbc4;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--sand1:#f4dc9c;--sand2:#e2c174;--cave1:#cdb79a;--cave2:#b39c7e;
+--water1:#8cc4f0;--water2:#6aa8de;--mtn1:#d6d0c4;--puddle:#a9cfe9;--shadow:rgba(30,30,20,.10);--sky1:#fdf3d8;--sky2:#f6f4ee}
+@media (min-width:1000000px){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;
+--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}
+*{box-sizing:border-box}
+svg{display:block;max-width:100%;height:auto}
+.node rect{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.node.hot rect{fill:color-mix(in srgb,var(--accent) 12%,var(--card));stroke:var(--accent);stroke-width:2}
+.node.no rect{fill:color-mix(in srgb,var(--bad) 10%,var(--card));stroke:var(--bad)}
+.node.yes rect{fill:color-mix(in srgb,var(--good) 12%,var(--card));stroke:var(--good)}
+.nt{font:600 13.5px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}
+.ns{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.flow{fill:none;stroke:var(--muted);stroke-width:2}
+.fl{font:600 11px ui-monospace,Menlo,monospace;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="aflow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" /></marker>
+</defs><g class="node"><rect x="20" y="118" width="150" height="62" rx="12" /><text x="95" y="144" class="nt">Next tile</text><text x="95" y="162" class="ns">in the 15×15 grid</text></g>
+<path d="M170,149 H222" class="flow" marker-end="url(#aflow)" />
+<g class="node"><rect x="226" y="118" width="170" height="62" rx="12" /><text x="311" y="144" class="nt">Collision bit set?</text><text x="311" y="162" class="ns">drawn as #</text></g>
+<path d="M311,118 V64 H470" class="flow" marker-end="url(#aflow)" /><text x="320" y="96" class="fl">yes</text>
+<g class="node no"><rect x="474" y="34" width="190" height="56" rx="12" /><text x="569" y="58" class="nt">Wall</text><text x="569" y="76" class="ns">unchanged (doors from below)</text></g>
+<path d="M396,149 H470" class="flow" marker-end="url(#aflow)" /><text x="410" y="140" class="fl">no</text>
+<g class="node hot"><rect x="474" y="112" width="190" height="74" rx="12" /><text x="569" y="138" class="nt">Special behavior?</text><text x="569" y="156" class="ns">water, slides, ice, holes,</text><text x="569" y="172" class="ns">one-way, ledges, bike rails</text></g>
+<path d="M664,130 H700 V64 H716" class="flow" marker-end="url(#aflow)" /><text x="672" y="122" class="fl">yes</text>
+<g class="node no"><rect x="720" y="34" width="160" height="56" rx="12" /><text x="800" y="58" class="nt">Refused</text><text x="800" y="76" class="ns">see table below</text></g>
+<path d="M664,168 H700 V232 H716" class="flow" marker-end="url(#aflow)" /><text x="672" y="186" class="fl">no</text>
+<g class="node yes"><rect x="720" y="204" width="160" height="56" rx="12" /><text x="800" y="228" class="nt">Walk on it</text><text x="800" y="246" class="ns">sand, cave, rugs, bridges…</text></g>
+<g class="node"><rect x="226" y="226" width="438" height="50" rx="12" style="stroke-dasharray:5 4" /><text x="445" y="248" class="nt">Then, unchanged: elevation, objects, warps only as the target</text><text x="445" y="265" class="ns">(the stairs/bridge elevation fix is a separate thread)</text></g>
+</svg>

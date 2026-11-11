@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="120" viewBox="0 0 740 120" role="img" aria-label="Switch wiring">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:none;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="740" height="120" style="fill:#ffffff;stroke:none" /><rect x="10" y="30" width="130" height="50" rx="6" class="box" /><text x="18" y="50" class="t">run preset</text><text x="18" y="66" class="m">FeatureSet</text>
+   <rect x="160" y="30" width="150" height="50" rx="6" class="box" /><text x="168" y="50" class="t">serverFeatureEnv</text><text x="168" y="66" class="m">POKEBENCH_FEATURES_OFF</text>
+   <rect x="330" y="30" width="150" height="50" rx="6" class="box" /><text x="338" y="50" class="t">rerender.read_state</text><text x="338" y="66" class="m">id not in off</text>
+   <rect x="500" y="30" width="230" height="50" rx="6" class="nav" /><text x="508" y="50" class="t">read_game_state(…enabled)</text><text x="508" y="66" class="s">battle state · active UI · save gate · label</text>
+   <path class="arrow" d="M140 55 H160 M310 55 H330 M480 55 H500" />
+   <text x="10" y="106" class="s">The native action journal calls the same readers with the rules on, whatever the switch.</text>
+  </svg>

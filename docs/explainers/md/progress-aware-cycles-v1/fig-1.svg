@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 205" role="img" aria-label="Refused battle to town to healing place, then return" width="820" height="205"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f5f4ee;--fg:#172a29;--panel:#fff;--line:#36735b;--muted:#546562}
+@media(min-width:1000000px){:root{--bg:#142322;--fg:#e4eee8;--panel:#203330;--line:#84c9a2;--muted:#b2c4bd}}
+*{box-sizing:border-box}
+svg{min-width:650px;width:100%;height:auto;color:var(--fg)}
+svg text{fill:currentColor;font:17px system-ui}
+svg rect{fill:var(--bg);stroke:var(--line);stroke-width:2}
+svg path{fill:none;stroke:var(--line);stroke-width:3}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="820" height="205" style="fill:#ffffff;stroke:none" /><rect x="5" y="20" width="230" height="65" rx="8" /><rect x="295" y="20" width="230" height="65" rx="8" /><rect x="585" y="20" width="230" height="65" rx="8" /><text x="20" y="48">Battle refused</text><text x="20" y="71">ROUTE 103</text><text x="315" y="48">Travel through town</text><text x="315" y="71">OLDALE TOWN</text><text x="600" y="48">Heal at offered place</text><text x="600" y="71">POKéMON CENTER</text><path d="M235 52h52m-12-8 12 8-12 8M525 52h52m-12-8 12 8-12 8" /><path d="M700 90v60H120V90m-8 12 8-12 8 12" /><text x="280" y="140">Full HP verified → return protected</text><text x="215" y="190">Protection ends when back at the refusal position or beside the opponent.</text></svg>

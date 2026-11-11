@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 470" width="720" role="img" aria-label="Decision chain per object template" height="470">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --dot:#8a857a;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --dot:#8d9096; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --dot:#8d9096; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="470" style="fill:#ffffff;stroke:none" /><defs><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--soft)" /></marker></defs>
+<rect class="box" x="20" y="10" width="300" height="44" rx="6" /><text class="t" x="32" y="30">Template slot empty?</text><text class="m" x="32" y="46">localId 0 and graphicsId 0</text>
+<rect class="prior" x="440" y="10" width="260" height="44" rx="6" /><text class="t" x="452" y="37">skip</text>
+<path class="arr" d="M320,32 L438,32" marker-end="url(#aw)" /><text class="s" x="360" y="26">yes</text>
+
+<rect class="box" x="20" y="84" width="300" height="44" rx="6" /><text class="t" x="32" y="104">Flag set? (hidden by the story)</text><text class="m" x="32" y="120">flagId at +0x14 ≠ 0 and FlagGet</text>
+<rect class="prior" x="440" y="84" width="260" height="44" rx="6" /><text class="t" x="452" y="104">skip</text><text class="s" x="452" y="120">e.g. PROF. BIRCH, Route 103 object 11</text>
+<path class="arr" d="M320,106 L438,106" marker-end="url(#aw)" /><text class="s" x="360" y="100">yes</text>
+<path class="arr" d="M170,54 L170,82" marker-end="url(#aw)" /><text class="s" x="178" y="72">no</text>
+
+<rect class="box" x="20" y="158" width="300" height="44" rx="6" /><text class="t" x="32" y="178">Loaded in gObjectEvents?</text><text class="m" x="32" y="194">active, this map, same local id</text>
+<path class="arr" d="M170,128 L170,156" marker-end="url(#aw)" /><text class="s" x="178" y="146">no</text>
+
+<rect class="box" x="440" y="158" width="260" height="44" rx="6" /><text class="t" x="452" y="178">Invisible?</text><text class="m" x="452" y="194">object body byte 1, bit 0x20</text>
+<path class="arr" d="M320,180 L438,180" marker-end="url(#aw)" /><text class="s" x="360" y="174">yes</text>
+<rect class="prior" x="560" y="232" width="140" height="40" rx="6" /><text class="t" x="572" y="257">skip</text>
+<path class="arr" d="M630,202 L630,230" marker-end="url(#aw)" /><text class="s" x="638" y="220">yes</text>
+<rect class="navb" x="380" y="232" width="160" height="58" rx="6" /><text class="t" x="392" y="252">its live tile</text><text class="m" x="392" y="268">"loaded off screen,</text><text class="m" x="392" y="282">its tile now"</text>
+<path class="arr" d="M500,202 L470,230" marker-end="url(#aw)" /><text class="s" x="494" y="222">no</text>
+
+<rect class="navb" x="20" y="232" width="300" height="58" rx="6" /><text class="t" x="32" y="252">template x,y (s16 at +4/+6)</text><text class="m" x="32" y="268">"not loaded; where the map</text><text class="m" x="32" y="282">places it, it may have moved"</text>
+<path class="arr" d="M170,202 L170,230" marker-end="url(#aw)" /><text class="s" x="178" y="220">no</text>
+
+<rect class="box" x="20" y="330" width="300" height="44" rx="6" /><text class="t" x="32" y="350">Inside the window?</text><text class="m" x="32" y="366">|x−px| ≤ 7 and |y−py| ≤ 7</text>
+<path class="arr" d="M170,290 L170,328" marker-end="url(#aw)" />
+<path class="arr" d="M460,290 L460,310 L190,310 L190,328" marker-end="url(#aw)" />
+<rect class="prior" x="440" y="330" width="260" height="44" rx="6" /><text class="t" x="452" y="350">skip</text><text class="s" x="452" y="366">Field objects already lists it</text>
+<path class="arr" d="M320,352 L438,352" marker-end="url(#aw)" /><text class="s" x="360" y="346">yes</text>
+
+<rect class="game" x="20" y="404" width="300" height="50" rx="6" /><text class="t" x="32" y="424">List it</text><text class="m" x="32" y="442">map g/n object id, sprite, graphics, tile</text>
+<path class="arr" d="M170,374 L170,402" marker-end="url(#aw)" /><text class="s" x="178" y="392">no</text>
+</svg>

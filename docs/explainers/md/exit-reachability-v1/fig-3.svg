@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 230" width="720" height="230" role="img" aria-label="wiring">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --foot:#7cc49f; --water:#7fa7e0; --far:#d9c27a; --solid:#cfcdc6; --exit:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}
+svg{display:block}
+svg text{font-family:var(--body);font-size:11px;fill:var(--fg)}
+.box{fill:var(--panel);stroke:var(--rule)}
+.hot{fill:var(--game-bg);stroke:var(--game)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="230" style="fill:#ffffff;stroke:none" /><rect class="box" x="10" y="20" width="160" height="56" rx="6" /><text x="22" y="44">preset FeatureSet</text><text x="22" y="62">exit-reachability-v1</text>
+   <rect class="box" x="10" y="140" width="160" height="56" rx="6" /><text x="22" y="164">serverFeatureEnv</text><text x="22" y="182">POKEBENCH_FEATURES_OFF</text>
+   <rect class="hot" x="210" y="140" width="190" height="56" rx="6" /><text x="222" y="164">game server: flood once</text><text x="222" y="182">exit_reach + readout notes</text>
+   <rect class="hot" x="440" y="80" width="150" height="56" rx="6" /><text x="452" y="104">exitReach(features,</text><text x="452" y="122">state) in surf-gate.ts</text>
+   <rect class="box" x="620" y="10" width="95" height="40" rx="6" /><text x="628" y="34">untaken exits</text>
+   <rect class="box" x="620" y="60" width="95" height="40" rx="6" /><text x="628" y="84">supervisor</text>
+   <rect class="box" x="620" y="110" width="95" height="40" rx="6" /><text x="628" y="134">edgeNote</text>
+   <rect class="box" x="620" y="160" width="95" height="40" rx="6" /><text x="628" y="184">navigate_to</text>
+   <path class="arrow" d="M90 76 V140" /><path class="arrow" d="M170 168 H210" /><path class="arrow" d="M400 168 C420 168 420 108 440 108" /><path class="arrow" d="M170 48 C300 48 380 100 440 100" />
+   <path class="arrow" d="M590 108 L620 30" /><path class="arrow" d="M590 108 L620 80" /><path class="arrow" d="M590 108 L620 130" /><path class="arrow" d="M590 108 L620 180" />
+  </svg>

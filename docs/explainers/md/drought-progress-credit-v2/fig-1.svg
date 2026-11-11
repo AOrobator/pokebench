@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 190" width="640" height="190" role="img" aria-label="Sequence from leader attempt to credit decision">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="190" style="fill:#ffffff;stroke:none" /><rect x="1" y="1" width="638" height="188" fill="#fff" stroke="#ddd" />
+<g font-family="ui-monospace,Menlo,monospace" font-size="12" fill="#1a1a1a">
+<rect x="18" y="24" width="180" height="46" rx="4" fill="#eef2f8" stroke="#8aa" />
+<text x="30" y="43">state: trainer_opponent</text><text x="30" y="60">battle_active + LEADER (0x20)</text>
+<rect x="230" y="24" width="180" height="46" rx="4" fill="#eef2f8" stroke="#8aa" />
+<text x="242" y="43">capture: id, turn, place,</text><text x="242" y="60">party identities at start</text>
+<rect x="442" y="24" width="180" height="46" rx="4" fill="#eef2f8" stroke="#8aa" />
+<text x="454" y="43">BattleOutcomes: outcome</text><text x="454" y="60">lost or drew -&gt; open</text>
+<rect x="230" y="104" width="180" height="46" rx="4" fill="#eef6ee" stroke="#7a7" />
+<text x="242" y="123">progressed(): level up</text><text x="242" y="140">credited(identity)?</text>
+<rect x="442" y="104" width="180" height="46" rx="4" fill="#f8eef2" stroke="#a77" />
+<text x="454" y="123">true -&gt; restart clock</text><text x="454" y="140">false -&gt; count stands</text>
+<path d="M198 47 H230" stroke="#555" marker-end="url(#a)" />
+<path d="M410 47 H442" stroke="#555" marker-end="url(#a)" />
+<path d="M532 70 V104" stroke="#555" marker-end="url(#a)" />
+<path d="M320 70 V104" stroke="#555" marker-end="url(#a)" />
+<text x="196" y="180">win, or the game's own defeated flag, retires the record: every level-up credits again.</text>
+</g>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="#555" /></marker></defs>
+</svg>

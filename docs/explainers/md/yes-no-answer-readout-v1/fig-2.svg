@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 170" width="860" height="170" role="img" aria-label="Switch wiring">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="170" style="fill:#ffffff;stroke:none" /><rect x="10" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="22" y="44">fixed-run bundle arm</text><text x="22" y="64" class="small">switches + base false</text>
+<rect x="230" y="20" width="190" height="56" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="242" y="44">serverFeatureEnv</text><text x="242" y="64" class="small">POKEBENCH_FEATURES_OFF</text>
+<rect x="460" y="20" width="180" height="56" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="472" y="44">game server readout</text><text x="472" y="64" class="small">format_readout(state, off)</text>
+<rect x="680" y="20" width="170" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" /><text x="692" y="44">answer_line(state)</text><text x="692" y="64" class="small">yes_no_answer.py</text>
+<line x1="190" y1="48" x2="230" y2="48" stroke="var(--fg)" /><line x1="420" y1="48" x2="460" y2="48" stroke="var(--fg)" /><line x1="640" y1="48" x2="680" y2="48" stroke="var(--fg)" />
+<text x="460" y="110">reads only what the readers already decoded from RAM:</text>
+<text x="460" y="130" class="small">active_ui phase, selected, ready, diagnostic · battle prompt (kind, ready, selected)</text>
+<text x="460" y="150" class="small">· battle input yes_no (forfeit box)</text>
+<text x="10" y="110">observe, press and navigate_to all return this readout,</text>
+<text x="10" y="130">so the line appears in each of them while the box is ready.</text>
+</svg>

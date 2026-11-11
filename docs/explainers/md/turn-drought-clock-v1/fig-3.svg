@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Wiring from preset to stall briefing">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--act:#2b6b9d;--nudge:#c0392b;--reset:#2e8b57;--held:#b8860b;--dash:#8a96a3}
+*{box-sizing:border-box}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="120" style="fill:#ffffff;stroke:none" /><g fill="none" stroke="var(--fg)"><rect x="10" y="30" width="170" height="50" rx="6" /><rect x="230" y="30" width="190" height="50" rx="6" /><rect x="470" y="30" width="170" height="50" rx="6" stroke="var(--nudge)" stroke-width="3" /><rect x="690" y="30" width="160" height="50" rx="6" /></g>
+ <text x="22" y="52">FeatureSet</text><text x="22" y="70" fill="var(--muted)">preset / fixed arm</text>
+ <text x="242" y="52">stallBriefing()</text><text x="242" y="70" fill="var(--muted)">play-wiring.ts</text>
+ <text x="482" y="52">StallBriefing.check</text><text x="482" y="70" fill="var(--muted)">actions / 30</text>
+ <text x="702" y="52">stallText()</text><text x="702" y="70" fill="var(--muted)">action_drought facts</text>
+ <g stroke="var(--fg)"><line x1="180" y1="55" x2="228" y2="55" /><line x1="420" y1="55" x2="468" y2="55" /><line x1="640" y1="55" x2="688" y2="55" /></g>
+</svg>

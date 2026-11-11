@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" width="720" role="img" aria-label="Logit bars for three tokens: wait appeared 4 times, so appeared once, go never appeared. Presence penalty cuts wait and so by 1.5 each; go is unchanged." height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --warn:#9a6a00; --warn-bg:#fbf1d9;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --warn:#f0c060; --warn-bg:#3a2f14; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --warn:#f0c060; --warn-bg:#3a2f14; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.barb{fill:var(--soft)}
+.barp{fill:var(--nav)}
+.barf{fill:var(--prior)}
+.base{stroke:var(--rule);stroke-width:1}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="300" style="fill:#ffffff;stroke:none" /><g transform="translate(60,20)">
+<text class="t" x="0" y="0">Illustrative scores for the next token</text>
+<text class="s" x="0" y="18">"wait" already appeared 4 times, "so" once, "go" never</text>
+<line class="base" x1="0" y1="240" x2="620" y2="240" />
+
+
+<text class="t" x="70" y="262">"wait" (×4)</text>
+<rect class="barb" x="20" y="80" width="40" height="160" /><text class="m" x="22" y="74">3.2</text>
+<rect class="barp" x="70" y="155" width="40" height="85" /><text class="m" x="72" y="149">1.7</text>
+<rect class="barf" x="120" y="180" width="40" height="60" /><text class="m" x="122" y="174">1.2</text>
+
+<text class="t" x="285" y="262">"so" (×1)</text>
+<rect class="barb" x="230" y="110" width="40" height="130" /><text class="m" x="232" y="104">2.6</text>
+<rect class="barp" x="280" y="185" width="40" height="55" /><text class="m" x="282" y="179">1.1</text>
+<rect class="barf" x="330" y="135" width="40" height="105" /><text class="m" x="332" y="129">2.1</text>
+
+<text class="t" x="490" y="262">"go" (×0)</text>
+<rect class="barb" x="440" y="120" width="40" height="120" /><text class="m" x="442" y="114">2.4</text>
+<rect class="barp" x="490" y="120" width="40" height="120" /><text class="m" x="492" y="114">2.4</text>
+<rect class="barf" x="540" y="120" width="40" height="120" /><text class="m" x="542" y="114">2.4</text>
+<rect class="barb" x="0" y="30" width="10" height="10" /><text class="s" x="14" y="39">no penalty</text>
+<rect class="barp" x="100" y="30" width="10" height="10" /><text class="s" x="114" y="39">presence 1.5 (this switch): −1.5 if seen at all</text>
+<rect class="barf" x="380" y="30" width="10" height="10" /><text class="s" x="394" y="39">frequency 0.5 (contrast, not used): −0.5 × count</text>
+</g>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 250" width="700" role="img" aria-label="Local map row 15 to 17, x 6 to 12, with the player at (10,16) pressing left into the wall at (9,16)" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .big{font-family:var(--mono);font-size:15px;font-weight:600}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.wall{fill:var(--wall);stroke:var(--rule)}
+.ground{fill:var(--ground);stroke:var(--rule)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.p{stroke:var(--prior);stroke-width:2.2}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="250" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--prior)" /></marker></defs>
+<g transform="translate(40,30)">
+<text class="s" x="22" y="-8">6</text><text class="s" x="72" y="-8">7</text><text class="s" x="122" y="-8">8</text><text class="s" x="172" y="-8">9</text><text class="s" x="218" y="-8">10</text><text class="s" x="268" y="-8">11</text><text class="s" x="318" y="-8">12</text>
+<text class="s" x="-26" y="30">15</text><text class="s" x="-26" y="80">16</text><text class="s" x="-26" y="130">17</text>
+<rect class="wall" x="0" y="0" width="50" height="50" /><rect class="wall" x="50" y="0" width="50" height="50" /><rect class="wall" x="100" y="0" width="50" height="50" /><rect class="wall" x="150" y="0" width="50" height="50" /><rect class="ground" x="200" y="0" width="50" height="50" /><rect class="ground" x="250" y="0" width="50" height="50" /><rect class="ground" x="300" y="0" width="50" height="50" />
+<rect class="wall" x="0" y="50" width="50" height="50" /><rect class="box" x="50" y="50" width="50" height="50" /><rect class="wall" x="100" y="50" width="50" height="50" /><rect class="wall hot" x="150" y="50" width="50" height="50" /><rect class="game" x="200" y="50" width="50" height="50" /><rect class="ground" x="250" y="50" width="50" height="50" /><rect class="ground" x="300" y="50" width="50" height="50" />
+<rect class="wall" x="0" y="100" width="50" height="50" /><rect class="ground" x="50" y="100" width="50" height="50" /><rect class="ground" x="100" y="100" width="50" height="50" /><rect class="ground" x="150" y="100" width="50" height="50" /><rect class="ground" x="200" y="100" width="50" height="50" /><rect class="ground" x="250" y="100" width="50" height="50" /><rect class="ground" x="300" y="100" width="50" height="50" />
+<text class="big" x="20" y="30">#</text><text class="big" x="70" y="30">#</text><text class="big" x="120" y="30">#</text><text class="big" x="170" y="30">#</text>
+<text class="big" x="20" y="80">#</text><text class="big" x="69" y="80">W</text><text class="big" x="120" y="80">#</text><text class="big" x="170" y="80">#</text><text class="big" x="219" y="80">@</text>
+<text class="big" x="20" y="130">#</text>
+<path class="arr p" d="M212,92 C195,118 185,118 178,100" marker-end="url(#a)" />
+<text class="s" x="360" y="70">@ = player (10,16), facing left</text>
+<text class="s" x="360" y="88">(9,16): collision 1, behavior 0x00</text>
+<text class="s" x="360" y="106">W (7,16): door warp, entered from below</text>
+<text class="s" x="360" y="124">red arrow: LEFT ×3 stops at the wall</text>
+</g>
+</svg>

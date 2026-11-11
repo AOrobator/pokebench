@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 150" role="img" aria-label="A faced trainer's line is kept if the trainer is a gym leader whose badge is not earned" width="760" height="150">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{min-width:640px;width:100%;height:auto}
+svg text{font:13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#283038}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="150" style="fill:#ffffff;stroke:none" /><rect x="20" y="45" width="170" height="60" rx="8" fill="#e3eaf3" stroke="#345779" /><text x="105" y="80" text-anchor="middle">Faced trainer's line</text>
+<rect x="240" y="45" width="230" height="60" rx="8" fill="#fff3c9" stroke="#b08a1e" /><text x="355" y="72" text-anchor="middle">Gym leader,</text><text x="355" y="90" text-anchor="middle">badge not earned?</text>
+<rect x="540" y="15" width="190" height="50" rx="8" fill="#e0f2e6" stroke="#2f7d4f" /><text x="635" y="45" text-anchor="middle">Yes: not dropped as junk</text>
+<rect x="540" y="85" width="190" height="50" rx="8" fill="#f6dede" stroke="#a33a3a" /><text x="635" y="115" text-anchor="middle">No: trainer rule applies</text>
+<path d="M190 75H240M470 65L540 40M470 85L540 110" stroke="#5a6b80" fill="none" />
+</svg>

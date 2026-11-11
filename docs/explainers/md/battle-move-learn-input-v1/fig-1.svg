@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" role="img" aria-label="Native learn move question feeds ready Interface instead of battle resolving" width="720" height="200"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{min-width:560px}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="200" style="fill:#ffffff;stroke:none" /><rect x="5" y="15" width="215" height="150" fill="#e7f3ee" stroke="#123b53" /><text x="20" y="45">Native running script</text><text x="20" y="78">Learn-move state = 1</text><text x="20" y="112">Cursor YES or NO</text><path d="M225 85H310" stroke="#123b53" stroke-width="3" /><text x="240" y="65">ON</text><rect x="315" y="15" width="390" height="150" fill="#e7f3ee" stroke="#123b53" /><text x="330" y="45">Interface: battle_yes_no</text><text x="330" y="78">input ready; selected YES / NO</text><text x="330" y="112">Model chooses the answer</text></svg>

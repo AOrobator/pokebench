@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 120" width="820" style="min-width:640px" role="img" aria-label="Wiring" height="120">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#a86b12}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e0a94f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="820" height="120" style="fill:#ffffff;stroke:none" /><rect x="10" y="40" width="140" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" /><text x="20" y="66">bundle preset</text>
+<rect x="190" y="40" width="160" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" /><text x="200" y="66">FeatureSet</text>
+<rect x="390" y="10" width="200" height="44" rx="6" fill="var(--fill)" stroke="var(--keep)" /><text x="400" y="36">withUnfinishedActivity</text>
+<rect x="390" y="66" width="200" height="44" rx="6" fill="var(--fill)" stroke="var(--keep)" /><text x="400" y="92">HarnessTrust Story line</text>
+<rect x="630" y="40" width="180" height="44" rx="6" fill="var(--panel)" stroke="var(--line)" /><text x="640" y="66">game tool results</text>
+<path d="M150 62 L186 62" stroke="var(--muted)" stroke-width="2" /><path d="M350 62 L386 32" stroke="var(--muted)" stroke-width="2" /><path d="M350 62 L386 88" stroke="var(--muted)" stroke-width="2" />
+<path d="M590 32 L626 56" stroke="var(--muted)" stroke-width="2" /><path d="M590 88 L626 68" stroke="var(--muted)" stroke-width="2" />
+</svg>

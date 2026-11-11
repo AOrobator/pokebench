@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 210" width="720" role="img" aria-label="Decision flow" height="210">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --foot:#7cc49f; --water:#7fa7e0; --far:#d9c27a; --solid:#cfcdc6; --exit:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}
+svg{display:block}
+svg text{font-family:var(--body);font-size:11px;fill:var(--fg)}
+.box{fill:var(--panel);stroke:var(--rule)}
+.hot{fill:var(--game-bg);stroke:var(--game)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="210" style="fill:#ffffff;stroke:none" /><rect class="box" x="10" y="20" width="200" height="60" rx="6" /><text x="22" y="44">Whole current map from RAM</text><text x="22" y="62">(collision, behavior per tile)</text>
+   <rect class="box" x="260" y="10" width="200" height="40" rx="6" /><text x="272" y="35">Flood on foot from the player</text>
+   <rect class="box" x="260" y="60" width="200" height="40" rx="6" /><text x="272" y="85">Flood with water open</text>
+   <rect class="hot" x="510" y="20" width="200" height="70" rx="6" /><text x="522" y="44">Across water: not reached</text><text x="522" y="60">on foot (itself or a neighbour),</text><text x="522" y="76">reached with water</text>
+   <path class="arrow" d="M210 50 H260 M210 50 L260 80 M460 30 L510 50 M460 80 L510 60" />
+   <rect class="box" x="10" y="130" width="200" height="60" rx="6" /><text x="22" y="154">Balance Badge flag, party</text><text x="22" y="172">moves, avatar surfing bit</text>
+   <rect class="hot" x="260" y="130" width="200" height="60" rx="6" /><text x="272" y="154">can_surf: true, false, or</text><text x="272" y="172">null when a move is unread</text>
+   <rect class="box" x="510" y="130" width="200" height="60" rx="6" /><text x="522" y="154">Hidden only when</text><text x="522" y="172">can_surf is false</text>
+   <path class="arrow" d="M210 160 H260 M460 160 H510 M610 90 V130" />
+  </svg>

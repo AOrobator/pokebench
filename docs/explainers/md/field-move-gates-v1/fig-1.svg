@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 265" role="img" aria-label="Inventory capability does not establish riding, speed or technique" width="300" height="265"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{max-width:100%;height:auto}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="300" height="265" style="fill:#ffffff;stroke:none" /><rect x="10" y="10" width="280" height="70" rx="8" fill="#e5f0f9" stroke="#173454" /><text x="25" y="38">Bag / party / badges</text><text x="25" y="62">Capability recorded</text><path d="M150 85 V97 M150 125 V140" stroke="#173454" stroke-width="3" /><text x="150" y="116" text-anchor="middle" font-size="12">does not establish</text><rect x="10" y="145" width="280" height="70" rx="8" fill="#fff0ca" stroke="#173454" /><text x="25" y="173">Riding / speed / technique</text><text x="25" y="197">Not a walking route</text><text x="10" y="247">Player chooses special movement.</text></svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 150" role="img" aria-label="The model receives ledger text while the recorder stores the exact text and evidence IDs" width="940" height="150"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--panel:#fff;--edge:#b8c1b2;--accent:#28613b}
+@media(min-width:1000000px){:root{--bg:#151c17;--ink:#e2eadf;--panel:#202b22;--edge:#536650;--accent:#a5db8d}}
+*{box-sizing:border-box}
+svg{width:100%;min-width:570px;height:auto}
+rect{fill:var(--panel);stroke:var(--edge);stroke-width:2}
+text{fill:var(--ink);font:15px system-ui}
+path{stroke:var(--accent);stroke-width:2;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="940" height="150" style="fill:#ffffff;stroke:none" /><rect x="5" y="15" width="255" height="95" rx="12" /><text x="22" y="48">Bounded in-process ledger</text><text x="22" y="78">text() + evidence()</text><path d="M260 55H360" /><text x="275" y="38">same text</text><rect x="360" y="15" width="270" height="95" rx="12" /><text x="377" y="48">role: user, content: ledger text</text><text x="377" y="78">Then ordinary context transform</text><path d="M260 100L345 137H650" /><text x="380" y="130">record exact payload</text><rect x="660" y="15" width="270" height="95" rx="12" /><text x="677" y="48">navigation_context event</text><text x="677" y="78">text + evidence + turn + seq</text></svg>

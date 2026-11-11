@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 390" width="720" height="390" role="img" aria-label="Map-table graph of LITTLEROOT TOWN and RUSTBORO CITY buildings">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--floor:#e9efe3;--grass:#9fd08a;--ledge:#c9a46a;--wall:#55606c;--walk:#2b6b9d;--later:#6aa0c8;--stop:#c0392b;--ok:#2e7d32;--dash:#8a96a3;--hi:#fff4c2}
+*{box-sizing:border-box}
+svg{display:block;width:100%;height:auto;min-width:560px}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+svg text.b{font-weight:700}
+svg text.m{fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="390" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--fg)" /></marker></defs>
+ <text x="20" y="14" class="b">Story goal names LITTLEROOT TOWN</text>
+ <rect x="20" y="24" width="200" height="40" rx="6" fill="var(--card)" stroke="var(--dash)" /><text x="30" y="49">ROUTE101 (map 0/16)</text>
+ <path d="M120 64 V104" stroke="var(--fg)" stroke-width="4" /><text x="128" y="88" class="m">NORTH edge</text>
+ <rect x="20" y="104" width="200" height="46" rx="6" fill="var(--card)" stroke="var(--fg)" stroke-width="2" /><text x="30" y="124" class="b">LITTLEROOT TOWN (0/9)</text><text x="30" y="141" class="m">the named place; outdoor</text>
+ <path d="M80 150 V204 M150 150 L245 204 M200 150 L405 204" stroke="var(--fg)" fill="none" />
+ <text x="235" y="176" class="m">doors</text>
+ <rect x="20" y="204" width="135" height="44" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="28" y="223">RED's HOUSE 1F</text><text x="28" y="240" class="m">map 1/0</text>
+ <rect x="20" y="284" width="135" height="44" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="28" y="303">RED's HOUSE 2F</text><text x="28" y="320" class="m">map 1/1</text>
+ <path d="M87 248 V284" stroke="var(--fg)" /><text x="93" y="270" class="m">stairs</text>
+ <rect x="166" y="204" width="168" height="44" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="178" y="223">PROF. BIRCH'S HOUSE 1F</text><text x="178" y="240" class="m">map 1/2</text>
+ <rect x="166" y="284" width="168" height="44" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="178" y="303">PROF. BIRCH'S HOUSE 2F</text><text x="178" y="320" class="m">map 1/3</text>
+ <path d="M247 248 V284" stroke="var(--fg)" />
+ <rect x="346" y="204" width="125" height="44" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="354" y="223">PROF. BIRCH'S</text><text x="354" y="240">POKéMON LAB 1/4</text>
+
+ <text x="490" y="14" class="b">Story goal names RUSTBORO CITY</text>
+ <rect x="490" y="24" width="220" height="46" rx="6" fill="var(--card)" stroke="var(--fg)" stroke-width="2" /><text x="500" y="44" class="b">RUSTBORO CITY (0/3)</text><text x="500" y="61" class="m">the named place; N, S, E edges</text>
+ <path d="M545 70 V124" stroke="var(--fg)" /><text x="503" y="100" class="m">door</text>
+ <path d="M655 70 V124" stroke="var(--fg)" stroke-width="4" /><text x="662" y="100" class="m">SOUTH</text>
+ <rect x="490" y="124" width="110" height="52" rx="6" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="498" y="145">RUSTBORO CITY</text><text x="498" y="164">GYM (11/3)</text>
+ <rect x="610" y="124" width="100" height="52" rx="6" fill="var(--card)" stroke="var(--dash)" /><text x="618" y="145">ROUTE104</text><text x="618" y="164" class="m">0/19, outdoor</text>
+ <path d="M660 176 V230" stroke="var(--fg)" /><text x="666" y="207" class="m">door</text>
+ <rect x="610" y="230" width="100" height="52" rx="6" fill="var(--card)" stroke="var(--stop)" stroke-width="2" stroke-dasharray="5 4" /><text x="618" y="251">MR BRINEYS</text><text x="618" y="270">HOUSE (17/0)</text>
+ <text x="490" y="304" class="m">Its door leads to ROUTE104, not to</text>
+ <text x="490" y="320" class="m">RUSTBORO CITY: moves there still count.</text>
+
+ <rect x="20" y="350" width="18" height="14" fill="var(--hi)" stroke="var(--ok)" stroke-width="2" /><text x="44" y="362">building of the named place: ON, moves here are not counted</text>
+ <path d="M440 357 H480" stroke="var(--fg)" stroke-width="4" /><text x="486" y="362">N/S/E/W map connection</text>
+</svg>

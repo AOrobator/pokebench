@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" width="720" role="img" aria-label="How the switch reaches the context window and the supervisors" height="150">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --lost:#c2432f; --lost-bg:#fbe7e2; --full:#2a62c9; --full-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --lost:#ff7a63; --lost-bg:#3a1f1a; --full:#7aa7ff; --full-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --lost:#ff7a63; --lost-bg:#3a1f1a; --full:#7aa7ff; --full-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.kept{fill:var(--game-bg);stroke:var(--game)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="150" style="fill:#ffffff;stroke:none" /><rect class="box" x="0" y="50" width="130" height="46" rx="5" /><text x="65" y="70" text-anchor="middle" class="t">FeatureSet</text><text x="65" y="86" text-anchor="middle" class="s">preset / switchboard</text>
+<rect class="kept" x="180" y="10" width="190" height="46" rx="5" /><text x="275" y="30" text-anchor="middle" class="t">contextWindow()</text><text x="275" y="46" text-anchor="middle" class="s">adds keepDialogue: true</text>
+<rect class="kept" x="420" y="10" width="300" height="46" rx="5" /><text x="570" y="30" text-anchor="middle" class="t">slideWindow → collapsed()</text><text x="570" y="46" text-anchor="middle" class="s">summary line + dialogueUnits(full text)</text>
+<rect class="kept" x="180" y="94" width="190" height="46" rx="5" /><text x="275" y="114" text-anchor="middle" class="t">SupervisorBriefing</text><text x="275" y="130" text-anchor="middle" class="s">story milestones + dialogue log</text>
+<rect class="box" x="420" y="94" width="300" height="46" rx="5" /><text x="570" y="114" text-anchor="middle" class="t">loop / stall / text-only briefings</text><text x="570" y="130" text-anchor="middle" class="s">one added line before "Recent dialogue"</text>
+<path class="arr" d="M130 66 L180 36" /><path class="arr" d="M370 33 H420" />
+<path class="arr" d="M130 82 L180 116" /><path class="arr" d="M370 117 H420" />
+</svg>

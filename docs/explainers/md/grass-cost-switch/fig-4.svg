@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 120" role="img" aria-label="The switch flows from the run's feature set through withNavigation and the navigate_to tool into the planner's step cost." width="700" height="120">
+    <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f8f3; --fg:#1d2420; --soft:#5a665e; --rule:#d8dfd5; --panel:#ffffff;
+ --grass:#7fc46a; --grass-ink:#2f6e2a; --ground:#efe4c8; --tile-edge:#cdbf98;
+ --route:#d1433a; --muted:#8b968e;
+ --go:#d1433a; --go-ink:#ffffff; --thru:#e7ece4; --thru-ink:#4c574f; --tie:#f0cf6b; --tie-ink:#4a3a05;
+ --display:ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg{min-width:0}
+svg text{font-family:var(--mono);fill:var(--soft);font-size:11px;text-anchor:middle}
+svg .box{fill:var(--panel);stroke:var(--rule)}
+svg .box.hot{stroke:var(--route);stroke-width:2}
+svg .bt{fill:var(--fg);font-size:12px;font-family:var(--body);font-weight:600}
+svg .bs{font-size:10.5px}
+svg .lab{font-size:10px;fill:var(--soft)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)" /></marker></defs>
+    <rect class="box" x="4" y="30" width="120" height="56" rx="8" /><text class="bt" x="64" y="54">Run preset</text><text class="bs" x="64" y="72">switchboard or JSON</text>
+    <rect class="box" x="148" y="30" width="120" height="56" rx="8" /><text class="bt" x="208" y="54">Feature set</text><text class="bs" x="208" y="72">needs bounded nav</text>
+    <rect class="box" x="292" y="30" width="120" height="56" rx="8" /><text class="bt" x="352" y="54">withNavigation</text><text class="bs" x="352" y="72">builds the tool</text>
+    <rect class="box" x="436" y="30" width="120" height="56" rx="8" /><text class="bt" x="496" y="54">navigate_to</text><text class="bs" x="496" y="72">re-plans each press</text>
+    <rect class="box hot" x="580" y="30" width="116" height="56" rx="8" /><text class="bt" x="638" y="54">planNavigation</text><text class="bs" x="638" y="72">grass step = 1.5</text>
+    <line x1="124" y1="58" x2="146" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)" />
+    <line x1="268" y1="58" x2="290" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)" />
+    <line x1="412" y1="58" x2="434" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)" />
+    <line x1="556" y1="58" x2="578" y2="58" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#fa)" />
+    <text class="lab" x="136" y="22">on/off</text><text class="lab" x="280" y="22">flag</text><text class="lab" x="424" y="22">grassCost port</text><text class="lab" x="568" y="22">option</text>
+    <text class="lab" x="638" y="106">only this box changes behavior</text>
+   </svg>

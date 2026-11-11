@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 300" width="740" role="img" aria-label="Wiring: the run preset's switches reach both the server readout and the system prompt; map_rules.py owns the text on both paths" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="740" height="300" style="fill:#ffffff;stroke:none" /><rect x="10" y="125" width="130" height="50" rx="6" class="box" />
+<text x="20" y="146" class="t">FeatureSet</text><text x="20" y="163" class="s">run preset / switchboard</text>
+<rect x="200" y="40" width="160" height="50" rx="6" class="box" />
+<text x="210" y="61" class="t">serverFeatureEnv</text><text x="210" y="78" class="s m">POKEBENCH_FEATURES_OFF</text>
+<rect x="200" y="210" width="160" height="50" rx="6" class="box" />
+<text x="210" y="231" class="t">playSystemPrompt</text><text x="210" y="248" class="s">mapRulesSection(features)</text>
+<rect x="420" y="40" width="160" height="50" rx="6" class="navb" />
+<text x="430" y="61" class="t">server readout</text><text x="430" y="78" class="s">live_map / world_context</text>
+<rect x="420" y="210" width="172" height="50" rx="6" class="navb" />
+<text x="430" y="231" class="t">map-rules.generated.ts</text><text x="430" y="248" class="s">128 off sets → section</text>
+<rect x="600" y="115" width="130" height="70" rx="6" class="game hot" />
+<text x="610" y="138" class="t">map_rules.py</text><text x="610" y="155" class="s">legend, rules,</text><text x="610" y="170" class="s">prompt_section(off)</text>
+<path d="M140 140 L200 70" class="arr" /><path d="M140 160 L200 230" class="arr" />
+<path d="M360 65 L420 65" class="arr" /><path d="M360 235 L420 235" class="arr" />
+<path d="M665 115 L580 70" class="arr" /><text x="618" y="92" class="s">imports</text>
+<path d="M665 185 L592 230" class="arr" /><text x="622" y="214" class="s">just map-rules</text>
+<text x="366" y="58" class="s">off set</text><text x="366" y="228" class="s">off set</text>
+</svg>

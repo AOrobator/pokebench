@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 210" width="720" role="img" aria-label="Each long token gets a code listed once" height="210">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1d2433;--muted:#5b6578;--line:#c9d1df;--old:#b5523b;--new:#2f7d4f;--code:#2b4c8c}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="210" style="fill:#ffffff;stroke:none" /><rect x="10" y="20" width="300" height="170" fill="#fff" stroke="var(--old)" />
+<text x="20" y="42" font-size="14" fill="var(--old)">OFF: full token in every cell</text>
+<text x="20" y="72" font-family="monospace" font-size="13">   4      #   g/Eg:g   g/Eg:g      #</text>
+<text x="20" y="96" font-family="monospace" font-size="13">   5      #        .   g/Eg:g      #</text>
+<text x="20" y="130" font-size="12" fill="var(--muted)">each cell padded to the widest token</text>
+<text x="20" y="150" font-size="12" fill="var(--muted)">(about 12 chars per column at a702 T1300)</text>
+<line x1="320" y1="100" x2="390" y2="100" stroke="var(--ink)" marker-end="url(#a)" />
+<text x="326" y="90" font-size="12">switch ON</text>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--ink)" /></marker></defs>
+<rect x="400" y="20" width="310" height="170" fill="#fff" stroke="var(--new)" />
+<text x="410" y="42" font-size="14" fill="var(--new)">ON: code in the cell, token in the Codes line</text>
+<text x="410" y="70" font-family="monospace" font-size="13" style="fill:#2b4c8c;font-weight:600">Codes: B = g/Eg:g; …</text>
+<text x="410" y="100" font-family="monospace" font-size="13">   4 # B B #</text>
+<text x="410" y="124" font-family="monospace" font-size="13">   5 # . B #</text>
+<text x="410" y="158" font-size="12" fill="var(--muted)">cells padded to the longest code (usually 1 or 2 letters)</text>
+</svg>

@@ -1,0 +1,479 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 500" width="720" height="500" role="img" aria-label="ROUTE101 whole map with the 15x15 window around (7,7) and the escape route">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f6f8;--fg:#162333;--card:#fff;--muted:#5a6878;--floor:#e9efe3;--grass:#9fd08a;--ledge:#c9a46a;--wall:#55606c;--walk:#2b6b9d;--later:#6aa0c8;--stop:#c0392b;--ok:#2e7d32;--dash:#8a96a3;--hi:#fff4c2}
+*{box-sizing:border-box}
+svg{display:block;width:100%;height:auto;min-width:560px}
+svg text{font:12px system-ui,-apple-system,sans-serif;fill:var(--fg)}
+svg text.b{font-weight:700}
+svg text.m{fill:var(--muted)}
+svg text.ax{font-size:10px;fill:var(--muted)}
+svg text.arw{font-size:13px;font-weight:700;fill:#5a3a10}
+svg .floor{fill:var(--floor);stroke:#cfd6c8;stroke-width:.5}
+svg .grass{fill:var(--grass);stroke:#86b873;stroke-width:.5}
+svg .ledge{fill:var(--ledge);stroke:#7a5a2a;stroke-width:.5}
+svg .wall{fill:var(--wall);stroke:#46505a;stroke-width:.5}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="500" style="fill:#ffffff;stroke:none" /><defs><marker id="e" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--walk)" /></marker>
+ <marker id="l" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--later)" /></marker></defs>
+<rect x="40" y="30" width="22" height="22" class="wall" />
+<rect x="62" y="30" width="22" height="22" class="wall" />
+<rect x="84" y="30" width="22" height="22" class="wall" />
+<rect x="106" y="30" width="22" height="22" class="wall" />
+<rect x="128" y="30" width="22" height="22" class="wall" />
+<rect x="150" y="30" width="22" height="22" class="wall" />
+<rect x="172" y="30" width="22" height="22" class="wall" />
+<rect x="194" y="30" width="22" height="22" class="wall" />
+<rect x="216" y="30" width="22" height="22" class="floor" />
+<rect x="238" y="30" width="22" height="22" class="floor" />
+<rect x="260" y="30" width="22" height="22" class="floor" />
+<rect x="282" y="30" width="22" height="22" class="floor" />
+<rect x="304" y="30" width="22" height="22" class="wall" />
+<rect x="326" y="30" width="22" height="22" class="wall" />
+<rect x="348" y="30" width="22" height="22" class="wall" />
+<rect x="370" y="30" width="22" height="22" class="wall" />
+<rect x="392" y="30" width="22" height="22" class="wall" />
+<rect x="414" y="30" width="22" height="22" class="wall" />
+<rect x="436" y="30" width="22" height="22" class="wall" />
+<rect x="458" y="30" width="22" height="22" class="wall" />
+<rect x="40" y="52" width="22" height="22" class="wall" />
+<rect x="62" y="52" width="22" height="22" class="wall" />
+<rect x="84" y="52" width="22" height="22" class="wall" />
+<rect x="106" y="52" width="22" height="22" class="wall" />
+<rect x="128" y="52" width="22" height="22" class="wall" />
+<rect x="150" y="52" width="22" height="22" class="wall" />
+<rect x="172" y="52" width="22" height="22" class="wall" />
+<rect x="194" y="52" width="22" height="22" class="wall" />
+<rect x="216" y="52" width="22" height="22" class="floor" />
+<rect x="238" y="52" width="22" height="22" class="floor" />
+<rect x="260" y="52" width="22" height="22" class="floor" />
+<rect x="282" y="52" width="22" height="22" class="floor" />
+<rect x="304" y="52" width="22" height="22" class="wall" />
+<rect x="326" y="52" width="22" height="22" class="wall" />
+<rect x="348" y="52" width="22" height="22" class="wall" />
+<rect x="370" y="52" width="22" height="22" class="wall" />
+<rect x="392" y="52" width="22" height="22" class="wall" />
+<rect x="414" y="52" width="22" height="22" class="wall" />
+<rect x="436" y="52" width="22" height="22" class="wall" />
+<rect x="458" y="52" width="22" height="22" class="wall" />
+<rect x="40" y="74" width="22" height="22" class="wall" />
+<rect x="62" y="74" width="22" height="22" class="wall" />
+<rect x="84" y="74" width="22" height="22" class="grass" />
+<rect x="106" y="74" width="22" height="22" class="grass" />
+<rect x="128" y="74" width="22" height="22" class="grass" />
+<rect x="150" y="74" width="22" height="22" class="floor" />
+<rect x="172" y="74" width="22" height="22" class="floor" />
+<rect x="194" y="74" width="22" height="22" class="floor" />
+<rect x="216" y="74" width="22" height="22" class="floor" />
+<rect x="238" y="74" width="22" height="22" class="floor" />
+<rect x="260" y="74" width="22" height="22" class="floor" />
+<rect x="282" y="74" width="22" height="22" class="floor" />
+<rect x="304" y="74" width="22" height="22" class="floor" />
+<rect x="326" y="74" width="22" height="22" class="grass" />
+<rect x="348" y="74" width="22" height="22" class="grass" />
+<rect x="370" y="74" width="22" height="22" class="grass" />
+<rect x="392" y="74" width="22" height="22" class="wall" />
+<rect x="414" y="74" width="22" height="22" class="wall" />
+<rect x="436" y="74" width="22" height="22" class="wall" />
+<rect x="458" y="74" width="22" height="22" class="wall" />
+<rect x="40" y="96" width="22" height="22" class="wall" />
+<rect x="62" y="96" width="22" height="22" class="wall" />
+<rect x="84" y="96" width="22" height="22" class="grass" />
+<rect x="106" y="96" width="22" height="22" class="grass" />
+<rect x="128" y="96" width="22" height="22" class="grass" />
+<rect x="150" y="96" width="22" height="22" class="grass" />
+<rect x="172" y="96" width="22" height="22" class="floor" />
+<rect x="194" y="96" width="22" height="22" class="floor" />
+<rect x="216" y="96" width="22" height="22" class="floor" />
+<rect x="238" y="96" width="22" height="22" class="floor" />
+<rect x="260" y="96" width="22" height="22" class="floor" />
+<rect x="282" y="96" width="22" height="22" class="floor" />
+<rect x="304" y="96" width="22" height="22" class="grass" />
+<rect x="326" y="96" width="22" height="22" class="grass" />
+<rect x="348" y="96" width="22" height="22" class="grass" />
+<rect x="370" y="96" width="22" height="22" class="grass" />
+<rect x="392" y="96" width="22" height="22" class="wall" />
+<rect x="414" y="96" width="22" height="22" class="wall" />
+<rect x="436" y="96" width="22" height="22" class="wall" />
+<rect x="458" y="96" width="22" height="22" class="wall" />
+<rect x="40" y="118" width="22" height="22" class="grass" />
+<rect x="62" y="118" width="22" height="22" class="grass" />
+<rect x="84" y="118" width="22" height="22" class="grass" />
+<rect x="106" y="118" width="22" height="22" class="grass" />
+<rect x="128" y="118" width="22" height="22" class="grass" />
+<rect x="150" y="118" width="22" height="22" class="grass" />
+<rect x="172" y="118" width="22" height="22" class="floor" />
+<rect x="194" y="118" width="22" height="22" class="floor" />
+<rect x="216" y="118" width="22" height="22" class="floor" />
+<rect x="238" y="118" width="22" height="22" class="floor" />
+<rect x="260" y="118" width="22" height="22" class="floor" />
+<rect x="282" y="118" width="22" height="22" class="floor" />
+<rect x="304" y="118" width="22" height="22" class="grass" />
+<rect x="326" y="118" width="22" height="22" class="grass" />
+<rect x="348" y="118" width="22" height="22" class="grass" />
+<rect x="370" y="118" width="22" height="22" class="grass" />
+<rect x="392" y="118" width="22" height="22" class="grass" />
+<rect x="414" y="118" width="22" height="22" class="grass" />
+<rect x="436" y="118" width="22" height="22" class="wall" />
+<rect x="458" y="118" width="22" height="22" class="wall" />
+<rect x="40" y="140" width="22" height="22" class="grass" />
+<rect x="62" y="140" width="22" height="22" class="grass" />
+<rect x="84" y="140" width="22" height="22" class="grass" />
+<rect x="106" y="140" width="22" height="22" class="grass" />
+<rect x="128" y="140" width="22" height="22" class="grass" />
+<rect x="150" y="140" width="22" height="22" class="floor" />
+<rect x="172" y="140" width="22" height="22" class="floor" />
+<rect x="194" y="140" width="22" height="22" class="floor" />
+<rect x="216" y="140" width="22" height="22" class="floor" />
+<rect x="238" y="140" width="22" height="22" class="floor" />
+<rect x="260" y="140" width="22" height="22" class="floor" />
+<rect x="282" y="140" width="22" height="22" class="floor" />
+<rect x="304" y="140" width="22" height="22" class="grass" />
+<rect x="326" y="140" width="22" height="22" class="grass" />
+<rect x="348" y="140" width="22" height="22" class="grass" />
+<rect x="370" y="140" width="22" height="22" class="grass" />
+<rect x="392" y="140" width="22" height="22" class="grass" />
+<rect x="414" y="140" width="22" height="22" class="grass" />
+<rect x="436" y="140" width="22" height="22" class="wall" />
+<rect x="458" y="140" width="22" height="22" class="wall" />
+<rect x="40" y="162" width="22" height="22" class="wall" />
+<rect x="62" y="162" width="22" height="22" class="wall" />
+<rect x="84" y="162" width="22" height="22" class="grass" />
+<rect x="106" y="162" width="22" height="22" class="grass" />
+<rect x="128" y="162" width="22" height="22" class="floor" />
+<rect x="150" y="162" width="22" height="22" class="floor" />
+<rect x="172" y="162" width="22" height="22" class="wall" />
+<rect x="194" y="162" width="22" height="22" class="ledge" />
+<text x="205" y="178" text-anchor="middle" class="arw">↓</text>
+<rect x="216" y="162" width="22" height="22" class="ledge" />
+<text x="227" y="178" text-anchor="middle" class="arw">↓</text>
+<rect x="238" y="162" width="22" height="22" class="ledge" />
+<text x="249" y="178" text-anchor="middle" class="arw">↓</text>
+<rect x="260" y="162" width="22" height="22" class="ledge" />
+<text x="271" y="178" text-anchor="middle" class="arw">↓</text>
+<rect x="282" y="162" width="22" height="22" class="wall" />
+<rect x="304" y="162" width="22" height="22" class="wall" />
+<rect x="326" y="162" width="22" height="22" class="grass" />
+<rect x="348" y="162" width="22" height="22" class="grass" />
+<rect x="370" y="162" width="22" height="22" class="grass" />
+<rect x="392" y="162" width="22" height="22" class="grass" />
+<rect x="414" y="162" width="22" height="22" class="floor" />
+<rect x="436" y="162" width="22" height="22" class="floor" />
+<rect x="458" y="162" width="22" height="22" class="floor" />
+<rect x="40" y="184" width="22" height="22" class="wall" />
+<rect x="62" y="184" width="22" height="22" class="wall" />
+<rect x="84" y="184" width="22" height="22" class="ledge" />
+<text x="95" y="200" text-anchor="middle" class="arw">↓</text>
+<rect x="106" y="184" width="22" height="22" class="ledge" />
+<text x="117" y="200" text-anchor="middle" class="arw">↓</text>
+<rect x="128" y="184" width="22" height="22" class="ledge" />
+<text x="139" y="200" text-anchor="middle" class="arw">↓</text>
+<rect x="150" y="184" width="22" height="22" class="ledge" />
+<text x="161" y="200" text-anchor="middle" class="arw">↓</text>
+<rect x="172" y="184" width="22" height="22" class="ledge" />
+<text x="183" y="200" text-anchor="middle" class="arw">↘</text>
+<rect x="194" y="184" width="22" height="22" class="floor" />
+<rect x="216" y="184" width="22" height="22" class="floor" />
+<rect x="238" y="184" width="22" height="22" class="floor" />
+<rect x="260" y="184" width="22" height="22" class="floor" />
+<rect x="282" y="184" width="22" height="22" class="wall" />
+<rect x="304" y="184" width="22" height="22" class="wall" />
+<rect x="326" y="184" width="22" height="22" class="wall" />
+<rect x="348" y="184" width="22" height="22" class="wall" />
+<rect x="370" y="184" width="22" height="22" class="floor" />
+<rect x="392" y="184" width="22" height="22" class="floor" />
+<rect x="414" y="184" width="22" height="22" class="floor" />
+<rect x="436" y="184" width="22" height="22" class="floor" />
+<rect x="458" y="184" width="22" height="22" class="floor" />
+<rect x="40" y="206" width="22" height="22" class="wall" />
+<rect x="62" y="206" width="22" height="22" class="wall" />
+<rect x="84" y="206" width="22" height="22" class="floor" />
+<rect x="106" y="206" width="22" height="22" class="floor" />
+<rect x="128" y="206" width="22" height="22" class="floor" />
+<rect x="150" y="206" width="22" height="22" class="floor" />
+<rect x="172" y="206" width="22" height="22" class="floor" />
+<rect x="194" y="206" width="22" height="22" class="floor" />
+<rect x="216" y="206" width="22" height="22" class="floor" />
+<rect x="238" y="206" width="22" height="22" class="floor" />
+<rect x="260" y="206" width="22" height="22" class="floor" />
+<rect x="282" y="206" width="22" height="22" class="wall" />
+<rect x="304" y="206" width="22" height="22" class="wall" />
+<rect x="326" y="206" width="22" height="22" class="wall" />
+<rect x="348" y="206" width="22" height="22" class="wall" />
+<rect x="370" y="206" width="22" height="22" class="floor" />
+<rect x="392" y="206" width="22" height="22" class="floor" />
+<rect x="414" y="206" width="22" height="22" class="floor" />
+<rect x="436" y="206" width="22" height="22" class="floor" />
+<rect x="458" y="206" width="22" height="22" class="floor" />
+<rect x="40" y="228" width="22" height="22" class="wall" />
+<rect x="62" y="228" width="22" height="22" class="wall" />
+<rect x="84" y="228" width="22" height="22" class="wall" />
+<rect x="106" y="228" width="22" height="22" class="wall" />
+<rect x="128" y="228" width="22" height="22" class="floor" />
+<rect x="150" y="228" width="22" height="22" class="wall" />
+<rect x="172" y="228" width="22" height="22" class="floor" />
+<rect x="194" y="228" width="22" height="22" class="floor" />
+<rect x="216" y="228" width="22" height="22" class="floor" />
+<rect x="238" y="228" width="22" height="22" class="floor" />
+<rect x="260" y="228" width="22" height="22" class="floor" />
+<rect x="282" y="228" width="22" height="22" class="wall" />
+<rect x="304" y="228" width="22" height="22" class="wall" />
+<rect x="326" y="228" width="22" height="22" class="grass" />
+<rect x="348" y="228" width="22" height="22" class="grass" />
+<rect x="370" y="228" width="22" height="22" class="floor" />
+<rect x="392" y="228" width="22" height="22" class="floor" />
+<rect x="414" y="228" width="22" height="22" class="floor" />
+<rect x="436" y="228" width="22" height="22" class="floor" />
+<rect x="458" y="228" width="22" height="22" class="floor" />
+<rect x="40" y="250" width="22" height="22" class="wall" />
+<rect x="62" y="250" width="22" height="22" class="wall" />
+<rect x="84" y="250" width="22" height="22" class="wall" />
+<rect x="106" y="250" width="22" height="22" class="wall" />
+<rect x="128" y="250" width="22" height="22" class="floor" />
+<rect x="150" y="250" width="22" height="22" class="floor" />
+<rect x="172" y="250" width="22" height="22" class="floor" />
+<rect x="194" y="250" width="22" height="22" class="floor" />
+<rect x="216" y="250" width="22" height="22" class="floor" />
+<rect x="238" y="250" width="22" height="22" class="floor" />
+<rect x="260" y="250" width="22" height="22" class="floor" />
+<rect x="282" y="250" width="22" height="22" class="grass" />
+<rect x="304" y="250" width="22" height="22" class="grass" />
+<rect x="326" y="250" width="22" height="22" class="grass" />
+<rect x="348" y="250" width="22" height="22" class="grass" />
+<rect x="370" y="250" width="22" height="22" class="grass" />
+<rect x="392" y="250" width="22" height="22" class="floor" />
+<rect x="414" y="250" width="22" height="22" class="floor" />
+<rect x="436" y="250" width="22" height="22" class="floor" />
+<rect x="458" y="250" width="22" height="22" class="floor" />
+<rect x="40" y="272" width="22" height="22" class="wall" />
+<rect x="62" y="272" width="22" height="22" class="wall" />
+<rect x="84" y="272" width="22" height="22" class="wall" />
+<rect x="106" y="272" width="22" height="22" class="wall" />
+<rect x="128" y="272" width="22" height="22" class="floor" />
+<rect x="150" y="272" width="22" height="22" class="floor" />
+<rect x="172" y="272" width="22" height="22" class="floor" />
+<rect x="194" y="272" width="22" height="22" class="floor" />
+<rect x="216" y="272" width="22" height="22" class="floor" />
+<rect x="238" y="272" width="22" height="22" class="floor" />
+<rect x="260" y="272" width="22" height="22" class="floor" />
+<rect x="282" y="272" width="22" height="22" class="grass" />
+<rect x="304" y="272" width="22" height="22" class="grass" />
+<rect x="326" y="272" width="22" height="22" class="grass" />
+<rect x="348" y="272" width="22" height="22" class="grass" />
+<rect x="370" y="272" width="22" height="22" class="grass" />
+<rect x="392" y="272" width="22" height="22" class="grass" />
+<rect x="414" y="272" width="22" height="22" class="floor" />
+<rect x="436" y="272" width="22" height="22" class="floor" />
+<rect x="458" y="272" width="22" height="22" class="floor" />
+<rect x="40" y="294" width="22" height="22" class="wall" />
+<rect x="62" y="294" width="22" height="22" class="wall" />
+<rect x="84" y="294" width="22" height="22" class="wall" />
+<rect x="106" y="294" width="22" height="22" class="wall" />
+<rect x="128" y="294" width="22" height="22" class="floor" />
+<rect x="150" y="294" width="22" height="22" class="floor" />
+<rect x="172" y="294" width="22" height="22" class="floor" />
+<rect x="194" y="294" width="22" height="22" class="floor" />
+<rect x="216" y="294" width="22" height="22" class="floor" />
+<rect x="238" y="294" width="22" height="22" class="floor" />
+<rect x="260" y="294" width="22" height="22" class="floor" />
+<rect x="282" y="294" width="22" height="22" class="grass" />
+<rect x="304" y="294" width="22" height="22" class="grass" />
+<rect x="326" y="294" width="22" height="22" class="grass" />
+<rect x="348" y="294" width="22" height="22" class="grass" />
+<rect x="370" y="294" width="22" height="22" class="grass" />
+<rect x="392" y="294" width="22" height="22" class="grass" />
+<rect x="414" y="294" width="22" height="22" class="floor" />
+<rect x="436" y="294" width="22" height="22" class="floor" />
+<rect x="458" y="294" width="22" height="22" class="floor" />
+<rect x="40" y="316" width="22" height="22" class="wall" />
+<rect x="62" y="316" width="22" height="22" class="wall" />
+<rect x="84" y="316" width="22" height="22" class="grass" />
+<rect x="106" y="316" width="22" height="22" class="grass" />
+<rect x="128" y="316" width="22" height="22" class="floor" />
+<rect x="150" y="316" width="22" height="22" class="floor" />
+<rect x="172" y="316" width="22" height="22" class="floor" />
+<rect x="194" y="316" width="22" height="22" class="floor" />
+<rect x="216" y="316" width="22" height="22" class="ledge" />
+<text x="227" y="332" text-anchor="middle" class="arw">↓</text>
+<rect x="238" y="316" width="22" height="22" class="ledge" />
+<text x="249" y="332" text-anchor="middle" class="arw">↓</text>
+<rect x="260" y="316" width="22" height="22" class="ledge" />
+<text x="271" y="332" text-anchor="middle" class="arw">↓</text>
+<rect x="282" y="316" width="22" height="22" class="ledge" />
+<text x="293" y="332" text-anchor="middle" class="arw">↓</text>
+<rect x="304" y="316" width="22" height="22" class="grass" />
+<rect x="326" y="316" width="22" height="22" class="grass" />
+<rect x="348" y="316" width="22" height="22" class="grass" />
+<rect x="370" y="316" width="22" height="22" class="grass" />
+<rect x="392" y="316" width="22" height="22" class="grass" />
+<rect x="414" y="316" width="22" height="22" class="floor" />
+<rect x="436" y="316" width="22" height="22" class="floor" />
+<rect x="458" y="316" width="22" height="22" class="floor" />
+<rect x="40" y="338" width="22" height="22" class="grass" />
+<rect x="62" y="338" width="22" height="22" class="grass" />
+<rect x="84" y="338" width="22" height="22" class="grass" />
+<rect x="106" y="338" width="22" height="22" class="grass" />
+<rect x="128" y="338" width="22" height="22" class="grass" />
+<rect x="150" y="338" width="22" height="22" class="floor" />
+<rect x="172" y="338" width="22" height="22" class="floor" />
+<rect x="194" y="338" width="22" height="22" class="floor" />
+<rect x="216" y="338" width="22" height="22" class="floor" />
+<rect x="238" y="338" width="22" height="22" class="floor" />
+<rect x="260" y="338" width="22" height="22" class="floor" />
+<rect x="282" y="338" width="22" height="22" class="floor" />
+<rect x="304" y="338" width="22" height="22" class="wall" />
+<rect x="326" y="338" width="22" height="22" class="wall" />
+<rect x="348" y="338" width="22" height="22" class="grass" />
+<rect x="370" y="338" width="22" height="22" class="grass" />
+<rect x="392" y="338" width="22" height="22" class="floor" />
+<rect x="414" y="338" width="22" height="22" class="floor" />
+<rect x="436" y="338" width="22" height="22" class="wall" />
+<rect x="458" y="338" width="22" height="22" class="wall" />
+<rect x="40" y="360" width="22" height="22" class="grass" />
+<rect x="62" y="360" width="22" height="22" class="grass" />
+<rect x="84" y="360" width="22" height="22" class="grass" />
+<rect x="106" y="360" width="22" height="22" class="grass" />
+<rect x="128" y="360" width="22" height="22" class="grass" />
+<rect x="150" y="360" width="22" height="22" class="grass" />
+<rect x="172" y="360" width="22" height="22" class="floor" />
+<rect x="194" y="360" width="22" height="22" class="floor" />
+<rect x="216" y="360" width="22" height="22" class="floor" />
+<rect x="238" y="360" width="22" height="22" class="floor" />
+<rect x="260" y="360" width="22" height="22" class="floor" />
+<rect x="282" y="360" width="22" height="22" class="floor" />
+<rect x="304" y="360" width="22" height="22" class="wall" />
+<rect x="326" y="360" width="22" height="22" class="wall" />
+<rect x="348" y="360" width="22" height="22" class="grass" />
+<rect x="370" y="360" width="22" height="22" class="grass" />
+<rect x="392" y="360" width="22" height="22" class="floor" />
+<rect x="414" y="360" width="22" height="22" class="floor" />
+<rect x="436" y="360" width="22" height="22" class="wall" />
+<rect x="458" y="360" width="22" height="22" class="wall" />
+<rect x="40" y="382" width="22" height="22" class="wall" />
+<rect x="62" y="382" width="22" height="22" class="wall" />
+<rect x="84" y="382" width="22" height="22" class="grass" />
+<rect x="106" y="382" width="22" height="22" class="grass" />
+<rect x="128" y="382" width="22" height="22" class="grass" />
+<rect x="150" y="382" width="22" height="22" class="grass" />
+<rect x="172" y="382" width="22" height="22" class="floor" />
+<rect x="194" y="382" width="22" height="22" class="floor" />
+<rect x="216" y="382" width="22" height="22" class="floor" />
+<rect x="238" y="382" width="22" height="22" class="floor" />
+<rect x="260" y="382" width="22" height="22" class="floor" />
+<rect x="282" y="382" width="22" height="22" class="floor" />
+<rect x="304" y="382" width="22" height="22" class="wall" />
+<rect x="326" y="382" width="22" height="22" class="wall" />
+<rect x="348" y="382" width="22" height="22" class="wall" />
+<rect x="370" y="382" width="22" height="22" class="wall" />
+<rect x="392" y="382" width="22" height="22" class="wall" />
+<rect x="414" y="382" width="22" height="22" class="wall" />
+<rect x="436" y="382" width="22" height="22" class="wall" />
+<rect x="458" y="382" width="22" height="22" class="wall" />
+<rect x="40" y="404" width="22" height="22" class="wall" />
+<rect x="62" y="404" width="22" height="22" class="wall" />
+<rect x="84" y="404" width="22" height="22" class="grass" />
+<rect x="106" y="404" width="22" height="22" class="grass" />
+<rect x="128" y="404" width="22" height="22" class="grass" />
+<rect x="150" y="404" width="22" height="22" class="floor" />
+<rect x="172" y="404" width="22" height="22" class="floor" />
+<rect x="194" y="404" width="22" height="22" class="floor" />
+<rect x="216" y="404" width="22" height="22" class="floor" />
+<rect x="238" y="404" width="22" height="22" class="floor" />
+<rect x="260" y="404" width="22" height="22" class="floor" />
+<rect x="282" y="404" width="22" height="22" class="floor" />
+<rect x="304" y="404" width="22" height="22" class="wall" />
+<rect x="326" y="404" width="22" height="22" class="wall" />
+<rect x="348" y="404" width="22" height="22" class="wall" />
+<rect x="370" y="404" width="22" height="22" class="wall" />
+<rect x="392" y="404" width="22" height="22" class="wall" />
+<rect x="414" y="404" width="22" height="22" class="wall" />
+<rect x="436" y="404" width="22" height="22" class="wall" />
+<rect x="458" y="404" width="22" height="22" class="wall" />
+<rect x="40" y="426" width="22" height="22" class="wall" />
+<rect x="62" y="426" width="22" height="22" class="wall" />
+<rect x="84" y="426" width="22" height="22" class="wall" />
+<rect x="106" y="426" width="22" height="22" class="wall" />
+<rect x="128" y="426" width="22" height="22" class="wall" />
+<rect x="150" y="426" width="22" height="22" class="wall" />
+<rect x="172" y="426" width="22" height="22" class="wall" />
+<rect x="194" y="426" width="22" height="22" class="wall" />
+<rect x="216" y="426" width="22" height="22" class="wall" />
+<rect x="238" y="426" width="22" height="22" class="wall" />
+<rect x="260" y="426" width="22" height="22" class="floor" />
+<rect x="282" y="426" width="22" height="22" class="floor" />
+<rect x="304" y="426" width="22" height="22" class="wall" />
+<rect x="326" y="426" width="22" height="22" class="wall" />
+<rect x="348" y="426" width="22" height="22" class="wall" />
+<rect x="370" y="426" width="22" height="22" class="wall" />
+<rect x="392" y="426" width="22" height="22" class="wall" />
+<rect x="414" y="426" width="22" height="22" class="wall" />
+<rect x="436" y="426" width="22" height="22" class="wall" />
+<rect x="458" y="426" width="22" height="22" class="wall" />
+<rect x="40" y="448" width="22" height="22" class="wall" />
+<rect x="62" y="448" width="22" height="22" class="wall" />
+<rect x="84" y="448" width="22" height="22" class="wall" />
+<rect x="106" y="448" width="22" height="22" class="wall" />
+<rect x="128" y="448" width="22" height="22" class="wall" />
+<rect x="150" y="448" width="22" height="22" class="wall" />
+<rect x="172" y="448" width="22" height="22" class="wall" />
+<rect x="194" y="448" width="22" height="22" class="wall" />
+<rect x="216" y="448" width="22" height="22" class="wall" />
+<rect x="238" y="448" width="22" height="22" class="wall" />
+<rect x="260" y="448" width="22" height="22" class="floor" />
+<rect x="282" y="448" width="22" height="22" class="floor" />
+<rect x="304" y="448" width="22" height="22" class="wall" />
+<rect x="326" y="448" width="22" height="22" class="wall" />
+<rect x="348" y="448" width="22" height="22" class="wall" />
+<rect x="370" y="448" width="22" height="22" class="wall" />
+<rect x="392" y="448" width="22" height="22" class="wall" />
+<rect x="414" y="448" width="22" height="22" class="wall" />
+<rect x="436" y="448" width="22" height="22" class="wall" />
+<rect x="458" y="448" width="22" height="22" class="wall" />
+<text x="51" y="22" text-anchor="middle" class="ax">0</text>
+<text x="95" y="22" text-anchor="middle" class="ax">2</text>
+<text x="139" y="22" text-anchor="middle" class="ax">4</text>
+<text x="183" y="22" text-anchor="middle" class="ax">6</text>
+<text x="227" y="22" text-anchor="middle" class="ax">8</text>
+<text x="271" y="22" text-anchor="middle" class="ax">10</text>
+<text x="315" y="22" text-anchor="middle" class="ax">12</text>
+<text x="359" y="22" text-anchor="middle" class="ax">14</text>
+<text x="403" y="22" text-anchor="middle" class="ax">16</text>
+<text x="447" y="22" text-anchor="middle" class="ax">18</text>
+<text x="32" y="45" text-anchor="end" class="ax">0</text>
+<text x="32" y="89" text-anchor="end" class="ax">2</text>
+<text x="32" y="133" text-anchor="end" class="ax">4</text>
+<text x="32" y="177" text-anchor="end" class="ax">6</text>
+<text x="32" y="221" text-anchor="end" class="ax">8</text>
+<text x="32" y="265" text-anchor="end" class="ax">10</text>
+<text x="32" y="309" text-anchor="end" class="ax">12</text>
+<text x="32" y="353" text-anchor="end" class="ax">14</text>
+<text x="32" y="397" text-anchor="end" class="ax">16</text>
+<text x="32" y="441" text-anchor="end" class="ax">18</text>
+ <rect x="40" y="30" width="330" height="330" fill="none" stroke="var(--stop)" stroke-width="3" stroke-dasharray="8 5" />
+ <polyline points="205,195 249,195 249,261 315,261" fill="none" stroke="var(--walk)" stroke-width="5" stroke-linejoin="round" marker-mid="url(#e)" marker-end="url(#e)" />
+ <polyline points="315,261 337,261 337,239 381,239 381,151 293,151 293,41 249,41" fill="none" stroke="var(--later)" stroke-width="4" stroke-dasharray="7 4" stroke-linejoin="round" marker-end="url(#l)" />
+ <circle cx="205" cy="195" r="8" fill="var(--walk)" stroke="#fff" stroke-width="2" />
+ <rect x="241" y="33" width="16" height="16" fill="none" stroke="var(--stop)" stroke-width="3" />
+ <circle cx="315" cy="261" r="5" fill="#fff" stroke="var(--walk)" stroke-width="2" />
+ <circle cx="381" cy="151" r="5" fill="#fff" stroke="var(--later)" stroke-width="2" />
+ <circle cx="293" cy="63" r="5" fill="#fff" stroke="var(--later)" stroke-width="2" />
+ <text x="500" y="40" class="b">ROUTE101 (map 0/16), 20x20</text>
+ <rect x="500" y="56" width="16" height="12" class="wall" /><text x="524" y="66">wall or other solid tile</text>
+ <rect x="500" y="76" width="16" height="12" class="grass" /><text x="524" y="86">tall grass (walkable)</text>
+ <rect x="500" y="96" width="16" height="12" class="ledge" /><text x="524" y="106">ledge: hop only ↓ (↘ at (6,7))</text>
+ <rect x="500" y="116" width="16" height="12" fill="none" stroke="var(--stop)" stroke-width="2" stroke-dasharray="4 3" /><text x="524" y="126">15x15 window around (7,7)</text>
+ <circle cx="508" cy="146" r="6" fill="var(--walk)" /><text x="524" y="150">player at (7,7)</text>
+ <rect x="501" y="160" width="14" height="14" fill="none" stroke="var(--stop)" stroke-width="2" /><text x="524" y="171">goal (9,0)</text>
+ <path d="M496 192 H518" stroke="var(--walk)" stroke-width="5" /><text x="524" y="196">call 1, ON: whole-map route</text>
+ <path d="M496 214 H518" stroke="var(--later)" stroke-width="4" stroke-dasharray="7 4" /><text x="524" y="218">calls 2–4: ordinary local plan</text>
+ <circle cx="507" cy="238" r="5" fill="#fff" stroke="var(--walk)" stroke-width="2" /><text x="524" y="242">where a call ended</text>
+ <text x="500" y="276" class="m">Inside the window, column x=14</text>
+ <text x="500" y="292" class="m">is solid at y=7 and y=8, and the</text>
+ <text x="500" y="308" class="m">ledges above (7,7) cannot be climbed.</text>
+ <text x="500" y="324" class="m">Column x=15, the way north,</text>
+ <text x="500" y="340" class="m">lies outside the window.</text>
+ <text x="40" y="490" class="m">Coordinates: x across the top, y down the side; north is up.</text>
+</svg>

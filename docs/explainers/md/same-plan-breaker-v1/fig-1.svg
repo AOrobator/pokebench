@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220" width="700" role="img" aria-label="Five states, window of three decisions" height="220">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="220" style="fill:#ffffff;stroke:none" /><text x="10" y="22" class="s">states after each decision (twin, T140–T144)</text>
+<rect x="10" y="40" width="120" height="58" rx="8" class="box" /><text x="20" y="62" class="m">S-1 after T140</text><text x="20" y="82" class="s">(11,2) free</text>
+<rect x="145" y="40" width="120" height="58" rx="8" class="box" /><text x="155" y="62" class="m">S0 after T141</text><text x="155" y="82" class="s">(11,1) locked</text>
+<rect x="300" y="40" width="120" height="58" rx="8" class="prior" /><text x="310" y="62" class="m">S1 after T142</text><text x="310" y="82" class="s">(11,2) free</text>
+<rect x="435" y="40" width="120" height="58" rx="8" class="prior" /><text x="445" y="62" class="m">S2 after T143</text><text x="445" y="82" class="s">(11,1) locked</text>
+<rect x="570" y="40" width="120" height="58" rx="8" class="prior" /><text x="580" y="62" class="m">S3 after T144</text><text x="580" y="82" class="s">(11,2) free</text>
+<text x="300" y="122" class="t">window: the 3 near-identical plans</text>
+<text x="10" y="150" class="s">Fires when every one of S1, S2, S3 equals S-1 or S0 (nothing new), and at least one of the five has field controls free.</text>
+<text x="10" y="172" class="s">The twin's trigger leaves the player at (11,1) locked; the next press shows the pages and puts it back at (11,2).</text>
+<text x="10" y="194" class="s">Walking reaches new tiles, so it never fires; the truck ride is locked throughout, so it never fires.</text>
+</svg>

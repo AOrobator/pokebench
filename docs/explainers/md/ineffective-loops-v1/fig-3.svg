@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 110" role="img" aria-label="Switch wiring from the preset to the loop detector" width="720" height="110">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f; --water:#cfe3f7;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}
+svg{min-width:600px}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.hot{stroke:var(--hot);stroke-width:2.2}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="110" style="fill:#ffffff;stroke:none" /><rect x="10" y="30" width="150" height="46" class="box" /><text x="20" y="50">play preset /</text><text x="20" y="66">switchboard</text>
+ <rect x="190" y="30" width="150" height="46" class="box" /><text x="200" y="50">FeatureSet</text><text x="200" y="66" class="s">ineffective-loops-v1</text>
+ <rect x="370" y="30" width="160" height="46" class="box" /><text x="380" y="50">attachLoopGuard</text><text x="380" y="66" class="s">11th argument (live, probe)</text>
+ <rect x="560" y="30" width="150" height="46" class="prior hot" /><text x="570" y="50" class="t">LoopDetector</text><text x="570" y="66" class="s">revisit + waitingState</text>
+ <path d="M160 53 L190 53" class="arr" /><path d="M340 53 L370 53" class="arr" /><path d="M530 53 L560 53" class="arr" />
+</svg>

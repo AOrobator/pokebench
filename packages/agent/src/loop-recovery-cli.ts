@@ -5,6 +5,7 @@ import { checkEvent, RUN_ID_PATTERN } from "./events.js";
 import { recoveryCollector, recoveryLines } from "./loop-recovery.js";
 import { locateRunDir } from "./run.js";
 import { RUNS_ROOT } from "./runs-cli.js";
+import { isMain } from "./is-main.js";
 
 const USAGE = "usage: loop-recovery [--runs-root DIR] <run_id> [...]";
 const RUN_ID = new RegExp(RUN_ID_PATTERN);
@@ -33,7 +34,7 @@ export async function loopRecoveryCli(argv: readonly string[], defaultRoot: stri
 }
 
 /* v8 ignore start -- the entrypoint */
-if (import.meta.main) {
+if (isMain(import.meta)) {
   process.exitCode = await loopRecoveryCli(process.argv.slice(2), RUNS_ROOT, (line) => { console.log(line); });
 }
 /* v8 ignore stop */

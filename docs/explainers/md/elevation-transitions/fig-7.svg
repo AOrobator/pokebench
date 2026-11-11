@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" role="img" aria-label="With the switch off, height 0 keeps the walker at 3, so the height 4 tile is blocked" width="300" height="120">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--muted:#5d665a;--panel:#fff;--edge:#b8c1b2;--accent:#28613b;--good:#1f7a3f;--bad:#b3261e;--e0:#f2d27a;--e3:#cfe5c4;--e4:#a9c8e8;--e15:#d9c2ec;--wall:#8a8f86;--water:#7fb3d5}
+@media(min-width:1000000px){:root{--bg:#151c17;--ink:#e2eadf;--muted:#a8b3a4;--panel:#202b22;--edge:#536650;--accent:#a5db8d;--good:#6fdc8c;--bad:#ff8a80;--e0:#8a6d1f;--e3:#2f5a33;--e4:#2c4f74;--e15:#5a3d75;--wall:#4a4f48;--water:#1f4f6e}}
+*{box-sizing:border-box}
+svg{width:100%;height:auto;min-width:260px}
+.t{stroke:var(--edge);stroke-width:1}
+.e0{fill:var(--e0)}
+.e3{fill:var(--e3)}
+.e4{fill:var(--e4)}
+.el{fill:var(--ink);font:600 14px system-ui}
+.ax{fill:var(--muted);font:12px system-ui}
+.good{fill:none;stroke:var(--good);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.bad{fill:none;stroke:var(--bad);stroke-width:4;stroke-dasharray:7 6;stroke-linecap:round}
+.start{fill:var(--ink)}
+.goal{fill:none;stroke:var(--ink);stroke-width:3}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="300" height="120" style="fill:#ffffff;stroke:none" /><rect class="t e3" x="20" y="30" width="70" height="60" /><rect class="t e0" x="115" y="30" width="70" height="60" /><rect class="t e4" x="210" y="30" width="70" height="60" />
+<text class="el" x="47" y="66">3</text><text class="el" x="142" y="66">0</text><text class="el" x="237" y="66">4</text>
+<path class="good" d="M55 105 L150 105" /><path class="bad" d="M150 105 L245 105" /><circle class="start" cx="55" cy="105" r="6" /><circle class="goal" cx="245" cy="105" r="8" />
+<text class="ax" x="20" y="20">0 keeps height 3, so 4 mismatches: no path</text></svg>

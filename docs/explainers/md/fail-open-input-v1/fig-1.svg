@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 260" width="860" height="260" role="img" aria-label="Stops that send or drop the rest of the batch">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--wall:#8f8a7f;--floor:#f4f1ea;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--wall:#55524b;--floor:#2a2925}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="260" style="fill:#ffffff;stroke:none" /><rect x="10" y="90" width="200" height="70" rx="6" fill="var(--fill)" stroke="var(--line)" />
+<text x="24" y="118">press [DOWN, A]</text><text x="24" y="140" class="small">DOWN sent, advance runs</text>
+<rect x="290" y="10" width="270" height="110" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" />
+<text x="304" y="34">Hold the harness cannot name</text>
+<text x="304" y="56" class="small">battle_busy · battle_unreadable</text>
+<text x="304" y="74" class="small">interface_not_ready · message_not_ready</text>
+<text x="304" y="92" class="small">locked_no_message</text>
+<rect x="290" y="140" width="270" height="110" rx="6" fill="var(--panel)" stroke="var(--line)" />
+<text x="304" y="164">Stop the harness recognizes</text>
+<text x="304" y="186" class="small">battle_prompt · battle_input · menu · naming</text>
+<text x="304" y="204" class="small">field_free · screen_change · caps · errors</text>
+<line x1="210" y1="115" x2="290" y2="65" stroke="var(--fg)" stroke-width="1.5" /><line x1="210" y1="135" x2="290" y2="195" stroke="var(--fg)" stroke-width="1.5" />
+<rect x="630" y="30" width="220" height="70" rx="6" fill="var(--panel)" stroke="var(--keep)" />
+<text x="644" y="56">ON: A is sent</text><text x="644" y="78" class="small">OFF: A dropped</text>
+<rect x="630" y="160" width="220" height="70" rx="6" fill="var(--panel)" stroke="var(--drop)" />
+<text x="644" y="186">A dropped</text><text x="644" y="208" class="small">ON and OFF, as before</text>
+<line x1="560" y1="65" x2="630" y2="65" stroke="var(--keep)" stroke-width="2" /><line x1="560" y1="195" x2="630" y2="195" stroke="var(--drop)" stroke-width="2" />
+</svg>

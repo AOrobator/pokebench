@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 160" role="img" aria-label="Three grass tiles: walking through costs 7.5, the detour costs 8, so the planner walks through." width="384" height="160">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f8f3; --fg:#1d2420; --soft:#5a665e; --rule:#d8dfd5; --panel:#ffffff;
+ --grass:#7fc46a; --grass-ink:#2f6e2a; --ground:#efe4c8; --tile-edge:#cdbf98;
+ --route:#d1433a; --muted:#8b968e;
+ --go:#d1433a; --go-ink:#ffffff; --thru:#e7ece4; --thru-ink:#4c574f; --tie:#f0cf6b; --tie-ink:#4a3a05;
+ --display:ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a16; --fg:#e6ece6; --soft:#9aa69d; --rule:#2c362f; --panel:#1b231e;
+ --grass:#3f7f3a; --grass-ink:#a8e39a; --ground:#3a3427; --tile-edge:#544b37;
+ --route:#ff6b5e; --muted:#6f7b73;
+ --go:#e2554b; --go-ink:#ffffff; --thru:#24302a; --thru-ink:#a9b5ad; --tie:#b89530; --tie-ink:#1a1405; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg{min-width:0}
+svg text{font-family:var(--mono);fill:var(--soft);font-size:11px;text-anchor:middle}
+svg .ax.end,svg .tot.end{text-anchor:end}
+svg .tot{text-anchor:start;font-size:13px}
+svg .tot.win{fill:var(--route);font-weight:500}
+svg .pin{fill:var(--fg);font-weight:500;font-size:12px}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="384" height="160" style="fill:#ffffff;stroke:none" /><defs><marker id="ah-3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--route)" /></marker><marker id="am-3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)" /></marker></defs>
+<text x="48.0" y="24" class="ax">x0</text>
+<text x="96.0" y="24" class="ax">x1</text>
+<text x="144.0" y="24" class="ax">x2</text>
+<text x="192.0" y="24" class="ax">x3</text>
+<text x="240.0" y="24" class="ax">x4</text>
+<text x="288.0" y="24" class="ax">x5</text>
+<text x="336.0" y="24" class="ax">x6</text>
+<rect x="25" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="73" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="121" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)" />
+<path d="M128 56L131 49L133 54L136 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M146 52L149 45L151 50L154 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M136 72L139 65L141 70L144 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M152 70L155 63L157 68L160 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="169" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)" />
+<path d="M176 56L179 49L181 54L184 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M194 52L197 45L199 50L202 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M184 72L187 65L189 70L192 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M200 70L203 63L205 68L208 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="217" y="35" width="46" height="46" rx="5" fill="var(--grass)" stroke="var(--tile-edge)" />
+<path d="M224 56L227 49L229 54L232 48" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M242 52L245 45L247 50L250 44" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M232 72L235 65L237 70L240 64" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M248 70L251 63L253 68L256 62" fill="none" stroke="var(--grass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="265" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="313" y="35" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="25" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="73" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="121" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="169" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="217" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="265" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<rect x="313" y="83" width="46" height="46" rx="5" fill="var(--ground)" stroke="var(--tile-edge)" />
+<polyline points="48.0,52.0 322.0,52.0" fill="none" stroke="var(--route)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-3)" />
+<polyline points="48.0,66.0 48.0,106.0 336.0,106.0 336.0,72.0" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#am-3)" />
+<circle cx="48.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2" /><text x="48.0" y="62.5" class="pin">S</text>
+<circle cx="336.0" cy="58.0" r="11" fill="var(--bg)" stroke="var(--fg)" stroke-width="2" /><text x="336.0" y="62.5" class="pin">G</text>
+<text x="24" y="152" class="tot win">straight 7.5</text>
+<text x="360" y="152" class="tot end ">detour 8</text>
+</svg>

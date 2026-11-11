@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="hero" viewBox="0 0 720 230" role="img" aria-label="Side view of a ledge hop" width="720" height="230">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e6dfca;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--ledge1:#f2c46b;--ledge2:#c98c2e;--ledgeEdge:#a8661c;
+--sky1:#dbeefe;--sky2:#f3f8ee;--grassD:#8cc56a;--grassL:#b6e08f;--shadow:rgba(30,30,20,.10)}
+@media (min-width:1000000px){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#38352c;--floor2:#2f2c25;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--ledge1:#b8862f;--ledge2:#8a5f1c;--ledgeEdge:#d48a35;
+--sky1:#1b2a3a;--sky2:#1a221b;--grassD:#36592a;--grassL:#4f7a3a;--shadow:rgba(0,0,0,.35)}}
+*{box-sizing:border-box}
+svg{display:block;max-width:100%;height:auto}
+.big{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hop{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round}
+.hop.big{stroke-width:5;stroke-dasharray:2 9}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.player.ghosty{opacity:.35}
+.eye{fill:#fff}
+.badge{fill:var(--card);stroke:var(--accent);stroke-width:2}
+.badge.warn{stroke:var(--bad)}
+.badget{font:700 14px -apple-system,Helvetica,sans-serif;fill:var(--fg);text-anchor:middle}
+.badges{font:12px -apple-system,Helvetica,sans-serif;fill:var(--muted);text-anchor:middle}
+.tiles line{stroke:var(--fg);opacity:.35;stroke-width:2}
+.tl{font:12px ui-monospace,Menlo,monospace;fill:var(--fg);opacity:.7;text-anchor:middle}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="230" style="fill:#ffffff;stroke:none" /><defs><marker id="ahop" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" /></marker>
+</defs><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky1)" /><stop offset="1" stop-color="var(--sky2)" /></linearGradient></defs>
+<rect x="0" y="0" width="720" height="230" rx="16" fill="url(#sky)" />
+<path d="M0,120 L330,120 L330,128 Q338,160 350,170 L720,170 L720,230 L0,230 Z" fill="var(--grassD)" />
+<path d="M0,120 L330,120 L330,128 Q338,160 350,170 L720,170" fill="none" stroke="var(--grassL)" stroke-width="5" stroke-linecap="round" />
+<path d="M330,128 Q338,160 350,170" fill="none" stroke="var(--ledgeEdge)" stroke-width="7" stroke-linecap="round" />
+<g class="tiles"><line x1="250" y1="200" x2="250" y2="214" /><line x1="330" y1="200" x2="330" y2="214" /><line x1="410" y1="200" x2="410" y2="214" /><line x1="490" y1="200" x2="490" y2="214" />
+<text x="290" y="212" class="tl">start</text><text x="370" y="212" class="tl">ledge</text><text x="450" y="212" class="tl">landing</text></g>
+<path d="M290,104 C330,40 420,40 450,150" class="hop big" marker-end="url(#ahop)" />
+<circle cx="290" cy="104" r="15" class="player" /><circle cx="285" cy="101" r="2.2" class="eye" /><circle cx="295" cy="101" r="2.2" class="eye" />
+<circle cx="450" cy="155" r="15" class="player ghosty" />
+<g transform="translate(560,58)"><rect x="-70" y="-24" width="140" height="48" rx="24" class="badge" /><text x="0" y="-2" class="badget">1 press</text><text x="0" y="15" class="badges">moves 2 tiles</text></g>
+<g transform="translate(150,58)"><rect x="-86" y="-24" width="172" height="48" rx="24" class="badge warn" /><text x="0" y="-2" class="badget">the way back up</text><text x="0" y="15" class="badges">is a wall</text></g>
+</svg>

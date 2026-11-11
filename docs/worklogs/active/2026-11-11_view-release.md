@@ -45,12 +45,25 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 - [x] Implement (`view_release.py`, `just view-release`; stacked on `claude/replay-verify` for `verify_release.read_event_source`)
 - [x] Cheap checks: 22/22, ruff, mypy. Guard deletion: 16 guards removed alone; discard-on-failure, run_start type and frame regular-file first survived, pinned by new tests; all red now
 - [ ] Full gates
-- [ ] Close the loop: unpack the real 67d7 release; viewer on a scratch port; background browser click-through of the run page, frontier and splits; desktop (1280, 1440) and phone (375) screenshots opened and looked at; stop the scratch viewer
+- [x] Close the loop (see Closing the Loop; frontier-headline gap recorded): unpack the real 67d7 release; viewer on a scratch port; background browser click-through of the run page, frontier and splits; desktop (1280, 1440) and phone (375) screenshots opened and looked at; stop the scratch viewer
 - [ ] Codex review (two rounds, then ask)
 
 **M2 — Landing** (the operator)
 
 ## Closing the Loop
+
+Real 67d7 release, `just view-release ~/dev/pokebench/runs/release-staging/67d7 --port 8796`, run detached (nohup, log, disowned) and stopped afterwards. The release folder listing was unchanged before and after.
+
+- Unpack: `unpacked (4,153 frames, 404 checkpoint files)` into the worktree's `runs/releases/<run-id>/`. The viewer started on 127.0.0.1:8796 with `next runs: queueing is disabled`. The live 8790 viewer was untouched.
+- Headless Playwright Chromium (agent-owned, no desktop focus) at 1280×900, 1440×900 and 375×812 (mobile, DPR 2):
+  - Frontier (`/comparisons`): BEST OVERALL "Game clear confirmed", HEAVILY ASSISTED, 17:16:02 active, story 203/203, claude-opus-5-5 · 67d7.
+  - A real click on "← BACK TO VIEWER" leads to the run page: ENDED in about 26 s, run selected, recorded frame, TURN 4124, TIME 17:16:30, final thought "Wallace is beaten, all eight badges are collected, and the game says game clear." No page errors.
+  - SPLITS (button on desktop, page picker on phone): badge rails, 233 milestones and the heavily-assisted banner render. Phone page width 375 equals the viewport (no horizontal scroll).
+- Screenshots (opened and looked at): `runs/mockups/view-release/shots/{frontier,run,splits}-{1280,1440,375}.png` plus full-page splits.
+- Known gaps, not fixed here:
+  - (1) The SPLITS headline and STORY GRAPH stay "Loading the frontier run…" on a single-run release root. The server answers `/api/runs/<id>/frontier` with `{"state":"ready","frontier":null}`, because the only run is assisted and there is nothing to race. The client never leaves its loading state for a settled null frontier. On the live 8790 viewer, where another run is the frontier, the same page reads "9:02:23 ahead of the FRONTIER". This is a viewer-client follow-up.
+  - (2) Trainer card, party and bag art are ROM-derived; `view-release` now prints the four art recipes.
+  - (3) The current-run projector endpoints return 503 (expected for a finished run).
 
 ## Session Log
 

@@ -420,6 +420,8 @@ def test_main_unpacks_then_execs_the_viewer() -> None:
     assert RUN in out.published and "raw-ram/index.jsonl" in out.published[RUN]
     assert launched[0][0][-3:] == ["--port", "50123", RUN]
     assert "unpacked" in text.getvalue() and "http://127.0.0.1:50123/" in text.getvalue()
+    assert f"just party-art /repo/runs/releases/{RUN}/sprites/party-v1" in text.getvalue()
+    assert "just trainer-card-art" in text.getvalue() and "just bag-art" in text.getvalue()
     launched.clear()
     vrl.main(
         ["rel", "--port", "50999"],

@@ -326,6 +326,24 @@ def viewer_command(
     return argv, env
 
 
+def art_note(runs_root: Path) -> str:
+    """The card, party and bag pictures are ROM-derived, so a release cannot ship them."""
+    sprites = runs_root / "sprites"
+    recipes = ", ".join(
+        f"just {recipe} {sprites / folder}"
+        for recipe, folder in (
+            ("trainer-card-art", "trainer-card-v1"),
+            ("trainer-page-art", "trainer-page-v1"),
+            ("party-art", "party-v1"),
+            ("bag-art", "bag-v1"),
+        )
+    )
+    return (
+        "art: the trainer card, party and bag pictures come from your own ROM plus a pokeemerald "
+        f"checkout ($POKEEMERALD); until you build them the viewer shows placeholders: {recipes}"
+    )
+
+
 # The thin disk and process entrypoints; unpack() and viewer_command() are tested in memory.
 class DiskOutput:  # pragma: no cover
     def __init__(self, root: Path) -> None:
@@ -436,6 +454,7 @@ def main(
     )
     print(f"{what}: {runs_root / result.run_id}", file=out)
     print(f"viewer: http://127.0.0.1:{chosen}/#run={result.run_id} (Ctrl-C to stop)", file=out)
+    print(art_note(runs_root), file=out)
     exec_viewer(command, env)
     return 0
 

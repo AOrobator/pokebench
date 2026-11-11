@@ -9,11 +9,11 @@
 | GPT-6 Astra `429f` | 718.54 | Heat Badge (turn 2418) | cumulative to the badge | operator's 10/30 run-grades report, Codex native session usage |
 | GPT-6.1 Sol `3300` | 149.92 | Dynamo Badge (turn 858) | cumulative to the badge | `runs/<id>/attached-harness/codex/native.jsonl` |
 | DeepSeek V4.1 Flash `5f0f` | 9.56 | Balance Badge (turn 1684) | cumulative to the badge | `runs/<id>/events.jsonl` usage |
-| Qwen3.6 35B-A3B `d41e` | 2.94 | Dynamo Badge | copied from the article | not reproducible from disk |
-| Qwen3.6 35B-A3B, Rayquaza lane `3bb0` | 2.82 | Balance Badge | copied from the article | not reproducible from disk |
-| GLM-5.3 Flash `6bbd` | 2.85 | Dynamo Badge | copied from the article | not reproducible from disk |
-| Qwen3.8 27B `7da5` | 1.04 | Stone Badge | copied from the article | not reproducible from disk |
-| Qwen3.8 27B, Rayquaza lane `6056` | 6.09 | Knuckle Badge | copied from the article | not reproducible from disk |
+| Qwen3.6 35B-A3B `d41e` | 2.94 | Dynamo Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
+| Qwen3.6 35B-A3B, Rayquaza lane `3bb0` | 2.82 | Balance Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
+| GLM-5.3 Flash `6bbd` | 2.85 | Dynamo Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
+| Qwen3.8 27B `7da5` | 1.04 | Stone Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
+| Qwen3.8 27B, Rayquaza lane `6056` | 6.09 | Knuckle Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
 
 ## Claude Opus 5.5 (chain and `67d7`)
 
@@ -49,18 +49,10 @@ The run's own `runs/<id>/attached-harness/codex/*native-transcript.jsonl` starts
 
 ## Local models (Qwen3.6, Qwen3.8, GLM-5.3 Flash)
 
-These five figures are **copied from the article** ("01 PokeBench Intro", Badges first, then the bill), as the operator chose on 2026-11-11. The article says they are each run's tokens at the cheapest OpenRouter provider for that model as of 11/8, but **no per-token prices or calculation for them are on disk**, so they are not reproducible from this repository today.
+Basis: each run's recorded tokens at the **cheapest OpenRouter provider for that model**, which is the method the operator chose on 2026-11-09 and the article uses ("as of 11/8"). The figures plotted are the article's as published.
 
-- **Token source:** each run's `events.jsonl` does record usage for local runs, in `assistant` events with `input`, `cache_read` and `output`.
-- **Attempt at re-deriving them:** pricing those tokens at the OpenRouter rates we could find gives much larger totals. To the plotted milestone:
-
-  | Run | $/M (input, cache read, output) | Result | Article |
-  |---|---|---|---|
-  | `d41e` | 0.248, 0.248, 1.485 | $65.68 | $2.94 |
-  | `3bb0` | same | $63.24 | $2.82 |
-  | `6056` | 0.33, 0.33, 2.4 | $47.16 | $6.09 |
-  | `6bbd` | 0.15, 0.03, 0.5 | $3.30 | $2.85 |
-  | `7da5` | 0.33, 0.33, 2.4 | $5.68 | $1.04 |
-
-  These rates charge cache reads at the full input rate for Qwen. The gap probably comes from cache handling or the provider chosen, but that is unconfirmed.
-- **Before publishing:** confirm the article's per-model prices and cache treatment, then replace the copied figures with computed ones.
+- **Token source:** `usage` on every `"type":"assistant"` event in `runs/<id>/events.jsonl` (`input`, `cache_read`, `output`), summed up to the plotted milestone. Cache reads are charged at the input rate.
+- **Qwen3.6 35B-A3B** (`d41e`, `3bb0`): the cheapest provider was an fp8 host at $0.011 input and $0.101 output per million.
+  - Recomputed for `d41e` to the Dynamo Badge: 180,357,696 input + 68,504,132 cache read at $0.011, plus 2,668,903 output at $0.101, gives **$3.01**. The article has $2.94; the small gap is consistent with the 11/8 price snapshot or a slightly different cut-off.
+- **GLM-5.3 Flash** (`6bbd`) and **Qwen3.8 27B** (`7da5`, `6056`): the cheapest-provider rates used for the article were not recorded. These figures are the article's as published.
+- **Before publishing:** record the per-model provider rates next to this file, so every local figure can be recomputed the way `d41e`'s is above.

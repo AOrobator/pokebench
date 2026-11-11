@@ -27,6 +27,7 @@ RUN = "2026-11-10T15-37-43_opus-rayquaza-boot_67d7"
 T = "2026-11-10T15:38:09.109-05:00"
 STATE = b"mgba-state-bytes"
 FINAL_STATE = b"mgba-final-state"
+END_STATE = b"mgba-run-end-save"
 RAYQUAZA = PartyMon("RAYQUAZA", 74, 200, 200, species_id=406)
 SWAMPERT = PartyMon("SWAMPERT", 55, 180, 180, species_id=285)
 
@@ -144,10 +145,26 @@ class Build:
                 "state": {"sha256": sha256(FINAL_STATE), "bytes": len(FINAL_STATE)},
             },
         }
-        self.states = {"GAME_CLEAR_CONFIRMED.state": STATE, "GAME_CLEAR_FINAL.state": FINAL_STATE}
+        self.sidecars["RUN_END.json"] = {
+            "version": 1,
+            "run": RUN,
+            "kind": "run_end",
+            "end_reason": "completed",
+            "turn": 2,
+            "state": {"sha256": sha256(END_STATE), "bytes": len(END_STATE)},
+            "source": {"rom_sha1": ROM_SHA1, "start_state": {"kind": "boot"}},
+        }
+        self.states = {
+            "GAME_CLEAR_CONFIRMED.state": STATE,
+            "GAME_CLEAR_FINAL.state": FINAL_STATE,
+            "RUN_END.state": END_STATE,
+        }
         self.extra_members: list[tuple[tarfile.TarInfo, bytes | None]] = []
         self.ext = ""
-        self.names = {"events": "events-67d7.jsonl", "raw": "raw-ram-67d7.jsonl"}
+        self.names = {"events": "events-67d7.jsonl", "final": "raw-ram-final-67d7.json"}
+        # The full raw-RAM log ships for the replay; verify-release must never open it.
+        self.raw_log = b"zstd raw-RAM log for the replay"
+        self.final_ref_sha256: str | None = None
         self.tar_name = "checkpoints-67d7.tar"
 
     def add(self, event_type: str, turn: int, **body: object) -> None:
@@ -171,8 +188,8 @@ class Build:
     def event_bytes(self) -> bytes:
         return b"".join(json.dumps(e).encode() + b"\n" for e in self.events)
 
-    def ram_bytes(self) -> bytes:
-        return b"".join(json.dumps(s).encode() + b"\n" for s in (self.start, self.final))
+    def final_bytes(self) -> bytes:
+        return json.dumps(self.final).encode()
 
     def tar_bytes(self) -> bytes:
         out = io.BytesIO()
@@ -197,10 +214,16 @@ class Build:
                 return lzma.compress(data)
             return data
 
+        final = pack(self.final_bytes())
+        for event in self.events:
+            ref = event.get("raw_ram")
+            if isinstance(ref, dict) and ref["sequence"] == 1:
+                ref["sha256"] = self.final_ref_sha256 or sha256(final)
         files = {
             self.names["events"] + self.ext: pack(self.event_bytes()),
-            self.names["raw"] + self.ext: pack(self.ram_bytes()),
+            self.names["final"] + self.ext: final,
             self.tar_name + self.ext: pack(self.tar_bytes()),
+            "raw-ram-67d7.jsonl.zst": self.raw_log,
         }
         sums = "".join(f"{sha256(data)}  {name}\n" for name, data in files.items())
         return files | {"SHA256SUMS": sums.encode()}
@@ -253,12 +276,10 @@ ALL_CHECKS = {
     "events: no restores or operator steps",
     "events: run_end",
     "events: features digest",
-    "raw RAM: snapshots",
-    "raw RAM: event references",
+    "final snapshot",
     "native: game clear flag",
     "native: badges",
     "native: party",
-    "native: milestones",
     "checkpoints: archive",
     "checkpoints: digests",
     "checkpoints: provenance",
@@ -277,13 +298,16 @@ def test_clean_release_passes_every_check(ext: str) -> None:
     assert failed(report) == {}
     assert report.ok
     text = vr.render(report)
-    assert text.splitlines()[0].startswith("PASS integrity: 3 files match SHA256SUMS")
-    assert "verify-release: 17 checks, all PASS" in text
-    assert "RAYQUAZA Lv 74" in result(report, "native: party").detail
-    assert (
-        "2 of 3 claimed milestones have a native reader"
-        in result(report, "native: milestones").detail
+    assert text.splitlines()[0] == (
+        "PASS integrity: 3 files read match SHA256SUMS; 1 other listed files present, "
+        "not hashed here"
     )
+    assert "verify-release: 15 checks, all PASS" in text
+    assert "RAYQUAZA Lv 74" in result(report, "native: party").detail
+    binding = result(report, "final snapshot").detail
+    assert "sequence 1" in binding
+    assert ("byte-identical" in binding) == (ext == ".gz")
+    assert any("final RAM snapshot: sequence 1" in line for line in report.totals)
     assert any("claude-opus-5-5" in line for line in report.totals)
     assert any("tokens: not recorded" in line for line in report.totals)
     assert any("just replay-verify" in line for line in report.totals)
@@ -297,8 +321,8 @@ def test_events_claiming_game_clear_without_the_ram_flag_fail() -> None:
     set_flag(build.final, vr.FLAG_SYS_GAME_CLEAR, False)
     report = run(build.files())
     bad = failed(report)
-    assert set(bad) == {"native: game clear flag", "native: milestones"}
-    assert "GAME_CLEAR_CONFIRMED" in bad["native: milestones"]
+    assert set(bad) == {"native: game clear flag"}
+    assert "NOT set" in bad["native: game clear flag"]
     assert result(report, "events: run_end").ok
 
 
@@ -306,8 +330,8 @@ def test_a_missing_badge_flag_fails() -> None:
     build = Build()
     set_flag(build.final, 0x86E, False)
     bad = failed(run(build.files()))
+    assert set(bad) == {"native: badges"}
     assert "RAIN" in bad["native: badges"]
-    assert "RAIN_BADGE" in bad["native: milestones"]
 
 
 def test_a_party_without_rayquaza_fails() -> None:
@@ -329,20 +353,6 @@ def test_an_unreadable_party_fails_closed() -> None:
         MemoryRelease(Build().files()), ROM, rom_sha1=ROM_SHA1, read_party=broken, rom_problem=None
     )
     assert "read outside archived memory" in failed(report)["native: party"]
-
-
-def test_milestone_seen_only_after_its_event_fails() -> None:
-    build = Build()
-    milestone = build.events[5]
-    milestone["evidence"] = [1]  # the boot snapshot, where the badge flag is not set
-    bad = failed(run(build.files()))
-    assert "RAIN_BADGE" in bad["native: milestones"]
-
-
-def test_milestone_without_ram_evidence_fails() -> None:
-    build = Build()
-    build.events[5]["evidence"] = [3]  # a turn_start, not a state with raw RAM
-    assert "RAIN_BADGE" in failed(run(build.files()))["native: milestones"]
 
 
 def test_final_snapshot_without_a_save_block_fails() -> None:
@@ -384,7 +394,7 @@ def test_missing_inputs_fail_by_name(kind: str) -> None:
     files = Build().files()
     victim = {
         "events": "events-67d7.jsonl",
-        "raw": "raw-ram-67d7.jsonl",
+        "raw": "raw-ram-final-67d7.json",
         "tar": "checkpoints-67d7.tar",
     }
     del files[victim[kind]]
@@ -416,7 +426,6 @@ def test_integrity_failures() -> None:
         in failed(run({k: v for k, v in files.items() if k != "SHA256SUMS"}))["integrity"]
     )
     tampered = dict(files)
-    tampered["raw-ram-67d7.jsonl"] = files["raw-ram-67d7.jsonl"] + b""
     tampered["events-67d7.jsonl"] = files["events-67d7.jsonl"].replace(b"medium", b"MEDIUM")
     assert "events-67d7.jsonl: sha256 mismatch" in failed(run(tampered))["integrity"]
     listed = dict(files)
@@ -489,6 +498,20 @@ def test_turn_failures() -> None:
         b.events[-1]["turns"] = 5
 
     assert "run_end.turns" in tamper_events(count)["events: turns"]
+
+
+def test_a_turn_gap_fails_even_when_run_end_agrees() -> None:
+    def gap(b: Build) -> None:
+        b.events[7]["turn"] = 3
+        b.events[-1].update(turn=3, turns=3)
+
+    assert "expected 2" in tamper_events(gap)["events: turns"]
+
+
+def test_a_same_size_swapped_state_fails() -> None:
+    build = Build()
+    build.states["GAME_CLEAR_CONFIRMED.state"] = bytes(reversed(STATE))
+    assert "GAME_CLEAR_CONFIRMED" in failed(run(build.files()))["checkpoints: digests"]
 
 
 def test_operator_steps_and_restores_fail() -> None:
@@ -584,7 +607,7 @@ def test_unreadable_event_lines_fail_every_event_check() -> None:
     ).encode()
     bad = failed(run(files))
     assert "truncated" in bad["events: order"]
-    assert "events: run_end" in bad and "native: milestones" in bad
+    assert "events: run_end" in bad and "native: game clear flag" in bad
     files["events-67d7.jsonl"] = b"{not json\n" + build.event_bytes()
     files["SHA256SUMS"] = "".join(
         f"{sha256(v)}  {k}\n" for k, v in files.items() if k != "SHA256SUMS"
@@ -595,43 +618,72 @@ def test_unreadable_event_lines_fail_every_event_check() -> None:
 # --- raw RAM ---
 
 
-def test_raw_ram_failures() -> None:
+def test_final_snapshot_failures() -> None:
     build = Build()
     build.final["sequence"] = 5
-    assert "sequence" in failed(run(build.files()))["raw RAM: snapshots"]
+    assert "sequence" in failed(run(build.files()))["final snapshot"]
+    build = Build()
+    build.final["frame"] = 1
+    assert "frame" in failed(run(build.files()))["final snapshot"]
     build = Build()
     build.final["rom_sha1"] = "f" * 40
-    assert "rom_sha1" in failed(run(build.files()))["raw RAM: snapshots"]
+    assert "rom_sha1" in failed(run(build.files()))["final snapshot"]
     build = Build()
     region(build.final, "vram")["sha256"] = "0" * 64
     bad = failed(run(build.files()))
-    assert "integrity" in bad["raw RAM: snapshots"]
-    assert "native: game clear flag" in bad
-    build = Build()
-    build.final["frame"] = 1
-    assert "frame" in failed(run(build.files()))["raw RAM: snapshots"]
+    assert {"final snapshot", "native: game clear flag", "native: badges", "native: party"} <= set(
+        bad
+    )
+    assert "integrity" in bad["final snapshot"]
 
 
-def test_event_references_must_name_recorded_snapshots() -> None:
+def test_final_snapshot_must_be_the_last_one_the_events_reference() -> None:
     build = Build()
-    ref = build.events[8]["raw_ram"]
+    build.state(2, 2, "credits")  # a later snapshot than the shipped one
+    build.events.append(build.events.pop(-2))  # keep run_end last
+    for seq, event in enumerate(build.events):
+        event["seq"] = seq
+    assert "sequence" in failed(run(build.files()))["final snapshot"]
+    build = Build()
+    ref = build.events[4]["raw_ram"]
     assert isinstance(ref, dict)
-    ref["frame"] = 12
-    assert "frame" in failed(run(build.files()))["raw RAM: event references"]
+    ref["sequence"] = 7  # an earlier state names a later snapshot than the last state does
+    assert "earlier state" in failed(run(build.files()))["final snapshot"]
     build = Build()
-    ref = build.events[8]["raw_ram"]
-    assert isinstance(ref, dict)
-    ref["sequence"] = 9
-    assert "not in the raw RAM" in failed(run(build.files()))["raw RAM: event references"]
+    build.state = None  # type: ignore[assignment]
+    for event in build.events:
+        event.pop("raw_ram", None)
+    assert "no state event" in failed(run(build.files()))["final snapshot"]
 
 
-def test_oversized_lines_fail_without_buffering(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(vr, "RAM_LINE_CAP", 1024)
-    assert "longer than 1024 bytes" in failed(run(Build().files()))["raw RAM: snapshots"]
+def test_original_gzip_final_snapshot_must_match_the_run_digest() -> None:
+    build = Build()
+    build.ext = ".gz"
+    build.final_ref_sha256 = "0" * 64
+    assert "file sha256" in failed(run(build.files()))["final snapshot"]
+    build = Build()
+    build.final_ref_sha256 = "0" * 64  # recompressed copies are bound by sequence and frame only
+    assert "final snapshot" not in failed(run(build.files()))
+
+
+def test_oversized_inputs_fail_without_buffering(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(vr, "MAX_ARCHIVE_BYTES", 1024)
+    assert "expands beyond 1024 bytes" in failed(run(Build().files()))["final snapshot"]
+    monkeypatch.undo()
     monkeypatch.setattr(vr, "EVENT_LINE_CAP", 64)
     bad = failed(run(Build().files()))
     assert "longer than 64 bytes" in bad["events: order"]
-    assert "event log is unreadable" in bad["raw RAM: snapshots"]
+    assert "event log is unreadable" in bad["native: game clear flag"]
+
+
+def test_trailing_data_after_the_final_record_fails() -> None:
+    build = Build()
+    files = build.files()
+    files["raw-ram-final-67d7.json"] += b"\n" + build.final_bytes()
+    files["SHA256SUMS"] = "".join(
+        f"{sha256(v)}  {k}\n" for k, v in files.items() if k != "SHA256SUMS"
+    ).encode()
+    assert "Extra data" in failed(run(files))["final snapshot"]
 
 
 # --- checkpoints ---
@@ -714,6 +766,28 @@ def test_checkpoint_pairs_digests_and_provenance() -> None:
     assert "GAME_CLEAR_CONFIRMED" in failed(run(build.files()))["checkpoints: archive"]
 
 
+def test_run_end_save_must_match_run_end() -> None:
+    build = Build()
+    side = build.sidecars["RUN_END.json"]
+    assert isinstance(side, dict)
+    for key, wrong in (("end_reason", "budget"), ("kind", "milestone"), ("turn", 1)):
+        build = Build()
+        side = build.sidecars["RUN_END.json"]
+        assert isinstance(side, dict)
+        side[key] = wrong
+        assert "RUN_END: kind" in failed(run(build.files()))["checkpoints: provenance"]
+    build = Build()
+    side = build.sidecars["RUN_END.json"]
+    assert isinstance(side, dict)
+    side["source"] = {"rom_sha1": ROM_SHA1, "start_state": {"kind": "checkpoint"}}
+    assert "RUN_END: source.start_state" in failed(run(build.files()))["checkpoints: provenance"]
+    build = Build()
+    del build.sidecars["RUN_END.json"], build.states["RUN_END.state"]
+    report = run(build.files())
+    assert report.ok
+    assert "run-end save" not in result(report, "checkpoints: archive").detail
+
+
 def test_corrupt_tar_fails() -> None:
     files = Build().files()
     files["checkpoints-67d7.tar"] = b"not a tar archive" * 100
@@ -733,54 +807,13 @@ def test_verifier_only_reads_and_reads_each_file_once() -> None:
         release, ROM, rom_sha1=ROM_SHA1, read_party=party(RAYQUAZA), rom_problem=None
     )
     assert report.ok
-    assert sorted(release.opened) == sorted(release.files)
+    # Each file the checks need is opened once (hashed in the same read); the full raw-RAM log
+    # is listed in SHA256SUMS but never opened.
+    assert sorted(release.opened) == sorted(set(release.files) - {"raw-ram-67d7.jsonl.zst"})
     assert not hasattr(release, "write")
 
 
-# --- the milestone table and the raw-RAM record split ---
-
-
-def test_native_milestone_predicates() -> None:
-    flags = bytearray(0x12C)
-    flags[0x864 >> 3] |= 1 << (0x864 & 7)
-    variables = bytearray(0x200)
-    variables[2 * (0x405E - 0x4000)] = 2
-    table = vr.parse_milestone_table(
-        {
-            "milestones": [
-                {"name": "A", "flag": 0x864},
-                {"name": "B", "anyFlags": [1, 0x864]},
-                {"name": "C", "allFlags": [1, 0x864]},
-                {"name": "D", "variable": 0x405E, "maximum": 3, "values": [2]},
-                {"name": "E", "variable": 0x405E, "maximum": 1, "values": [2]},
-            ]
-        }
-    )
-    reached = {n: m.reached(bytes(flags), bytes(variables)) for n, m in table.items()}
-    assert reached == {"A": True, "B": True, "C": False, "D": True, "E": False}
-
-
-@pytest.mark.parametrize(
-    "bad",
-    [
-        {},
-        {"milestones": [{"name": "A"}]},
-        {"milestones": [{"name": "A", "flag": 0x12C * 8}]},
-        {"milestones": [{"name": "A", "flag": True}]},
-        {"milestones": [{"name": "A", "variable": 0x4100, "maximum": 1, "values": [1]}]},
-        {"milestones": [{"name": "A", "flag": 1}, {"name": "A", "flag": 2}]},
-        {"milestones": [{"name": 3, "flag": 1}]},
-        {"milestones": [{"name": "A", "anyFlags": []}]},
-    ],
-)
-def test_milestone_table_rejects_malformed_rows(bad: object) -> None:
-    with pytest.raises(ValueError):
-        vr.parse_milestone_table(bad)
-
-
-def test_shipped_table_has_the_headline_flags() -> None:
-    assert vr.MILESTONES["GAME_CLEAR_CONFIRMED"].flags == (0x864,)
-    assert vr.MILESTONES["RAIN_BADGE"].flags == (0x86E,)
+# --- the raw-RAM record split ---
 
 
 def test_parse_raw_ram_record_is_the_load_raw_ram_validation() -> None:
@@ -790,14 +823,15 @@ def test_parse_raw_ram_record_is_the_load_raw_ram_validation() -> None:
     with pytest.raises(ValueError, match="ROM identity"):
         parse_raw_ram_record(value, rom=b"other")
     assert parse_raw_ram_record(value, rom=ROM).rom == ROM
-    for change, message in (
+    changes: list[tuple[Callable[[dict[str, object]], None], str]] = [
         (lambda v: v.update(v=2), "version"),
         (lambda v: v.update(regions=[]), "region table"),
-        (lambda v: v["regions"][0].update(address=0), "region layout"),
-        (lambda v: v["regions"][0].update(sha256="0" * 64), "region integrity"),
+        (lambda v: region(v, "ewram").update(address=0), "region layout"),
+        (lambda v: region(v, "ewram").update(sha256="0" * 64), "region integrity"),
         (lambda v: v.update(gprs=[0] * 15), "CPU registers"),
-    ):
-        broken = json.loads(json.dumps(value))
+    ]
+    for change, message in changes:
+        broken: dict[str, object] = json.loads(json.dumps(value))
         change(broken)
         with pytest.raises(ValueError, match=message):
             parse_raw_ram_record(broken)
@@ -822,7 +856,7 @@ def test_main_prints_one_line_per_check_and_exits_by_result() -> None:
     )
     lines = out.getvalue().splitlines()
     assert code == 0
-    assert sum(line.startswith("PASS ") for line in lines) == 17
+    assert sum(line.startswith("PASS ") for line in lines) == 15
     out = io.StringIO()
     code = vr.main(["release"], {}, open_release=lambda _p: MemoryRelease(files), out=out)
     assert code == 1

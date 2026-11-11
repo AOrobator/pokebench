@@ -1,9 +1,10 @@
 """Check a published PokeBench clear with nothing but the reader's ROM (`just verify-release`).
 
-The release folder is an untrusted download. Every file is streamed once, read-only, through a
-sha256 tee, so the bytes checked are the bytes hashed. Nothing is extracted or written. The
-headline (game clear, badges, Rayquaza) comes from native readers on the recorded RAM, never from
-the run's own milestone events.
+The release folder is an untrusted download. Each file this tool reads is streamed once,
+read-only, through a sha256 tee, so the bytes checked are the bytes hashed. Nothing is extracted
+or written. The headline (game clear, badges, Rayquaza) comes from native readers on the run's
+final RAM snapshot, never from the run's own milestone events. The full raw-RAM log is not read
+here; it is for the replay.
 """
 
 import gzip
@@ -28,7 +29,6 @@ from pokebench_env.rom import EMERALD_SHA1
 T = TypeVar("T")
 
 EVENT_LINE_CAP = 16 * 1024 * 1024
-RAM_LINE_CAP = MAX_ARCHIVE_BYTES + 1
 STATE_CAP = 8 * 1024 * 1024
 SIDECAR_CAP = 1024 * 1024
 MAX_MEMBERS = 4096
@@ -38,17 +38,17 @@ MAX_PROBLEMS = 5
 
 SAVE1_POINTER = 0x03005D8C
 SAVE_FLAGS, FLAG_BYTES = 0x1270, 0x12C
-SAVE_VARS, VAR_BYTES = 0x139C, 0x200
 EWRAM, EWRAM_END = 0x02000000, 0x02040000
 FLAG_SYS_GAME_CLEAR = 0x864
 SPECIES_RAYQUAZA = 406
 TARGET = "GAME_CLEAR_CONFIRMED"
 FINAL_SAVE = "GAME_CLEAR_FINAL"
+RUN_END_SAVE = "RUN_END"
 FORBIDDEN_EVENTS = ("human_input", "human_sample", "operator_control")
 
 KINDS = {
     "events": re.compile(r"events[A-Za-z0-9._-]*\.jsonl(\.gz|\.xz|\.zst)?"),
-    "raw-ram": re.compile(r"raw-ram[A-Za-z0-9._-]*\.jsonl(\.gz|\.xz|\.zst)?"),
+    "final snapshot": re.compile(r"raw-ram-final[A-Za-z0-9._-]*\.json(\.gz|\.xz|\.zst)?"),
     "checkpoints": re.compile(r"checkpoints[A-Za-z0-9._-]*\.tar(\.gz|\.xz|\.zst)?"),
 }
 SUM_LINE = re.compile(r"([0-9a-f]{64}) [ *]([A-Za-z0-9][A-Za-z0-9._+-]*)")
@@ -82,73 +82,6 @@ class Report:
 
 class ReleaseError(ValueError):
     pass
-
-
-# --- milestone predicates (generated from the agent catalog; see release-milestones.json) ---
-
-
-@dataclass(frozen=True)
-class NativeMilestone:
-    name: str
-    mode: str
-    flags: tuple[int, ...] = ()
-    variable: int = 0
-    maximum: int = 0
-    values: tuple[int, ...] = ()
-
-    def reached(self, flags: bytes, variables: bytes) -> bool:
-        if self.mode == "variable":
-            at = 2 * (self.variable - 0x4000)
-            value = int.from_bytes(variables[at : at + 2], "little")
-            return value <= self.maximum and value in self.values
-        bits = [bool(flags[flag >> 3] >> (flag & 7) & 1) for flag in self.flags]
-        return any(bits) if self.mode == "anyFlags" else all(bits)
-
-
-def _int(value: object, low: int, high: int) -> int:
-    if type(value) is not int or not low <= value < high:
-        raise ValueError(f"milestone table value out of range: {value!r}")
-    return value
-
-
-def _ints(value: object, low: int, high: int) -> tuple[int, ...]:
-    if not isinstance(value, list) or not value:
-        raise ValueError("milestone table list must be non-empty")
-    return tuple(_int(item, low, high) for item in value)
-
-
-def parse_milestone_table(value: object) -> dict[str, NativeMilestone]:
-    rows = value.get("milestones") if isinstance(value, dict) else None
-    if not isinstance(rows, list):
-        raise ValueError("milestone table has no milestones list")
-    table: dict[str, NativeMilestone] = {}
-    flag_end = FLAG_BYTES * 8
-    for row in rows:
-        name = row.get("name") if isinstance(row, dict) else None
-        if not isinstance(name, str) or name in table:
-            raise ValueError(f"milestone table row name invalid or repeated: {name!r}")
-        assert isinstance(row, dict)
-        if "variable" in row:
-            table[name] = NativeMilestone(
-                name,
-                "variable",
-                variable=_int(row["variable"], 0x4000, 0x4000 + VAR_BYTES // 2),
-                maximum=_int(row.get("maximum"), 0, 0x10000),
-                values=_ints(row.get("values"), 0, 0x10000),
-            )
-        elif "flag" in row:
-            table[name] = NativeMilestone(name, "flag", (_int(row["flag"], 0, flag_end),))
-        elif "anyFlags" in row or "allFlags" in row:
-            mode = "anyFlags" if "anyFlags" in row else "allFlags"
-            table[name] = NativeMilestone(name, mode, _ints(row[mode], 0, flag_end))
-        else:
-            raise ValueError(f"milestone table row {name} has no flag or variable")
-    return table
-
-
-MILESTONES = parse_milestone_table(
-    json.loads(Path(__file__).with_name("release-milestones.json").read_text())
-)
 
 
 # --- streams ---
@@ -260,11 +193,6 @@ def parse_sums(data: bytes) -> tuple[dict[str, str], Problems]:
     return sums, problems
 
 
-def _hash(files: ReleaseFiles, name: str) -> str:
-    with files.open(name) as raw:
-        return _Tee(raw).drain()
-
-
 # --- event log ---
 
 
@@ -273,7 +201,6 @@ class Milestone:
     seq: int
     name: str
     origin: object
-    evidence: tuple[int, ...]
 
 
 @dataclass
@@ -286,11 +213,11 @@ class EventFacts:
     run_ends: int = 0
     turns: int = 0
     order: Problems = field(default_factory=Problems)
-    ref_conflicts: Problems = field(default_factory=Problems)
     turn_problems: Problems = field(default_factory=Problems)
     forbidden: dict[str, int] = field(default_factory=dict)
-    state_raw: dict[int, int] = field(default_factory=dict)
-    raw_frames: dict[int, int] = field(default_factory=dict)
+    last_ref: dict[str, object] | None = None
+    last_ref_seq: int | None = None
+    max_sequence: int = -1
     credits: set[int] = field(default_factory=set)
     milestones: list[Milestone] = field(default_factory=list)
 
@@ -323,29 +250,13 @@ def scan_events(stream: BinaryIO) -> EventFacts:
             facts.turns = turn if type(turn) is int else facts.turns + 1
         elif kind == "state" and type(seq) is int:
             ref = event.get("raw_ram")
-            if (
-                isinstance(ref, dict)
-                and type(ref.get("sequence")) is int
-                and type(ref.get("frame")) is int
-            ):
-                sequence, frame = cast(int, ref["sequence"]), cast(int, ref["frame"])
-                facts.state_raw[seq] = sequence
-                if facts.raw_frames.setdefault(sequence, frame) != frame:
-                    facts.ref_conflicts.add(f"snapshot {sequence} is referenced with two frames")
+            if isinstance(ref, dict) and type(ref.get("sequence")) is int:
+                facts.last_ref, facts.last_ref_seq = ref, seq
+                facts.max_sequence = max(facts.max_sequence, cast(int, ref["sequence"]))
             if event.get("screen") == "credits":
                 facts.credits.add(seq)
         elif kind == "milestone" and type(seq) is int and isinstance(event.get("name"), str):
-            evidence = event.get("evidence")
-            facts.milestones.append(
-                Milestone(
-                    seq,
-                    cast(str, event["name"]),
-                    event.get("origin"),
-                    tuple(e for e in evidence if type(e) is int)
-                    if isinstance(evidence, list)
-                    else (),
-                )
-            )
+            facts.milestones.append(Milestone(seq, cast(str, event["name"]), event.get("origin")))
         elif kind == "run_end":
             facts.run_ends += 1
             facts.run_end = event
@@ -453,120 +364,91 @@ def event_checks(facts: EventFacts, rom_sha1: str) -> list[Check]:
     return checks
 
 
-# --- raw RAM ---
+# --- the final RAM snapshot ---
 
 
 @dataclass
-class RamFacts:
-    count: int = 0
-    problems: Problems = field(default_factory=Problems)
-    references: Problems = field(default_factory=Problems)
-    final: ArchivedMemoryReader | None = None
-    first_true: dict[str, int] = field(default_factory=dict)
+class FinalSnapshot:
+    reader: ArchivedMemoryReader
+    file_sha256: str
 
 
-def _save_block(read: ArchivedMemoryReader) -> tuple[bytes, bytes] | None:
+def read_final_snapshot(stream: BinaryIO, raw: "_Tee") -> FinalSnapshot:
+    """One snapshot record, decompressed under the raw-RAM archive bound."""
+    body = stream.read(MAX_ARCHIVE_BYTES + 1)
+    if len(body) > MAX_ARCHIVE_BYTES:
+        raise ReleaseError(f"final snapshot expands beyond {MAX_ARCHIVE_BYTES} bytes")
+    reader = parse_raw_ram_record(json.loads(body))
+    return FinalSnapshot(reader, raw.drain())
+
+
+def _save_flags(read: ArchivedMemoryReader) -> bytes | None:
     save1 = int.from_bytes(read(SAVE1_POINTER, 4), "little")
-    if save1 % 4 or not EWRAM <= save1 or save1 + SAVE_VARS + VAR_BYTES > EWRAM_END:
+    if save1 % 4 or not EWRAM <= save1 or save1 + SAVE_FLAGS + FLAG_BYTES > EWRAM_END:
         return None
-    return read(save1 + SAVE_FLAGS, FLAG_BYTES), read(save1 + SAVE_VARS, VAR_BYTES)
-
-
-def scan_ram(stream: BinaryIO, facts: EventFacts, rom_sha1: str) -> RamFacts:
-    ram = RamFacts()
-    pending = {m.name: MILESTONES[m.name] for m in facts.milestones if m.name in MILESTONES}
-    previous_frame = -1
-    for number, line in _lines(stream, RAM_LINE_CAP, "raw RAM"):
-        try:
-            read = parse_raw_ram_record(json.loads(line))
-        except (ValueError, TypeError) as error:
-            raise ReleaseError(f"raw RAM line {number}: {error}") from None
-        sequence, frame = read.metadata.get("sequence"), read.metadata.get("frame")
-        if sequence != ram.count:
-            ram.problems.add(f"line {number} has sequence {sequence!r}, expected {ram.count}")
-        if read.metadata.get("rom_sha1") != rom_sha1:
-            ram.problems.add(f"line {number} has rom_sha1 {read.metadata.get('rom_sha1')!r}")
-        if type(frame) is not int or frame < previous_frame:
-            ram.problems.add(f"line {number} has frame {frame!r} before frame {previous_frame}")
-        else:
-            previous_frame = frame
-        referenced = facts.raw_frames.get(ram.count)
-        if referenced is not None and referenced != frame:
-            ram.references.add(
-                f"snapshot {ram.count} is frame {frame!r}, events say frame {referenced}"
-            )
-        ram.count += 1
-        ram.final = read
-        if pending:
-            block = _save_block(read)
-            if block is not None:
-                for name, milestone in list(pending.items()):
-                    if milestone.reached(*block):
-                        ram.first_true[name] = ram.count - 1
-                        del pending[name]
-    return ram
+    return read(save1 + SAVE_FLAGS, FLAG_BYTES)
 
 
 def ram_checks(
-    ram: RamFacts | None,
+    final: FinalSnapshot | None,
+    name: str,
     facts: EventFacts | None,
     rom: bytes | None,
+    rom_sha1: str,
     read_party: Callable[[ArchivedMemoryReader], tuple[PartyMon, ...]],
     unreadable: str,
 ) -> list[Check]:
-    names = [
-        "raw RAM: snapshots",
-        "raw RAM: event references",
-        "native: game clear flag",
-        "native: badges",
-        "native: party",
-        "native: milestones",
-    ]
-    if ram is None or facts is None:
-        return [Check(name, False, unreadable) for name in names]
+    names = ("final snapshot", "native: game clear flag", "native: badges", "native: party")
+    if final is None or facts is None:
+        return [Check(check, False, unreadable) for check in names]
+    meta = final.reader.metadata
+    binding = Problems()
+    ref = facts.last_ref
+    if ref is None:
+        binding.add("no state event references a raw-RAM snapshot")
+    else:
+        if ref.get("sequence") != facts.max_sequence:
+            binding.add(
+                f"an earlier state references snapshot {facts.max_sequence}, after the last one"
+            )
+        for key in ("sequence", "frame"):
+            if meta.get(key) != ref.get(key):
+                binding.add(f"{key} {meta.get(key)!r}; the last state event says {ref.get(key)!r}")
+        if name.endswith(".gz") and final.file_sha256 != ref.get("sha256"):
+            binding.add("file sha256 differs from the last state event's raw_ram.sha256")
+    if meta.get("rom_sha1") != rom_sha1:
+        binding.add(f"rom_sha1 {meta.get('rom_sha1')!r} is not {rom_sha1}")
+    exact = (
+        "byte-identical to the run's archive"
+        if name.endswith(".gz")
+        else "recompressed, so only sequence and frame bind it (the run's digest covers gzip bytes)"
+    )
     checks = [
         _check(
-            "raw RAM: snapshots",
-            ram.problems,
-            f"{ram.count:,} snapshots, sequences contiguous, every region digest matches",
+            "final snapshot",
+            binding,
+            f"sequence {meta.get('sequence')}, frame {meta.get('frame')}: the last snapshot the "
+            f"events reference; every region digest matches; {exact}",
         )
     ]
-    refs = ram.references
-    for problem in facts.ref_conflicts.first:
-        refs.add(problem)
-    for sequence in sorted(facts.raw_frames):
-        if sequence >= ram.count:
-            refs.add(f"snapshot {sequence} is not in the raw RAM file")
-    checks.append(
-        _check(
-            "raw RAM: event references",
-            refs,
-            f"{len(facts.raw_frames):,} referenced snapshots exist with matching frames",
-        )
-    )
-
-    final = ram.final
-    block = None if final is None else _save_block(final)
-    if final is None or block is None:
+    flags = _save_flags(final.reader)
+    if flags is None:
         reason = "the final snapshot has no valid save block pointer"
         checks += [
             Check("native: game clear flag", False, reason),
             Check("native: badges", False, reason),
         ]
     else:
-        flags = block[0]
 
         def flag(n: int) -> bool:
             return bool(flags[n >> 3] >> (n & 7) & 1)
 
-        frame = final.metadata.get("frame")
         clear = flag(FLAG_SYS_GAME_CLEAR)
         checks.append(
             Check(
                 "native: game clear flag",
                 clear,
-                f"FLAG_SYS_GAME_CLEAR {'set' if clear else 'NOT set'} "
-                f"in the final snapshot (frame {frame})",
+                f"FLAG_SYS_GAME_CLEAR {'set' if clear else 'NOT set'} in the final snapshot",
             )
         )
         missing = [badge for i, badge in enumerate(BADGES) if not flag(FLAG_BADGE01 + i)]
@@ -579,20 +461,17 @@ def ram_checks(
                 else f"badge flags not set: {', '.join(missing)}",
             )
         )
-    checks.append(_party_check(final, rom, read_party))
-    checks.append(_milestone_check(ram, facts))
+    checks.append(_party_check(final.reader, rom, read_party))
     return checks
 
 
 def _party_check(
-    final: ArchivedMemoryReader | None,
+    final: ArchivedMemoryReader,
     rom: bytes | None,
     read_party: Callable[[ArchivedMemoryReader], tuple[PartyMon, ...]],
 ) -> Check:
-    if final is None:
-        return Check("native: party", False, "no final snapshot")
     if rom is None:
-        return Check("native: party", False, "needs the ROM to decode the party")
+        return Check("native: party", False, "needs the matching ROM to decode the party")
     reader = ArchivedMemoryReader(final.regions, final.gprs, final.cpsr, final.metadata, rom)
     try:
         mons = read_party(reader)
@@ -607,32 +486,6 @@ def _party_check(
     found = any(m.species_id == SPECIES_RAYQUAZA and m.diagnostic is None for m in mons)
     return Check(
         "native: party", found, f"{'' if found else 'no RAYQUAZA: '}{shown or 'empty party'}"
-    )
-
-
-def _milestone_check(ram: RamFacts, facts: EventFacts) -> Check:
-    problems = Problems()
-    checked = 0
-    for milestone in facts.milestones:
-        if milestone.name not in MILESTONES:
-            continue
-        checked += 1
-        refs = [facts.state_raw[e] for e in milestone.evidence if e in facts.state_raw]
-        first = ram.first_true.get(milestone.name)
-        if not refs:
-            problems.add(f"{milestone.name} (seq {milestone.seq}) has no raw-RAM evidence")
-        elif first is None:
-            problems.add(f"{milestone.name} never true in RAM")
-        elif first > max(refs):
-            problems.add(
-                f"{milestone.name} first true at snapshot {first}, after its evidence {max(refs)}"
-            )
-    total = len(facts.milestones)
-    return _check(
-        "native: milestones",
-        problems,
-        f"{checked} of {total} claimed milestones have a native reader; "
-        f"all {checked} true in RAM no later than their events",
     )
 
 
@@ -736,12 +589,13 @@ def checkpoint_checks(
             pairs.append((base, side, state))
     if FINAL_SAVE not in found.states:
         archive.add(f"{FINAL_SAVE}.state is missing")
-    milestones = sum(base != FINAL_SAVE for base, _, _ in pairs)
+    milestones = sum(base not in (FINAL_SAVE, RUN_END_SAVE) for base, _, _ in pairs)
+    extra = " + run-end save" if RUN_END_SAVE in found.states else ""
     checks = [
         _check(
             "checkpoints: archive",
             archive,
-            f"{len(pairs)} state/JSON pairs ({milestones} milestones + final save); "
+            f"{len(pairs)} state/JSON pairs ({milestones} milestones + final save{extra}); "
             "no links or unsafe names",
         )
     ]
@@ -779,13 +633,23 @@ def checkpoint_checks(
             source = side.get("source")
             start = source.get("start_state") if isinstance(source, dict) else None
             event = side.get("milestone_event")
-            if side.get("milestone") != base:
+            if base == RUN_END_SAVE:
+                end = facts.run_end or {}
+                if (
+                    side.get("kind") != "run_end"
+                    or side.get("end_reason") != end.get("reason")
+                    or side.get("turn") != end.get("turns")
+                ):
+                    provenance.add(f"{base}: kind, end_reason or turn differs from run_end")
+            elif side.get("milestone") != base:
                 provenance.add(f"{base}: names milestone {side.get('milestone')!r}")
             if not isinstance(start, dict) or start.get("kind") != "boot":
                 provenance.add(f"{base}: source.start_state is not boot")
             if not isinstance(source, dict) or source.get("rom_sha1") != rom_sha1:
                 provenance.add(f"{base}: source.rom_sha1 is not the ROM")
-            if not isinstance(event, dict) or (base, event.get("seq")) not in claimed:
+            if base != RUN_END_SAVE and (
+                not isinstance(event, dict) or (base, event.get("seq")) not in claimed
+            ):
                 provenance.add(
                     f"{base}: milestone event is not a {base} milestone in the event log"
                 )
@@ -794,7 +658,7 @@ def checkpoint_checks(
             "checkpoints: provenance",
             provenance,
             "every milestone state from boot on this ROM and run; "
-            f"{FINAL_SAVE} bound to run_end.target_proof",
+            f"{FINAL_SAVE} bound to run_end.target_proof; {RUN_END_SAVE} bound to run_end",
         )
     )
     return checks
@@ -820,7 +684,7 @@ def verify(
     digests: dict[str, str] = {}
     read_problems: dict[str, str] = {}
 
-    def stream(kind: str, scan: Callable[[BinaryIO, str], T]) -> tuple[T | None, str]:
+    def stream(kind: str, scan: Callable[[BinaryIO, str, _Tee], T]) -> tuple[T | None, str]:
         target = found[kind]
         if isinstance(target, Check):
             return None, target.detail
@@ -837,7 +701,7 @@ def verify(
                 buffered = cast(BinaryIO, io.BufferedReader(tee, CHUNK))
                 # tarfile decompresses the checkpoint archive itself ("r|xz"/"r|gz").
                 source = buffered if kind == "checkpoints" else _decoder(target, buffered)
-                result = scan(source, target)
+                result = scan(source, target, tee)
             except Exception as error:  # noqa: BLE001 - fail closed: any failure is a named FAIL
                 problem = f"{target}: {_failure(error)}"
             try:
@@ -846,12 +710,10 @@ def verify(
                 read_problems[target] = f"cannot be read to the end: {error}"
             return result, problem
 
-    facts, event_problem = stream("events", lambda s, _n: scan_events(s))
-    ram: RamFacts | None = None
-    ram_problem = event_problem and f"not checked: the event log is unreadable ({event_problem})"
-    if facts is not None:
-        ram, ram_problem = stream("raw-ram", lambda s, _n: scan_ram(s, facts, rom_sha1))
-    cps, cp_problem = stream("checkpoints", scan_checkpoints)
+    facts, event_problem = stream("events", lambda s, _n, _t: scan_events(s))
+    final, final_problem = stream("final snapshot", lambda s, _n, t: read_final_snapshot(s, t))
+    cps, cp_problem = stream("checkpoints", lambda s, n, _t: scan_checkpoints(s, n))
+    final_name = found["final snapshot"]
 
     checks = [
         _integrity(files, names, found, digests, read_problems),
@@ -866,11 +728,19 @@ def verify(
         if rom is not None and hashlib.sha1(rom, usedforsecurity=False).hexdigest() == rom_sha1
         else None
     )
-    checks += ram_checks(ram, facts, usable_rom, read_party, ram_problem)
+    checks += ram_checks(
+        final,
+        final_name if isinstance(final_name, str) else "",
+        facts,
+        usable_rom,
+        rom_sha1,
+        read_party,
+        final_problem or f"not checked: the event log is unreadable ({event_problem})",
+    )
     checks += checkpoint_checks(
         cps, facts, rom_sha1, cp_problem or (event_problem and f"not checked: {event_problem}")
     )
-    return Report(checks, _totals(facts, ram, cps))
+    return Report(checks, _totals(facts, final, cps))
 
 
 EVENT_CHECKS = (
@@ -899,21 +769,19 @@ def _integrity(
     for target in found.values():
         if isinstance(target, str) and target not in sums:
             problems.add(f"{target}: not listed in SHA256SUMS")
+    others = 0
     for name, expected in sums.items():
         if name not in names:
             problems.add(f"{name}: missing")
-            continue
-        if name in read_problems:
+        elif name in read_problems:
             problems.add(f"{name}: {read_problems[name]}")
-            continue
-        try:
-            actual = digests[name] if name in digests else _hash(files, name)
-        except OSError as error:
-            problems.add(f"{name}: cannot be read: {error}")
-            continue
-        if actual != expected:
+        elif name not in digests:
+            others += 1  # not read here (raw-RAM log, screenshots, ...): sha256sum -c covers them
+        elif digests[name] != expected:
             problems.add(f"{name}: sha256 mismatch")
-    return _check("integrity", problems, f"{len(sums)} files match SHA256SUMS")
+    read = len(sums) - others
+    note = f"; {others} other listed files present, not hashed here" if others else ""
+    return _check("integrity", problems, f"{read} files read match SHA256SUMS{note}")
 
 
 def _rom_check(rom: bytes | None, problem: str | None, rom_sha1: str) -> Check:
@@ -928,7 +796,7 @@ def _rom_check(rom: bytes | None, problem: str | None, rom_sha1: str) -> Check:
 
 
 def _totals(
-    facts: EventFacts | None, ram: RamFacts | None, cps: CheckpointFacts | None
+    facts: EventFacts | None, final: FinalSnapshot | None, cps: CheckpointFacts | None
 ) -> list[str]:
     lines: list[str] = []
     if facts is not None:
@@ -957,8 +825,12 @@ def _totals(
             lines.append(f"tokens: input {tokens.get('input')}, output {tokens.get('output')}")
         lines.append("list cost: not in this release (the agent trace is not shipped)")
         lines.append(f"evidence: {facts.count:,} events, {len(facts.milestones)} milestones")
-    if ram is not None:
-        lines.append(f"raw RAM: {ram.count:,} snapshots")
+    if final is not None:
+        meta = final.reader.metadata
+        lines.append(
+            f"final RAM snapshot: sequence {meta.get('sequence')}, frame {meta.get('frame')} "
+            "(the full raw-RAM log is not read here)"
+        )
     if cps is not None:
         lines.append(f"checkpoints: {len(cps.states)} states")
     lines.append(

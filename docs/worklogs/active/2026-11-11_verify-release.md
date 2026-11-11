@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: PAUSED by the operator 2026-11-11 17:09Z for a scope discussion (relayed by the coordinator). M1 (source readiness) WIP on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z (relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: M1 (source readiness) in progress on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
 
 ## Problem Statement
 
@@ -13,9 +13,13 @@ A stranger who downloads the 67d7 release (Opus 5.5, boot to Hall of Fame, Rayqu
 - `pokebench-review` (evaluation-integrity persona, applied as a self-review lens)
 - `talk-to-codex` (GPT review lane)
 
+## Scope change (the operator, 2026-11-11 17:10Z)
+
+Cut to the fast checks. The snapshot-by-snapshot scan is gone: no full raw-RAM NDJSON read, no per-milestone RAM check, no 89-milestone flag table and no vitest drift guard (all removed; nothing else used them). RAM is read only from one small release file holding the final snapshot. The full raw-RAM log stays in the release for the replay. Real-data check: a small staging folder, no 16 GB copy.
+
 ## Architecture
 
-`just verify-release <folder>` runs `env/pokebench_env/verify_release.py` (stdlib plus existing env code). It prints one `PASS`/`FAIL` line per check, then a summary, and exits non-zero on any FAIL. It reads only the release folder and `POKEBENCH_ROM` and writes nothing: tar members are hashed and parsed in memory as they stream, so no temp dir is needed.
+`just verify-release <folder>` runs `env/pokebench_env/verify_release.py` (stdlib plus existing env code) with `python -I`, so a release folder used as the working directory never lands on `sys.path`. It prints one `PASS`/`FAIL` line per check (15), totals and a summary, and exits non-zero on any FAIL. It reads only the release folder and `POKEBENCH_ROM` and writes nothing. Each file it reads is streamed once through a sha256 tee, so the bytes checked are the bytes hashed; tar members are hashed and parsed in memory, never extracted.
 
 Release layout (one file per kind, chosen by name and extension):
 
@@ -23,75 +27,81 @@ Release layout (one file per kind, chosen by name and extension):
 |---|---|---|
 | Checksums | `SHA256SUMS` | none |
 | Event log | `events*.jsonl[.gz|.xz]` | by extension |
-| Raw RAM | `raw-ram*.jsonl[.gz|.xz]`, one snapshot JSON per line, same fields as a `raw-ram/*.json.gz` record | by extension |
+| Final RAM snapshot | `raw-ram-final*.json[.gz|.xz]`, one `raw-ram/*.json.gz` record (the run's last) | by extension |
 | Checkpoints | `checkpoints*.tar[.gz|.xz]` with `checkpoints/*.state` + `*.json` | by extension |
 
-zstd is not supported (no stdlib codec, no new dependency). A `.zst` file is ignored when a supported copy of the same kind exists, and is a named FAIL when it is the only one.
+zstd is not supported (no stdlib codec, no new dependency). A `.zst` copy is ignored when a supported copy of the same kind exists, and is a named FAIL when it is the only one. Other files (the full raw-RAM log, screenshots, logs, replay) may be listed in `SHA256SUMS`; they must exist but are not hashed here (`sha256sum -c SHA256SUMS` covers them).
 
 Checks:
 
-1. **Integrity.** Every `SHA256SUMS` line names a plain file in the folder whose sha256 matches; each file the checks read is listed there. The ROM at `POKEBENCH_ROM` has sha1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
-2. **Event-log shape.** First event `run_start` (seq 0, `start_state.kind` boot, ROM sha1); last `run_end` with reason `completed` and `target_proof.name` `GAME_CLEAR_CONFIRMED` whose `milestone_seq` is an observed `GAME_CLEAR_CONFIRMED` milestone and whose `state_evidence` are state events; one run id; seq contiguous from 0; `turn_start` turns contiguous from 1 to `run_end.turns`; no `human_input`, `human_sample` or `operator_control` events; `evaluation.features_sha256` recomputed from `evaluation.features` the way `featuresSha256` in `packages/agent/src/run-evaluation.ts` does.
-3. **Native re-derivation from RAM.** Each NDJSON line is validated by `parse_raw_ram_record` (the validation half of `load_raw_ram`, split out with no behavior change): version, region layout, per-region sha256, registers, ROM identity. Sequences are contiguous from 0, and every state event's `raw_ram` reference names a snapshot with the same frame. From the final snapshot the native readers give `FLAG_SYS_GAME_CLEAR`, the eight badge flags and the party (decoded with the ROM), which must include Rayquaza. Each event-log milestone whose catalog definition is a flag or variable predicate (no map condition) must be seen true in RAM at or before the snapshot its evidence state event references.
-4. **Checkpoints.** Safe streaming tar read (regular files and the one directory only, names under `checkpoints/`, no `..`, absolute paths, links or duplicates, per-member size limits). Every `.state` has a `.json` and the reverse; sha256 and size match the JSON; every milestone checkpoint's `source.start_state.kind` is boot and its `source.rom_sha1` is the ROM; the run id matches; `GAME_CLEAR_FINAL.json`'s proof equals `run_end.target_proof`.
-5. **Totals** (information, not a check): turns, wall time, model, harness commit and dirty flag, tokens (or "not recorded" when zero); list cost is "not in this release" because the agent trace is not shipped. Ends with a pointer to `just replay-verify` (separate worklog).
+1. **integrity**: `SHA256SUMS` lines are `<sha256>  <plain name>`, no duplicates; every file this tool reads is listed and matches; every listed file exists. **rom**: `POKEBENCH_ROM` sha1 is `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
+2. **events** (six checks): `run_start` first with `start_state.kind` boot and the ROM sha1; seq contiguous from 0 with one run id; `turn_start` turns contiguous from 1 and equal to `run_end.turns`/`turn`; no `human_input`, `human_sample` or `operator_control`; `run_end` last and once, reason `completed`, `target_proof` `GAME_CLEAR_CONFIRMED` whose `milestone_seq` is an observed milestone of that name and whose `state_evidence` are credits states after it; `evaluation.features_sha256` recomputed like `featuresSha256` in `packages/agent/src/run-evaluation.ts` (entries sorted by UTF-16 code unit, `JSON.stringify`).
+3. **final snapshot**: validated by `parse_raw_ram_record` (the validation half of `load_raw_ram`, split out with no behavior change), decompressed under the 2 MiB raw-RAM archive bound. Its sequence and frame equal the last state event's `raw_ram` reference, which is also the highest sequence any state references; its `rom_sha1` is the ROM's. When it is the original `.json.gz`, its file sha256 must equal that reference's `sha256` (byte-identical to the run's archive); a recompressed copy is bound by sequence and frame only, and the PASS line says so. **native** (three checks, ROM-decoded): `FLAG_SYS_GAME_CLEAR` (0x864) set; the eight badge flags set; a validly decoded Rayquaza (species 406) in the party.
+4. **checkpoints** (three checks): safe streaming tar (only the `checkpoints` directory and regular files named `checkpoints/<UPPER_CASE>.state|json`; links, devices, `..`, absolute or other names, duplicates and oversized members rejected; at most 4,096 members); `.state`/`.json` pairs complete, `GAME_CLEAR_FINAL` present; sha256 and size match; provenance: run id matches; milestone saves name themselves, start from boot on the ROM and point at a milestone event of that name; `GAME_CLEAR_FINAL.proof` equals `run_end.target_proof`; `RUN_END` (when present) has `kind` run_end and the run's end reason and turn count, from boot on the ROM.
+5. **totals** (information): run, turns, wall time, model and thinking level, harness commit and tree state, tokens ("not recorded" when zero), list cost ("not in this release"), event and milestone counts, the final snapshot's sequence and frame, checkpoint count, and a pointer to `just replay-verify` (separate worklog).
 
-Milestone predicates come from the agent's catalog (`PROGRESS_CATALOG` in `packages/agent/src/story-progress.ts`). The flag/variable subset is checked in as `env/pokebench_env/release-milestones.json`; a vitest test (`packages/agent/src/release-milestones.test.ts`) derives the same subset from the catalog and fails if the JSON drifts, so the TS catalog stays the source of truth.
-
-Files: `env/pokebench_env/raw_ram.py` (split), `env/pokebench_env/verify_release.py` (new), `env/pokebench_env/release-milestones.json` (new, generated), `env/tests/test_verify_release.py`, `env/tests/test_raw_ram_record.py` (new), `packages/agent/src/release-milestones.test.ts` (new), `justfile` (recipe).
+Files: `env/pokebench_env/raw_ram.py` (split), `env/pokebench_env/verify_release.py` (new), `env/tests/env/test_verify_release.py` (new), `env/tests/env/verify_release_67d7.py` (new: the 67d7 final and power-on snapshots and switch set, as code), `justfile` (recipe).
 
 ## Invariants
 
-- **INV-1 read-only.** The verifier never writes into the release or `runs/`; it opens files read-only and creates nothing. Test: the verifier runs against an in-memory release whose opener records every mode requested; only reads occur, and there is no write API on the seam.
-- **INV-2 headline from RAM.** GAME_CLEAR, badges and party come from native readers on RAM, not milestone events. Test: a fixture whose events claim `GAME_CLEAR_CONFIRMED` and `run_end completed` but whose final RAM lacks the flag FAILs the native check; same for a missing badge and a party without Rayquaza.
-- **INV-3 fail closed.** Each missing, unreadable, ambiguous, unsupported or malformed input is a FAIL naming it; an exception inside a check is a FAIL, never a skipped check. Test: one case per input kind (missing, `.zst` only, truncated line, corrupt JSON, bad checksum).
-- **INV-4 no network, model or GPU.** The module imports no network or model code; tests run under the no-I/O guard on in-memory fixtures.
-- **INV-5 bounded memory.** Events and RAM stream line by line with a per-line byte cap (events 16 MiB, RAM 2 MiB); tar members stream with size caps. Per-event bookkeeping is a few integers per state event, never a stored snapshot. Test: a line over the cap FAILs without being buffered whole.
+- **INV-1 read-only.** Never writes into the release or `runs/`; the release seam (`ReleaseFiles`) has only `names()` and `open()`, and the disk implementation opens with `O_RDONLY | O_NOFOLLOW`. Test: `test_verifier_only_reads_and_reads_each_file_once` (each needed file opened once; the full raw-RAM log never opened).
+- **INV-2 headline from RAM.** Game clear, badges and Rayquaza come from native readers on the final snapshot, not milestone events. Tests: events that claim game clear over a final snapshot without the flag FAIL only `native: game clear flag`; same for a missing badge and a party without (or with a mangled) Rayquaza; a final snapshot that is not the last referenced one, or whose gzip bytes differ from the run's digest, FAILs `final snapshot`.
+- **INV-3 fail closed.** Each missing, unreadable, ambiguous, unsupported or malformed input is a FAIL naming it; any exception in a check is a FAIL, and dependent checks FAIL as "not checked". Tests: missing file per kind, zstd only, two supported copies, truncated or non-JSON event lines, corrupt tar, bad checksums, missing or wrong ROM, unreadable party.
+- **INV-4 no network, model or GPU.** Imports no network or model code; all tests run in memory under the no-I/O guard.
+- **INV-5 bounded memory.** Events stream line by line with a 16 MiB line cap; the final snapshot is read under the 2 MiB archive bound; tar members stream with size caps; per-event bookkeeping is the milestone list and credits seqs, never a snapshot. Tests: oversized event line, oversized final snapshot. Real run: 99 MB peak RSS on the 4.3 GB 67d7 event log.
 
 ## Security Review
 
 The input is an untrusted download.
 
-- Decompression is bounded per line (`readline(cap + 1)`) and per tar member; nothing is fully decompressed into memory.
-- Tars: reject symlinks, hard links, devices, absolute names, `..`, names outside `checkpoints/`, duplicates and oversized members. Nothing is extracted.
-- `SHA256SUMS` names must be plain file names (no `/`, no `..`); the folder itself and each named file must not be symlinks.
-- Release content is never executed or imported; JSON only. The ROM path comes from the user's environment.
-- No subprocesses.
+- Decompression is bounded (`readline(cap + 1)`, `read(MAX_ARCHIVE_BYTES + 1)`, tar member size caps); nothing large is buffered whole.
+- Tars: links, devices, `..`, absolute or unexpected names, duplicates and oversized members rejected; nothing extracted.
+- `SHA256SUMS` names must be plain file names; the folder must not be a symlink and files open with `O_NOFOLLOW`.
+- Release content is never executed or imported; JSON only. `python -I` keeps the folder off `sys.path`. No subprocesses.
 
 ## Milestones
 
 **M1 — Source readiness**
 - [x] Worklog committed (`docs(worklog): verify-release`)
-- [x] Write tests: raw-RAM record split, release discovery/compression, integrity, event shape, native RAM (INV-2), checkpoints/tar safety, INV-1/3/5, vitest catalog drift
-- [x] COMMIT: `test(verify-release): in-memory release fixtures and invariants` (RED): collection fails, `pokebench_env.verify_release` does not exist; vitest drift test 2/2 green (data guard, not a behavior test)
-- [x] Implement (WIP commit; paused before full gates, real 67d7 run and review)
-- [ ] Cheap checks: ruff, mypy, focused pytest, vitest on the new test
-- [ ] Full gates: `just lint`, `just test`, `just verify-vendor`
-- [ ] Real check: 67d7 staging copy outside `runs/`, output saved
-- [ ] Guard deletion check (rule 5): remove each guarded behavior once, watch the test go red, restore
+- [x] Write tests (RED)
+- [x] COMMIT: `test(verify-release): in-memory release fixtures and invariants` (9df412628, RED: collection fails, `pokebench_env.verify_release` does not exist)
+- [x] Implement (WIP commit 66b87cd7c before the pause)
+- [x] Scope cut applied: full-RAM scan, milestone table and vitest drift guard removed; final-snapshot file and its binding added; `RUN_END` checkpoint handled
+- [x] Cheap checks: ruff, mypy, focused pytest 50/50; module coverage 97% (`verify_release.py`)
+- [x] Guard deletion check (rule 5): 22 guards removed one at a time, each turns a test red, restored (see Session Log)
+- [x] Real check: 67d7 staging folder outside `runs/`, 15/15 PASS, 27.9 s wall
 - [ ] COMMIT: `feat(verify-release): ...` (GREEN)
-- [ ] Review: Codex GPT lane via coordinator; Claude CLI lane; two-round cap
-- Outcome: `just verify-release <folder>` prints PASS/FAIL per check for a 67d7-style release. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd. Terminator: both review lanes LGTM. Split trigger: any need for emulator execution.
+- [ ] Full gates: `just lint`, `just test`, `just verify-vendor`
+- [ ] Review: Codex GPT lane via `just tell-codex`; two-round cap
+- Outcome: `just verify-release <folder>` prints 15 PASS/FAIL lines for a 67d7-style release in well under a minute. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd, per-snapshot RAM. Terminator: review LGTM. Split trigger: any need for emulator execution.
 
 **M2 — Landing** (the operator)
 - [ ] ASK USER: land
 - [ ] FF merge via landing board, post-main `just test`
 
 **M3 — Closeout** (the operator)
-- [ ] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`
+- [ ] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`
 
 ## Closing the Loop
 
-- Proof surface: the command's terminal output on a real 67d7 staging copy, plus unit tests. No viewer or browser surface.
+- Proof surface: the command's terminal output on a real 67d7 staging folder, plus unit tests. No viewer or browser surface.
+- Staging folder (scratchpad, outside `runs/`; APFS clones, so no extra space and the originals untouched): `events-67d7.jsonl` (the run's `events.jsonl`, 4.3 GB uncompressed), `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`), `checkpoints-67d7.tar` (uncompressed, built with `COPYFILE_DISABLE=1 tar --no-mac-metadata --no-xattrs`), `raw-ram-67d7.jsonl.zst` (listed, never read), `SHA256SUMS`.
+- Result (`just verify-release .` run from inside the folder, `POKEBENCH_ROM` set): 15/15 PASS, exit 0, 27.90 s real, 27.09 s user, 99 MB peak RSS. Party: RAYQUAZA Lv 74, ELECTRIKE Lv 25, WINGULL Lv 15, ABRA Lv 11, CASTFORM Lv 26, SWAMPERT Lv 55. Checkpoints: 202 pairs (200 milestones + final save + run-end save).
 
 ## Session Log
 
-- 2026-11-11: worktree from main `608c01540`. Discovery: 67d7 has 189,738 events (4.0 GB), 109,028 raw-RAM snapshots (16 GB gz), 202 checkpoint pairs incl. `GAME_CLEAR_FINAL`. Only state events carry `raw_ram` refs (48,201). Max event line 462,570 bytes.
+- 2026-11-11: worktree from main `608c01540`. Discovery: 67d7 has 189,738 events (4.3 GB), 109,028 raw-RAM snapshots (16 GB gz), 202 checkpoint pairs. The last state event (seq 189736) references snapshot 109027 with the sha256 of `raw-ram/00109027.json.gz`. Max event line 462,570 bytes.
+- 17:09Z pause, then 17:10Z scope cut (see above). Before the pause: 57/57 tests on the full-scan design; WIP commit 66b87cd7c.
+- After the cut: 50/50 tests; ruff and mypy clean on the changed files.
+- Guard deletion (each removed alone, test went red, restored): game-clear flag, badge flags, Rayquaza, gzip digest binding, last-snapshot binding, sequence/frame binding, tar links, tar names, tar size cap, operator events, features digest, seq order, turn contiguity, run_end completed, boot start, integrity mismatch, checkpoint sha256, checkpoint boot provenance, event line cap, final snapshot cap, RUN_END kind, RUN_END turn. Turn contiguity and checkpoint sha256 first survived (the tests also tripped other guards); `test_a_turn_gap_fails_even_when_run_end_agrees` and `test_a_same_size_swapped_state_fails` were added to pin them. RUN_END kind likewise survived until the RUN_END test covered each field.
+- First real run FAILed `checkpoints: provenance` on `RUN_END`, a third checkpoint kind (`checkpoint-capture.ts`: `kind: run_end`, `end_reason`, `turn`, `source`). Added its provenance rule and tests; the rerun passed.
 
 ## Surprises
 
-- `GAME_CLEAR_FINAL.json` has no `source` block (it carries `proof` instead), so `start_state.kind boot` applies to milestone checkpoints only; the final save is bound to `run_end.target_proof` instead.
-- An uncompressed raw-RAM NDJSON for 67d7 is about 76 GB (109,028 × ~700 KB of base64), too large for the 99 GB free; the real check uses a gzip NDJSON built by concatenating the run's own gzip members with newline members.
+- `GAME_CLEAR_FINAL.json` has no `source` block (it carries `proof`), so boot provenance applies to milestone and `RUN_END` saves; the final save is bound to `run_end.target_proof`.
+- The run's checkpoints include `RUN_END` (the resume save written at every run end), not only milestones and the final save.
+- The no-I/O guard forbids test fixture reads even at import time, so the recorded snapshots live in a Python data module.
+- Uncompressed raw RAM for 67d7 would be about 76 GB; the cut scope removes any need for it.
 
 ## Multi-Model Review Log
 
@@ -99,15 +109,8 @@ The input is an untrusted download.
 
 ## Boy Scout Log
 
-(none yet)
+(none)
 
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog to `docs/worklogs/2026-11-11_verify-release.md`
-
-### 2026-11-11 pause (17:09Z)
-
-- WIP GREEN: `env/pokebench_env/verify_release.py`, `parse_raw_ram_record` split in `raw_ram.py`; `tests/env/test_verify_release.py` 57/57 pass under the no-I/O guard; ruff clean; mypy: one open error in the test file (untyped lambda table at the raw-RAM record test), not fixed before the pause.
-- The no-I/O guard forbids fixture-file reads even at import time, so the two real 67d7 snapshots and the run's switch set are embedded as `env/tests/env/verify_release_67d7.py` (~125 KB); the binary fixtures from the RED commit were removed.
-- Not done: `just` recipe, guard-deletion checks, full gates, real 67d7 run (no staging copy was ever built), reviews.
-- Timing on the two-snapshot fixture (in memory, 1.4 MB uncompressed): whole `verify()` 4.8 ms uncompressed, 5.3 ms gz, 8.6 ms xz; of that the RAM stream plus RAM/native checks is 3.5 / 4.7 / 8.5 ms, events plus event checks 0.1-0.2 ms, checkpoint tar plus its checks 0.2 ms.

@@ -43,6 +43,12 @@ build:
 build-mgba:
     bash scripts/build-mgba.sh
 
+# Check a downloaded release folder with only your ROM (POKEBENCH_ROM): SHA256SUMS, the event log,
+# the checkpoints and the final RAM snapshot. Read-only; -I keeps the release folder off sys.path.
+[positional-arguments]
+verify-release folder:
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.verify_release "$1"
+
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 

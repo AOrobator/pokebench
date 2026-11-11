@@ -58,9 +58,16 @@ BATTLER_BY_TURN_ORDER = 0x0202407E
 CURRENT_TURN_ACTION = 0x02024082
 CHOSEN_ACTIONS = 0x0202421C
 MAIN_FUNC = 0x03005D04
-# HandleTurnActionSelectionState and CheckFocusPunch_ClearVarsBeforeTurnStarts for this ROM
-# (battle_choices.py).
-SELECT_ACTION, COMMIT_ACTION = 0x0803BE75, 0x0803D2E9
+# This ROM's HandleTurnActionSelectionState, SetActionsAndBattlersTurnOrder (its pool holds the
+# next one) and CheckFocusPunch_ClearVarsBeforeTurnStarts (its pool holds gCurrentTurnActionNumber,
+# gActionsByTurnOrder and RunTurnActionsFunctions 0x0803D819). Until CheckFocusPunch sets the action
+# number to 0, it still holds last turn's gBattlersCount.
+PRE_TURN = (0x0803BE75, 0x0803D2E9, 0x0803D6F1)
+CHECK_FOCUS_PUNCH = 0x0803D6F1
+# BattleResources.battleCallbackStack: function[8] then size. BattleScriptExecute (the FOCUS PUNCH
+# setup) pushes the running main function there before switching to a script runner.
+CALLBACK_STACK = 0x0C
+CALLBACK_SIZE = 0x20
 B_ACTION_USE_ITEM = 1
 
 # HP each potion restores (src/data/pokemon/item_effects.h; MAX POTION's full heal is 255 there).
@@ -114,6 +121,18 @@ def _ewram(read: ReadMemory, address: int) -> int | None:
     return pointer if 0x02000000 <= pointer < 0x02040000 else None
 
 
+def _focus_punch_setup(read: ReadMemory) -> bool:
+    resources = _ewram(read, BATTLE_RESOURCES)
+    stack = None if resources is None else _ewram(read, resources + CALLBACK_STACK)
+    if stack is None:
+        return False
+    size = _exact(read, stack + CALLBACK_SIZE, 1)[0]
+    if not 0 < size <= 8:
+        return False
+    top = int.from_bytes(_exact(read, stack + 4 * (size - 1), 4), "little")
+    return top == CHECK_FOCUS_PUNCH
+
+
 def _chosen_not_shown(read: ReadMemory) -> int:
     """Opponent item actions the AI has chosen this turn that have not run yet.
 
@@ -127,16 +146,15 @@ def _chosen_not_shown(read: ReadMemory) -> int:
     order = list(_exact(read, BATTLER_BY_TURN_ORDER, 4)[:count])
     current = _exact(read, CURRENT_TURN_ACTION, 1)[0]
     main = int.from_bytes(_exact(read, MAIN_FUNC, 4), "little")
+    pre_turn = main in PRE_TURN or _focus_punch_setup(read)
     pending = 0
     for battler in range(count):
         if not positions[battler] & 1 or chosen[battler] != B_ACTION_USE_ITEM:
             continue
-        # Selection keeps last turn's action number; after it, the action counts as shown only
-        # once it has finished and the turn has moved past it (HandleAction_UseItem installs
-        # a script whose message prints over later frames).
-        if main in (SELECT_ACTION, COMMIT_ACTION) or (
-            battler in order and order.index(battler) >= current
-        ):
+        # Before the turn starts the action number is last turn's; after, the action counts as
+        # shown only once it has finished and the turn has moved past it (HandleAction_UseItem
+        # installs a script whose message prints over later frames).
+        if pre_turn or (battler in order and order.index(battler) >= current):
             pending += 1
     return pending
 

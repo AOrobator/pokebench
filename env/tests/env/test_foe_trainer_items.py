@@ -300,7 +300,8 @@ def turn(m: Memory, main: int, chosen: list[int], order: list[int], current: int
     m.put(0x03005D04, struct.pack("<I", main))
 
 
-SELECT, COMMIT, RUN, SCRIPT = 0x0803BE75, 0x0803D2E9, 0x0803D819, 0x0803E019
+SELECT, ORDER, FOCUS, RUN, SCRIPT = 0x0803BE75, 0x0803D2E9, 0x0803D6F1, 0x0803D819, 0x0803E019
+STACK = 0x02012000
 
 
 def glacia_after_choosing(
@@ -316,7 +317,7 @@ def test_an_item_chosen_this_turn_is_not_shown_before_it_runs() -> None:
     # Run 67d7 raw RAM 105176 (turn 3933): GLACIA's AI had chosen FULL RESTORE, slot 0 already
     # zeroed, while the player's menu was open; the game showed it only at 105187.
     full = (FoeItem(0, "FULL RESTORE"), FoeItem(1, "FULL RESTORE"))
-    for main in (SELECT, COMMIT):
+    for main in (SELECT, ORDER, FOCUS):
         items = glacia_after_choosing(main, [0xFF, 1], [1, 0], 2)
         assert items is not None and items.used == () and items.left == full
     for main, order, current in ((RUN, [0, 1], 0), (RUN, [1, 0], 0), (SCRIPT, [1, 0], 0)):
@@ -332,6 +333,29 @@ def test_the_item_counts_as_used_once_its_action_runs_or_the_turn_is_over() -> N
         assert items.used == (FoeItem(0, "FULL RESTORE"),)
     shown = glacia_after_choosing(SELECT, [0xFF, 0], [1, 0], 2)
     assert shown is not None and shown.used == (FoeItem(0, "FULL RESTORE"),)
+
+
+def test_the_focus_punch_setup_script_still_counts_as_before_the_turn() -> None:
+    # CheckFocusPunch_ClearVarsBeforeTurnStarts runs BattleScriptExecute before it sets the action
+    # number to 0, so a script runner then holds last turn's count with CheckFocusPunch pushed.
+    m = Memory()
+    battle(m, GLACIA, [FULL_RESTORE, FULL_RESTORE], [0, FULL_RESTORE], 2)
+    turn(m, SCRIPT, [0, 1], [1, 0], 2)
+    m.put(RESOURCES + 0x0C, struct.pack("<I", STACK))
+    m.put(STACK, struct.pack("<II", 0x0803AAAA, FOCUS))
+    m.put(STACK + 0x20, bytes([2]))
+    items = read_foe_trainer_items(m.read, True)
+    assert items is not None and items.used == ()
+    m.put(STACK + 0x20, bytes([1]))
+    end_of_turn = read_foe_trainer_items(m.read, True)
+    assert end_of_turn is not None and end_of_turn.used == (FoeItem(0, "FULL RESTORE"),)
+    for size in (0, 9):
+        m.put(STACK + 0x20, bytes([size]))
+        none = read_foe_trainer_items(m.read, True)
+        assert none is not None and len(none.used) == 1
+    m.put(RESOURCES + 0x0C, struct.pack("<I", 0))
+    unset = read_foe_trainer_items(m.read, True)
+    assert unset is not None and len(unset.used) == 1
 
 
 def test_only_the_latest_zeroed_slot_waits_and_only_for_the_foe() -> None:

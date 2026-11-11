@@ -75,3 +75,7 @@ affected types/lint. Repeat full gates and cumulative independent reviews pendin
 - Trainer design check initially failed because isolated worktree lacked ignored
   local ROM art. Re-run with POKEBENCH_CARD_ART pointing at the canonical existing
   art directory; no fixtures, assertions or baselines are changed.
+- Screenshot inspection found the small TIME tile still coupled to complete totals
+  although app already supplies explicit timeKnown. Fix: honor explicit timeKnown,
+  retain complete as compatibility fallback when absent. RED pure regression and
+  14 focused control tests pass. This is the last display caller in original scope.

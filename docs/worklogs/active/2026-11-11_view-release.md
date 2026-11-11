@@ -42,8 +42,9 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 **M1 — Source readiness**
 - [x] Worklog committed
 - [x] Tests (RED)
-- [ ] Implement
-- [ ] Cheap checks, guard deletion; full gates
+- [x] Implement (`view_release.py`, `just view-release`; stacked on `claude/replay-verify` for `verify_release.read_event_source`)
+- [x] Cheap checks: 22/22, ruff, mypy. Guard deletion: 16 guards removed alone; discard-on-failure, run_start type and frame regular-file first survived, pinned by new tests; all red now
+- [ ] Full gates
 - [ ] Close the loop: unpack the real 67d7 release; viewer on a scratch port; background browser click-through of the run page, frontier and splits; desktop (1280, 1440) and phone (375) screenshots opened and looked at; stop the scratch viewer
 - [ ] Codex review (two rounds, then ask)
 

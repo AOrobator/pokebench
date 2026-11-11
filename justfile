@@ -56,6 +56,12 @@ verify-release folder:
 replay-verify folder *args:
     cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.replay_verify "$@"
 
+# Open a downloaded release in the viewer: check it, unpack it into runs/releases/<run-id>/ (--raw-ram
+# also rebuilds raw-ram/), then serve it on 127.0.0.1 on a free port (--port N; never 8790).
+[positional-arguments]
+view-release folder *args: build
+    cd "{{invocation_directory()}}" && uv run --project "{{justfile_directory()}}/env" python -I -m pokebench_env.view_release "$@"
+
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 

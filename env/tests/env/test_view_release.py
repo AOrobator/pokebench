@@ -278,7 +278,7 @@ def test_checksum_failures_publish_nothing() -> None:
     assert_nothing_published(bad, "checkpoints-67d7.tar.xz: sha256 mismatch")
     unlisted = dict(files)
     unlisted["SHA256SUMS"] = b"".join(
-        l + b"\n" for l in files["SHA256SUMS"].splitlines() if b"screenshots" not in l
+        line + b"\n" for line in files["SHA256SUMS"].splitlines() if b"screenshots" not in line
     )
     assert_nothing_published(unlisted, "screenshots-67d7.tar.xz: not listed in SHA256SUMS")
     assert_nothing_published(
@@ -329,6 +329,7 @@ def test_checkpoint_members_follow_the_verify_release_rules() -> None:
     "first",
     [
         {"type": "turn_start"},
+        {"type": "turn_start", "run": RUN},
         {"type": "run_start", "run": "../escape"},
         {"type": "run_start", "run": ""},
     ],
@@ -348,13 +349,23 @@ def test_raw_ram_failures_publish_nothing() -> None:
     assert_nothing_published(resum(files), "raw-RAM log line 1", raw_ram=True)
 
 
-def test_a_failure_discards_the_partial_folder() -> None:
-    build = Build()
-    build.first = {"type": "turn_start"}
+def test_a_failure_after_the_unpack_began_discards_the_partial_folder() -> None:
+    files = Build().files()
+    files["checkpoints-67d7.tar.xz"] = lzma.compress(
+        tar({"checkpoints/RUN_END.state": b"x"}, dirs=("checkpoints",))
+    )
     out = MemoryOutput()
-    with pytest.raises(vrl.ReleaseError):
-        vrl.unpack(MemoryRelease(build.files()), out, raw_ram=False)
-    assert out.published == {} and out.partial is None
+    with pytest.raises(vrl.ReleaseError, match="sha256 mismatch"):
+        vrl.unpack(MemoryRelease(files), out, raw_ram=False)
+    assert out.published == {} and out.partial is None and out.discarded == [RUN]
+
+
+def test_a_frame_named_member_must_be_a_regular_file() -> None:
+    build = Build()
+    folder = tarfile.TarInfo("frames/000050_0.png")
+    folder.type = tarfile.DIRTYPE
+    build.frame_extra.append(folder)
+    assert_nothing_published(build.files(), "unsafe or unexpected")
 
 
 # --- the viewer command (INV-4) ---

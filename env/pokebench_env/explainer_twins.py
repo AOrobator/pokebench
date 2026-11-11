@@ -1138,8 +1138,8 @@ _LEADING_NOISE = re.compile(
 
 
 _BOILERPLATE = re.compile(
-    r"\b(default|bundle|experimental|arms?|switch|bug ?fix|operator|The operator|needs|meant|enabled"
-    r"|applicable|correctness|only|lane)\b",
+    r"\b(default|bundle|experimental|arms?|switch|bug ?fix|operator|The operator|needs|meant"
+    r"|enabled|applicable|correctness|only|lane)\b",
     re.I,
 )
 _ABBREV = re.compile(

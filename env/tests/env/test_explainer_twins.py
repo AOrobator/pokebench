@@ -43,7 +43,7 @@ def test_scrub_removes_machine_and_chat_details():
     assert "someone" not in out and "~/dev/x" in out and "~/y" in out
     assert "<tailnet-host>" in out and "ts.net" not in out
     assert out.count("<private-ip>") == 3 and "127.0.0.1" in out and "1.2.3.4" in out
-    # The public copy's history scrub already removed this input's chat link, so only its id and email remain.
+    # The public history scrub removed this input's chat link; only its id and email remain.
     assert "<chat-id>" in out and "<email>" in out
     assert out.count("a working branch") == 2
     assert ".claude/skills" in out and "cursor/state" in out
@@ -549,9 +549,8 @@ def test_sentences_keep_mixed_case_abbreviations():
 
 
 def test_operator_name_becomes_operator_everywhere():
-    assert t.scrub("The operator's call; The operator said; Andrew Orobator, aorobator, ANDREW") == (
-        "Operator's call; Operator said; Operator, Operator, Operator"
-    )
+    names = "The operator's call; The operator said; Andrew Orobator, aorobator, ANDREW"
+    assert t.scrub(names) == "Operator's call; Operator said; Operator, Operator, Operator"
     assert t.scrub("mimosa andrewsville") == "mimosa andrewsville"
     result = twin(
         "<h1>The operator's switch</h1><p>The operator approved (the operator 2026-11-11) it.</p>"
@@ -564,7 +563,9 @@ def test_operator_name_becomes_operator_everywhere():
     assert "asked by Operator" in svg
     pages = {
         **PAGES,
-        "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),
+        "who": page(
+            "<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"
+        ),
     }
     ts = FEATURES_TS.replace("Records the split time.", "Records the split time for the operator.")
     output = t.generate(t.Inputs(pages, ts, PANELS_TS, NEXT_RUN_TS, SNAPSHOT))

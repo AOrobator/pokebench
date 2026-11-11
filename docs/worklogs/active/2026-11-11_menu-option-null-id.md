@@ -32,3 +32,4 @@ Correctness fix, default ON. Activation milestone: any run that opens the START 
 - GREEN: 13/13 in `menu-option-null-id.test.ts`; `features.test.ts`, `play-preset.test.ts` with it: 69/69. Removing `features["menu-option-null-id-v1"]` from `play-wiring.ts` turns only the factory test red; restored.
 - Cheap checks: agent and viewer `tsc --noEmit` clean; eslint on changed files clean. Viewer focused tests need the agent build, so they move into the full-gate window.
 - Explainer themed with `just pages-theme`; `just pages-check` prints nothing.
+- Explainer figures fit the desktop frame and scroll inside their own container on phone; headless desktop 1280 and phone 390 screenshots checked, page scrollWidth equals viewport, zero external requests.

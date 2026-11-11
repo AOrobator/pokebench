@@ -581,6 +581,14 @@ def test_operator_name_becomes_the_operator_everywhere():
         in inline.markdown
     )
     assert "\ue000" not in inline.markdown
+    linked = twin(
+        "<h1>Links</h1><p><a href='#x'>The operator</a> opened. Done. <a href='#y'>The operator</a> approved it."
+        " Approved by <code>The operator</code> yesterday. <code>The operator</code> said.</p>"
+    )
+    assert (
+        "[The operator](#x) opened. Done. [The operator](#y) approved it."
+        " Approved by `the operator` yesterday. `The operator` said." in linked.markdown
+    )
     pages = {
         **PAGES,
         "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),

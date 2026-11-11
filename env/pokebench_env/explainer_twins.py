@@ -80,7 +80,9 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 _NAME = re.compile(r"(?:\b(the)\s+)?\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I)
 _OPERATOR = "\ue000"
-_SENTENCE_START = re.compile(r"(?:[.!?][\"'\u201d\u2019)\]]*\s+|\n[\s#>*-]*|\|\s*)[*_~\u201c\"]*$")
+_SENTENCE_START = re.compile(
+    r"(?:[.!?][\"'\u201d\u2019)\]]*\s+|\n[\s#>*-]*|\|\s*)[*_~\u201c\"[`]*$"
+)
 
 
 def _mark_name(match: re.Match[str]) -> str:
@@ -660,7 +662,7 @@ class Renderer:
         if tag == "img":
             return self.page.image(node)
         if tag == "code" or tag == "kbd" or tag == "samp" or tag == "tt":
-            return code_span(scrub(node.text()))
+            return code_span(scrub_inline(node.text()))
         inner = self.inline(node.children)
         if node.attrs.get("class") and tag not in {"a"} and inner.strip(_SPACE):
             inner = SOFT + inner + SOFT

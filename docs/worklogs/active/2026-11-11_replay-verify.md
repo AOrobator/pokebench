@@ -48,7 +48,7 @@ Untrusted download: the same bounded, non-extracting readers as `verify-release`
 - [x] Implement (`replay_verify.py`; `verify_release.read_event_source` extracted from `scan_event_source` with no behavior change; `just replay-verify`)
 - [x] Cheap checks: 24/24 replay + 80/80 verify-release; ruff, mypy clean. Guard deletion: 15 guards removed alone, all red ("stop at divergence" shows as a hang of the divergence test rather than a clean failure; no timeout plugin to turn it into one)
 - [ ] Full gates (`just lint`, `just test`)
-- [x] Real run on `runs/release-staging/67d7` (read-only, folder listing unchanged): `PASS replay: frames 0-150,000 replayed from power-on with 88,567 logged actions; 4,777 of 4,777 snapshots match on all 7 regions`, 87.1 s, 244 MB peak. Same result as the hand replay.
+- [x] Real run on `runs/release-staging/67d7` (read-only, folder listing unchanged): `PASS replay: frames 0-150,000 replayed from power-on with 88,567 logged actions; 4,777 of 4,777 snapshots match on all 7 regions`, 87.1 s, 244 MB peak (111.2 s after the round-1 fixes). Same result as the hand replay.
 - [ ] Codex review (two rounds, then ask)
 - Non-goals: video or audio re-encoding, screenshot (PNG) matching, the viewer. Terminator: review LGTM.
 
@@ -67,6 +67,16 @@ Proof surface: the command's terminal output on the real 67d7 release, plus unit
 - The hand replay's clock reads `server_timestamp * 1000.0`, so 1.005 s becomes 1004.9999… ms; the streamed clock keeps that arithmetic exactly (the fixtures had to apply the same conversion).
 
 ## Multi-Model Review Log
+
+### Round 1 — GPT (JOB review-gpt-replay-verify-4b9897bc8)
+
+Base a6a9eff8f, head 4b9897bc8, SHA-256 3b6cfa93…6d4d. 104 focused passed. `read_event_source` extraction behavior-preserving. `VERDICT: BLOCKING`, three Fix findings, all accepted:
+
+- [P1] Retained event data unbounded: every native_action kept with no count bound. Fixed: `MAX_ACTIONS` 2,000,000 (67d7 has 88,567), named FAIL beyond it. Test with the cap patched to 4.
+- [P1] Same-frame snapshot groups unbounded: the clock's earliest-per-frame rule reads a whole frame group ahead of the comparison through the tee. Fixed: `MAX_SNAPSHOTS_PER_FRAME` 64 (67d7's maximum is 3), named FAIL beyond it. Test at the boundary.
+- [P2] The byte prefilter `'"native_action"'` skipped escaped spellings (`native_\u0061ction`). Fixed: every event line is parsed (non-JSON is a named FAIL). Test with the escaped line.
+- Guard deletion: each new guard removed alone turns its test red. 27/27. Real release rerun: 4,777 of 4,777, 111.2 s (every line now parsed), 250 MB peak, folder unchanged.
+- The gate run on 4b9897bc8 was stopped (superseded); lint had passed on it.
 
 ## Boy Scout Log
 

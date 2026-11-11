@@ -30,6 +30,9 @@ T = TypeVar("T")
 
 DEFAULT_FRAMES = 150_000
 SNAPSHOT_LINE_CAP = MAX_ARCHIVE_BYTES + 1
+# Bounds for an untrusted release. 67d7: 88,567 actions, at most 3 snapshots on one frame.
+MAX_ACTIONS = 2_000_000
+MAX_SNAPSHOTS_PER_FRAME = 64
 BUTTONS = frozenset({"A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT", "L", "R"})
 KINDS = {
     "events": vr.KINDS["events"],
@@ -99,9 +102,11 @@ class RunInputs:
 def read_inputs(stream: BinaryIO) -> RunInputs:
     run = RunInputs()
     for number, line in vr._lines(stream, vr.EVENT_LINE_CAP, "event log"):
-        if b'"native_action"' not in line:
-            continue
-        event = json.loads(line)
+        # Every line is parsed: a byte filter would miss escaped spellings of the same JSON.
+        try:
+            event = json.loads(line)
+        except ValueError:
+            raise ReleaseError(f"event log line {number} is not JSON") from None
         if not isinstance(event, dict) or event.get("type") != "native_action":
             continue
         frame, stamp = event.get("frame"), event.get("server_timestamp")
@@ -109,8 +114,10 @@ def read_inputs(stream: BinaryIO) -> RunInputs:
             raise ReleaseError(f"event log line {number}: native_action frame {frame!r}")
         if type(stamp) not in (int, float):
             raise ReleaseError(f"event log line {number}: server_timestamp {stamp!r}")
-        run.samples.append((frame, float(cast(float, stamp)) * 1000.0))
         run.actions += 1
+        if run.actions > MAX_ACTIONS:
+            raise ReleaseError(f"event log has more than {MAX_ACTIONS:,} native actions")
+        run.samples.append((frame, float(cast(float, stamp)) * 1000.0))
         if event.get("kind") != "native_input":
             continue
         details = event.get("details")
@@ -134,7 +141,7 @@ class Snapshot:
 
 
 def read_snapshots(stream: BinaryIO, rom_sha1: str) -> Iterator[Snapshot]:
-    previous_frame = -1
+    previous_frame, same_frame = -1, 0
     for number, line in vr._lines(stream, SNAPSHOT_LINE_CAP, "raw-RAM log"):
         try:
             value = json.loads(line)
@@ -156,6 +163,12 @@ def read_snapshots(stream: BinaryIO, rom_sha1: str) -> Iterator[Snapshot]:
             raise ReleaseError(f"raw-RAM log line {number} has no integer timestamp_ns")
         if value.get("rom_sha1") != rom_sha1:
             raise ReleaseError(f"raw-RAM log line {number} has rom_sha1 {value.get('rom_sha1')!r}")
+        same_frame = same_frame + 1 if frame == previous_frame else 1
+        if same_frame > MAX_SNAPSHOTS_PER_FRAME:
+            # The clock reads a whole frame's group ahead of the comparison: keep it bounded.
+            raise ReleaseError(
+                f"raw-RAM log has more than {MAX_SNAPSHOTS_PER_FRAME} snapshots at frame {frame}"
+            )
         previous_frame = frame
         digests = tuple((r["name"], r["address"], r["size"], r["sha256"]) for r in value["regions"])
         yield Snapshot(cast(int, sequence), frame, stamp / 1e6, digests)

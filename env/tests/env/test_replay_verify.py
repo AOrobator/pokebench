@@ -330,6 +330,34 @@ def test_read_inputs_rejects_malformed_actions(line: dict[str, object], message:
         rv.read_inputs(io.BytesIO(json.dumps(line).encode() + b"\n"))
 
 
+def test_escaped_json_spellings_of_an_action_are_read() -> None:
+    line = (
+        b'{"type":"native_\\u0061ction","frame":6,"server_timestamp":1.0,'
+        b'"kind":"native_input","details":{"buttons":["A"]}}\n'
+    )
+    inputs = rv.read_inputs(io.BytesIO(Run().event_bytes() + line))
+    assert inputs.inputs[6] == ("A",)
+    assert inputs.actions == 6
+    with pytest.raises(rv.ReleaseError, match="not JSON"):
+        rv.read_inputs(io.BytesIO(b"{not json\n"))
+
+
+def test_action_count_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(rv, "MAX_ACTIONS", 4)
+    with pytest.raises(rv.ReleaseError, match="more than 4 native actions"):
+        rv.read_inputs(io.BytesIO(Run().event_bytes()))
+
+
+def test_snapshots_on_one_frame_are_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    run = Run()
+    run.snaps = [(0, 999.0), (0, 999.0), (0, 999.0), (4, 1000.0)]
+    monkeypatch.setattr(rv, "MAX_SNAPSHOTS_PER_FRAME", 2)
+    with pytest.raises(rv.ReleaseError, match="more than 2 snapshots at frame 0"):
+        list(rv.read_snapshots(io.BytesIO(run.ram_bytes()), ROM_SHA1))
+    monkeypatch.setattr(rv, "MAX_SNAPSHOTS_PER_FRAME", 3)
+    assert len(list(rv.read_snapshots(io.BytesIO(run.ram_bytes()), ROM_SHA1))) == 4
+
+
 def test_read_inputs_rejects_two_inputs_for_one_frame() -> None:
     line = {
         "type": "native_action",

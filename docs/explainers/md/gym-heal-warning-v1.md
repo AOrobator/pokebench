@@ -4,7 +4,7 @@ Harness switch · guard · `gym-heal-warning-v1` · needs `heal-before-trainers-
 
 > Markdown twin of [gym-heal-warning-v1.html](../gym-heal-warning-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-Operator, 2026-10-20: "the supervisor warning for when it enters a gym without full HP is the right way to go". When a game-tool result shows the player on a GYM map, or on a map with a door to one, and any party Pokémon is below max HP, the result gains one paragraph: the hurt Pokémon, what losing a battle costs and where the player would wake up, and the nearest place that heals.
+The operator, 2026-10-20: "the supervisor warning for when it enters a gym without full HP is the right way to go". When a game-tool result shows the player on a GYM map, or on a map with a door to one, and any party Pokémon is below max HP, the result gains one paragraph: the hurt Pokémon, what losing a battle costs and where the player would wake up, and the nearest place that heals.
 
 ## What b300 did
 

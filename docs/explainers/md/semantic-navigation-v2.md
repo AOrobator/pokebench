@@ -4,7 +4,7 @@ DEFAULT-OFF · BUNDLE ARM ONLY · REPLACES V1
 
 > Markdown twin of [semantic-navigation-v2.html](../semantic-navigation-v2.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`semantic-navigation-v2` gives the model `navigate_to_target` and makes it the way to reach anything the readout lists: a person, an object, a door or stairs, another warp, or a walkable map exit. `navigate_to` stays for everything else. Version 1 added the tool but kept every prompt line pointing at coordinates, so the model almost never used it. Operator called that a bug, so v1 is now off everywhere and v2 takes its place in the bundle arm.
+`semantic-navigation-v2` gives the model `navigate_to_target` and makes it the way to reach anything the readout lists: a person, an object, a door or stairs, another warp, or a walkable map exit. `navigate_to` stays for everything else. Version 1 added the tool but kept every prompt line pointing at coordinates, so the model almost never used it. The operator called that a bug, so v1 is now off everywhere and v2 takes its place in the bundle arm.
 
 ## Why v1 was not enough
 

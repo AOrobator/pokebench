@@ -76,19 +76,26 @@ _SCRUBS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"(?<![\w./~-])(?:claude|codex)/[A-Za-z0-9][\w./-]*[\w]"),
         "a working branch",
     ),
-    (
-        re.compile(r"\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I),
-        "Operator",
-    ),
 )
+
+_NAME = re.compile(r"(?:\b(the)\s+)?\b(?:andrew\W?orobator|a?orobator|andrew|The operator)\b", re.I)
+_SENTENCE_START = re.compile(r"(?:[.!?][\"'\u201d\u2019)\]]*\s+|\n[\s#>*-]*|\|\s*)$")
+
+
+def _the_operator(match: re.Match[str]) -> str:
+    article = match.group(1)
+    start = match.start()
+    lead = ("\n" if start <= 12 else "") + match.string[max(0, start - 12) : start]
+    capital = article == "The" or (article is None and _SENTENCE_START.search(lead))
+    return "The operator" if capital else "the operator"
 
 
 def scrub(text: str) -> str:
     """Remove machine paths, tailnet hosts, private IPs, chat ids, emails, branch names and the
-    operator's real name (written as Operator, the operator's decision 2026-11-11)."""
+    operator's real name (written as "the operator", the operator's decision 2026-11-11)."""
     for pattern, replacement in _SCRUBS:
         text = pattern.sub(replacement, text)
-    return text
+    return _NAME.sub(_the_operator, text)
 
 
 # ---------------------------------------------------------------- tiny DOM

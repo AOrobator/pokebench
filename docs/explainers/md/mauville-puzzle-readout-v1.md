@@ -2,7 +2,7 @@
 
 > Markdown twin of [mauville-puzzle-readout-v1.html](../mauville-puzzle-readout-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`mauville-puzzle-readout-v1` · correctness readout · enabled in control and bundle by Operator’s October 25 instruction.
+`mauville-puzzle-readout-v1` · correctness readout · enabled in control and bundle by the operator’s October 25 instruction.
 
 ## Which renderer is active?
 

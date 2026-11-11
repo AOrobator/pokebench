@@ -65,7 +65,7 @@ The count is a port of `hopsFrom` in `packages/agent/src/low-hp-trainer-warning.
 | Every center 1F runs `setrespawn HEAL_LOCATION_<TOWN>` in its OnTransition (17 maps, including the POKéMON LEAGUE 1F and the BATTLE FRONTIER center); the truck and the Hall of Fame set the bedroom | `data/maps/*/scripts.inc`, `SetLastHealLocationWarp` in `src/overworld.c` | entering a center moves the respawn point |
 | A center's heal location is the town tile below its door: RUSTBORO CITY (16,39), door (16,38); the bedroom is house 2F (4,2) | `src/data/heal_locations.json` | "outside the POKéMON CENTER in RUSTBORO CITY"; "at your house in LITTLEROOT TOWN" |
 | `DoWhiteOut`: `SetMoney(money / 2)`, `HealPlayerParty`, warp to lastHealLocation | `src/overworld.c` | the loss is `money − money / 2` (₽3222 of ₽6444; ₽3223 of ₽6445). Emerald has no badge or level rule. |
-| After the warp no field text is shown (`FieldCB_WarpExitFadeFromBlack`); in battle the game says "is out of usable POKéMON!" and "whited out!" | `src/overworld.c`, `sText_PlayerWhiteout` in `src/battle_message.c` | Operator's wording "If your party faints, you wake up …" |
+| After the warp no field text is shown (`FieldCB_WarpExitFadeFromBlack`); in battle the game says "is out of usable POKéMON!" and "whited out!" | `src/overworld.c`, `sText_PlayerWhiteout` in `src/battle_message.c` | The operator's wording "If your party faints, you wake up …" |
 
 ## The second sentence
 

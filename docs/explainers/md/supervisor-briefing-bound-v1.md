@@ -41,12 +41,12 @@ Chars. Each line's length includes its label. The rest of each note did not chan
 
 ## What it does not change
 
-- The exits line was added at the coordinator's request under Operator's rule that nothing given to the model may grow unbounded. In the three replays it was already under its budget (1,780, 907 and 619 chars), so those notes are unchanged by it.
+- The exits line was added at the coordinator's request under the operator's rule that nothing given to the model may grow unbounded. In the three replays it was already under its budget (1,780, 907 and 619 chars), so those notes are unchanged by it.
 - The "Recent dialogue" line (three pages), the tried list, the fixed lines and the readout are untouched.
 
 ## Status
 
 - Not landed on main, so not in any run yet.
 - Focused tests pass: the 12 tests in `supervisor-briefing-bound.test.ts` (bounds, code points, and the loop, text-only and stall production factories), and 132 across it and eight neighbouring supervisor test files (receipt: `runs/analysis/bounded-input-20261028/replays/supervisor-briefing-bound-v1.focused.txt`).
-- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per Operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
+- Activation is committed on the branch: `experiments/feature-configs/current.json` lists the switch in the bundle arm's `switches` (ON) and sets it false in the shared base (control OFF), per the operator 2026-10-28 ("they all need to be on in the bundle"). It takes effect only after landing and a new launch.
 - Review and gates: three-lane review in progress; full gate on the frozen head under the relayed CPU grant. No measured runs yet.

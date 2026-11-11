@@ -2,9 +2,9 @@
 
 > Markdown twin of [game-said-goals-v1.html](../game-said-goals-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`game-said-goals-v1` · agent switch · bundle-only, default off · approved by Operator 2026-10-21
+`game-said-goals-v1` · agent switch · bundle-only, default off · approved by the operator 2026-10-21
 
-When run `2026-10-20T20-26-22_qwen36-gpu1_97a0` faced COMBUSKEN's DOUBLE KICK prompts (turns 779+), it had lost to ROXANNE at turn 716 and had not beaten her since. Operator asked for "a list of its goals or objectives" so it could make an informed choice. This switch adds, at move-learning prompts and the evolution decision, the trainer battles the game has left open: lost (or drawn) and not won since, with what the game showed and said about each. No goal the game has not set, no route, no advice.
+When run `2026-10-20T20-26-22_qwen36-gpu1_97a0` faced COMBUSKEN's DOUBLE KICK prompts (turns 779+), it had lost to ROXANNE at turn 716 and had not beaten her since. The operator asked for "a list of its goals or objectives" so it could make an informed choice. This switch adds, at move-learning prompts and the evolution decision, the trainer battles the game has left open: lost (or drawn) and not won since, with what the game showed and said about each. No goal the game has not set, no route, no advice.
 
 ## The block as delivered (97a0, the turn-781 evolution move-learning box)
 

@@ -47,6 +47,6 @@ The existing driver limits each settling operation to 50 automatic presses and 9
 
 Emerald source `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`: `src/text.c`, `TextPrinterWait` and `TextPrinterWaitWithDownArrow` accept A or B for ordinary waiting text. The existing native battle classifier identifies message, animation, input, prompt and screen ownership.
 
-The switch defaults OFF for omitted and legacy presets. Operator explicitly requested it ON in both control and bundle in `bundle-v-control`. It is a shared repair, so the bundle comparison does not estimate this repair's individual effect. Historical runs retain their original configuration.
+The switch defaults OFF for omitted and legacy presets. The operator explicitly requested it ON in both control and bundle in `bundle-v-control`. It is a shared repair, so the bundle comparison does not estimate this repair's individual effect. Historical runs retain their original configuration.
 
 Status: implementation and regression verification underway; independent review, landing and live proof pending. No measured trial launched.

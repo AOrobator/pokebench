@@ -54,11 +54,11 @@ Each line restates the tool's own description; none recommends a choice. OFF, no
 
 - **Property test** (`packages/agent/src/tool-prompt-sync.test.ts`): with the switch on, every tool from `toolNames(features)` is named in `playSystemPrompt`, for the full prompt and every just-in-time scene, over 221 feature sets (default flags, both arms of all 25 fixed cohorts, the 7 control bases and every experiment arm). 890 cases; 416 failed before the fix.
 - **OFF bytes**: the full and per-scene prompts are pinned by sha256, taken before the switch existed.
-- **Rule for later tools**: `.claude/skills/tool-prompt-sync/SKILL.md` says adding, renaming or removing a model tool updates its prompt section in the same change, behind the tool's switch (Operator 2026-10-21: "everytime u add a tool u update the system prompt").
+- **Rule for later tools**: `.claude/skills/tool-prompt-sync/SKILL.md` says adding, renaming or removing a model tool updates its prompt section in the same change, behind the tool's switch (the operator 2026-10-21: "everytime u add a tool u update the system prompt").
 
 ## Status
 
 - RED 2ee4ba856, GREEN 3e9253c33. Not merged into main.
-- Default OFF. ON in both arms of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in both arms of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
 - Multi-model review: not run yet (one branch packet before landing).
 - Not measured in runs. Pending experiment: `experiments/tool-prompt-docs-v1.json`.

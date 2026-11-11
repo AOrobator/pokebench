@@ -2,7 +2,7 @@
 
 > Markdown twin of [bag-pocket-truth-v1.html](../bag-pocket-truth-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-`bag-pocket-truth-v1` · Separate bugfix switch. Omitted presets default OFF; Operator authorized ON in both arms of the current fixed-run recipes.
+`bag-pocket-truth-v1` · Separate bugfix switch. Omitted presets default OFF; the operator authorized ON in both arms of the current fixed-run recipes.
 
 ## What changes
 

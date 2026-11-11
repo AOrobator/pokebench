@@ -2,7 +2,7 @@
 
 > Markdown twin of [type-gap-team-last-message-v1.html](../type-gap-team-last-message-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-On in both arms (Operator 2026-10-28, "yes type gap on in both arms"); registered default off. Operator picked "Build the placement switch" on 2026-10-27 after the type-gap decision probes. It needs `type-gap-team-v1`, which is on in both arms. When the GYM TYPE GAP block is added to a tool result and that result is still the newest message, the identical block is also sent as one more user message at the very end of the request. The block on the tool result stays where it is. The copy is never shortened or reworded.
+On in both arms (the operator 2026-10-28, "yes type gap on in both arms"); registered default off. The operator picked "Build the placement switch" on 2026-10-27 after the type-gap decision probes. It needs `type-gap-team-v1`, which is on in both arms. When the GYM TYPE GAP block is added to a tool result and that result is still the newest message, the identical block is also sent as one more user message at the very end of the request. The block on the tool result stays where it is. The copy is never shortened or reworded.
 
 ## Where the block sits in the request
 

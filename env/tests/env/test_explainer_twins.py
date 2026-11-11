@@ -547,9 +547,16 @@ def test_sentences_keep_mixed_case_abbreviations():
     assert t.sentences("Shows EXP. to the next level. Then.")[0] == "Shows EXP. to the next level."
 
 
-def test_operator_name_becomes_operator_everywhere():
+def test_operator_name_becomes_the_operator_everywhere():
     assert t.scrub("The operator's call; The operator said; Andrew Orobator, aorobator, ANDREW") == (
-        "Operator's call; Operator said; Operator, Operator, Operator"
+        "The operator's call; the operator said; the operator, the operator, the operator"
+    )
+    assert t.scrub("Approved by the operator. The operator then picked it (the operator 2026-11-01).") == (
+        "Approved by the operator. The operator then picked it (the operator 2026-11-01)."
+    )
+    assert t.scrub("asked the operator; The operator said") == "asked the operator; The operator said"
+    assert t.scrub("- The operator picked\n| The operator |\n## The operator's call") == (
+        "- The operator picked\n| The operator |\n## The operator's call"
     )
     assert t.scrub("mimosa andrewsville") == "mimosa andrewsville"
     result = twin(
@@ -557,10 +564,10 @@ def test_operator_name_becomes_operator_everywhere():
         "<pre>The operator: go</pre><svg viewBox='0 0 9 9'><text>asked by the operator</text></svg>"
     )
     assert "The operator" not in result.markdown.lower() and "andrew" not in result.markdown.lower()
-    assert result.title == "Operator's switch"
-    assert "Operator approved (Operator 2026-11-11) it." in result.markdown
+    assert result.title == "The operator's switch"
+    assert "The operator approved (the operator 2026-11-11) it." in result.markdown
     svg = result.files["docs/explainers/md/demo/fig-1.svg"].decode()
-    assert "asked by Operator" in svg
+    assert "asked by the operator" in svg
     pages = {
         **PAGES,
         "who": page("<h1>The operator's page</h1><p>A long lead naming the operator for the index.</p>"),

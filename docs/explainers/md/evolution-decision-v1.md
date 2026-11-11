@@ -48,7 +48,7 @@ Trade and uncancellable evolution do not acquire this decision. Move learning is
 
 ## Switch and evidence
 
-`evolution-decision-v1` defaults OFF. Operator requested it ON in the fixed bundle; since 2026-10-20 it is on in both arms (the control model cancelled an evolution with a stray B). OFF preserves the previous tools, observation and input behavior.
+`evolution-decision-v1` defaults OFF. The operator requested it ON in the fixed bundle; since 2026-10-20 it is on in both arms (the control model cancelled an evolution with a stray B). OFF preserves the previous tools, observation and input behavior.
 
 Historical source: `2026-10-19T01-08-57_qwen36-gpu1_petalburg-wholemap-probe-a`, observation seq 10270, stated interpretation seq 10298, B call seq 10299 and subsequent cancellation. Historical records are unchanged.
 

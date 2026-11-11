@@ -66,6 +66,6 @@ The auto-talk message is recorded as the `auto_talk` event's text, which Activit
 ## Status
 
 - RED 9446ca607, GREEN 516cf378c. Not merged into main.
-- Default OFF. ON in both arms of the fixed bundles (Operator, 2026-10-21 10:44 PM ET).
+- Default OFF. ON in both arms of the fixed bundles (the operator, 2026-10-21 10:44 PM ET).
 - Tests: `packages/agent/src/field-ownership-feedback.test.ts` (production `playGameTools`, stall briefing, auto-talk; OFF keeps today's text). Multi-model review: not run yet.
 - Not measured in runs. Pending experiment: `experiments/field-ownership-feedback-v1.json`.

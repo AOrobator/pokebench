@@ -27,9 +27,8 @@ Removes a private hostname from a test; adds nothing.
 
 **M1**
 - [x] Edit; focused tests 30/30; ruff clean
-- [ ] Full gates (CPU window requested first)
-- [ ] Codex review
-- [ ] Land (the operator approved landing in the same answer)
+- [x] Full gates at 01f1b1dc3 (CPU START 4:15 PM, RELEASE sent): `just lint` green; `just test` green (agent 3,042, viewer 1,281, env 3,340, gateway 39)
+- [ ] Codex review and landing: carried by `claude/twins-operator-wording` (stacked on this commit), one review and one landing for both; see `2026-11-11_twins-operator-wording.md`
 
 ## Closing the Loop
 

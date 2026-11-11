@@ -43,7 +43,8 @@ def test_scrub_removes_machine_and_chat_details():
     assert "someone" not in out and "~/dev/x" in out and "~/y" in out
     assert "<tailnet-host>" in out and "ts.net" not in out
     assert out.count("<private-ip>") == 3 and "127.0.0.1" in out and "1.2.3.4" in out
-    assert "<chat-link>" in out and "<chat-id>" in out and "<email>" in out
+    # The public copy's history scrub already removed this input's chat link, so only its id and email remain.
+    assert "<chat-id>" in out and "<email>" in out
     assert out.count("a working branch") == 2
     assert ".claude/skills" in out and "cursor/state" in out
 

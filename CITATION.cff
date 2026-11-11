@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use PokeBench in your research, please cite it."
-title: "PokeBench"
+message: "If you use PokéBench in your research, please cite it."
+title: "PokéBench"
 type: software
 license: MIT
 authors:

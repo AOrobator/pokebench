@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z). Post-main `just test` green. M1b (tokens) in progress on `claude/verify-release-tokens`; M3 closeout needs the operator. No push, no viewer refresh. on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z; evidence fe1215c24), post-main `just test` green. M1b (tokens) on `claude/verify-release-tokens`. M3 closeout needs the operator. Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 17:10Z (both relayed by the coordinator). No push, no viewer refresh.
 
 ## Problem Statement
 

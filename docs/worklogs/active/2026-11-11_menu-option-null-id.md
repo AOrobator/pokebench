@@ -15,9 +15,9 @@ Putting Null first in the union only moves the bug to real id 0.
 
 ## Plan (one milestone)
 
-- [ ] RED: `packages/agent/src/menu-option-null-id.test.ts`, in memory, including a pi-ai `validateToolArguments` round trip on the recorded 67d7 START menu and a `playGameTools` factory test.
-- [ ] GREEN: correctness switch `menu-option-null-id-v1`, default ON when omitted, `flagFeatures` OFF. ON: a menu whose view has no id accepts `menu_id` null or 0; real ids still need an exact match. OFF: exact compare. Prompt unchanged.
-- [ ] Explainer `docs/explainers/menu-option-null-id-v1.html`, linked from `FEATURE_EXPLAINERS`.
+- [x] RED: `packages/agent/src/menu-option-null-id.test.ts`, in memory, including a pi-ai `validateToolArguments` round trip on the recorded 67d7 START menu and a `playGameTools` factory test.
+- [x] GREEN: correctness switch `menu-option-null-id-v1`, default ON when omitted, `flagFeatures` OFF. ON: a menu whose view has no id accepts `menu_id` null or 0; real ids still need an exact match. OFF: exact compare. Prompt unchanged.
+- [x] Explainer `docs/explainers/menu-option-null-id-v1.html`, linked from `FEATURE_EXPLAINERS`.
 - [ ] Cheap checks, then full gates in a CPU window.
 - [ ] Reviews: Claude CLI and GPT (Codex coordinator); Grok if available.
 - [ ] Land fast-forward on local main via the landing board.
@@ -27,3 +27,8 @@ Putting Null first in the union only moves the bug to real id 0.
 Correctness fix, default ON. Activation milestone: any run that opens the START menu. No comparison cohort.
 
 ## Log
+
+- RED `6bdea4e48`: 4 of 13 failed as expected (validated null on START with switch on, id-less accepts 0, registry, factory).
+- GREEN: 13/13 in `menu-option-null-id.test.ts`; `features.test.ts`, `play-preset.test.ts` with it: 69/69. Removing `features["menu-option-null-id-v1"]` from `play-wiring.ts` turns only the factory test red; restored.
+- Cheap checks: agent and viewer `tsc --noEmit` clean; eslint on changed files clean. Viewer focused tests need the agent build, so they move into the full-gate window.
+- Explainer themed with `just pages-theme`; `just pages-check` prints nothing.

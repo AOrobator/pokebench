@@ -115,7 +115,7 @@ describe("registry and factory",()=>{
   const features:FeatureSet={...flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false}),"menu-option-tool-v1":true,[ID]:on};
   const tool=playGameTools([observe,press],features,{read:()=>g.observe().then(r=>(r.details as {state:GameStateSnapshot}).state)},recorder).find(t=>t.name==="select_menu_option");
   if(tool===undefined)throw new Error("select_menu_option missing");
-  await tool.execute("c1",validated(tool,{phase:"start_menu",menu_id:null,option:"BAG"}) as never);
+  await tool.execute("c1",validated(tool,{phase:"start_menu",menu_id:null,option:"BAG"}));
   return g.buttons;
  }
  it("the production game tools honor the switch",async()=>{

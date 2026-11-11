@@ -701,6 +701,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "opus-trace-correctness-v1":"opus-trace-correctness-v1.html",
  "waterfall-handoff-verification-v1":"waterfall-handoff-verification-v1.html",
  "game-clear-completion-v1":"game-clear-completion-v1.html",
+ "menu-option-null-id-v1":"menu-option-null-id-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",

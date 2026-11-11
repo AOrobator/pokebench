@@ -1,6 +1,6 @@
 # `just replay-verify`: replay a published run from power-on and compare its RAM
 
-Status: M1 (source readiness) in progress on `claude/replay-verify` (worktree `~/dev/pokebench-replay-verify`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("We need to commit the replay tool"), scoped by the coordinator. Landing needs the operator.
+Status: M1 READY TO LAND (head 099445fbc; gates green; GPT round 2 LGTM) on `claude/replay-verify` (worktree `~/dev/pokebench-replay-verify`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("We need to commit the replay tool"), scoped by the coordinator. Landing needs the operator.
 
 ## Problem Statement
 
@@ -47,9 +47,9 @@ Untrusted download: the same bounded, non-extracting readers as `verify-release`
 - [x] Tests (RED): clock equivalence, inputs, snapshot stream validation, replay loop with a fake emulator (match, divergence, frame slip, prefix, `--all`), integrity, CLI
 - [x] Implement (`replay_verify.py`; `verify_release.read_event_source` extracted from `scan_event_source` with no behavior change; `just replay-verify`)
 - [x] Cheap checks: 24/24 replay + 80/80 verify-release; ruff, mypy clean. Guard deletion: 15 guards removed alone, all red ("stop at divergence" shows as a hang of the divergence test rather than a clean failure; no timeout plugin to turn it into one)
-- [ ] Full gates (`just lint`, `just test`)
+- [x] Full gates on 099445fbc: `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,228, gateway 39; floors; no-I/O proof)
 - [x] Real run on `runs/release-staging/67d7` (read-only, folder listing unchanged): `PASS replay: frames 0-150,000 replayed from power-on with 88,567 logged actions; 4,777 of 4,777 snapshots match on all 7 regions`, 87.1 s, 244 MB peak (111.2 s after the round-1 fixes). Same result as the hand replay.
-- [ ] Codex review (two rounds, then ask)
+- [x] Codex review: round 1 BLOCKING (3 fixed), round 2 LGTM
 - Non-goals: video or audio re-encoding, screenshot (PNG) matching, the viewer. Terminator: review LGTM.
 
 **M2 — Landing** (the operator)
@@ -77,6 +77,10 @@ Base a6a9eff8f, head 4b9897bc8, SHA-256 3b6cfa93…6d4d. 104 focused passed. `re
 - [P2] The byte prefilter `'"native_action"'` skipped escaped spellings (`native_\u0061ction`). Fixed: every event line is parsed (non-JSON is a named FAIL). Test with the escaped line.
 - Guard deletion: each new guard removed alone turns its test red. 27/27. Real release rerun: 4,777 of 4,777, 111.2 s (every line now parsed), 250 MB peak, folder unchanged.
 - The gate run on 4b9897bc8 was stopped (superseded); lint had passed on it.
+
+### Round 2 — GPT (JOB review-gpt-replay-verify-r2-099445fbc)
+
+Delta 4b9897bc8..099445fbc (SHA-256 43ebf51f…f96e5). All three resolved; no new findings; 27 passed. `VERDICT: LGTM`.
 
 ## Boy Scout Log
 

@@ -1,3 +1,5 @@
+![PokéBench, harness engineering for long-horizon game agents](docs/images/pokebench-header.png)
+
 # PokeBench
 
 How far can a local vision-language model get in Pokémon Emerald when it is given a specialized harness?

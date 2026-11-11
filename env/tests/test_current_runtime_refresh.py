@@ -27,3 +27,22 @@ def test_refresh_updates_the_compatible_viewer_before_the_indexer(monkeypatch):
         "/repo/.env",
         "/repo/runs/viewer-8790.log",
     ]
+
+
+def test_failed_viewer_refresh_preserves_the_existing_projector(monkeypatch):
+    actions = []
+
+    def install(*args):
+        actions.append("indexer")
+
+    def run(argv, **kwargs):
+        raise subprocess.CalledProcessError(1, argv)
+
+    monkeypatch.setattr(current_runtime, "install", install)
+    import pytest
+
+    with pytest.raises(subprocess.CalledProcessError):
+        current_runtime.refresh_viewer(
+            Path("/repo"), Path("/build"), {"Label": "fixture"}, Path("/plist"), 501, run
+        )
+    assert actions == []

@@ -59,3 +59,10 @@ Browser rehearsal found a phone document scroll jump when counters become availa
 protect the document as well as the inner stats pane. No card appearance or identity
 changed. Focused correction tests: 52 viewer tests and 4 Python tests passed with
 affected types/lint. Repeat full gates and cumulative independent reviews pending.
+- Damaged-line restart rehearsal now passes with durable currentGap/rebuildGap;
+  a separate unsupported-only 200-event recording pages back to valid seq 0/1.
+  Evidence: runs/proofs/viewer-compatible-events/damaged-restart.json.
+- A failed web refresh leaves the existing projector alone (new pure regression).
+  Refresh order is web first, then projector, from the same prepared tree.
+- The scroll owner is selected between the inner pane and document to avoid
+  compensating twice; Chromium desktop recovery drift is below 1 px.

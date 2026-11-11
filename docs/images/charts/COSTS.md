@@ -44,7 +44,7 @@ Each series' `cost.kind` in `chart-data.json` says how its dollars are found.
 | Qwen3.8 27B | PrimeIntellect (fp8) on OpenRouter | $0.064 | $0.007 | $0.456 |
 | GLM-5.3 Flash | PrimeIntellect on OpenRouter | $0.0525 | $0.0105 | $0.25 |
 
-- **Local models** (Qwen3.6, Qwen3.8, GLM) ran on our own GPUs, so their figures are estimates: the recorded tokens priced at the OpenRouter provider that is cheapest **for that model's tokens**, from the listings fetched 2026-11-11 19:58 UTC. To refresh them, fetch the listings again, update `prices.json` and its `as_of`, and run `just readme-charts`.
+- **Local models** (Qwen3.6, Qwen3.8, GLM) ran on our own GPUs, so their figures are estimates: the recorded tokens priced at the OpenRouter provider that is cheapest **for that model's tokens**, from the listings fetched 2026-11-11 19:58 UTC. The provider is picked once per model, over the pooled usage of all that model's plotted runs, so a single run can be marginally cheaper elsewhere: Qwen3.8's `6056` alone would be $4.80 on Chutes against $4.84 on PrimeIntellect. To refresh them, fetch the listings again, update `prices.json` and its `as_of`, and run `just readme-charts`.
 - **DeepSeek:** OrcaRouter doubles its prices 8–11 PM and 1–5 AM New York time, so a turn whose event time falls in those hours is charged double (`peak` in `prices.json`).
 
 ### Pinned figures

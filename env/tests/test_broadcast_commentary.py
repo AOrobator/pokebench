@@ -416,7 +416,8 @@ from pokebench_env.broadcast_commentary import (  # noqa: E402
     claude_argv,
     claude_env,
     covered_turns,
-    parse_args,
+    Options,
+    options_problem,
     parse_batch,
     parse_claude,
     private_reason,
@@ -752,58 +753,68 @@ def test_a_runner_that_raises_is_a_failed_call() -> None:
     assert run_claude(runner, [], "/e", {}, "p") == reply("", 0.0, "timed out after 600s")
 
 
-def test_default_flags_keep_todays_voice_and_writer() -> None:
-    args = parse_args(["run1", "--endpoint", "http://127.0.0.1:9/v1"])
-    assert (args.voice, args.lang, args.speed, args.writer) == ("af_heart", "en-us", 1.05, "local")
-    assert (args.lines_only, args.voice_only, args.out) == (False, False, None)
+def test_default_options_keep_todays_voice_and_writer() -> None:
+    options = Options(run="run1", endpoint="http://127.0.0.1:9/v1")
+    assert (options.voice, options.lang, options.speed, options.writer) == (
+        "af_heart",
+        "en-us",
+        1.05,
+        "local",
+    )
+    assert (options.lines_only, options.voice_only, options.out) == (False, False, None)
+    assert (options.start, options.end) == (0.0, float("inf"))
+    assert options_problem(options) is None
 
 
-def test_claude_writer_flags() -> None:
-    args = parse_args(
-        [
-            "run1",
-            "100",
-            "200",
-            "--writer",
-            "claude",
-            "--claude-model",
-            "claude-sonnet-5-5",
-            "--voice",
-            "bm_lewis",
-            "--lang",
-            "en-gb",
-            "--speed",
-            "0.95",
-            "--lines-only",
-        ]
+def test_claude_writer_options_need_no_endpoint() -> None:
+    options = Options(
+        run="run1",
+        writer="claude",
+        claude_model="claude-sonnet-5-5",
+        voice="bm_lewis",
+        lang="en-gb",
+        speed=0.95,
+        lines_only=True,
     )
-    assert (args.voice, args.lang, args.speed) == ("bm_lewis", "en-gb", 0.95)
-    assert (args.start, args.end, args.claude_model, args.lines_only) == (
-        100.0,
-        200.0,
-        "claude-sonnet-5-5",
-        True,
-    )
-    assert parse_args(["run1", "--voice-only"]).voice_only is True
+    assert options_problem(options) is None
+    assert options_problem(Options(run="run1", voice_only=True)) is None
+
+
+LOCAL = "http://127.0.0.1:9/v1"
 
 
 @pytest.mark.parametrize(
-    "argv",
+    "options",
     [
-        ["../x", "--endpoint", "http://127.0.0.1:9/v1"],
-        ["run1"],
-        ["run1", "--endpoint", "https://api.example.com/v1"],
-        ["run1", "--writer", "claude"],
-        ["run1", "--writer", "claude", "--claude-model", "m", "--follow"],
-        ["run1", "5", "--endpoint", "http://127.0.0.1:9/v1", "--follow"],
-        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--lines-only", "--voice-only"],
-        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--follow", "--voice-only"],
-        ["run1", "--endpoint", "http://127.0.0.1:9/v1", "--speed", "0"],
+        Options(run="../x", endpoint=LOCAL),
+        Options(run="run1"),
+        Options(run="run1", endpoint="https://api.example.com/v1"),
+        Options(run="run1", writer="claude"),
+        Options(run="run1", writer="claude", claude_model="m", follow=True),
+        Options(run="run1", endpoint=LOCAL, follow=True, start=5.0),
+        Options(run="run1", endpoint=LOCAL, lines_only=True, voice_only=True),
+        Options(run="run1", endpoint=LOCAL, follow=True, voice_only=True),
+        Options(run="run1", endpoint=LOCAL, speed=0),
+        Options(run="run1", endpoint=LOCAL, writer="other"),
     ],
 )
-def test_bad_flag_combinations_are_refused(argv: list[str]) -> None:
-    with pytest.raises(SystemExit):
-        parse_args(argv)
+def test_bad_option_combinations_are_refused(options: Options) -> None:
+    assert options_problem(options) is not None
+
+
+def test_a_job_with_a_skipped_batch_is_not_complete() -> None:
+    assert Done([], 1, 0.0, 0, 0, 0).complete
+    assert not Done([], 3, 0.0, 2, 0, 1).complete
+
+
+def test_a_nonzero_exit_is_a_failure_even_with_a_good_looking_result() -> None:
+    got = parse_claude('{"result": "[]", "is_error": false, "total_cost_usd": 0.2}', "boom", 1)
+    assert got == reply("", 0.2, "claude exited 1: boom")
+
+
+def test_the_machine_name_is_a_private_word() -> None:
+    names = ["The operator", "studio-host", "studio-host.local"]
+    assert private_reason("I am using studio-host to plan.", names) is not None
 
 
 def test_batch_size_is_twenty_to_thirty() -> None:

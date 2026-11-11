@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BroadcastItem } from "./broadcast-feed.js";
-import { BroadcastTimeline, clockText, thinkingTail } from "./broadcast-timeline.js";
+import { BroadcastTimeline, clockText, scrollFraction, thinkingTail } from "./broadcast-timeline.js";
 
 const MON = { name: "SWAMPERT", level: 45, hp: 24, maxHp: 159 };
 const ITEMS: BroadcastItem[] = [
@@ -34,9 +34,20 @@ describe("the broadcast timeline", () => {
   it("streams a turn's thinking up to t and keeps the last thought until a new one starts", () => {
     const b = timeline();
     expect(b.view(2, [], null).think).toBeNull();
-    expect(b.view(3.5, [], null).think).toEqual({ turn: 1, text: "Let " });
-    expect(b.view(8.5, [], null).think).toEqual({ turn: 1, text: "Let me think" });
-    expect(b.view(9, [], null).think).toEqual({ turn: 2, text: "Second" });
+    expect(b.view(3.5, [], null).think).toEqual({ turn: 1, text: "Let ", start: 3, end: 9 });
+    expect(b.view(8.5, [], null).think).toEqual({ turn: 1, text: "Let me think", start: 3, end: 9 });
+    expect(b.view(9, [], null).think).toEqual({ turn: 2, text: "Second", start: 9, end: null });
+  });
+
+  it("scrolls a thought from its top, holding first and reaching its end before the next one", () => {
+    expect(scrollFraction(10, 10, 30)).toBe(0);
+    expect(scrollFraction(13, 10, 30)).toBe(0);
+    expect(scrollFraction(20, 10, 30)).toBeCloseTo(0.5);
+    expect(scrollFraction(27, 10, 30)).toBe(1);
+    expect(scrollFraction(40, 10, 30)).toBe(1);
+    expect(scrollFraction(5, 10, 30)).toBe(0);
+    expect(scrollFraction(20, 10, null)).toBeCloseTo(0.5);
+    expect(scrollFraction(10, 10, 10)).toBe(1);
   });
 
   it("adds up cost from usage so far, and has none without rates", () => {

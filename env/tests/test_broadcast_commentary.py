@@ -927,9 +927,14 @@ from pokebench_env.broadcast_commentary import cost_rows, scrub_private, thinkin
 
 
 def test_scrub_blanks_every_private_kind_and_keeps_the_rest() -> None:
-    text = (
-        "Rayquaza at 20/45 HP. See /Users/someone/x and https://a.b/c, mail a@b.com, "
-        "ip 10.0.0.2, host box.local, file notes.md, the operator said hi, on mymac today."
+    text = "\n".join(
+        [
+            "Rayquaza at 20/45 HP.",
+            "See /Users/someone/x",
+            "and https://a.b/c",
+            "mail a@b.com, ip 10.0.0.2, host box.local, file notes.md,",
+            "The operator said hi, on mymac today.",
+        ]
     )
     out = scrub_private(text, ["The operator", "mymac", ""])
     for gone in (
@@ -943,8 +948,8 @@ def test_scrub_blanks_every_private_kind_and_keeps_the_rest() -> None:
         "mymac",
     ):
         assert gone not in out
-    assert out.startswith("Rayquaza at 20/45 HP. See … and …")
-    assert "today." in out
+    assert out.startswith("Rayquaza at 20/45 HP.\nSee …\nand …\nmail …, ip …")
+    assert out.endswith("today.")
 
 
 def test_thinking_rows_keep_turns_with_thinking_scrubbed() -> None:
@@ -954,7 +959,7 @@ def test_thinking_rows_keep_turns_with_thinking_scrubbed() -> None:
         Step(3, 3.0, "Throw.", "c"),
     ]
     assert thinking_rows(steps, []) == [
-        {"turn": 1, "thinking": "Go to … now."},
+        {"turn": 1, "thinking": "Go to …"},
         {"turn": 3, "thinking": "Throw."},
     ]
 
@@ -997,7 +1002,7 @@ def test_side_only_needs_a_bridge_and_the_whole_run() -> None:
     "text",
     [
         "Open /Users/alice/Private Records/patient-HIV-positive.pdf before playing.\nNext line.",
-        "Open C:\\Users\\alice\\Private Records\\patient-HIV-positive.pdf before playing.\nNext line.",
+        "Open C:\\Users\\alice\\Private Records\\patient-HIV.pdf before playing.\nNext line.",
         "Open /tmp/(confidential-client)/invoice.pdf before playing.\nNext line.",
         'Open "/Users/alice/My Files/x.txt" before playing.\nNext line.',
         "Open https://example.com/a b c before playing.\nNext line.",
@@ -1005,6 +1010,15 @@ def test_side_only_needs_a_bridge_and_the_whole_run() -> None:
 )
 def test_scrub_blanks_a_path_or_url_through_the_end_of_its_line(text: str) -> None:
     out = scrub_private(text, [])
-    for gone in ("alice", "Records", "patient", "confidential", "invoice", "Files", "example", "playing"):
+    for gone in (
+        "alice",
+        "Records",
+        "patient",
+        "confidential",
+        "invoice",
+        "Files",
+        "example",
+        "playing",
+    ):
         assert gone not in out
     assert out.endswith("…\nNext line.")

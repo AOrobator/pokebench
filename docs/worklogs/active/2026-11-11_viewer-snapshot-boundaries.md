@@ -58,3 +58,13 @@ single coupled refresh and actual live proof with original gameplay PIDs preserv
   syntax pass. Full CPU request saved with no listener; proceed under operator's
   standing instruction not to queue needed checks. Full gates/reviews/landing/live
   activation remain pending.
+- Screenshot inspection exposed a final-snapshot caller: retain ended current views
+  without starting a dead live-frame stream. The initial scratch fixture lacked its
+  recorded PNG. A suspected regex issue was disproven against the original code
+  (native189734_0.png is accepted); discarded that unrelated change and test. No
+  server frame routing or filename contract changes belong in this patch.
+- Saved progress carries per-milestone active time, recorded while folding each event
+  rather than subtracting today's pause total from every past milestone. Legacy
+  paused checkpoints with no historical timing stay unknown. RED pause regression
+  proves before/after times; the display labels observed progress separately from
+  grading. This connects the fast paged data to the existing splits display.

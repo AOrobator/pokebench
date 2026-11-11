@@ -347,7 +347,7 @@ export class App {
   // server. Use that server while the event stream backfills; otherwise each
   // recorded frame in the backlog briefly appears as if the live run replayed.
   private get liveScreen(): boolean {
-    return this.mode === "live" || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
+    return (this.mode === "live"&&this.view.end===null) || (this.mode === "loading" && this.runs.some((run) => run.id === this.runId && isLive(run)));
   }
 
   private closeFrameStream(): void {
@@ -798,6 +798,7 @@ export class App {
         ?? this.current.state.snapshot?.generation ?? null;
       if (generation === null) return undefined;
       const matched = this.recordedWorkbenchRun(this.runId, generation);
+      if(matched===null&&this.current.state.snapshot?.metadata!==undefined){const s=this.current.state.snapshot,rows=[...new Map([...this.current.state.progress,...s.progress.recorded].map(row=>[row.seq,row])).values()].filter(row=>row.elapsedMs!==undefined&&row.elapsedMs!==null);return {run:this.runId,milestones:currentSplits({...s,progress:{...s.progress,recorded:rows}}).map(recordedMilestone)};}
       if (matched === null) return this.workbenchLoad !== null || this.needsWorkbenchEnrichment() ? null : undefined;
       return { run: this.runId, milestones: matched.splits.map(recordedMilestone) };
     }
@@ -1194,7 +1195,7 @@ export class App {
     const frontier = recording !== undefined ? this.frontier : null, loading = frontier === null && (recording === undefined || !this.frontierSettled), side = raceSide(frontier, this.frontierSave, assisted);
     const { race, now } = this.raceOf(view, nowMs, source, frontier, raceStart(view, this.frontierStart));
     const open = openLegs(race, this.raceOpen);
-    draw("race-head", raceHeadline(race, label, now, loading, side));
+    draw("race-head", raceHeadline(race, label, now, loading, side)+(this.current?.state.snapshot?.metadata===undefined?"":'<p class="race-sub">Observed progress from the saved state. Grading loads separately; unavailable historical active times stay unknown.</p>'));
     draw("race-rail", raceRail(race));
     draw("race-gains", raceSwings(race.gains, "BIGGEST GAINS"));
     draw("race-losses", raceSwings(race.losses, "BIGGEST LOSSES"));

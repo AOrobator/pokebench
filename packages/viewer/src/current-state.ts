@@ -22,6 +22,7 @@ export interface CurrentState {
   requestAt: number | null;
   warning: string | null;
   partial?: boolean;
+  milestoneTimes?: Record<string,number>;
   milestones: Extract<RunEvent,{type:"milestone"}>[];
 }
 export function emptyCurrent(): CurrentState {
@@ -64,6 +65,7 @@ export function foldCurrent(prior: CurrentState, event: DisplayEvent, continuati
   if(event.type==="milestone"&&!s.milestones.some(m=>m.name===event.name)){
     if(s.milestones.length>=milestoneLimit)throw new Error("Too many recorded progress anchors");
     s.milestones.push(event);
+    if(s.start!==null&&s.warning===null&&s.partial!==true)s.milestoneTimes={...s.milestoneTimes,[String(event.seq)]:Math.max(0,ms-Date.parse(s.start.t)-v.control.pausedBefore(ms))};
   }
   if(event.type==="retry")s.totals.retries++;
   if(event.type==="tool_call"){
@@ -94,6 +96,7 @@ export function parseCurrent(value: unknown): CurrentState {
   const start=s["start"];if(!isRunEvent(start)||start.type!=="run_start"||start.seq!==0||start.run!==s["run"])return fail();
   for(const key of ["state","partyState","end"]){const e=s[key];if(e!==null&&(!isRunEvent(e)||e.run!==s["run"]||e.seq>s["seq"]||e.type!==(key==="end"?"run_end":"state")))return fail();}
   const milestones=s["milestones"],lastSeq=s["seq"];
+  const times=s["milestoneTimes"];if(times!==undefined&&(!object(times)||Object.keys(times).length>MAX_CURRENT_MILESTONES||!Object.entries(times).every(([seq,ms])=>/^\d+$/.test(seq)&&Number.isSafeInteger(Number(seq))&&Number(seq)<=lastSeq&&number(ms))))return fail();
   if(!Array.isArray(milestones)||milestones.length>MAX_CURRENT_MILESTONES||!milestones.every((e:unknown)=>isRunEvent(e)&&e.type==="milestone"&&e.run===s["run"]&&e.seq<=lastSeq)||new Set(milestones.map(e=>(e as Extract<RunEvent,{type:"milestone"}>).name)).size!==milestones.length)return fail();
   const c=s["control"],t=s["totals"],context=s["context"],tools=s["openTools"];
   if(!object(c)||!object(t)||!object(context)||!object(tools)||Object.keys(tools).length>MAX_OPEN_TOOLS)return fail();

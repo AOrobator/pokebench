@@ -13,7 +13,7 @@ export interface CurrentSummary {
  context:CurrentState["context"];retry:CurrentState["retry"];warning:string|null;problem:string|null;
  phase:{kind:"indexing"|"thinking"|"tool"|"idle"|"paused"|"ended";pending:number;tools:string[]};
  health:{enabled:boolean;owner:boolean;ok:boolean|null;checkedAt:number|null};
- progress:{validation:"unverified";count?:number;recorded:{name:string;seq:number;turn:number;at:number;native?:boolean}[]};
+ progress:{validation:"unverified";count?:number;recorded:{name:string;seq:number;turn:number;at:number;native?:boolean;elapsedMs?:number|null}[]};
 }
 export interface CurrentSnapshot extends CurrentSummary {end:CurrentState["end"];display:Pick<CurrentState,"state"|"partyState"|"card"|"health"|"frame">&Partial<Pick<CurrentState,"thought"|"streaming">>&{thinkingSince?:number|null;partyIsState?:true}}
 export type CurrentQuery={kind:"list";now:number;after?:string|null;limit?:number}|{kind:"current";run:string;now:number}|{kind:"updates";after:string|null;now:number;run?:string}|{kind:"history";run:string;before:string|null;now:number}|{kind:"metadata";run:string;reference:string;now:number}|{kind:"progress";run:string;generation:string;after:string|null;now:number};
@@ -32,7 +32,7 @@ const nullableN=(v:unknown)=>v===null||n(v);
 const nullableText=(v:unknown)=>v===null||typeof v==="string";
 const only=(v:unknown,allowed:readonly string[]):boolean=>object(v)&&Object.keys(v).every(k=>allowed.includes(k));
 const keys=["metadata","version","id","generation","revision","seq","at","clockAt","updatedAt","observedAt","complete","header","run","endedAt","totals","control","context","retry","warning","problem","phase","health","progress"];
-export const isCurrentProgressRecord=(r:unknown):boolean=>object(r)&&Object.keys(r).every(k=>["name","seq","turn","at","native"].includes(k))&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean");
+export const isCurrentProgressRecord=(r:unknown):boolean=>object(r)&&Object.keys(r).every(k=>["name","seq","turn","at","native","elapsedMs"].includes(k))&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean")&&(r["elapsedMs"]===undefined||nullableN(r["elapsedMs"]));
 export function publicCheckpoint(s:CurrentSummary,display:CurrentSnapshot["display"]={state:null,partyState:null,card:null,health:null,frame:null,thought:null,streaming:{thinking:"",text:""},thinkingSince:null},end:CurrentState["end"]=null):CurrentState{
  const blank=emptyCurrent();return parseCurrent({...blank,run:s.id,seq:s.seq,nextSeq:s.seq+1,at:s.at,turn:s.run.turn,start:s.header,end,state:display.state,partyState:display.partyIsState===true?display.state:display.partyState,card:display.card,health:display.health,frame:display.frame,thought:display.thought??null,streaming:display.streaming??blank.streaming,requestAt:display.thinkingSince??null,context:s.context,retry:s.retry,totals:s.totals??blank.totals,control:s.control??blank.control,warning:s.warning});
 }
@@ -62,7 +62,7 @@ export function parseCurrentSnapshot(value:unknown):CurrentSnapshot{
  summary(value,true);const display=object(value)?value["display"]:null;if(!object(value)||value["end"]===undefined||!only(display,["state","partyState","card","health","frame","thought","streaming","thinkingSince","partyIsState"])||!object(display)||!["state","partyState","card","health","frame"].every(k=>Object.hasOwn(display,k))||(display["partyIsState"]!==undefined&&(display["partyIsState"]!==true||display["partyState"]!==null||display["state"]===null)))throw new Error("Invalid current display response");const s=value as unknown as CurrentSnapshot;publicCheckpoint(s,s.display,s.end);return s;
 }
 // Cards show this until the full recording, with its qualified splits, has been read.
-export function currentSplits(s:CurrentSummary):WorkbenchSplit[]{const start=Date.parse(s.header.t),limit=s.run.elapsedMs??Number.MAX_SAFE_INTEGER,boot=s.header.start_state.kind!=="save_state";if(s.header.harness_features.includes("probe"))return [];return s.progress.recorded.filter(m=>m.native??boot).map(m=>({name:m.name,elapsedMs:Math.min(limit,Math.max(0,m.at-start)),segmentMs:0,seq:m.seq,turn:m.turn,inputTokens:0,outputTokens:0}));}
+export function currentSplits(s:CurrentSummary):WorkbenchSplit[]{const start=Date.parse(s.header.t),limit=s.run.elapsedMs??Number.MAX_SAFE_INTEGER,boot=s.header.start_state.kind!=="save_state";if(s.header.harness_features.includes("probe"))return [];return s.progress.recorded.filter(m=>m.native??boot).map(m=>({name:m.name,elapsedMs:Math.min(limit,Math.max(0,Math.min(m.at-start,m.elapsedMs===null?0:m.elapsedMs??m.at-start))),segmentMs:0,seq:m.seq,turn:m.turn,inputTokens:0,outputTokens:0}));}
 export function publicCurrentView(s:CurrentSnapshot){return currentView(publicCheckpoint(s,s.display,s.end));}
 
 export function parseCurrentQuery(value:unknown):CurrentQuery{

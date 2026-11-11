@@ -45,3 +45,4 @@ Follow-ups from the Linux trial, out of scope here: an isMain() helper for impor
 - [x] Claude lane round 3 on 99b2bf8ce..39af55d4f: CHANGES, one finding (operator handle in COSTS.md); now "operator"
 - [x] Claude lane round 4 on 39af55d4f..8814ca0ab: LGTM. Ready to land: Codex (GPT) LGTM through 56e639c12, Claude LGTM through 8814ca0ab, Grok unavailable until 11/17; The operator: "land it"
 - [x] LANDED on local main by fast-forward 640ba5c74 -> 2c75148a1 (the operator: "land it"). Post-main just test green: agent 3042, viewer 1276, env 3293 (lines 83.16% vs floor 69), claude-gateway 39 (lines 46.25% vs floor 22). Worklog left in active (archive awaits the operator).
+- [x] Archived 2026-11-11 on the operator's "yes"

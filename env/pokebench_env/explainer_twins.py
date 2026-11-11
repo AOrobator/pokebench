@@ -482,8 +482,14 @@ def standalone_svg(
     style.text = "\n" + style_text + "\n"
     root.insert(0, bg)
     root.insert(0, style)
-    body = ET.tostring(root, encoding="unicode")
-    return (scrub(body) + "\n").encode()
+    for node in root.iter():
+        if node.text:
+            node.text = scrub(node.text)
+        if node.tail:
+            node.tail = scrub(node.tail)
+        for key, value in node.attrib.items():
+            node.set(key, scrub(value))
+    return (ET.tostring(root, encoding="unicode") + "\n").encode()
 
 
 # ---------------------------------------------------------------- Markdown rendering
@@ -580,7 +586,12 @@ class Page:
         return f"![{_alt(alt)}]({name})"
 
     def link(self, href: str) -> str | None:
-        href = href.strip()
+        target = self._target(href.strip())
+        if target is None or scrub(target) != target:
+            return None
+        return re.sub(r"[\s()<>\\]", lambda m: f"%{ord(m.group(0)):02X}", target)
+
+    def _target(self, href: str) -> str | None:
         if href.startswith("#"):
             return href
         if re.match(r"https?://(127\.0\.0\.1|localhost)\b", href):
@@ -1126,7 +1137,9 @@ _BOILERPLATE = re.compile(
     r"|applicable|correctness|only|lane)\b",
     re.I,
 )
-_ABBREV = re.compile(r"(?:\b(?:PROF|MR|MRS|MS|DR|ST|MT|Mt|No|vs|etc|e\.g|i\.e|approx)|\b[A-Z])\.$")
+_ABBREV = re.compile(
+    r"(?:\b(?i:prof|mrs?|ms|dr|st|mt|exp|lv|vs|etc|e\.g|i\.e|approx)|\bNo|\b[A-Z])\.$"
+)
 
 
 def sentences(text: str) -> list[str]:

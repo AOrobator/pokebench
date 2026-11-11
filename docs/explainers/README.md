@@ -52,7 +52,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Complete Claude turn delivery](md/gateway-current-turn-v1.md) · [HTML](gateway-current-turn-v1.html) — The gateway saves screenshot handles from the same selected messages it renders into the Claude prompt, preserving their order.
 - [Conversation ledger](md/instruction-ledger-v2.md) · [HTML](instruction-ledger-v2.html) — Every observe, press and navigate_to result on the free overworld gets one block right under the readout's Story line.
 - [Cutscene journal](md/cutscene-journal-v1.md) · [HTML](cutscene-journal-v1.html) — Preserve what happened between the model’s game observations.
-- [Dewford readout fixes](md/dewford-readout-fixes.md) · [HTML](dewford-readout-fixes.html) — Three switches, each default OFF, fix readouts that misled bundle run 2026-10-27T17-35-16_qwen36-gpu0_a702 after it received Mr.
+- [Dewford readout fixes](md/dewford-readout-fixes.md) · [HTML](dewford-readout-fixes.html) — Three switches, each default OFF, fix readouts that misled bundle run 2026-10-27T17-35-16_qwen36-gpu0_a702 after it received Mr. Stone's letter (turn 630):
 - [Displayed place names](md/displayed-place-names-v1.md) · [HTML](displayed-place-names-v1.html) — Signs and the Littleroot buildings they name used to be labelled from the game's source code: the script symbol LittlerootTown_EventScript_MaysHouseSign became Mays House Sign, and the map constant became LITTLEROOT…
 - [Dive and native screen correctness](md/opus-trace-correctness-v1.md) · [HTML](opus-trace-correctness-v1.html) — The avatar's native Dive flag selects underwater movement, including the step onto a listed water door.
 - [Effectiveness heard](md/effectiveness-heard-v1.md) · [HTML](effectiveness-heard-v1.html) — At ROXANNE, run 2026-10-20T20-26-22_qwen36-gpu1_97a0 used EMBER on her GEODUDE calling it super effective against ROCK, although the game had printed "It's not very effective…" right after the previous EMBER.
@@ -60,7 +60,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Entrance, not water](md/deep-south-warp-label-v1.md) · [HTML](deep-south-warp-label-v1.html) — The map-element table named metatile behavior 0x6E deep_water_exit.
 - [Exit labels v2](md/exit-labels-v2.md) · [HTML](exit-labels-v2.html) — Every warp in the readout names the map it leads to the way the game's location popup names that map when you arrive, with its map ID.
 - [Exit reachability](md/exit-reachability-v1.md) · [HTML](exit-reachability-v1.html) — One reachability check, made once by the game server, decides for every exit list and every navigate_to message whether the player can walk there from where they stand.
-- [EXP EARNED LEDGER](md/exp-earned-ledger-v1.md) · [HTML](exp-earned-ledger-v1.html) — In the Training block: the amounts in the game's "… gained … EXP.
+- [EXP EARNED LEDGER](md/exp-earned-ledger-v1.md) · [HTML](exp-earned-ledger-v1.html) — In the Training block: the amounts in the game's "… gained … EXP. Points!" pages the model was shown, by the battle they came from (trainer name, or wild and the species), for the last 10 battles that printed any,…
 - [EXP NEXT LEVEL](md/exp-next-level-v1.md) · [HTML](exp-next-level-v1.html) — Each entry of the readout's Party line gains the two numbers the POKéMON summary screen shows under the stats.
 - [Field call input](md/field-call-input-v1.md) · [HTML](field-call-input-v1.html) — Pret/pokeemerald 731ad5b, src/match_call.c and src/text.c.
 - [Field move gates](md/field-move-gates-v1.md) · [HTML](field-move-gates-v1.html) — Correction approved 23 October 2026.
@@ -77,8 +77,8 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Keep battle damage readouts available safely](md/coherent-battle-observation-v1.md) · [HTML](coherent-battle-observation-v1.html) — OFF: capture timing stays unchanged.
 - [Keep GYM on the door](md/gym-door-label-v1.md) · [HTML](gym-door-label-v1.html) — The location popup names the city for both the city and its Gym.
 - [Last leader loss comparison](md/leader-loss-comparison-v1.md) · [HTML](leader-loss-comparison-v1.html) — Separately compares membership, levels, EXP and move IDs.
-- [LEADER ATTEMPT LEDGER](md/leader-attempt-ledger-v1.md) · [HTML](leader-attempt-ledger-v1.html) — On a gym map's field, and at a ready battle decision against a GYM LEADER, each earlier battle with that leader this run: the party's levels and EXP.
-- [Level-up stats box](md/levelup-box-v1.md) · [HTML](levelup-box-v1.html) — After "TORCHIC grew to LV.
+- [LEADER ATTEMPT LEDGER](md/leader-attempt-ledger-v1.md) · [HTML](leader-attempt-ledger-v1.html) — On a gym map's field, and at a ready battle decision against a GYM LEADER, each earlier battle with that leader this run: the party's levels and EXP. Points, the BAG, each of the leader's POKéMON seen with the HP it…
+- [Level-up stats box](md/levelup-box-v1.md) · [HTML](levelup-box-v1.html) — After "TORCHIC grew to LV. 6!" the game shows a box with the new stats and waits for a button, twice.
 - [Map exits name their tiles](md/connection-edge-tiles-v1.md) · [HTML](connection-edge-tiles-v1.html) — A map connection used to say only "walk across the matching edge".
 - [Map-wide triggers](md/map-wide-triggers-v1.md) · [HTML](map-wide-triggers-v1.html) — The game server used to put coordinate-script trigger tiles in the state only when they were within 7 tiles of the player.
 - [MART STOCK READOUT](md/mart-stock-readout-v1.md) · [HTML](mart-stock-readout-v1.html) — None of the 11 runs that reached ROXANNE between Oct 19 and 21 had bought anything first, though they arrived holding ¥4,286–6,960.
@@ -89,7 +89,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Move-learn early comparison](md/move-learn-early-comparison-v1.md) · [HTML](move-learn-early-comparison-v1.html) — When a POKéMON tries to learn a fifth move, the move comparison (its four moves and the new move, with type, power, accuracy, PP and the game's own description) now shows from the first page of the move-learning…
 - [Move-learn question](md/move-learn-question-v1.md) · [HTML](move-learn-question-v1.html) — Run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts.
 - [Move-learn settle](md/move-learn-settle-v1.md) · [HTML](move-learn-settle-v1.html) — Run 2026-10-20T20-26-22_qwen36-gpu1_97a0 (v6 bundle) evolved TORCHIC into COMBUSKEN at turn 777.
-- [Moving NPC frame burst](md/moving-npc-frame-burst-v1.md) · [HTML](moving-npc-frame-burst-v1.html) — DeepSeek’s control4h run entered Mr.
+- [Moving NPC frame burst](md/moving-npc-frame-burst-v1.md) · [HTML](moving-npc-frame-burst-v1.html) — DeepSeek’s control4h run entered Mr. Briney’s House and called navigate_to_target on the loaded person.
 - [Named warp destinations](md/named-warp-destinations-v1.md) · [HTML](named-warp-destinations-v1.html) — The readout lists every door and staircase by map ID.
 - [Native Surf navigation](md/surf-navigation-v1.md) · [HTML](surf-navigation-v1.html) — Run 274b was the first of 800 recorded runs to get Surf.
 - [Native whiteout outcomes](md/whiteout-outcomes-v2.md) · [HTML](whiteout-outcomes-v2.html) — GLM lost to MAY three times in Rustboro City.

@@ -516,3 +516,32 @@ def test_run_snapshot_writes_committed_json():
     assert t.run(["snapshot", "runs/x/events.jsonl"], store, said.append) == 0
     data = json.loads(store.files[t.RUN_SNAPSHOT])
     assert data["run"] == "67d7" and data["features"] == {"z": True}
+
+
+def test_svg_redaction_stays_well_formed_xml():
+    root = t.parse_svg(
+        '<svg viewBox="0 0 9 9"><text data-host="box.tail1.ts.net">192.168.1.2</text>'
+        "<g><title>/Users/me/x</title></g>tail 10.0.0.1</svg>"
+    )
+    tree = ET.fromstring(t.standalone_svg(root, {}, "", ""))
+    text = tree.find(f"{SVG_NS}text")
+    assert text.text == "<private-ip>" and text.get("data-host") == "<tailnet-host>"
+    assert tree.find(f"{SVG_NS}g/{SVG_NS}title").text == "~/x"
+
+
+def test_link_destinations_are_encoded_and_scrubbed():
+    out = md(
+        '<p><a href="https://example.org/a) *INJECT*">Link</a> '
+        '<a href="https://box.tail1.ts.net/x">tail</a> <a href="other.html#a b">sib</a></p>'
+    )
+    assert "[Link](https://example.org/a%29%20*INJECT*)" in out
+    assert "tail" in out and "ts.net" not in out and "[tail]" not in out
+    assert "[sib](other.md#a%20b)" in out
+
+
+def test_sentences_keep_mixed_case_abbreviations():
+    assert t.sentences("Dad on Mr. Stone's call rings. Next.") == [
+        "Dad on Mr. Stone's call rings.",
+        "Next.",
+    ]
+    assert t.sentences("Shows EXP. to the next level. Then.")[0] == "Shows EXP. to the next level."

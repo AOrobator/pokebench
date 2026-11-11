@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z; evidence fe1215c24), post-main `just test` green. M1b (tokens) ready to land on `claude/verify-release-tokens`. M3 closeout needs the operator. Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 17:10Z (both relayed by the coordinator). No push, no viewer refresh.
+Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z; evidence fe1215c24), post-main `just test` green. M1b (tokens) landed at bc3a9e936. M3 closeout needs the operator. Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 17:10Z (both relayed by the coordinator). No push, no viewer refresh.
 
 ## Problem Statement
 
@@ -87,6 +87,7 @@ The input is an untrusted download.
   - The gate run started on 055b6bd2d was stopped (files changed mid-run); gates rerun on the fixed head.
   - Round 2 (JOB review-gpt-verify-release-tokens-r2-e8cf93eef, delta 055b6bd2d..e8cf93eef, SHA-256 af963951…dd814): P1 resolved, no new findings, 80 passed. `VERDICT: LGTM`.
   - Gates on 600578b78 (main fe1215c24 merged in): `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,201, gateway 39; floors; no-I/O proof). Real release: 15/15 PASS, 56.9 s, expected totals exact. READY TO LAND (needs the operator's go).
+  - LANDED: The operator 18:27:45Z ("we need to land the tokens branch"). `just land-join` (number 1), `git merge --ff-only bc3a9e936` (main fe1215c24 → bc3a9e936; main had not moved since the branch merged it). Post-main `just test` exit 0 (agent 3,038, viewer 1,276, env 3,201, gateway 39; floors; no-I/O proof). Not pushed; no viewer refresh.
 
 **M2 — Landing** (the operator)
 - [x] ASK USER: land — the operator, 18:00:04Z: "land it"

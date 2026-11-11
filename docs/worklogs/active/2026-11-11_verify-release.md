@@ -62,8 +62,8 @@ The input is an untrusted download.
 
 **M1 — Source readiness**
 - [x] Worklog committed (`docs(worklog): verify-release`)
-- [ ] Write tests: raw-RAM record split, release discovery/compression, integrity, event shape, native RAM (INV-2), checkpoints/tar safety, INV-1/3/5, vitest catalog drift
-- [ ] COMMIT: `test(verify-release): ...` (RED)
+- [x] Write tests: raw-RAM record split, release discovery/compression, integrity, event shape, native RAM (INV-2), checkpoints/tar safety, INV-1/3/5, vitest catalog drift
+- [x] COMMIT: `test(verify-release): in-memory release fixtures and invariants` (RED): collection fails, `pokebench_env.verify_release` does not exist; vitest drift test 2/2 green (data guard, not a behavior test)
 - [ ] Implement
 - [ ] Cheap checks: ruff, mypy, focused pytest, vitest on the new test
 - [ ] Full gates: `just lint`, `just test`, `just verify-vendor`

@@ -98,7 +98,7 @@ The input is an untrusted download.
   - [x] README: "Verify the clear" section after Results (download, `POKEBENCH_ROM`, `just verify-release <folder>`, what all PASS means and does not mean; optional `just replay-verify` and `just view-release`)
   - [x] `runs/release-staging/67d7/VERIFY.md` (untracked release staging): "How to check it yourself" step 1 is `just verify-release` from a PokeBench clone; the manual checks stay as steps 2-6. The Claude Code session id prefix was removed from "Tokens and cost" (now "the gateway's session record"). `VERIFY.md` is not listed in `SHA256SUMS`, so the sums are unchanged.
   - [x] Final snapshot file name: satisfied by the existing `raw-ram-final.json.gz` (byte copy of `raw-ram/00109027.json.gz`, listed in `SHA256SUMS`). `verify_release.KINDS["final snapshot"]` accepts `raw-ram-final*.json[.gz|.xz]`, so no rename.
-  - [ ] Independent review of the prose (caller handles review and landing)
+  - [x] Independent review of the prose: GPT LGTM round 2; landed at 4b20daa52
 
 ## Closing the Loop
 
@@ -107,6 +107,8 @@ The input is an untrusted download.
 - Result (`just verify-release .` run from inside the folder, `POKEBENCH_ROM` set): 15/15 PASS, exit 0, 27.90 s real, 27.09 s user, 99 MB peak RSS. Party: RAYQUAZA Lv 74, ELECTRIKE Lv 25, WINGULL Lv 15, ABRA Lv 11, CASTFORM Lv 26, SWAMPERT Lv 55. Checkpoints: 202 pairs (200 milestones + final save + run-end save).
 
 ## Session Log
+
+- 2026-11-11 18:31 ET: claude/verify-the-clear-docs landed fast-forward at 4b20daa52 as number 1 on the board (GPT round 2 `VERDICT: LGTM`; round 1 BLOCKING on two README overclaims, fixed). Gates on 8eae230c1: lint green, test green; post-merge `just test` on 4b20daa52 green (agent 3,042, viewer 1,286, env 3,446, gateway 39).
 
 - 2026-11-11 18:30 ET: GPT review of 8eae230c1 BLOCKING, 2 x P2 (README overclaimed): all PASS does not prove every milestone has a checkpoint, and verify-release hashes only the files it reads. README now says each checkpoint present has a matching pair with agreeing digests and metadata, says other listed files are only checked for presence, and points to `shasum -a 256 -c SHA256SUMS` for every file. Same correction in the staged 67d7-r2 VERIFY.md. Prose-only delta after the gates ran on 8eae230c1.
 

@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 (source readiness) in progress on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: M1 (source readiness) gates green at 52ec2dd79; waiting on the operator for a round-4 delta check of the last fix (two-round cap passed) on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
 
 ## Problem Statement
 
@@ -152,6 +152,7 @@ Real run on the final release, `just verify-release ~/dev/pokebench/runs/release
 Base 608c01540, head 8be012a1a, cumulative SHA-256 31a25dae…77d1d, delta b02f7690…3d08. Gates on 8be012a1a: `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,183, gateway 39; floors and no-I/O proof OK). Round-2 PAX sparse resolved; listed-copy preference and event-tar rules consistent with the layout. `VERDICT: BLOCKING` on one new finding in the layout delta:
 
 - Fix [P2] archives were detected by the substring `.tar`, so valid names such as `events.target.jsonl.gz` (read as a tar) and `raw-ram-final.target.json.gz` (not decompressed) failed. Fixed: one `_is_tar` predicate on the terminal suffix (`.tar`, `.tar.gz`, `.tar.xz`) for both paths. Test: plain/gz/xz release with `.target` in both basenames passes; predicate cases. Guard deletion: restoring the substring rule turns the test red. Focused 65/65; ruff and mypy clean. Real release rerun: 15/15 PASS.
+- Gates on 52ec2dd79: `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors and no-I/O proof OK). Main unchanged at 608c01540.
 - Round count: the two-round cap was passed at round 3 (requested by the coordinator as a layout delta check). No round 4 sent; asking the operator.
 
 ## Boy Scout Log

@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 (source readiness) gates green at 52ec2dd79; waiting on the operator for a round-4 delta check of the last fix (two-round cap passed) on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: M1 READY TO LAND (source 52ec2dd79; gates green; GPT round 4 LGTM). Landing (M2) and closeout (M3) need the operator. on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 2026-11-11 17:10Z to the fast checks (both relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
 
 ## Problem Statement
 
@@ -73,7 +73,7 @@ The input is an untrusted download.
 - [x] COMMIT: `feat(verify-release): fast release check with the final RAM snapshot` (ea5f06478, GREEN)
 - [x] Full gates on f5262a74c: `just lint` exit 0; `just verify-vendor` OK; `just test` exit 0 (agent 249 files/3,038, viewer 121/1,276, env 3,171, gateway 39; all floors; no-I/O proof OK)
 - The operator asked (17:09Z, delivered late) why it scanned gigabytes; answered with options (a) full event-log pass ~28 s, (b) first/last line ~1 s, (c) shelve. Coordinator 17:21Z: go with (a).
-- [ ] Review: Codex GPT lane via `just tell-codex`; two-round cap
+- [x] Review: Codex GPT lane via `just tell-codex`: rounds 1-3 BLOCKING (fixed), round 4 LGTM
 - Outcome: `just verify-release <folder>` prints 15 PASS/FAIL lines for a 67d7-style release in well under a minute. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd, per-snapshot RAM. Terminator: review LGTM. Split trigger: any need for emulator execution.
 
 **M2 — Landing** (the operator)
@@ -153,7 +153,18 @@ Base 608c01540, head 8be012a1a, cumulative SHA-256 31a25dae…77d1d, delta b02f7
 
 - Fix [P2] archives were detected by the substring `.tar`, so valid names such as `events.target.jsonl.gz` (read as a tar) and `raw-ram-final.target.json.gz` (not decompressed) failed. Fixed: one `_is_tar` predicate on the terminal suffix (`.tar`, `.tar.gz`, `.tar.xz`) for both paths. Test: plain/gz/xz release with `.target` in both basenames passes; predicate cases. Guard deletion: restoring the substring rule turns the test red. Focused 65/65; ruff and mypy clean. Real release rerun: 15/15 PASS.
 - Gates on 52ec2dd79: `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors and no-I/O proof OK). Main unchanged at 608c01540.
-- Round count: the two-round cap was passed at round 3 (requested by the coordinator as a layout delta check). No round 4 sent; asking the operator.
+- Round count: the two-round cap was passed at round 3 (requested by the coordinator as a layout delta check); The operator then chose a round-4 delta check (option a, relayed 17:45Z).
+
+### Round 4 — GPT delta check (JOB review-gpt-verify-release-r4-52ec2dd79)
+
+Scope only 8be012a1a..52ec2dd79 (tar-suffix predicate and test); delta SHA-256 e813de58…ebd6e50, cumulative context cfd9f31b…335b29e. Round-3 finding resolved: both dispatch sites use the same full-match terminal-suffix predicate. No new findings. Reviewer ran the focused file: 65 passed. Files byte-identical between 52ec2dd79 and the worklog-only head 3ae24fe90. `VERDICT: LGTM`.
+
+### Ready-to-land summary
+
+- Source head 52ec2dd79 (later commits are worklog-only). Base main 608c01540, unchanged.
+- Gates on 52ec2dd79: `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors; no-I/O proof); `just verify-vendor` OK.
+- Real release (`just verify-release ~/dev/pokebench/runs/release-staging/67d7`, read-only): 15/15 PASS, 47.1 s, ~300 MB peak.
+- Review: GPT lane rounds 1-3 BLOCKING (5 real fixes, all applied), round 4 LGTM. Claude CLI and Grok lanes not run (not requested); self-merge would need them, so landing is the operator's call.
 
 ## Boy Scout Log
 

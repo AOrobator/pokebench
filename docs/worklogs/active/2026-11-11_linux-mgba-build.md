@@ -46,3 +46,4 @@ The operator chose "Code now, README later" (decision card, 19:16Z): land the co
 - [x] Gates on the rebased tree (Mac, CPU window granted 19:17Z): `just test` exit 0 (agent 3038, viewer 1276, env 3258 at 82.88/77.18/77.77 vs floor 69, gateway 39 at 46.25/42.86/23.60 vs floor 22, no-I/O guards OK); `just lint` exit 0
 - [x] Codex review of the rebased diff: LGTM (JOB review-claude-linux-mgba-build-rebased-5aede769b, packet sha256 991fcf7d…84d2); build-mgba.sh byte-identical to the approved df5bb6036
 - [ ] Land: land-join, ff merge, post-main `just test`, evidence commit, land-done
+- Upstream impact: main moved d895675f6 -> a198f5770 (archive of the explainer-markdown-twins worklog; docs only, no overlap). Gate and review evidence reused.

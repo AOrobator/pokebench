@@ -809,14 +809,15 @@ def scan_agent_trace(stream: BinaryIO, name: str) -> TraceTotals:
                 raise ReleaseError(f"agent trace has more than {TRACE_MAX_MEMBERS} members")
             if member.issym() or member.islnk():
                 raise ReleaseError(f"agent trace member {member.name!r} is a link")
-            if CALL_MEMBER.fullmatch(member.name) is None:
-                continue
-            if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE):
-                raise ReleaseError(f"agent trace member {member.name!r} is not a regular file")
+            # Every member, read or skipped: a streaming tar must decompress a skipped body too.
             if member.size > TRACE_MEMBER_CAP:
                 raise ReleaseError(
                     f"agent trace member {member.name!r} is larger than {TRACE_MEMBER_CAP} bytes"
                 )
+            if CALL_MEMBER.fullmatch(member.name) is None:
+                continue
+            if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE):
+                raise ReleaseError(f"agent trace member {member.name!r} is not a regular file")
             body = tar.extractfile(member)
             assert body is not None
             for number, line in _lines(cast(BinaryIO, body), EVENT_LINE_CAP, member.name):

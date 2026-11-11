@@ -83,6 +83,8 @@ The input is an untrusted download.
 - [x] Cheap checks: 79/79, ruff, mypy. Guard deletion: 8 guards removed alone; "max cost per session" and the cost type check first survived, pinned by `test_a_later_but_smaller_result_does_not_replace_the_session_total` and a boolean-cost case; all red now. Real release (read-only, folder unchanged): 15/15 PASS, 57.1 s, 273 MB peak; integrity 4 files read; totals exactly as expected below.
 - [ ] Full gates; real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
 - [ ] Codex review (small); stop at ready to land
+  - Round 1 (JOB review-gpt-verify-release-tokens-055b6bd2d, base cae3b65f0, head 055b6bd2d, SHA-256 614e7555…a143a): `VERDICT: BLOCKING`, one Fix [P1]: non-call members were skipped before the size cap, so a streamed 1 TiB ignored member (or a compressed bomb) was decompressed in full. Fixed: the member size cap now runs on every member before the skip. Test: a 1 TiB declared `requests/huge.bin` backed by a few bytes is refused. Guard deletion: putting the skip first again turns it red. 80/80.
+  - The gate run started on 055b6bd2d was stopped (files changed mid-run); gates rerun on the fixed head.
 
 **M2 — Landing** (the operator)
 - [ ] ASK USER: land

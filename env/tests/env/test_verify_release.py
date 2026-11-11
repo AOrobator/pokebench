@@ -1196,6 +1196,14 @@ def test_a_later_but_smaller_result_does_not_replace_the_session_total() -> None
     assert "list cost: $2.50 (the agent trace's Claude Code costUSD, list basis)" in lines
 
 
+def test_an_oversized_ignored_member_is_refused_before_its_body_is_read() -> None:
+    huge = tarfile.TarInfo("requests/huge.bin")
+    huge.size = 1 << 40  # 1 TiB declared; the stream behind it is a few bytes
+    stream = io.BytesIO(huge.tobuf(tarfile.GNU_FORMAT) + bytes(512))
+    with pytest.raises(vr.ReleaseError, match="requests/huge.bin.*larger than"):
+        vr.scan_agent_trace(stream, "agent-trace.tar")
+
+
 def test_trace_totals_for_the_67d7_shape() -> None:
     usage = model_usage(
         780.5451723999995, inp=7967144, write=75149150, read=574225342, out=1643515, think=361372

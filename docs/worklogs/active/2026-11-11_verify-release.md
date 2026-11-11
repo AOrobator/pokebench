@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 (source readiness) in progress on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z (relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
+Status: PAUSED by the operator 2026-11-11 17:09Z for a scope discussion (relayed by the coordinator). M1 (source readiness) WIP on `claude/verify-release` (worktree `~/dev/pokebench-verify-release`). Approved by the operator 2026-11-11 16:50Z (relayed by the coordinator). Landing (M2) and closeout (M3) need the operator.
 
 ## Problem Statement
 
@@ -64,7 +64,7 @@ The input is an untrusted download.
 - [x] Worklog committed (`docs(worklog): verify-release`)
 - [x] Write tests: raw-RAM record split, release discovery/compression, integrity, event shape, native RAM (INV-2), checkpoints/tar safety, INV-1/3/5, vitest catalog drift
 - [x] COMMIT: `test(verify-release): in-memory release fixtures and invariants` (RED): collection fails, `pokebench_env.verify_release` does not exist; vitest drift test 2/2 green (data guard, not a behavior test)
-- [ ] Implement
+- [x] Implement (WIP commit; paused before full gates, real 67d7 run and review)
 - [ ] Cheap checks: ruff, mypy, focused pytest, vitest on the new test
 - [ ] Full gates: `just lint`, `just test`, `just verify-vendor`
 - [ ] Real check: 67d7 staging copy outside `runs/`, output saved
@@ -104,3 +104,10 @@ The input is an untrusted download.
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive this worklog to `docs/worklogs/2026-11-11_verify-release.md`
+
+### 2026-11-11 pause (17:09Z)
+
+- WIP GREEN: `env/pokebench_env/verify_release.py`, `parse_raw_ram_record` split in `raw_ram.py`; `tests/env/test_verify_release.py` 57/57 pass under the no-I/O guard; ruff clean; mypy: one open error in the test file (untyped lambda table at the raw-RAM record test), not fixed before the pause.
+- The no-I/O guard forbids fixture-file reads even at import time, so the two real 67d7 snapshots and the run's switch set are embedded as `env/tests/env/verify_release_67d7.py` (~125 KB); the binary fixtures from the RED commit were removed.
+- Not done: `just` recipe, guard-deletion checks, full gates, real 67d7 run (no staging copy was ever built), reviews.
+- Timing on the two-snapshot fixture (in memory, 1.4 MB uncompressed): whole `verify()` 4.8 ms uncompressed, 5.3 ms gz, 8.6 ms xz; of that the RAM stream plus RAM/native checks is 3.5 / 4.7 / 8.5 ms, events plus event checks 0.1-0.2 ms, checkpoint tar plus its checks 0.2 ms.

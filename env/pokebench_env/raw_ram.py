@@ -482,7 +482,11 @@ def load_raw_ram(
         decoded = file.read(MAX_ARCHIVE_BYTES + 1)
     if len(decoded) > MAX_ARCHIVE_BYTES:
         raise ValueError("raw RAM archive expanded beyond limit")
-    value = json.loads(decoded)
+    return parse_raw_ram_record(json.loads(decoded), rom=rom)
+
+
+def parse_raw_ram_record(value: object, *, rom: bytes | None = None) -> ArchivedMemoryReader:
+    """Validate one decoded snapshot record: version, region layout and digests, registers, ROM."""
     if not isinstance(value, dict) or type(value.get("v")) is not int or value.get("v") != 1:
         raise ValueError("invalid raw RAM archive version")
     records = value.get("regions")

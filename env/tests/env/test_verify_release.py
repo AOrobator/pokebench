@@ -1,4 +1,4 @@
-"""just verify-release: every check runs on an in-memory release built from two real 67d7 snapshots."""
+"""just verify-release: every check runs on an in-memory release from two real 67d7 snapshots."""
 
 import base64
 import gzip
@@ -14,14 +14,12 @@ from typing import BinaryIO
 import pytest
 
 from pokebench_env import verify_release as vr
+from pokebench_env.game_state import PARTY_COUNT
 from pokebench_env.pokemon import PartyMon
-from pokebench_env.raw_ram import parse_raw_ram_record
+from pokebench_env.raw_ram import ArchivedMemoryReader, parse_raw_ram_record
+from tests.env import verify_release_67d7 as data
 
-FIXTURES = Path(__file__).parent / "fixtures"
-# Read at import (collection), never inside a test: the no-I/O guard arms after collection.
-FINAL_GZ = (FIXTURES / "verify-release-67d7-final.json.gz").read_bytes()
-START_GZ = (FIXTURES / "verify-release-67d7-start.json.gz").read_bytes()
-EVALUATION = json.loads((FIXTURES / "verify-release-67d7-evaluation.json").read_text())
+FINAL_GZ, START_GZ = data.FINAL_GZ, data.START_GZ
 
 ROM = b"pokebench verify-release test cartridge"
 ROM_SHA1 = hashlib.sha1(ROM).hexdigest()
@@ -103,7 +101,9 @@ class Build:
             evaluation={"features": features, "features_sha256": features_sha256(features)},
         )
         self.state(0, 0, "title")  # seq 1
-        self.add("milestone", 0, name="GAME_RUNNING", kind="legacy", origin="observed", evidence=[1])
+        self.add(
+            "milestone", 0, name="GAME_RUNNING", kind="legacy", origin="observed", evidence=[1]
+        )
         self.add("turn_start", 1)  # seq 3
         self.state(1, 1, "field")  # seq 4
         for name in ("RAIN_BADGE", "GAME_CLEAR_CONFIRMED"):
@@ -114,7 +114,11 @@ class Build:
             "run_end",
             2,
             reason="completed",
-            target_proof={"name": "GAME_CLEAR_CONFIRMED", "milestone_seq": 6, "state_evidence": [8]},
+            target_proof={
+                "name": "GAME_CLEAR_CONFIRMED",
+                "milestone_seq": 6,
+                "state_evidence": [8],
+            },
             turns=2,
             wall_ms=62190151,
             tokens={"input": 0, "output": 0},
@@ -146,9 +150,17 @@ class Build:
         self.names = {"events": "events-67d7.jsonl", "raw": "raw-ram-67d7.jsonl"}
         self.tar_name = "checkpoints-67d7.tar"
 
-    def add(self, kind: str, turn: int, **body: object) -> None:
+    def add(self, event_type: str, turn: int, **body: object) -> None:
         self.events.append(
-            {"v": 1, "run": RUN, "seq": len(self.events), "t": T, "type": kind, "turn": turn, **body}
+            {
+                "v": 1,
+                "run": RUN,
+                "seq": len(self.events),
+                "t": T,
+                "type": event_type,
+                "turn": turn,
+                **body,
+            }
         )
 
     def state(self, turn: int, sequence: int, screen: str) -> None:
@@ -169,10 +181,10 @@ class Build:
             folder.type = tarfile.DIRTYPE
             tar.addfile(folder)
             parts = {k: json.dumps(v).encode() for k, v in self.sidecars.items()} | self.states
-            for name, data in parts.items():
+            for name, body in parts.items():
                 info = tarfile.TarInfo(f"checkpoints/{name}")
-                info.size = len(data)
-                tar.addfile(info, io.BytesIO(data))
+                info.size = len(body)
+                tar.addfile(info, io.BytesIO(body))
             for info, data in self.extra_members:
                 tar.addfile(info, None if data is None else io.BytesIO(data))
         return out.getvalue()
@@ -209,7 +221,7 @@ class MemoryRelease:
         return io.BytesIO(self.files[name])
 
 
-def party(*mons: PartyMon) -> Callable[[vr.ArchivedMemoryReader], tuple[PartyMon, ...]]:
+def party(*mons: PartyMon) -> Callable[[ArchivedMemoryReader], tuple[PartyMon, ...]]:
     return lambda _read: mons
 
 
@@ -268,9 +280,10 @@ def test_clean_release_passes_every_check(ext: str) -> None:
     assert text.splitlines()[0].startswith("PASS integrity: 3 files match SHA256SUMS")
     assert "verify-release: 17 checks, all PASS" in text
     assert "RAYQUAZA Lv 74" in result(report, "native: party").detail
-    assert "2 of 3 claimed milestones have a native reader" in result(
-        report, "native: milestones"
-    ).detail
+    assert (
+        "2 of 3 claimed milestones have a native reader"
+        in result(report, "native: milestones").detail
+    )
     assert any("claude-opus-5-5" in line for line in report.totals)
     assert any("tokens: not recorded" in line for line in report.totals)
     assert any("just replay-verify" in line for line in report.totals)
@@ -309,7 +322,7 @@ def test_a_mangled_rayquaza_does_not_count() -> None:
 
 
 def test_an_unreadable_party_fails_closed() -> None:
-    def broken(_read: vr.ArchivedMemoryReader) -> tuple[PartyMon, ...]:
+    def broken(_read: ArchivedMemoryReader) -> tuple[PartyMon, ...]:
         raise ValueError("read outside archived memory")
 
     report = vr.verify(
@@ -351,7 +364,7 @@ def test_default_party_reader_counts() -> None:
             self.count = count
 
         def __call__(self, address: int, length: int) -> bytes:
-            if address == vr.PARTY_COUNT:
+            if address == PARTY_COUNT:
                 return bytes([self.count])
             return bytes(length)
 
@@ -369,7 +382,11 @@ def test_default_party_reader_counts() -> None:
 @pytest.mark.parametrize("kind", ["events", "raw", "tar"])
 def test_missing_inputs_fail_by_name(kind: str) -> None:
     files = Build().files()
-    victim = {"events": "events-67d7.jsonl", "raw": "raw-ram-67d7.jsonl", "tar": "checkpoints-67d7.tar"}
+    victim = {
+        "events": "events-67d7.jsonl",
+        "raw": "raw-ram-67d7.jsonl",
+        "tar": "checkpoints-67d7.tar",
+    }
     del files[victim[kind]]
     bad = failed(run(files))
     assert any("missing" in detail for detail in bad.values())
@@ -394,9 +411,10 @@ def test_two_supported_copies_are_ambiguous() -> None:
 
 def test_integrity_failures() -> None:
     files = Build().files()
-    assert "missing SHA256SUMS" in failed(run({k: v for k, v in files.items() if k != "SHA256SUMS"}))[
-        "integrity"
-    ]
+    assert (
+        "missing SHA256SUMS"
+        in failed(run({k: v for k, v in files.items() if k != "SHA256SUMS"}))["integrity"]
+    )
     tampered = dict(files)
     tampered["raw-ram-67d7.jsonl"] = files["raw-ram-67d7.jsonl"] + b""
     tampered["events-67d7.jsonl"] = files["events-67d7.jsonl"].replace(b"medium", b"MEDIUM")
@@ -409,7 +427,11 @@ def test_integrity_failures() -> None:
         line + b"\n" for line in files["SHA256SUMS"].splitlines() if b"events" not in line
     )
     assert "events-67d7.jsonl: not listed" in failed(run(unlisted))["integrity"]
-    for bad_line in (b"nonsense\n", f"{'0' * 64}  ../escape\n".encode(), f"{'0' * 64}  a/b\n".encode()):
+    for bad_line in (
+        b"nonsense\n",
+        f"{'0' * 64}  ../escape\n".encode(),
+        f"{'0' * 64}  a/b\n".encode(),
+    ):
         broken = dict(files)
         broken["SHA256SUMS"] = files["SHA256SUMS"] + bad_line
         assert "line" in failed(run(broken))["integrity"]
@@ -425,7 +447,10 @@ def test_rom_failures() -> None:
     files = Build().files()
     assert "sha1" in failed(run(files, rom=b"other rom"))["rom"]
     report = vr.verify(
-        MemoryRelease(files), None, rom_sha1=ROM_SHA1, read_party=party(RAYQUAZA),
+        MemoryRelease(files),
+        None,
+        rom_sha1=ROM_SHA1,
+        read_party=party(RAYQUAZA),
         rom_problem="POKEBENCH_ROM is not set",
     )
     bad = failed(report)
@@ -500,12 +525,20 @@ def test_run_end_failures() -> None:
     assert "completed" in tamper_events(budget)["events: run_end"]
 
     def proof(b: Build) -> None:
-        b.events[-1]["target_proof"] = {"name": "GAME_CLEAR_CONFIRMED", "milestone_seq": 5, "state_evidence": [8]}
+        b.events[-1]["target_proof"] = {
+            "name": "GAME_CLEAR_CONFIRMED",
+            "milestone_seq": 5,
+            "state_evidence": [8],
+        }
 
     assert "milestone_seq" in tamper_events(proof)["events: run_end"]
 
     def evidence(b: Build) -> None:
-        b.events[-1]["target_proof"] = {"name": "GAME_CLEAR_CONFIRMED", "milestone_seq": 6, "state_evidence": [4]}
+        b.events[-1]["target_proof"] = {
+            "name": "GAME_CLEAR_CONFIRMED",
+            "milestone_seq": 6,
+            "state_evidence": [4],
+        }
 
     assert "credits" in tamper_events(evidence)["events: run_end"]
 
@@ -515,7 +548,11 @@ def test_run_end_failures() -> None:
     assert "last event" in tamper_events(not_last)["events: run_end"]
 
     def name(b: Build) -> None:
-        b.events[-1]["target_proof"] = {"name": "HALL_OF_FAME_ENTERED", "milestone_seq": 6, "state_evidence": [8]}
+        b.events[-1]["target_proof"] = {
+            "name": "HALL_OF_FAME_ENTERED",
+            "milestone_seq": 6,
+            "state_evidence": [8],
+        }
 
     assert "GAME_CLEAR_CONFIRMED" in tamper_events(name)["events: run_end"]
 
@@ -535,7 +572,7 @@ def test_features_digest_failures() -> None:
 
 
 def test_features_digest_matches_the_agent_for_the_real_67d7_switches() -> None:
-    assert vr.features_sha256(EVALUATION["features"]) == EVALUATION["features_sha256"]
+    assert vr.features_sha256(data.FEATURES) == data.FEATURES_SHA256
 
 
 def test_unreadable_event_lines_fail_every_event_check() -> None:
@@ -590,18 +627,19 @@ def test_event_references_must_name_recorded_snapshots() -> None:
 
 def test_oversized_lines_fail_without_buffering(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(vr, "RAM_LINE_CAP", 1024)
+    assert "longer than 1024 bytes" in failed(run(Build().files()))["raw RAM: snapshots"]
     monkeypatch.setattr(vr, "EVENT_LINE_CAP", 64)
     bad = failed(run(Build().files()))
-    assert "longer than 1024 bytes" in bad["raw RAM: snapshots"]
     assert "longer than 64 bytes" in bad["events: order"]
+    assert "event log is unreadable" in bad["raw RAM: snapshots"]
 
 
 # --- checkpoints ---
 
 
-def member(name: str, kind: bytes = tarfile.REGTYPE, data: bytes | None = b"x") -> tuple[
-    tarfile.TarInfo, bytes | None
-]:
+def member(
+    name: str, kind: bytes = tarfile.REGTYPE, data: bytes | None = b"x"
+) -> tuple[tarfile.TarInfo, bytes | None]:
     info = tarfile.TarInfo(name)
     info.type = kind
     if kind == tarfile.SYMTYPE or kind == tarfile.LNKTYPE:
@@ -691,7 +729,9 @@ def test_corrupt_tar_fails() -> None:
 
 def test_verifier_only_reads_and_reads_each_file_once() -> None:
     release = MemoryRelease(Build().files())
-    report = vr.verify(release, ROM, rom_sha1=ROM_SHA1, read_party=party(RAYQUAZA), rom_problem=None)
+    report = vr.verify(
+        release, ROM, rom_sha1=ROM_SHA1, read_party=party(RAYQUAZA), rom_problem=None
+    )
     assert report.ok
     assert sorted(release.opened) == sorted(release.files)
     assert not hasattr(release, "write")
@@ -807,8 +847,11 @@ def test_main_usage_and_unreadable_inputs() -> None:
     out = io.StringIO()
     files = Build().files()
     code = vr.main(
-        ["x"], {"POKEBENCH_ROM": "rom.gba"}, open_release=lambda _p: MemoryRelease(files),
-        read_rom=no_rom, out=out,
+        ["x"],
+        {"POKEBENCH_ROM": "rom.gba"},
+        open_release=lambda _p: MemoryRelease(files),
+        read_rom=no_rom,
+        out=out,
     )
     assert code == 1
     assert "FAIL rom: cannot read POKEBENCH_ROM" in out.getvalue()

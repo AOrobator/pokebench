@@ -317,10 +317,10 @@ class MgbaEmulator:  # pragma: no cover
     """Set up as the run's game server was: a fresh ROM copy, no save, two resets, RTC pinned."""
 
     def __init__(self, rom: bytes) -> None:
-        import mgba.core  # type: ignore[import-untyped]
-        import mgba.image  # type: ignore[import-untyped]
-        import mgba.log  # type: ignore[import-untyped]
-        from mgba._pylib import lib  # type: ignore[import-untyped]
+        import mgba.core
+        import mgba.image
+        import mgba.log
+        from mgba._pylib import lib
 
         mgba.log.silence()
         self._dir = tempfile.TemporaryDirectory(prefix="replay-verify-")

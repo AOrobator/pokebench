@@ -42,3 +42,13 @@ Non-goals: the verify-release hint (`just replay-verify` now exists on main, 80d
 ## Multi-model review log
 
 - Round 1, Codex: JOB review-claude-node-version-guards-4c8bbbb84 sent (packet sha256 803550624ea14da1af0cbcf62eb1fb41048355bd9cf063db8f055ae132d245a7); VERDICT: LGTM, no findings (all nine sites replaced; mypy override, smoke stdio, view port forwarding checked; 24 focused tests rerun on Node 26.7.0).
+
+## Rebase onto main (2026-11-11)
+
+The operator chose "Code now, README later" (decision card, 19:16Z): land the code before `claude/setup-preflight-docs`.
+
+- Reviewed history saved as `claude/node-version-guards-on-setup-docs` (3c12266f5). Rebuilt from `git diff 39b9b2d24 3c12266f5 -- . ':!README.md'` applied onto main d895675f6 (clean), then rebased onto main 1018a95f7 after linux-mgba-build landed (no overlap). README edits moved to `claude/linux-setup-readme` (127f33ce8).
+- Codex review of the rebased diff (JOB review-claude-node-version-guards-rebased-1c1cc0c90, packet sha256 227a2125…a890): LGTM, code identical to the approved version apart from README; all nine sites covered.
+- Gates on the rebased tree (Mac, CPU window 19:17Z): `just test` exit 0 (agent 3042, viewer 1276, env 3258 at 82.88/77.18/77.77 vs floor 69, gateway 39 at 46.25/42.86/23.60 vs floor 22, no-I/O guards OK). `just lint` FAILED: `pokebench_env/replay_verify.py` (new on main, replay-verify) imports mgba with four inline `type: ignore[import-untyped]` that the new mgba override makes unused. Fix: drop those four ignores. After it: mypy clean with and without the binding (148 files), ruff clean, `just lint` exit 0.
+- [ ] Codex delta review of the replay_verify fix
+- [ ] Land: land-join, ff merge, post-main `just test`, evidence commit, land-done

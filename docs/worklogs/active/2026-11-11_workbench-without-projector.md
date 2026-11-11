@@ -1,6 +1,6 @@
 # Viewer: fill the workbench from /api/cards when the current projector has no runs
 
-Status: M1 READY TO LAND (source 4a56b2f85 on main 22e7432f4; gates green; GPT LGTM) on `claude/workbench-without-projector` (worktree `~/dev/pokebench-workbench-no-projector`), off main 640ba5c74. Approved by the coordinator 2026-11-11 19:50Z as the follow-up to splits-no-frontier. Landing needs the operator's own @mention.
+Status: M1 LANDED on local main at b58af83f9 (the operator 20:13:46Z: "@claude land workbench-without-projector"); post-main `just test` green; live on 8790 after `just viewer-main` (the operator: "u have permission to refresh the viewer as needed"). No push on `claude/workbench-without-projector` (worktree `~/dev/pokebench-workbench-no-projector`), off main 640ba5c74. Approved by the coordinator 2026-11-11 19:50Z as the follow-up to splits-no-frontier. Landing needs the operator's own @mention.
 
 ## Problem Statement
 
@@ -38,6 +38,8 @@ No new endpoint or input; `/api/cards` is already fetched and validated by `pars
 - [x] Codex review: GPT LGTM; ready to land
 
 **M2 — Landing** (the operator's own @mention); `just viewer-main` only on the operator's words
+- [x] Rebased onto main 98afad2b0 (worklog-only upstream); feature diff byte-identical (patch-id 47c5cda0…). `git merge --ff-only` as number 1 on the board: main → b58af83f9. Post-main `just test` exit 0 (agent 3,042, viewer 1,281, env 3,319, gateway 39; floors; no-I/O proof).
+- [x] `just viewer-main`: "viewer and current projector at b58af83f9"; one 8790 listener, build stamp b58af83f9 (clean); no older-build problems (836 runs); 0 gameplay processes. Live: 67d7 SPLITS on 8790 still races "9:02:23 ahead of the FRONTIER" (projector present, unchanged path).
 
 ## Closing the Loop
 

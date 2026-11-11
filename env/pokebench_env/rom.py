@@ -6,7 +6,7 @@ symlink there (see `run_server.prepare_server_dir`).
 """
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 EMERALD_SHA1 = "f3ae088181bf583e55daf962a92bb46f4f1d07b7"
@@ -18,14 +18,21 @@ class RomError(RuntimeError):
     pass
 
 
-def resolve_rom(env: Mapping[str, str], expected_sha1: str = EMERALD_SHA1) -> Path:
+def resolve_rom(
+    env: Mapping[str, str],
+    expected_sha1: str = EMERALD_SHA1,
+    *,
+    resolve: Callable[[Path], Path] = lambda path: path.expanduser().resolve(),
+    is_file: Callable[[Path], bool] = Path.is_file,
+    read_bytes: Callable[[Path], bytes] = Path.read_bytes,
+) -> Path:
     raw = env.get(ROM_ENV)
     if not raw:
         raise RomError(f"{ROM_ENV} is not set; point it at your Pokémon Emerald (USA) ROM")
-    rom = Path(raw).expanduser().resolve()
-    if not rom.is_file():
+    rom = resolve(Path(raw))
+    if not is_file(rom):
         raise RomError(f"{ROM_ENV} file does not exist: {rom}")
-    digest = hashlib.sha1(rom.read_bytes(), usedforsecurity=False).hexdigest()
+    digest = hashlib.sha1(read_bytes(rom), usedforsecurity=False).hexdigest()
     if digest != expected_sha1:
         raise RomError(f"ROM SHA-1 is {digest}, expected {expected_sha1}: {rom}")
     return rom

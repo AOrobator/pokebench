@@ -59,6 +59,22 @@ replay-verify folder *args:
 verify-rom:
     cd env && uv run python -c 'import os; from pokebench_env.rom import resolve_rom; print("ROM OK:", resolve_rom(os.environ))'
 
+# Read-only setup preflight: PASS/FAIL/SKIP per check, with the fix for each miss. Tiers build up:
+# core (enough for just test), game (adds just smoke: mGBA, ROM), model (adds the run's endpoint;
+# SKIP when none is set). Exit 1 only when a check that ran fails. Changes nothing.
+[positional-arguments]
+doctor *tier:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    py=env/.venv/bin/python
+    [[ -x "$py" ]] || py=$(command -v python3 || true)
+    if [[ -z "$py" ]]; then
+        echo "FAIL  core   python  no python3 found"
+        echo "                     fix: brew install uv && uv python install 3.11 && just setup"
+        exit 1
+    fi
+    PYTHONPATH="$PWD/env" "$py" -m pokebench_env.doctor "$@"
+
 # Recover route103_rival for older runs from their raw-RAM archives into runs/<id>/derived/ (events.jsonl untouched).
 backfill-route103 +runs:
     cd env && uv run python -m pokebench_env.backfill_route103 ../runs {{runs}}

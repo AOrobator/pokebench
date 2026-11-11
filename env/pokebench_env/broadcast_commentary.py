@@ -16,6 +16,7 @@ import json
 import os
 import pwd
 import re
+import socket
 import subprocess
 import tempfile
 import time
@@ -587,6 +588,10 @@ class Done:
     refused: int
     failed: int
 
+    @property
+    def complete(self) -> bool:
+        return self.failed == 0
+
 
 def covered_turns(log: str) -> set[int]:
     """Turns a finished batch already judged, said or silent; a failed batch is asked again."""
@@ -720,6 +725,8 @@ def parse_claude(stdout: str, stderr: str, code: int) -> ClaudeReply:
     body = text if isinstance(text, str) else ""
     if result.get("is_error") is True:
         return ClaudeReply("", spent, body or f"claude exited {code}")
+    if code != 0:
+        return ClaudeReply("", spent, f"claude exited {code}: {stderr.strip()[-500:]}")
     return ClaudeReply(body, spent)
 
 
@@ -736,7 +743,52 @@ def run_claude(
     return parse_claude(stdout, stderr, code)
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+@dataclass(frozen=True)
+class Options:
+    run: str
+    start: float = 0.0
+    end: float = float("inf")
+    writer: str = "local"
+    endpoint: str | None = None
+    model: str | None = None
+    claude_model: str | None = None
+    claude: str = "claude"
+    claude_config_dir: str | None = None
+    thinking_from: Path | None = None
+    follow: bool = False
+    lines_only: bool = False
+    voice_only: bool = False
+    voice: str = VOICE
+    lang: str = VOICE_LANG
+    speed: float = VOICE_SPEED
+    out: Path | None = None
+    runs: Path = Path("runs")
+    kokoro: Path = Path("~/.cache/pokebench/kokoro")
+
+
+def options_problem(options: Options) -> str | None:
+    writing = not options.voice_only
+    if Path(options.run).name != options.run:
+        return "run must be a run id"
+    if options.writer not in ("local", "claude"):
+        return "--writer must be local or claude"
+    if not 0 < options.speed <= 4:
+        return "--speed must be above 0 and at most 4"
+    if options.lines_only and options.voice_only:
+        return "--lines-only and --voice-only exclude each other"
+    if options.follow and (options.start != 0.0 or options.end != float("inf")):
+        return "--follow takes no time range"
+    if options.follow and (options.writer == "claude" or options.lines_only or options.voice_only):
+        return "--follow uses the local writer and voices each line itself"
+    if writing and options.writer == "local":
+        if options.endpoint is None or not local_endpoint(options.endpoint):
+            return "--endpoint must be a loopback http address"
+    if writing and options.writer == "claude" and not options.claude_model:
+        return "--writer claude needs --claude-model"
+    return None
+
+
+def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse reads gettext files
     parser = argparse.ArgumentParser(prog="just broadcast-commentary")
     parser.add_argument("run")
     parser.add_argument("start", nargs="?", type=float, default=0.0)
@@ -769,30 +821,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=Path(os.environ.get("KOKORO_MODELS", "~/.cache/pokebench/kokoro")).expanduser(),
     )
-    args = parser.parse_args(argv)
-    writing = not args.voice_only
-    if Path(args.run).name != args.run:
-        parser.error("run must be a run id")
-    if not 0 < args.speed <= 4:
-        parser.error("--speed must be above 0 and at most 4")
-    if args.lines_only and args.voice_only:
-        parser.error("--lines-only and --voice-only exclude each other")
-    if args.follow and (args.start != 0.0 or args.end != float("inf")):
-        parser.error("--follow takes no time range")
-    if args.follow and (args.writer == "claude" or args.lines_only or args.voice_only):
-        parser.error("--follow uses the local writer and voices each line itself")
-    if writing and args.writer == "local":
-        if args.endpoint is None or not local_endpoint(args.endpoint):
-            parser.error("--endpoint must be a loopback http address")
-    if writing and args.writer == "claude" and not args.claude_model:
-        parser.error("--writer claude needs --claude-model")
-    return args
+    return parser
 
 
 def private_names() -> list[str]:  # pragma: no cover - the account database
-    """The login and the words of its full name, so no line says the operator's name."""
+    """The login, the words of its full name and this machine's name, so no line says them."""
     user = pwd.getpwuid(os.getuid())
-    return [user.pw_name, *(word for word in user.pw_gecos.split() if len(word) > 2)]
+    host = socket.gethostname()
+    words = [word for word in user.pw_gecos.split() if len(word) > 2]
+    return [user.pw_name, *words, host, host.split(".")[0]]
 
 
 def _subprocess_runner(  # pragma: no cover - a process
@@ -877,7 +914,13 @@ def _synth(  # pragma: no cover - the voice model
 
 
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
-    args = parse_args(argv)
+    parser = build_parser()
+    args = Options(**vars(parser.parse_args(argv)))
+    problem = options_problem(args)
+    if problem is not None:
+        parser.error(problem)
+    # options_problem has made sure the writer in use has these.
+    endpoint, claude_model = args.endpoint or "", args.claude_model or ""
     folder = args.out or args.runs / "broadcast" / args.run
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / "commentary.jsonl"
@@ -896,12 +939,12 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     log_path = args.runs / args.run / "events.jsonl"
     existing = load_lines(target.read_text(encoding="utf-8")) if target.exists() else []
     if args.follow:
-        model = args.model or _served_model(args.endpoint)
+        model = args.model or _served_model(endpoint)
         post = functools.partial(_post, timeout=LIVE_TIMEOUT_S)
         lines = follow(
             Follow(
                 read=functools.partial(_read_at, log_path),
-                ask=lambda thinking: ask_model(args.endpoint, model, post, thinking),
+                ask=lambda thinking: ask_model(endpoint, model, post, thinking),
                 synth=synth(),
                 write_wav=write_wav,
                 save=save,
@@ -914,6 +957,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         print(f"{len(lines)} lines in {target}")
         return 0
     lines = existing
+    complete = True
     if not args.voice_only and args.writer == "claude":
         batches = folder / "claude-batches.jsonl"
         covered = covered_turns(batches.read_text(encoding="utf-8")) if batches.exists() else set()
@@ -922,7 +966,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
             with batches.open("a", encoding="utf-8") as out:
                 out.write(json.dumps(asdict(batch)) + "\n")
 
-        argv_ = claude_argv(args.claude, args.claude_model)
+        argv_ = claude_argv(args.claude, claude_model)
         env = claude_env(dict(os.environ), args.claude_config_dir)
         steps = read_steps(_log_lines(log_path), args.start, args.end)
         if args.thinking_from is not None:
@@ -948,24 +992,28 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
                 private_names(),
             )
         lines = done.lines
+        complete = done.complete
         print(
             f"claude: {done.calls} calls, ${done.cost:.4f}, {done.retries} retries, "
             f"{done.refused} lines refused, {done.failed} batches skipped",
             flush=True,
         )
     elif not args.voice_only:
-        model = args.model or _served_model(args.endpoint)
+        model = args.model or _served_model(endpoint)
         turns = read_turns(_log_lines(log_path), args.start, args.end)
         lines = write_lines(
             turns,
             existing,
-            lambda thinking: ask_model(args.endpoint, model, _post, thinking),
+            lambda thinking: ask_model(endpoint, model, _post, thinking),
             save,
             print,
         )
     if not args.lines_only:
         lines = voice_lines(lines, synth(), write_wav, save)
     print(f"{len(lines)} lines in {target}")
+    if not complete:
+        print("some batches were skipped: run again to retry them", flush=True)
+        return 1
     return 0
 
 

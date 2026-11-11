@@ -54,7 +54,8 @@ No new network surface. Reads emulator memory the server already reads. No new f
 - [x] Review round 6 (head ca3a84250, diff sha256 ea9aa84a…3417): Claude subagent LGTM, Codex gpt-5.6-sol LGTM, fallback sonnet subagent LGTM. Grok out until 11/17.
 - [x] Gates (window: The operator "sure" 2026-11-11 9:23 AM via the coordinator; head 441a6858f): just lint exit 0; just test exit 0 (agent 248 files/3025, viewer 117/1265, env 3121 + gateway 39, all floors, no-I/O guards OK; includes pnpm -r build); just verify-vendor OK. Fresh worktree venv needed main's mgba binding symlinked.: just test, just lint, pnpm -r build, just verify-vendor
 - [x] Review: Codex/GPT, Claude and fallback lanes LGTM on ca3a84250 (Grok out until 11/17)
-- [ ] Show the operator; land fast-forward; just viewer-main
+- [x] Shown to the operator (plan approved 2026-11-11 8:24 AM; gates go 9:23 AM). Landed fast-forward: local main 6d5a67339 -> 2bfbb3232.
+- [ ] just viewer-main: needs the operator's own OK (not covered by the gates go)
 
 ## Closing the Loop
 

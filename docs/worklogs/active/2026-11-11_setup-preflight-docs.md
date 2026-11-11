@@ -28,3 +28,5 @@ Branch `claude/setup-preflight-docs`. Approved by the operator: setup/verify/exp
 
 Follow-ups from the Linux trial, out of scope here: an isMain() helper for import.meta.main; .npmrc engine-strict and .node-version; a Linux branch in build-mgba.sh; mypy ignore codes that depend on the mGBA build; smoke.py hiding server stderr; the verify_release hint naming a nonexistent `just replay-verify`; a port parameter for `just view`; build-stamp not writing dist/build-stamp.json.
 
+- [x] COMMIT: `docs(readme): add the badges-over-time and badges-for-the-money charts` (2b6f36339)
+- [x] Chart generator committed (docs/images/charts/build_charts.py, audit_runs.py); regenerating gives byte-identical PNGs; ruff check and format clean; privacy grep over the diff clean

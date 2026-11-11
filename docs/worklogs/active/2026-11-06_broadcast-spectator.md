@@ -124,6 +124,7 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
 - [ ] Trial v2 render t=52400-52668, frames checked, ducking measured
 - [ ] Review: Codex via `just tell-codex`
   - Round 1, GPT on a6bec58b5..83af8282d (packet sha f91eb9b4): BLOCKING, real and reproduced: the scrub blanked only the first part of a path with spaces or parentheses. Fix: a path or URL is blanked from its start to the end of its line (fail closed).
+  - Round 2, GPT on 83af8282d..14eb976be (packet sha b8d139bc): scrub fix confirmed; BLOCKING, real and reproduced in Chromium and WebKit: the bottom fade kept the end of a fully scrolled thought washed out. Fix: 48 px of room after the last line (CSS only).
 
 ## Closing the Loop
 

@@ -21,6 +21,8 @@ html.transparent .gbox{background:transparent}
 .lbl{font:12px/1.4 PX;color:#1e2c44;margin-bottom:8px}
 .think{flex:1;min-height:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
 .think .body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;-webkit-mask-image:linear-gradient(to top,transparent 0,#000 48px);mask-image:linear-gradient(to top,transparent 0,#000 48px)}
+/* Room under the last line, so a thought scrolled to its end clears the fade. */
+.think .body::after{content:"";flex:none;height:48px}
 .think p{margin:0 0 7px;font:500 18px/1.42 IN;flex:none}
 .ac{font:600 21px IN;min-height:29px}code{font:600 .9em MO;background:#e3eef6;color:#1e4f7a;padding:2px 8px;border-radius:6px}
 .mons.two{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}

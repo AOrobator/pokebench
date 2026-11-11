@@ -133,3 +133,27 @@ runs/proofs/viewer-snapshot-boundaries/pre-activation.sqlite (404951040 bytes).
 Resolved actual preactivation served tree3ae49f1e0 (another owner's refresh since
 the earlier6d5a67339 observation). No original source/cache/checkpoint deleted.
 Evidence lives in runs/proofs/viewer-snapshot-boundaries; activation follows.
+
+## Authorized live activation
+
+Coupled just viewer-main succeeded at served pin6355f2ab7754becaffed5f25d1f2c02d0ff90f94.
+Verified one8790 listener PID9437 and launchd projector PID9477, both PPID1 and
+same immutable build. Helper reports zero live gameplay processes disturbed.
+Original events.jsonl remains4340726445 bytes; native run_end189737 is completed,
+turn4124, wall62190151ms, GAME_CLEAR_CONFIRMED proof seq189624/state189733.
+
+Real current API now complete=true, problem=null, status=ended, turn4124.
+Public SQLite summary1688 bytes, detail44861;234 milestone rows returned in4
+pages including native Hall of Fame and game clear. Metadata fetched once per
+selected run. Headless Chromium/WebKit desktop1440 and phone375 all passed;
+actual recorded frame189734_0.png decodes240x160, saved split rows visible,
+zero browser errors, zero legacy-card requests, zero ended live-frame streams.
+Screenshots opened/inspected. Real frontier grading also loads in live check;
+/api/models discovery returns502 independently without blocking cards/history.
+No gameplay/model session launched or original recordings rewritten.
+
+Tailscale viewer GET200 verified. Existing tabs need one reload to use the new
+client protocol. Receipts live-api.json, live-runtime.json, live-sizes.json,
+live-browser.json, live-final-contact.png and activation.log are retained under
+runs/proofs/viewer-snapshot-boundaries. Post-main/full gates and reviews retained;
+this commit adds evidence only, with no source or contract changes.

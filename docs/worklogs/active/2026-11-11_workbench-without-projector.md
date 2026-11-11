@@ -34,12 +34,18 @@ No new endpoint or input; `/api/cards` is already fetched and validated by `pars
 - [x] Tests (RED)
 - [x] Implement (`needsCardEnrichment` in workbench-data.ts; app.ts uses it); viewer tsc and eslint clean; workbench tests 25/25. Guard: removing the projectorRuns===0 line turns the new test red; restored.
 - [ ] Full gates
-- [ ] Browser check: scratch multi-run root (67d7 + 37ca clone) with no projector, where SPLITS races the frontier; single-run root still settles (with splits-no-frontier) or is unchanged
+- [x] Browser check: scratch multi-run root (67d7 + 37ca clone) with no projector, where SPLITS races the frontier; single-run root still settles (with splits-no-frontier) or is unchanged
 - [ ] Codex review; ready to land
 
 **M2 — Landing** (the operator's own @mention); `just viewer-main` only on the operator's words
 
 ## Closing the Loop
+
+This branch's built viewer, detached on scratch ports (stopped afterwards; 8790 untouched), with no current projector (503), headless Playwright Chromium at 1280×900 and 375×812:
+
+- **Multi-run root** (67d7 plus APFS clones of DeepSeek 37ca's events, frames and checkpoints): SPLITS now races. "ASSISTED …67d7 is 9:02:23 ahead of the FRONTIER! At 17:16:30 the FRONTIER had reached Mt. Pyre. Gained 3:22:12 over the last 10 milestones.", 94 faster, 22 slower, 24 even, badge bars, biggest gains and losses, story graph drawn. That is the same race the live 8790 viewer shows. Settled 27 s cold on desktop, about 1 s on phone. Before: "Loading the frontier run…" past 5 minutes.
+- **Single-run root** (the 67d7 release): settles to "no frontier comparison for this run." / "No frontier run to plot." in about 1 s, even without the splits-no-frontier change, because the run's record is now loaded.
+- No page errors; page width equals the viewport. Screenshots `runs/mockups/workbench-without-projector/{single,multi}-{1280,375}.png` (opened and looked at).
 
 ## Session Log
 

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 380" width="860" height="380" role="img" aria-label="Flow chart of the two move-learning questions">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+svg .mono{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="380" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)" /></marker>
+<marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--drop)" /></marker></defs>
+<rect x="20" y="20" width="300" height="50" rx="6" fill="var(--box)" stroke="var(--line)" />
+<text x="32" y="42">"COMBUSKEN is trying to learn</text><text x="32" y="60">DOUBLE KICK." (MVSTATE 0-2)</text>
+<line x1="170" y1="70" x2="170" y2="110" stroke="var(--fg)" marker-end="url(#a)" />
+<rect x="20" y="110" width="300" height="56" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2" />
+<text x="32" y="134" class="mono">Delete a move to make room</text><text x="32" y="152" class="mono">for DOUBLE KICK?   [YES/NO]</text>
+<line x1="320" y1="138" x2="520" y2="138" stroke="var(--keep)" stroke-width="2" marker-end="url(#a)" />
+<text x="360" y="130">YES</text>
+<rect x="520" y="110" width="320" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" />
+<text x="532" y="134">summary screen: pick a move to</text><text x="532" y="152">forget for DOUBLE KICK (MVSTATE 5/6)</text>
+<line x1="170" y1="166" x2="170" y2="220" stroke="var(--drop)" stroke-width="2" marker-end="url(#r)" />
+<text x="180" y="198">NO or B</text>
+<path d="M680 166 L680 190 L330 236" fill="none" stroke="var(--muted)" stroke-dasharray="4 3" marker-end="url(#a)" />
+<text x="520" y="206" class="small">cancel on the summary screen → 10</text>
+<rect x="20" y="220" width="300" height="56" rx="6" fill="var(--fill)" stroke="var(--accent)" stroke-width="2" />
+<text x="32" y="244" class="mono">Stop learning DOUBLE KICK?</text><text x="32" y="262" class="mono">(MVSTATE 10)       [YES/NO]</text>
+<line x1="320" y1="248" x2="520" y2="300" stroke="var(--keep)" stroke-width="2" marker-end="url(#a)" />
+<text x="400" y="262">YES</text>
+<rect x="520" y="280" width="320" height="56" rx="6" fill="var(--panel)" stroke="var(--keep)" />
+<text x="532" y="304">"COMBUSKEN did not learn DOUBLE KICK."</text><text x="532" y="322">keeps its moves (MVSTATE 11)</text>
+<path d="M20 248 L6 248 L6 45 L20 45" fill="none" stroke="var(--drop)" stroke-width="2" marker-end="url(#r)" />
+<text x="30" y="300" fill="var(--drop)">NO or B: back to the start</text>
+<text x="30" y="318" class="small">97a0 pressed B at both boxes from turn 779: this loop, 100+ turns</text>
+<text x="30" y="356" class="small">Battle (data/battle_scripts_1.s BattleScript_AskToLearnMove): yesnoboxlearnmove 0x5A and yesnoboxstoplearningmove 0x5B, same branches; B takes NO in all four boxes.</text>
+</svg>

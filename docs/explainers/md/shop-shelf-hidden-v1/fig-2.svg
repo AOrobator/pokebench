@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 120" width="620" height="120" role="img" aria-label="The switch reaches read_targets, whose list feeds the readout and the state the tools check">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1f2a44;--muted:#5b6785;--line:#9aa6c4;--shelf:#d8a02f;--clerk:#2f6fd8;--gone:#d8452f}
+svg text{font-family:inherit}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="620" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6785" /></marker></defs>
+<g font-size="12" fill="#1f2a44" text-anchor="middle">
+<rect x="6" y="40" width="120" height="40" rx="6" fill="#fff" stroke="#9aa6c4" /><text x="66" y="64">preset / recipe</text>
+<rect x="166" y="40" width="130" height="40" rx="6" fill="#fff" stroke="#9aa6c4" /><text x="231" y="58">POKEBENCH_</text><text x="231" y="72">FEATURES_OFF</text>
+<rect x="336" y="40" width="110" height="40" rx="6" fill="#ffe9b8" stroke="#d8a02f" stroke-width="2" /><text x="391" y="64">read_targets</text>
+<rect x="490" y="8" width="124" height="40" rx="6" fill="#fff" stroke="#9aa6c4" /><text x="552" y="32">readout lines</text>
+<rect x="490" y="72" width="124" height="40" rx="6" fill="#fff" stroke="#9aa6c4" /><text x="552" y="90">interaction_targets</text><text x="552" y="104">(navigate_to_target)</text>
+</g>
+<g stroke="#5b6785" fill="none" marker-end="url(#a)"><path d="M126 60H164" /><path d="M296 60H334" /><path d="M446 54L488 30" /><path d="M446 66L488 90" /></g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 120" width="900" style="max-width:900px;min-width:640px;height:auto;display:block" role="img" aria-label="Preset or switchboard feature set flows to playGameTools, then withMenuOptionTool, then the tool's id comparison." height="120">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#283038;--muted:#5a6b80;--line:#c9d6e6;--off:#c83030;--on:#2f8a4a;--code:#eef3fa;--box:#ffffff}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#283038" /></marker></defs>
+<g font-family="ui-monospace,Menlo,monospace" font-size="13" fill="#283038">
+<rect x="10" y="30" width="190" height="56" rx="8" fill="#fff" stroke="#283038" stroke-width="2" /><text x="22" y="54">FeatureSet</text><text x="22" y="74">(missing = ON)</text>
+<rect x="240" y="30" width="190" height="56" rx="8" fill="#fff" stroke="#283038" stroke-width="2" /><text x="252" y="54">playGameTools</text><text x="252" y="74">play-wiring.ts</text>
+<rect x="470" y="30" width="190" height="56" rx="8" fill="#fff" stroke="#283038" stroke-width="2" /><text x="482" y="54">withMenuOptionTool</text><text x="482" y="74">nullId argument</text>
+<rect x="700" y="30" width="190" height="56" rx="8" fill="#fff4d6" stroke="#c83030" stroke-width="3" /><text x="712" y="54">menu id compare</text><text x="712" y="74">menu-option-tool.ts</text>
+<line x1="200" y1="58" x2="236" y2="58" stroke="#283038" stroke-width="2" marker-end="url(#b)" />
+<line x1="430" y1="58" x2="466" y2="58" stroke="#283038" stroke-width="2" marker-end="url(#b)" />
+<line x1="660" y1="58" x2="696" y2="58" stroke="#283038" stroke-width="2" marker-end="url(#b)" />
+</g></svg>

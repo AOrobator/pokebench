@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="The readout without and with the route block" width="720" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="300" style="fill:#ffffff;stroke:none" /><rect x="10" y="10" width="340" height="280" rx="6" fill="#fff" stroke="#233" />
+<text x="24" y="36" font-size="15" font-weight="700">Off</text>
+<text x="24" y="66" font-size="13">Location: ROUTE 102</text>
+<text x="24" y="88" font-size="13">Position: X=34, Y=14</text>
+<text x="24" y="118" font-size="13">Exits: WEST edge, EAST edge</text>
+<text x="24" y="150" font-size="13">50 x 20 grid of map tiles</text>
+<text x="24" y="190" font-size="13" fill="#b03020">The model traces the grid to learn</text>
+<text x="24" y="210" font-size="13" fill="#b03020">whether west can be reached.</text>
+<rect x="370" y="10" width="340" height="280" rx="6" fill="#fff" stroke="#233" />
+<text x="384" y="36" font-size="15" font-weight="700">On</text>
+<text x="384" y="66" font-size="13">Location: ROUTE 102</text>
+<text x="384" y="88" font-size="13">Position: X=34, Y=14</text>
+<rect x="378" y="98" width="324" height="76" fill="#e3f4ec" />
+<text x="384" y="118" font-size="13">Routes from where you stand ...</text>
+<text x="384" y="140" font-size="13">- WEST edge [target]: 46 steps</text>
+<text x="384" y="162" font-size="13">- EAST edge [target]: 18 steps</text>
+<text x="384" y="196" font-size="13">Exits, then the same grid</text>
+<text x="384" y="236" font-size="13" fill="#1a7f5a">The model copies the target and calls</text>
+<text x="384" y="256" font-size="13" fill="#1a7f5a">navigate_to_target once.</text>
+</svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 150" width="860" height="150" role="img" aria-label="DoWhiteOut order: money halved, party healed, warp">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="150" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" /></marker></defs>
+<rect x="10" y="40" width="170" height="64" rx="6" fill="var(--fill)" stroke="var(--line)" />
+<text x="24" y="66">Last Pokémon faints</text><text x="24" y="88" class="small">"GREE whited out!"</text>
+<line x1="180" y1="72" x2="220" y2="72" stroke="var(--muted)" marker-end="url(#a)" />
+<rect x="222" y="40" width="170" height="64" rx="6" fill="var(--panel)" stroke="var(--line)" />
+<text x="236" y="66">SetMoney(money / 2)</text><text x="236" y="88" class="small">₽3000 → ₽1500</text>
+<line x1="392" y1="72" x2="432" y2="72" stroke="var(--muted)" marker-end="url(#a)" />
+<rect x="434" y="40" width="190" height="64" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" />
+<text x="448" y="66">HealPlayerParty()</text><text x="448" y="88" class="small">every Pokémon: HP, PP, status</text>
+<line x1="624" y1="72" x2="664" y2="72" stroke="var(--muted)" marker-end="url(#a)" />
+<rect x="666" y="40" width="184" height="64" rx="6" fill="var(--panel)" stroke="var(--line)" />
+<text x="680" y="66">Warp to last heal</text><text x="680" y="88" class="small">GREE's HOUSE 2F here</text>
+<text x="10" y="134" class="small">pokeemerald src/overworld.c DoWhiteOut; HealPlayerParty is in src/script_pokemon_util.c</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 250" width="1100" style="min-width:760px" role="img" aria-label="r10 timeline from turn 162 to 1224" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#a86b12}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e0a94f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="1100" height="250" style="fill:#ffffff;stroke:none" /><line x1="30" y1="110" x2="1080" y2="110" stroke="var(--line)" stroke-width="2" />
+<g><circle cx="50" cy="110" r="6" fill="var(--accent)" /><text x="38" y="92">162</text><line x1="50" y1="116" x2="50" y2="128" stroke="var(--line)" /><text x="20" y="140" class="small">enters</text><text x="20" y="154" class="small">RUSTBORO</text></g>
+<g><circle cx="168" cy="110" r="6" fill="var(--keep)" /><text x="156" y="92">220</text><line x1="168" y1="116" x2="168" y2="170" stroke="var(--line)" /><text x="138" y="182" class="small">beats JOSH,</text><text x="138" y="196" class="small">TORCHIC 7/37</text></g>
+<g><circle cx="286" cy="110" r="6" fill="var(--accent)" /><text x="274" y="92">239</text><line x1="286" y1="116" x2="286" y2="128" stroke="var(--line)" /><text x="256" y="140" class="small">heals at the</text><text x="256" y="154" class="small">POKéMON CENTER</text></g>
+<g><circle cx="404" cy="110" r="6" fill="var(--keep)" /><text x="392" y="92">256</text><line x1="404" y1="116" x2="404" y2="170" stroke="var(--line)" /><text x="374" y="182" class="small">back in</text><text x="374" y="196" class="small">the gym</text></g>
+<g><circle cx="522" cy="110" r="6" fill="var(--drop)" /><text x="510" y="92">261</text><line x1="522" y1="116" x2="522" y2="128" stroke="var(--line)" /><text x="492" y="140" class="small">loses to</text><text x="492" y="154" class="small">ROXANNE</text></g>
+<g><circle cx="640" cy="110" r="6" fill="var(--warn)" /><text x="628" y="92">323</text><line x1="640" y1="116" x2="640" y2="170" stroke="var(--line)" /><text x="610" y="182" class="small">stall briefing: "do</text><text x="610" y="196" class="small">not try it again"</text></g>
+<g><circle cx="758" cy="110" r="6" fill="var(--drop)" /><text x="746" y="92">324</text><line x1="758" y1="116" x2="758" y2="128" stroke="var(--line)" /><text x="728" y="140" class="small">heads for</text><text x="728" y="154" class="small">NORMAN instead</text></g>
+<g><circle cx="876" cy="110" r="6" fill="var(--accent)" /><text x="864" y="92">387</text><line x1="876" y1="116" x2="876" y2="170" stroke="var(--line)" /><text x="846" y="182" class="small">NORMAN: "Aren't you</text><text x="846" y="196" class="small">going to the GYM…?"</text></g>
+<rect x="990" y="100" width="90" height="20" fill="var(--drop)" opacity=".25" /><text x="990" y="92">388–1224</text><text x="960" y="140" class="small">stuck on the south</text><text x="960" y="154" class="small">half of ROUTE104,</text><text x="960" y="168" class="small">800 turns</text>
+<text x="30" y="30">Story goal line the model was shown:</text><text x="30" y="50" class="small">162–259: DAD "Head for RUSTBORO CITY" → "You are in it now"</text><text x="30" y="66" class="small">261–386: ROXANNE's TRAINER'S SCHOOL line → "not resolved"</text>
+</svg>

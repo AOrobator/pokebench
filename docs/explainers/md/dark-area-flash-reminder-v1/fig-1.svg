@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Granite Cave 1F is lit and has no requires_flash; Granite Cave B1F requires FLASH and reports darkness 7" viewBox="0 0 700 250" width="700" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{max-width:100%;height:auto}
+svg{width:700px;max-width:none;height:auto}
+@media (min-width:760px){svg{width:100%}}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="250" style="fill:#ffffff;stroke:none" /><defs><pattern id="tiles" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#587882" stroke-width="1" /></pattern></defs>
+<rect x="16" y="44" width="280" height="168" fill="#c0eacb" /><rect x="16" y="44" width="280" height="168" fill="url(#tiles)" />
+<rect x="128" y="100" width="56" height="56" fill="#cc3143" />
+<text x="16" y="26" font-size="17" font-weight="600">GRANITE CAVE 1F · map 24/7</text>
+<text x="16" y="236" font-size="14">flash level 0 · no requires_flash</text>
+<text x="16" y="254" font-size="14">silent</text>
+<rect x="404" y="44" width="280" height="168" fill="#26394b" /><rect x="404" y="44" width="280" height="168" fill="url(#tiles)" />
+<circle cx="544" cy="128" r="52" fill="#c0eacb" opacity="0.55" />
+<rect x="516" y="100" width="56" height="56" fill="#cc3143" />
+<text x="404" y="26" font-size="17" font-weight="600">GRANITE CAVE B1F · map 24/8</text>
+<text x="404" y="236" font-size="14">flash level 7 · requires_flash: true</text>
+<text x="404" y="254" font-size="14">one paragraph per visit</text>
+</svg>

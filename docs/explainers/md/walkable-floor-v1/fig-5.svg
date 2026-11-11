@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 502" role="img" aria-label="Rusturf Tunnel after" width="580" height="502">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#fff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#c9792a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e3dbc4;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--sand1:#f4dc9c;--sand2:#e2c174;--cave1:#cdb79a;--cave2:#b39c7e;
+--water1:#8cc4f0;--water2:#6aa8de;--mtn1:#d6d0c4;--puddle:#a9cfe9;--shadow:rgba(30,30,20,.10);--sky1:#fdf3d8;--sky2:#f6f4ee}
+@media (min-width:1000000px){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;
+--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}}
+:root[data-theme=dark]{--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;--floor1:#3a372e;--floor2:#312e26;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--sand1:#8f7a43;--sand2:#76632f;--cave1:#5e5243;--cave2:#4c4236;--water1:#2f5f88;--water2:#244c70;--mtn1:#5a564e;--puddle:#36607e;--shadow:rgba(0,0,0,.35);--sky1:#2a2516;--sky2:#121512}
+*{box-sizing:border-box}
+svg{display:block;max-width:100%;height:auto}
+.ax{font:11px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}
+.frame{fill:none;stroke:var(--line);stroke-width:2}
+.route{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.eye{fill:#fff}
+.goal{fill:var(--good);stroke:#fff;stroke-width:3}
+.tick{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.warp{fill:none;stroke:var(--good);stroke-width:3;stroke-dasharray:5 4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="580" height="502" style="fill:#ffffff;stroke:none" /><defs><marker id="aroute" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" /></marker>
+<pattern id="cave" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="var(--cave1)" /><path d="M1,4 q3,-2 5,0 M8,11 q3,-2 5,0" stroke="var(--cave2)" stroke-width="1.3" fill="none" /></pattern>
+<pattern id="floor" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="var(--floor1)" /><circle cx="2" cy="2" r="1" fill="var(--floor2)" /><circle cx="7" cy="7" r="1" fill="var(--floor2)" /></pattern>
+<pattern id="wall" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="var(--wall1)" /><path d="M0,5 h14 M7,0 v5 M0,5 v5" stroke="var(--wall2)" stroke-width="1.2" /></pattern>
+</defs><text x="52.0" y="14" class="ax">3</text>
+<text x="88.0" y="14" class="ax">4</text>
+<text x="124.0" y="14" class="ax">5</text>
+<text x="160.0" y="14" class="ax">6</text>
+<text x="196.0" y="14" class="ax">7</text>
+<text x="232.0" y="14" class="ax">8</text>
+<text x="268.0" y="14" class="ax">9</text>
+<text x="304.0" y="14" class="ax">10</text>
+<text x="340.0" y="14" class="ax">11</text>
+<text x="376.0" y="14" class="ax">12</text>
+<text x="412.0" y="14" class="ax">13</text>
+<text x="448.0" y="14" class="ax">14</text>
+<text x="484.0" y="14" class="ax">15</text>
+<text x="520.0" y="14" class="ax">16</text>
+<text x="556.0" y="14" class="ax">17</text>
+<text x="14" y="50.0" class="ax">0</text>
+<text x="14" y="86.0" class="ax">1</text>
+<text x="14" y="122.0" class="ax">2</text>
+<text x="14" y="158.0" class="ax">3</text>
+<text x="14" y="194.0" class="ax">4</text>
+<text x="14" y="230.0" class="ax">5</text>
+<text x="14" y="266.0" class="ax">6</text>
+<text x="14" y="302.0" class="ax">7</text>
+<text x="14" y="338.0" class="ax">8</text>
+<text x="14" y="374.0" class="ax">9</text>
+<text x="14" y="410.0" class="ax">10</text>
+<text x="14" y="446.0" class="ax">11</text>
+<text x="14" y="482.0" class="ax">12</text>
+<rect x="34" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="106" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="142" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="178" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="24" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="60" width="36" height="36" fill="url(#cave)" />
+<rect x="250" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="60" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="96" width="36" height="36" fill="url(#cave)" />
+<rect x="250" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="96" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="106" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="142" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="178" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="132" width="36" height="36" fill="url(#cave)" />
+<rect x="250" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="132" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="168" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="250" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="286" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="322" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="358" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="394" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="430" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="466" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="502" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="538" y="168" width="36" height="36" fill="url(#cave)" />
+<rect x="34" y="204" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="250" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="286" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="322" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="358" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="394" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="430" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="466" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="502" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="538" y="204" width="36" height="36" fill="url(#cave)" />
+<rect x="34" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="240" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="142" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="178" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="240" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="276" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="276" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="276" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="276" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="276" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="276" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="312" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="312" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="312" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="312" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="312" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="312" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="348" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="348" width="36" height="36" fill="url(#cave)" />
+<rect x="106" y="348" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="348" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="348" width="36" height="36" fill="url(#cave)" />
+<rect x="214" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="348" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="384" width="36" height="36" fill="url(#cave)" />
+<rect x="70" y="384" width="36" height="36" fill="url(#floor)" />
+<rect x="106" y="384" width="36" height="36" fill="url(#cave)" />
+<rect x="142" y="384" width="36" height="36" fill="url(#cave)" />
+<rect x="178" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="384" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="106" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="142" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="178" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="420" width="36" height="36" fill="url(#wall)" />
+<rect x="34" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="70" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="106" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="142" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="178" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="214" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="250" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="286" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="322" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="358" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="394" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="430" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="466" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="502" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="538" y="456" width="36" height="36" fill="url(#wall)" />
+<rect x="74" y="388" width="28" height="28" rx="6" class="warp" />
+<rect x="33" y="23" width="542" height="470" rx="6" class="frame" />
+<polyline points="304.0,222.0 268.0,222.0 232.0,222.0 196.0,222.0 160.0,222.0 124.0,222.0 88.0,222.0 88.0,258.0 88.0,294.0 88.0,330.0 88.0,366.0 88.0,402.0" class="route" marker-end="url(#aroute)" />
+<circle cx="88.0" cy="402.0" r="12" class="goal" /><path d="M83.0,402.0 l4,4 l7,-8" class="tick" />
+<circle cx="304.0" cy="222.0" r="12" class="player" /><circle cx="300.0" cy="220.0" r="2" class="eye" /><circle cx="308.0" cy="220.0" r="2" class="eye" />
+</svg>

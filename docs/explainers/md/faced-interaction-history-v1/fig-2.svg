@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" role="img" aria-labelledby="after-title after-desc" width="700" height="280">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f5f2ea;--paper:#fffdf7;--ink:#20231f;--muted:#646b61;--line:#bbb9ae;--bad:#b44532;--good:#16745b;--accent:#315eaa;--soft:#e9e4d8}
+*{box-sizing:border-box}
+svg{display:block;min-width:700px;width:100%;height:auto}
+@media(min-width:1000000px){:root{--bg:#151815;--paper:#20241f;--ink:#f2f0e9;--muted:#b6bcb1;--line:#4a5047;--bad:#f08a72;--good:#65d4ad;--accent:#8db3ff;--soft:#30362e}}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="280" style="fill:#ffffff;stroke:none" /><title id="after-title">The new rule uses exact recorded attribution</title>
+ <desc id="after-desc">The first page points to a recorded state. Faced-target attribution allows the supervisor to resolve the target at that state and mark only that target tried.</desc>
+ <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--accent)" /></marker></defs>
+ <rect x="24" y="24" width="176" height="86" rx="12" fill="var(--soft)" stroke="var(--line)" />
+ <text x="42" y="53" fill="var(--ink)" font-size="14">first dialogue page</text>
+ <text x="42" y="78" fill="var(--good)" font-size="14">faced_target</text>
+ <text x="42" y="99" fill="var(--muted)" font-size="14">state_seq 1563</text>
+ <path d="M202 67H270" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow2)" />
+ <rect x="274" y="24" width="174" height="86" rx="12" fill="var(--soft)" stroke="var(--line)" />
+ <text x="292" y="53" fill="var(--ink)" font-size="14">exact state</text>
+ <text x="292" y="78" fill="var(--muted)" font-size="14">at (4,2), facing up</text>
+ <text x="292" y="99" fill="var(--good)" font-size="14">target: TV at (4,1)</text>
+ <path d="M450 67H518" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow2)" />
+ <rect x="522" y="24" width="154" height="86" rx="12" fill="var(--soft)" stroke="var(--line)" />
+ <text x="540" y="53" fill="var(--ink)" font-size="14">ledger update</text>
+ <text x="540" y="78" fill="var(--good)" font-size="14">mark (4,1) tried</text>
+ <text x="540" y="99" fill="var(--muted)" font-size="14">nothing else</text>
+ <rect x="170" y="153" width="360" height="62" rx="12" fill="none" stroke="var(--good)" stroke-width="2" />
+ <text x="192" y="181" fill="var(--ink)" font-size="14">Not tried yet: PC; notebook; GameCube;</text>
+ <text x="192" y="203" fill="var(--good)" font-size="14">region map</text>
+ <text x="74" y="250" fill="var(--muted)" font-size="13">No faced_target / faced_sprite attribution → no ledger change.</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-label="The same corridor with and without the area letters" width="620" height="150">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{min-width:560px}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="620" height="150" style="fill:#ffffff;stroke:none" /><g font-family="ui-monospace,monospace" font-size="15" fill="#283038">
+<text x="20" y="22" font-weight="700">Off: an arm mark</text>
+<g fill="#e3eaf3" stroke="#5a6b80"><rect x="20" y="40" width="40" height="40" /><rect x="60" y="40" width="40" height="40" /><rect x="100" y="40" width="40" height="40" /><rect x="140" y="40" width="40" height="40" /><rect x="180" y="40" width="40" height="40" /></g>
+<text x="35" y="66">@</text><text x="75" y="66">.</text><text x="115" y="66">.</text><text x="155" y="66">.</text><text x="195" y="66">.</text>
+<line x1="140" y1="36" x2="140" y2="84" stroke="#c83030" stroke-width="5" />
+<text x="20" y="112" font-size="13">The model has to work out for itself</text>
+<text x="20" y="130" font-size="13">what the mark cuts off.</text>
+<text x="330" y="22" font-weight="700">On: tiles by area</text>
+<g stroke="#5a6b80"><rect x="330" y="40" width="40" height="40" fill="#bfe3c4" /><rect x="370" y="40" width="40" height="40" fill="#bfe3c4" /><rect x="410" y="40" width="40" height="40" fill="#bfe3c4" /><rect x="450" y="40" width="40" height="40" fill="#ffd9a8" /><rect x="490" y="40" width="40" height="40" fill="#ffd9a8" /></g>
+<text x="345" y="66">A</text><text x="385" y="66">A</text><text x="425" y="66">A</text><text x="465" y="66">B</text><text x="505" y="66">B</text>
+<line x1="450" y1="36" x2="450" y2="84" stroke="#c83030" stroke-width="5" />
+<text x="330" y="112" font-size="13">Gate 4 has an arm between area A and</text>
+<text x="330" y="130" font-size="13">area B.</text>
+</g>
+</svg>

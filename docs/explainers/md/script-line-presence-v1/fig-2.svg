@@ -1,0 +1,349 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 428 350" width="428" role="img" aria-label="Pages 2 and 3, states 5839 and 5845: player at 11,15" height="350">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6; --grass:#cfe6c0;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; --grass:#24361f; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+svg .big{font-family:var(--mono);font-size:16px;font-weight:600}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.hot{stroke:var(--hot);stroke-width:2.4}
+.ground{fill:var(--ground);stroke:var(--rule)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="428" height="350" style="fill:#ffffff;stroke:none" /><text x="8" y="16" class="t">Pages 2 and 3, states 5839 and 5845: player at 11,15</text>
+<text x="68.0" y="30" class="s" text-anchor="middle">3</text>
+<text x="108.0" y="30" class="s" text-anchor="middle">5</text>
+<text x="148.0" y="30" class="s" text-anchor="middle">7</text>
+<text x="188.0" y="30" class="s" text-anchor="middle">9</text>
+<text x="228.0" y="30" class="s" text-anchor="middle">11</text>
+<text x="268.0" y="30" class="s" text-anchor="middle">13</text>
+<text x="308.0" y="30" class="s" text-anchor="middle">15</text>
+<text x="348.0" y="30" class="s" text-anchor="middle">17</text>
+<text x="388.0" y="30" class="s" text-anchor="middle">19</text>
+<text x="32" y="48" class="s" text-anchor="end">8</text>
+<rect x="38" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="98" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="118" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="138" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="158" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="178" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="198" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="218" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="238" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="258" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="278" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="298" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="318" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="338" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="358" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="378" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="34" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="68" class="s" text-anchor="end">9</text>
+<rect x="38" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="98" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="118" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="138" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="158" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="178" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="198" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="218" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="238" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="258" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="278" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="298" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="318" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="338" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="358" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="378" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="54" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="88" class="s" text-anchor="end">10</text>
+<rect x="38" y="74" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="74" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="74" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="74" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="74" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="108" class="s" text-anchor="end">11</text>
+<rect x="38" y="94" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="94" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="94" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="94" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="94" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="128" class="s" text-anchor="end">12</text>
+<rect x="38" y="114" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="114" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="114" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="114" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="114" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="148" class="s" text-anchor="end">13</text>
+<rect x="38" y="134" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="134" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="134" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="134" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="134" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="168" class="s" text-anchor="end">14</text>
+<rect x="38" y="154" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="154" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="154" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="154" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="154" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="188" class="s" text-anchor="end">15</text>
+<rect x="38" y="174" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="174" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="174" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="174" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="174" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="208" class="s" text-anchor="end">16</text>
+<rect x="38" y="194" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="194" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="194" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="194" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="194" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="228" class="s" text-anchor="end">17</text>
+<rect x="38" y="214" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="214" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="214" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="214" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="214" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="248" class="s" text-anchor="end">18</text>
+<rect x="38" y="234" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="234" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="234" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="234" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="234" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="268" class="s" text-anchor="end">19</text>
+<rect x="38" y="254" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="254" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="254" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="254" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="254" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="288" class="s" text-anchor="end">20</text>
+<rect x="38" y="274" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="274" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="98" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="118" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="138" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="158" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="178" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="198" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="218" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="238" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="258" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="278" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="298" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="318" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="338" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="358" y="274" width="20" height="20" class="game" stroke-width="0.5" />
+<rect x="378" y="274" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="274" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="308" class="s" text-anchor="end">21</text>
+<rect x="38" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="98" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="118" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="138" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="158" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="178" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="198" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="218" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="238" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="258" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="278" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="298" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="318" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="338" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="358" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="378" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="294" width="20" height="20" class="ground" stroke-width="0.5" />
+<text x="32" y="328" class="s" text-anchor="end">22</text>
+<rect x="38" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="58" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="98" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="118" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="138" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="158" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="178" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="198" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="218" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="238" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="258" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="278" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="298" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="318" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="338" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="358" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="378" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="398" y="314" width="20" height="20" class="ground" stroke-width="0.5" />
+<rect x="78" y="74" width="300" height="220" fill="none" class="hot" />
+<text x="228.0" y="188" text-anchor="middle" class="big">@</text>
+<circle cx="88.0" cy="144.0" r="7" class="navb" stroke-width="1.5" />
+<text x="88.0" y="148.0" text-anchor="middle" class="m">B</text>
+<circle cx="108.0" cy="144.0" r="7" class="navb" stroke-width="1.5" />
+<text x="108.0" y="148.0" text-anchor="middle" class="m">Z</text>
+<circle cx="148.0" cy="164.0" r="7" class="navb" stroke-width="1.5" />
+<text x="148.0" y="168.0" text-anchor="middle" class="m">b</text>
+<circle cx="328.0" cy="44.0" r="7" class="prior" stroke-width="1.5" />
+<text x="328.0" y="48.0" text-anchor="middle" class="m">Y</text>
+</svg>

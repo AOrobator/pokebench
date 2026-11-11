@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 130" width="640" height="130" role="img" aria-label="8 samples: 7 navigate_to or press, 1 navigate_to_target with a wrong shape">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f4f6fb;--card:#fff;--ink:#182033;--muted:#5e687a;--line:#ccd3df;--accent:#2f7a5b;--old:#9a5b16;--stop:#b23b3b;--code:#eef1f7}
+@media(min-width:1000000px){:root{--bg:#111521;--card:#1a2030;--ink:#eef2fb;--muted:#a5aec0;--line:#343d52;--accent:#6fcf9f;--old:#e2a765;--stop:#ef8080;--code:#232a3c}}
+svg text{fill:var(--ink);font:13px system-ui,sans-serif}
+svg .box{fill:var(--code);stroke:var(--line)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="130" style="fill:#ffffff;stroke:none" /><text x="0" y="16">8 samples with semantic-navigation-v1 on</text>
+<g transform="translate(0,30)">
+<rect class="box" x="0" y="0" width="230" height="34" /><text x="10" y="22">3 × press, RIGHT UP UP UP …</text>
+<rect class="box" x="240" y="0" width="160" height="34" /><text x="250" y="22">1 × press</text>
+<rect class="box" x="410" y="0" width="230" height="34" /><text x="420" y="22">3 × navigate_to (10,3)</text>
+<rect class="box" x="0" y="48" width="640" height="34" style="stroke:var(--stop)" /><text x="10" y="70">1 × navigate_to_target {"kind":"interaction","interaction_kind":"RIVAL_MAY_NORMAL",…}: wrong shape (she is an object, local id)</text>
+</g></svg>

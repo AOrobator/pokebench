@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="Where the switch is read">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" /></marker></defs>
+<rect x="10" y="30" width="160" height="56" rx="6" fill="var(--fill)" stroke="var(--line)" /><text x="24" y="54">FeatureSet</text><text x="24" y="74" class="small">preset / bundle arm</text>
+<line x1="170" y1="50" x2="260" y2="30" stroke="var(--muted)" marker-end="url(#b)" />
+<line x1="170" y1="66" x2="260" y2="90" stroke="var(--muted)" marker-end="url(#b)" />
+<rect x="262" y="6" width="290" height="46" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" /><text x="276" y="34">withResultFacts → BattleOutcomes.recap</text>
+<rect x="262" y="68" width="290" height="46" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" /><text x="276" y="96">playSystemPrompt (TRAINER_HEAL_SECTION)</text>
+<line x1="552" y1="29" x2="610" y2="29" stroke="var(--muted)" marker-end="url(#b)" /><text x="616" y="34">recap line + party clause</text>
+<line x1="552" y1="91" x2="610" y2="91" stroke="var(--muted)" marker-end="url(#b)" /><text x="616" y="96">blackout sentence + heal clause</text>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 330" role="img" aria-labelledby="pipeline-title pipeline-desc" width="980" height="330">
+      <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light;--bg:#f6f4ee;--fg:#20242a;--muted:#606873;--card:#fff;--line:#d5d2c8;--blue:#1769aa;--blue-bg:#e9f3fb;--green:#176b4b;--green-bg:#e7f5ee;--amber:#8b5a00;--amber-bg:#fff4d8;--red:#9b3b35;--red-bg:#fae9e7;--svg-grid:#d9e0e7;--shadow:0 10px 28px rgba(25,31,38,.08)}
+@media(min-width:1000000px){:root{color-scheme:dark;--bg:#14171b;--fg:#edf0f3;--muted:#abb3bd;--card:#1c2127;--line:#373e47;--blue:#78bdf1;--blue-bg:#172d3e;--green:#72d4a9;--green-bg:#173229;--amber:#f2c56e;--amber-bg:#392d15;--red:#f09a94;--red-bg:#3c2423;--svg-grid:#333b45;--shadow:none}}
+*{box-sizing:border-box}
+svg{display:block;min-width:760px;width:100%;height:auto}
+svg text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--fg)}
+svg .muted{fill:var(--muted)}
+svg .offbox{fill:var(--green-bg);stroke:var(--green);stroke-width:2}
+svg .node{fill:var(--card);stroke:var(--line);stroke-width:2}
+svg .pending{fill:var(--amber-bg);stroke:var(--amber);stroke-width:2;stroke-dasharray:7 5}
+svg .arrow{stroke:var(--blue);stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="980" height="330" style="fill:#ffffff;stroke:none" /><title id="pipeline-title">Core frames, publication, sockets, SVG load and paint are separate stages</title>
+      <desc id="pipeline-desc">The game clock feeds a publisher capped at 60, then WebSocket delivery, browser SVG image-load completion and compositor paint. An 80 core target does not imply 80 at the later stages.</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--blue)" /></marker></defs>
+      <text x="20" y="30" font-size="20" font-weight="700">Measure each boundary independently</text>
+
+      <rect x="20" y="72" width="164" height="104" rx="12" class="node" />
+      <text x="102" y="100" text-anchor="middle" font-size="15" font-weight="700">Game core</text>
+      <text x="102" y="126" text-anchor="middle" font-size="13">ON goal: actual 80</text>
+      <text x="102" y="149" text-anchor="middle" font-size="12" class="muted">frame counter / time</text>
+
+      <path d="M184 124 H211" class="arrow" />
+      <rect x="212" y="72" width="164" height="104" rx="12" class="pending" />
+      <text x="294" y="100" text-anchor="middle" font-size="15" font-weight="700">Publication</text>
+      <text x="294" y="126" text-anchor="middle" font-size="13">currently capped at 60</text>
+      <text x="294" y="149" text-anchor="middle" font-size="12" class="muted">80 comparison pending</text>
+
+      <path d="M376 124 H403" class="arrow" />
+      <rect x="404" y="72" width="164" height="104" rx="12" class="node" />
+      <text x="486" y="100" text-anchor="middle" font-size="15" font-weight="700">Socket delivery</text>
+      <text x="486" y="126" text-anchor="middle" font-size="13">unique frames received</text>
+      <text x="486" y="149" text-anchor="middle" font-size="12" class="muted">backpressure / overwrite</text>
+
+      <path d="M568 124 H595" class="arrow" />
+      <rect x="596" y="72" width="164" height="104" rx="12" class="node" />
+      <text x="678" y="100" text-anchor="middle" font-size="15" font-weight="700">SVG image load</text>
+      <text x="678" y="126" text-anchor="middle" font-size="13">href decoded / loaded</text>
+      <text x="678" y="149" text-anchor="middle" font-size="12" class="muted">not proof of paint</text>
+
+      <path d="M760 124 H787" class="arrow" />
+      <rect x="788" y="72" width="172" height="104" rx="12" class="node" />
+      <text x="874" y="100" text-anchor="middle" font-size="15" font-weight="700">Compositor paint</text>
+      <text x="874" y="126" text-anchor="middle" font-size="13">pixels actually presented</text>
+      <text x="874" y="149" text-anchor="middle" font-size="12" class="muted">not yet directly proven</text>
+
+      <rect x="20" y="220" width="940" height="78" rx="12" class="offbox" />
+      <text x="40" y="248" font-size="15" font-weight="700">Acceptance order</text>
+      <text x="40" y="273" font-size="14">Prove the core clock under the defined workload, then test 80 Hz publication, socket receipt, browser load, and actual paint separately.</text>
+    </svg>

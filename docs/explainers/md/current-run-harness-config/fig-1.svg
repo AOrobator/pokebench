@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 210" role="img" aria-label="Recorded run settings feed a read-only page; next-run draft feeds a separate editor" width="880" height="210"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f5f3e9;--ink:#263323;--box:#fff;--line:#537b46}
+@media(min-width:1000000px){:root{--bg:#18221a;--ink:#e6eedf;--box:#233026;--line:#93bd7a}}
+svg{width:100%;height:auto}
+rect{fill:var(--box);stroke:var(--line);stroke-width:2}
+text{fill:var(--ink);font:16px system-ui}
+path{stroke:var(--line);stroke-width:2;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="880" height="210" style="fill:#ffffff;stroke:none" /><rect x="5" y="10" width="300" height="70" rx="10" /><text x="20" y="40">Selected run’s run_start event</text><text x="20" y="64">Source of recorded configuration</text><path d="M305 45H440" /><text x="322" y="30">read only</text><rect x="440" y="10" width="430" height="70" rx="10" /><text x="458" y="50">HARNESS CONFIG · no write requests</text><rect x="5" y="125" width="300" height="70" rx="10" /><text x="20" y="165">Editable next-run draft</text><path d="M305 160H440" /><text x="326" y="144">separate</text><rect x="440" y="125" width="430" height="70" rx="10" /><text x="458" y="165">★ NEXT RUN · changes future runs</text></svg>

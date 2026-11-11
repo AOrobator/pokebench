@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 210" role="img" aria-label="The preset says medium, the request carries only thinking on, and the template falls back to xhigh" style="width:100%;height:auto" width="640" height="210">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="210" style="fill:#ffffff;stroke:none" /><g font-family="system-ui,sans-serif" font-size="14">
+  <rect x="10" y="30" width="170" height="70" rx="6" fill="#fff" stroke="#203a5c" stroke-width="2" />
+  <text x="95" y="60" text-anchor="middle">Preset and run record</text><text x="95" y="82" text-anchor="middle" font-weight="700">"medium"</text>
+  <rect x="235" y="30" width="170" height="70" rx="6" fill="#fff" stroke="#203a5c" stroke-width="2" />
+  <text x="320" y="60" text-anchor="middle">Request to the server</text><text x="320" y="82" text-anchor="middle" font-weight="700">enable_thinking: true</text>
+  <rect x="460" y="30" width="170" height="70" rx="6" fill="#fde8e4" stroke="#b3261e" stroke-width="2" />
+  <text x="545" y="60" text-anchor="middle">Qwen3.8 template</text><text x="545" y="82" text-anchor="middle" font-weight="700">defaults to xhigh</text>
+  <path d="M180 65h50M405 65h50" stroke="#203a5c" stroke-width="2" fill="none" />
+  <text x="207" y="125" text-anchor="middle" fill="#b3261e">level dropped</text>
+  <rect x="235" y="140" width="395" height="56" rx="6" fill="#e6f4ea" stroke="#1e7a3c" stroke-width="2" />
+  <text x="432" y="164" text-anchor="middle">Switch on: chat_template_kwargs.reasoning_effort = "medium"</text>
+  <text x="432" y="184" text-anchor="middle">run_start records sampling.reasoning_effort_sent</text>
+ </g>
+</svg>

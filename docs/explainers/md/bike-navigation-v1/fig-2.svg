@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 120" width="720" height="120" role="img" aria-label="registration screens in order">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1f2a44;--muted:#5b6785;--line:#9aa6c4;--floor:#f4f1e6;--wall:#8a7a66;--player:#d8452f;--ride:#2f6fd8;--run:#8a8f9c;--ok:#2f8f4e;--bad:#b23a3a;--hot:#e2b23c}
+svg text{font-family:inherit}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--ink)" /></marker></defs>
+<g font-size="12" text-anchor="middle">
+<rect x="5" y="30" width="90" height="46" rx="6" fill="var(--floor)" stroke="var(--line)" /><text x="50" y="50">field</text><text x="50" y="66">START</text>
+<rect x="125" y="30" width="100" height="46" rx="6" fill="#fff" stroke="var(--line)" /><text x="175" y="50">START menu</text><text x="175" y="66">UP/DOWN to BAG, A</text>
+<rect x="255" y="30" width="110" height="46" rx="6" fill="#fff" stroke="var(--line)" /><text x="310" y="50">bag</text><text x="310" y="66">LEFT/RIGHT to KEY ITEMS</text>
+<rect x="395" y="30" width="100" height="46" rx="6" fill="#fff" stroke="var(--line)" /><text x="445" y="50">KEY ITEMS</text><text x="445" y="66">UP/DOWN to bike, A</text>
+<rect x="525" y="30" width="90" height="46" rx="6" fill="#fff" stroke="var(--ride)" stroke-width="2" /><text x="570" y="50">USE | REGISTER</text><text x="570" y="66">RIGHT, A</text>
+<rect x="635" y="30" width="80" height="46" rx="6" fill="var(--floor)" stroke="var(--line)" /><text x="675" y="50">B, B</text><text x="675" y="66">field</text>
+</g>
+<path d="M95,53 L123,53" stroke="var(--ink)" marker-end="url(#b)" /><path d="M225,53 L253,53" stroke="var(--ink)" marker-end="url(#b)" /><path d="M365,53 L393,53" stroke="var(--ink)" marker-end="url(#b)" /><path d="M495,53 L523,53" stroke="var(--ink)" marker-end="url(#b)" /><path d="M615,53 L633,53" stroke="var(--ink)" marker-end="url(#b)" />
+<text x="360" y="105" text-anchor="middle" font-size="12" fill="var(--muted)">Done only when registeredItem reads the bike back and the field is free again.</text>
+</svg>

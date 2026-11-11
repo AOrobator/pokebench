@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="desktop-diagram" viewBox="0 0 740 142" role="img" aria-label="Known directional behavior maps to one checked direction press and either a changed map or a stop" width="740" height="142">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f5f0;--fg:#202124;--muted:#62656b;--panel:#fff;--rule:#d8d6cf;--on:#126b4d;--onbg:#def2e9;--off:#a3422f;--offbg:#f8e3dd;--blue:#315da8;--bluebg:#e3ebf8;--mono:ui-monospace,"SFMono-Regular",Menlo,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media(min-width:1000000px){:root{--bg:#151719;--fg:#ececea;--muted:#a7a9ad;--panel:#1d2023;--rule:#34373b;--on:#59c99a;--onbg:#18342c;--off:#ff8069;--offbg:#3c211c;--blue:#86aef6;--bluebg:#1d2b45;color-scheme:dark}}
+svg{display:block;width:740px;max-width:none;height:auto}
+svg text{font-family:var(--body);fill:var(--fg);font-size:12px}
+.t{font-size:14px;font-weight:700}
+.s{fill:var(--muted)}
+.panel{fill:var(--panel);stroke:var(--rule)}
+.on{fill:var(--onbg);stroke:var(--on)}
+.blue{fill:var(--bluebg);stroke:var(--blue)}
+.arrow{stroke:var(--muted);stroke-width:1.5;marker-end:url(#a)}
+@media(max-width:600px){.desktop-diagram{display:none}}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="740" height="142" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L8 5L0 9z" fill="currentColor" /></marker></defs><rect class="blue" x="8" y="34" width="210" height="72" rx="9" /><text class="t" x="22" y="61">Already on known arrow warp</text><text class="s" x="22" y="83">0x62/63/64/65, 0x1B/1C/6D</text><line class="arrow" x1="218" y1="70" x2="272" y2="70" /><rect class="on" x="276" y="34" width="190" height="72" rx="9" /><text class="t" x="290" y="61">one checked direction press</text><text class="s" x="290" y="83">fresh map + position + identity</text><line class="arrow" x1="466" y1="70" x2="520" y2="70" /><rect class="panel" x="524" y="18" width="208" height="104" rx="9" /><text class="t" x="538" y="43">Map changed: success</text><text class="s" x="538" y="64">Same map: stop and inspect</text><text class="s" x="538" y="85">Map unknown: unverified</text><text class="s" x="538" y="106">Never press a second time</text>
+</svg>

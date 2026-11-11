@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 105" role="img" aria-label="Switch off reports no menu choice; switch on reports the verified move-learning choice" width="820" height="105">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--box:#f4f1ea}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--box:#2a2925}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="820" height="105" style="fill:#ffffff;stroke:none" /><rect x="5" y="5" width="350" height="85" rx="8" fill="var(--panel)" stroke="var(--fg)" />
+<text x="20" y="30">OFF: previous Menu line</text><text x="20" y="60">No menu choice open</text>
+<text x="380" y="55">→</text>
+<rect x="420" y="5" width="390" height="85" rx="8" fill="var(--panel)" stroke="var(--fg)" />
+<text x="435" y="30">ON: verified battle-script prompt</text><text x="435" y="60">Menu: learn_move; selected YES</text>
+</svg>

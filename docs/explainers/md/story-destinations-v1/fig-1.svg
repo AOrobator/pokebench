@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 330" width="740" role="img" aria-label="Pipeline from dialogue pages to the resolved block" height="330">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --wall:#9b968a; --ground:#eef0e6;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63;
+ --wall:#55585e; --ground:#1f2420; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg{min-width:520px}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.navf{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="740" height="330" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--soft)" /></marker></defs>
+<rect class="box" x="10" y="20" width="170" height="88" rx="8" />
+<text class="t" x="22" y="42">dialogue pages</text>
+<text class="s" x="22" y="60">recorded by dialogue</text>
+<text class="s" x="22" y="74">auto-advance, each with</text>
+<text class="s" x="22" y="88">speaker and its state</text>
+<rect class="box" x="210" y="20" width="200" height="88" rx="8" />
+<text class="t" x="222" y="42">story line?</text>
+<text class="s" x="222" y="60">speaker is a story character:</text>
+<text class="s" x="222" y="74">proper name or exact game alias</text>
+<text class="s" x="222" y="88">(DAD → NORMAN), or mapped sprite</text>
+<rect class="box" x="440" y="20" width="290" height="88" rx="8" />
+<text class="t" x="452" y="42">names a place?</text>
+<text class="s" x="452" y="60">a capitalised run ending in a map-name word</text>
+<text class="s" x="452" y="74">(LAB, ROUTE 103, PETALBURG GYM) or "He lives".</text>
+<text class="s" x="452" y="88">Latest such line wins.</text>
+<path class="arr" d="M180,64H206" marker-end="url(#a)" />
+<path class="arr" d="M410,64H436" marker-end="url(#a)" />
+<rect class="game" x="10" y="160" width="250" height="110" rx="8" />
+<text class="t" x="22" y="182">game's map table (ROM)</text>
+<text class="s" x="22" y="200">GET /pokebench/places: every map's</text>
+<text class="s" x="22" y="214">name as the readout shows it, its warps</text>
+<text class="s" x="22" y="228">and connections, from gMapGroups →</text>
+<text class="s" x="22" y="242">MapHeader → events / connections</text>
+<rect class="navf" x="290" y="160" width="220" height="110" rx="8" />
+<text class="t" x="302" y="182">exactly one map?</text>
+<text class="s" x="302" y="200">same last word, every word in</text>
+<text class="s" x="302" y="214">the name; keep maps entered from</text>
+<text class="s" x="302" y="228">outside the matches (drops 2F)</text>
+<text class="s" x="302" y="246">0 or 2+ → "not resolved"</text>
+<rect class="game" x="540" y="160" width="190" height="110" rx="8" />
+<text class="t" x="552" y="182">the block</text>
+<text class="s" x="552" y="200">map, then its way in:</text>
+<text class="s" x="552" y="214">door in MAP at (x,y),</text>
+<text class="s" x="552" y="228">MAP's NORTH edge, or</text>
+<text class="s" x="552" y="242">"You are in it now"</text>
+<path class="arr" d="M585,108V130H385V156" marker-end="url(#a)" />
+<path class="arr" d="M260,215H286" marker-end="url(#a)" />
+<path class="arr" d="M510,215H536" marker-end="url(#a)" />
+<text class="s" x="22" y="300">No people are listed: story characters' names are used only to tell who "He lives" means.</text>
+<text class="s" x="22" y="316">Inserted under the Story line of observe, press and navigate_to readouts, in the overworld only.</text>
+</svg>

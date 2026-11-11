@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 150" width="800" role="img" aria-label="Stages by repeat count" height="150">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="800" height="150" style="fill:#ffffff;stroke:none" /><line x1="40" y1="60" x2="780" y2="60" stroke="var(--line)" stroke-width="2" />
+<g font-size="12">
+<circle cx="80" cy="60" r="6" fill="var(--muted)" /><text x="62" y="86">turn 1</text>
+<circle cx="170" cy="60" r="6" fill="var(--muted)" /><text x="152" y="86">2</text>
+<circle cx="260" cy="60" r="8" fill="var(--accent)" /><text x="230" y="86">3: stage 1</text>
+<circle cx="350" cy="60" r="8" fill="var(--keep)" /><text x="320" y="86">4: stage 2</text>
+<circle cx="440" cy="60" r="6" fill="var(--keep)" /><text x="432" y="86">5</text>
+<circle cx="530" cy="60" r="6" fill="var(--keep)" /><text x="522" y="86">6</text>
+<circle cx="620" cy="60" r="6" fill="var(--keep)" /><text x="612" y="86">7</text>
+<circle cx="710" cy="60" r="9" fill="var(--drop)" /><text x="680" y="86">8: stage 3</text>
+</g>
+<text x="40" y="24">Same tool calls (names and arguments) and the same game state after each, turn after turn</text>
+<text x="40" y="124">A reply with no tool call: stage 2 at once, stage 3 after 3 in a row. Stage 3 acts once per loop.</text>
+</svg>

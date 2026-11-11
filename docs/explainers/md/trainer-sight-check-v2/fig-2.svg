@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Flow from navigate_to_target to the sight check and its four outcomes" width="900" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f4ee;--fg:#172a29;--panel:#ffffff;--line:#36735b;--muted:#546562;--off:#a8432c;--offbg:#fbeeea;--on:#2c7a4b;--onbg:#e8f4ec;--tile:#eef3ea;--seen:#f6d7a8;--excl:#dfe6ee;--route:#2d5f8a;--grid:#b9c8bf}
+*{box-sizing:border-box}
+svg{min-width:680px;width:100%;height:auto}
+svg text{fill:var(--fg);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .small{font-size:13px;fill:var(--muted)}
+svg .box{fill:var(--panel);stroke:var(--line);stroke-width:2}
+svg .offbox{fill:var(--offbg);stroke:var(--off);stroke-width:2}
+svg .onbox{fill:var(--onbg);stroke:var(--on);stroke-width:2}
+svg .arrow{stroke:var(--line);stroke-width:2;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#36735b" /></marker></defs>
+<rect class="box" x="10" y="110" width="170" height="80" rx="8" />
+<text x="22" y="136">navigate_to_target</text>
+<text x="22" y="158" class="small">map_id, target,</text>
+<text x="22" y="176" class="small">confirm_trainer_sight?</text>
+<path class="arrow" d="M180 150 H215" marker-end="url(#a)" />
+<rect class="box" x="220" y="100" width="210" height="100" rx="8" />
+<text x="232" y="126">navigate_to executeChecked</text>
+<text x="232" y="150" class="small">sightCheck: {confirm, exclude}</text>
+<text x="232" y="170" class="small">exclude = object's local_id,</text>
+<text x="232" y="188" class="small">null for warp or connection</text>
+<path class="arrow" d="M430 150 H465" marker-end="url(#a)" />
+<rect class="onbox" x="470" y="100" width="180" height="100" rx="8" />
+<text x="482" y="126">checkSight, once</text>
+<text x="482" y="150" class="small">first walk of the call:</text>
+<text x="482" y="168" class="small">ask the server for the</text>
+<text x="482" y="186" class="small">route's seen tiles</text>
+<path class="arrow" d="M650 130 C 670 130, 670 35, 690 35" marker-end="url(#a)" />
+<path class="arrow" d="M650 145 C 675 145, 675 105, 690 105" marker-end="url(#a)" />
+<path class="arrow" d="M650 160 C 675 160, 675 185, 690 185" marker-end="url(#a)" />
+<path class="arrow" d="M650 175 C 670 175, 670 260, 690 260" marker-end="url(#a)" />
+<rect class="box" x="695" y="10" width="195" height="50" rx="8" /><text x="707" y="40">clear → walk</text>
+<rect class="offbox" x="695" y="75" width="195" height="60" rx="8" /><text x="707" y="100">refused → not walked,</text><text x="707" y="122" class="small">return at once</text>
+<rect class="box" x="695" y="155" width="195" height="60" rx="8" /><text x="707" y="180">confirmed → walk</text><text x="707" y="202" class="small">confirm_trainer_sight: true</text>
+<rect class="box" x="695" y="235" width="195" height="55" rx="8" /><text x="707" y="258">unavailable → walk</text><text x="707" y="278" class="small">server could not check</text>
+</svg>

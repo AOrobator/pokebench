@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="map" viewBox="0 0 404 236" role="img" aria-label="Switch on: one hop" width="404" height="236">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f4ee;--fg:#1f2421;--muted:#6b6f68;--card:#ffffff;--line:#e3dfd3;--accent:#2f6fde;--accent2:#e0802a;--bad:#d2493a;--good:#2e9d63;
+--floor1:#efe9d8;--floor2:#e6dfca;--wall1:#7d776d;--wall2:#6a645b;--grass1:#9fd07c;--grass2:#7fb85d;--ledge1:#f2c46b;--ledge2:#c98c2e;--ledgeEdge:#a8661c;
+--sky1:#dbeefe;--sky2:#f3f8ee;--grassD:#8cc56a;--grassL:#b6e08f;--shadow:rgba(30,30,20,.10)}
+@media (min-width:1000000px){:root:not([data-theme=light]){--bg:#121512;--fg:#e9ece6;--muted:#9ba196;--card:#1b1f1b;--line:#2d332d;--accent:#78a8ff;--accent2:#f0a050;--bad:#ff7a6a;--good:#58cf8d;
+--floor1:#38352c;--floor2:#2f2c25;--wall1:#5b5750;--wall2:#4a4640;--grass1:#4f7a3a;--grass2:#3e6530;--ledge1:#b8862f;--ledge2:#8a5f1c;--ledgeEdge:#d48a35;
+--sky1:#1b2a3a;--sky2:#1a221b;--grassD:#36592a;--grassL:#4f7a3a;--shadow:rgba(0,0,0,.35)}}
+*{box-sizing:border-box}
+svg{display:block;max-width:100%;height:auto}
+.ax{font:11px ui-monospace,Menlo,monospace;fill:var(--muted);text-anchor:middle}
+.frame{fill:none;stroke:var(--line);stroke-width:2}
+.chev{fill:none;stroke:#5a3a0c;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.ghost{fill:none;stroke:var(--muted);stroke-width:2.5;stroke-dasharray:4 6;stroke-linecap:round;opacity:.7}
+.hop{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round}
+.player{fill:var(--accent);stroke:#fff;stroke-width:3}
+.eye{fill:#fff}
+.goal{fill:var(--good);stroke:#fff;stroke-width:3}
+.tick{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="404" height="236" style="fill:#ffffff;stroke:none" /><defs><marker id="ahop" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" /></marker>
+<pattern id="floor" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="var(--floor1)" /><circle cx="2" cy="2" r="1" fill="var(--floor2)" /><circle cx="7" cy="7" r="1" fill="var(--floor2)" /></pattern>
+<pattern id="grass" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="var(--grass1)" /><path d="M2,10 l1.5,-5 l1.5,5 M7,7 l1.5,-5 l1.5,5" stroke="var(--grass2)" stroke-width="1.4" fill="none" /></pattern>
+<linearGradient id="ledge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ledge1)" /><stop offset=".62" stop-color="var(--ledge1)" /><stop offset=".63" stop-color="var(--ledge2)" /><stop offset="1" stop-color="var(--ledgeEdge)" /></linearGradient>
+<pattern id="wall" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="var(--wall1)" /><path d="M0,5 h14 M7,0 v5 M0,5 v5" stroke="var(--wall2)" stroke-width="1.2" /></pattern>
+</defs><text x="54.0" y="16" class="ax">5</text>
+<text x="94.0" y="16" class="ax">6</text>
+<text x="134.0" y="16" class="ax">7</text>
+<text x="174.0" y="16" class="ax">8</text>
+<text x="214.0" y="16" class="ax">9</text>
+<text x="254.0" y="16" class="ax">10</text>
+<text x="294.0" y="16" class="ax">11</text>
+<text x="334.0" y="16" class="ax">12</text>
+<text x="374.0" y="16" class="ax">13</text>
+<text x="14" y="50.0" class="ax">11</text>
+<text x="14" y="90.0" class="ax">12</text>
+<text x="14" y="130.0" class="ax">13</text>
+<text x="14" y="170.0" class="ax">14</text>
+<text x="14" y="210.0" class="ax">15</text>
+<rect x="31" y="23" width="364" height="204" rx="10" class="frame" />
+<rect x="35" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="75" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="115" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="155" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="195" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="235" y="27" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="275" y="27" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="315" y="27" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="355" y="27" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="35" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="75" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="115" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="155" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="195" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="235" y="67" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="275" y="67" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="315" y="67" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="355" y="67" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="35" y="107" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="75" y="107" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="115" y="107" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="155" y="107" width="38" height="38" rx="5" fill="url(#ledge)" />
+<path d="M166,121 L174,130 L182,121" class="chev" />
+<rect x="195" y="107" width="38" height="38" rx="5" fill="url(#ledge)" />
+<path d="M206,121 L214,130 L222,121" class="chev" />
+<rect x="235" y="107" width="38" height="38" rx="5" fill="url(#ledge)" />
+<path d="M246,121 L254,130 L262,121" class="chev" />
+<rect x="275" y="107" width="38" height="38" rx="5" fill="url(#ledge)" />
+<path d="M286,121 L294,130 L302,121" class="chev" />
+<rect x="315" y="107" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="355" y="107" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="35" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="75" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="115" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="155" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="195" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="235" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="275" y="147" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="315" y="147" width="38" height="38" rx="5" fill="url(#wall)" />
+<rect x="355" y="147" width="38" height="38" rx="5" fill="url(#wall)" />
+<rect x="35" y="187" width="38" height="38" rx="5" fill="url(#grass)" />
+<rect x="75" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="115" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="155" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="195" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="235" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="275" y="187" width="38" height="38" rx="5" fill="url(#floor)" />
+<rect x="315" y="187" width="38" height="38" rx="5" fill="url(#wall)" />
+<rect x="355" y="187" width="38" height="38" rx="5" fill="url(#wall)" />
+<path d="M214.0,86.0 L174.0,86.0 L134.0,86.0 L134.0,126.0 L134.0,166.0 L174.0,166.0 L214.0,166.0" class="ghost" />
+<path d="M214.0,92.0 C258.0,94.0 258.0,158.0 218.0,154.0" class="hop" marker-end="url(#ahop)" />
+<circle cx="214.0" cy="86.0" r="13" class="player" /><circle cx="210.0" cy="83.0" r="2" class="eye" /><circle cx="218.0" cy="83.0" r="2" class="eye" />
+<circle cx="214.0" cy="166.0" r="13" class="goal" /><path d="M209.0,166.0 l4,4 l7,-8" class="tick" />
+</svg>

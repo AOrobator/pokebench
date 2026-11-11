@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 170" width="720" role="img" aria-label="Cmd_drawlvlupbox states" height="170">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="170" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--soft)" /></marker></defs>
+   <rect class="box" x="10" y="30" width="78" height="54" rx="6" /><text class="t" x="20" y="52">1–2</text><text class="s" x="20" y="70">banner*</text>
+   <path class="arrow" d="M88 57 H104" marker-end="url(#a)" />
+   <rect class="box" x="104" y="30" width="78" height="54" rx="6" /><text class="t" x="114" y="52">3–5</text><text class="s" x="114" y="70">draw page 1</text>
+   <path class="arrow" d="M182 57 H198" marker-end="url(#a)" />
+   <rect class="game" x="198" y="30" width="110" height="54" rx="6" /><text class="t" x="208" y="52">6 · page 1</text><text class="s" x="208" y="70">waits: any button</text>
+   <path class="arrow" d="M308 57 H324" marker-end="url(#a)" /><text class="s" x="300" y="24">B</text>
+   <rect class="box" x="324" y="30" width="78" height="54" rx="6" /><text class="t" x="334" y="52">7</text><text class="s" x="334" y="70">draw page 2</text>
+   <path class="arrow" d="M402 57 H418" marker-end="url(#a)" />
+   <rect class="game" x="418" y="30" width="110" height="54" rx="6" /><text class="t" x="428" y="52">8 · page 2</text><text class="s" x="428" y="70">waits: any button</text>
+   <path class="arrow" d="M528 57 H544" marker-end="url(#a)" /><text class="s" x="520" y="24">B</text>
+   <rect class="box" x="544" y="30" width="78" height="54" rx="6" /><text class="t" x="554" y="52">9–10</text><text class="s" x="554" y="70">close</text>
+   <path class="arrow" d="M622 57 H638" marker-end="url(#a)" />
+   <rect class="box" x="638" y="30" width="72" height="54" rx="6" /><text class="t" x="646" y="52">next</text><text class="s" x="646" y="70">learn move…</text>
+   <text class="s" x="10" y="112">gBattleScripting.drawlvlupboxState (0x02024492). Recorded: 6 from raw RAM 5088 to 5102 (T357–T359), 8 from 5103 to 5124 (T359–T362), 10 at 5125.</text>
+   <text class="s" x="10" y="132">Green states are the two waits the readout names and auto-advance presses. Both test gMain.newKeys != 0.</text>
+   <text class="s" x="10" y="152">* The banner slides in only when the Pokémon that leveled up is not the one in battle (Exp. Share).</text>
+  </svg>

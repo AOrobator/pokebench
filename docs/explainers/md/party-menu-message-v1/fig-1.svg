@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 180" role="img" aria-label="Message ownership and readiness checks" width="820" height="180"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+svg{width:100%;height:auto}
+@media(max-width:600px){svg{min-width:700px}}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="820" height="180" style="fill:#ffffff;stroke:none" /><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6" fill="none" stroke="#143f68" /></marker></defs><g fill="#edf5ff" stroke="#143f68" stroke-width="2"><rect x="8" y="15" width="245" height="125" rx="10" /><rect x="287" y="15" width="245" height="125" rx="10" /><rect x="566" y="15" width="245" height="125" rx="10" /><path d="M253 76H282M532 76H561" marker-end="url(#arrow)" /></g><g font-family="system-ui" font-size="17" fill="#143f68" text-anchor="middle"><text x="130" y="45">Native party owner</text><text x="130" y="75">Return after message</text><text x="130" y="105">Unique text task + window 6</text><text x="409" y="45">Verify printer</text><text x="409" y="75">WAIT after FC 09</text><text x="409" y="105">No fade or auto-scroll</text><text x="689" y="45">Factual readout</text><text x="689" y="75">Message + A/B ready</text><text x="689" y="105">Model chooses its input</text></g><text x="410" y="165" text-anchor="middle" font-family="system-ui" font-size="14">Printing, handoffs and animations remain not ready; invalid ownership is unknown.</text></svg>

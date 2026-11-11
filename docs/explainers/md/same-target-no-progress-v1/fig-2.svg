@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 190" width="860" height="190" role="img" aria-label="Counted calls from turn 1282 to 1292 with warnings on the 4th and 8th">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#b07a12;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e2b25a}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="190" style="fill:#ffffff;stroke:none" /><g font-size="12">
+<text x="10" y="20" class="small">turn</text>
+<text x="10" y="70" class="small">call</text>
+<text x="10" y="128" class="small">count</text>
+</g>
+<g>
+
+<text x="60" y="20">1282</text><text x="130" y="20">1283</text><text x="200" y="20">1284</text><text x="270" y="20">1285</text><text x="340" y="20">1286</text><text x="410" y="20">1287</text><text x="480" y="20">1288</text><text x="550" y="20">1289</text><text x="620" y="20">1290</text><text x="690" y="20">1291</text><text x="760" y="20">1292</text>
+<rect x="58" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)" /><text x="64" y="58">walk</text><text x="64" y="76" class="small">(5,8)</text>
+<rect x="128" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)" /><text x="134" y="58">walk</text><text x="134" y="76" class="small">(4,7)</text>
+<rect x="198" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)" /><text x="204" y="58">walk</text><text x="204" y="76" class="small">battle (4,8)</text>
+<rect x="268" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3" /><text x="274" y="58">battle</text><text x="274" y="76" class="small">action</text>
+<rect x="338" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)" /><text x="344" y="58">walk</text><text x="344" y="76" class="small">(5,9)</text>
+<rect x="408" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)" /><text x="414" y="58">walk</text><text x="414" y="76" class="small">battle (5,9)</text>
+<rect x="478" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3" /><text x="484" y="58">battle</text><text x="484" y="76" class="small">action</text>
+<rect x="548" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)" /><text x="554" y="58">walk</text><text x="554" y="76" class="small">(5,7)</text>
+<rect x="618" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--warn)" /><text x="624" y="58">walk</text><text x="624" y="76" class="small">battle (5,7)</text>
+<rect x="688" y="40" width="56" height="44" rx="5" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3" /><text x="694" y="58">battle</text><text x="694" y="76" class="small">action</text>
+<rect x="758" y="40" width="56" height="44" rx="5" fill="var(--fill)" stroke="var(--line)" /><text x="764" y="58">walk</text><text x="764" y="76" class="small">(4,8)</text>
+<text x="80" y="128">1</text><text x="150" y="128">2</text><text x="220" y="128">3</text><text x="290" y="128" class="small">kept</text><text x="360" y="128" fill="var(--drop)">4</text><text x="430" y="128">5</text><text x="500" y="128" class="small">kept</text><text x="570" y="128">6</text><text x="640" y="128">7</text><text x="710" y="128" class="small">kept</text><text x="780" y="128" fill="var(--drop)">8</text>
+<rect x="330" y="140" width="76" height="40" rx="5" fill="none" stroke="var(--drop)" /><text x="338" y="158">note 1</text><text x="338" y="174" class="small">result 41310</text>
+<rect x="750" y="140" width="76" height="40" rx="5" fill="none" stroke="var(--drop)" /><text x="758" y="158">note 2</text><text x="758" y="174" class="small">result 41605</text>
+</g>
+</svg>

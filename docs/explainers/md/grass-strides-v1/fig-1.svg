@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 230" role="img" aria-label="Two rows of tiles: off walks each grass tile; on runs one stride through tall grass and stops before long grass" width="640" height="230">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--floor:#e9e4d4;--grass:#7cc36a;--long:#3f8a3a;--route:#196778;--stop:#a34d26;--line:#c9d6e6}
+svg{min-width:560px;width:100%;height:auto}
+svg text{font:13px system-ui;fill:#283038}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="230" style="fill:#ffffff;stroke:none" /><text x="0" y="18">OFF: no stride into grass; each grass step is one walking press</text>
+<g transform="translate(0,28)">
+<rect x="0" y="0" width="60" height="44" fill="var(--floor)" stroke="#283038" /><text x="20" y="27">@</text>
+<rect x="60" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="120" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="180" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="240" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" />
+<rect x="300" y="0" width="60" height="44" fill="var(--long)" stroke="#283038" />
+<path d="M30 52 q30 14 60 0 q30 14 60 0 q30 14 60 0 q30 14 60 0" fill="none" stroke="var(--stop)" stroke-width="3" stroke-dasharray="6 5" />
+<text x="380" y="27">4 presses, walking</text></g>
+<text x="0" y="128">ON: one stride through tall grass, B added only where the game permits running</text>
+<g transform="translate(0,138)">
+<rect x="0" y="0" width="60" height="44" fill="var(--floor)" stroke="#283038" /><text x="20" y="27">@</text>
+<rect x="60" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="120" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="180" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" /><rect x="240" y="0" width="60" height="44" fill="var(--grass)" stroke="#283038" />
+<rect x="300" y="0" width="60" height="44" fill="var(--long)" stroke="#283038" /><text x="306" y="27" style="font-size:11px">long</text>
+<path d="M30 58 H270" stroke="var(--route)" stroke-width="4" /><path d="M262 51 l10 7 l-10 7" fill="none" stroke="var(--route)" stroke-width="4" />
+<text x="380" y="27">1 stride, running; ends before long grass</text></g>
+<g transform="translate(0,210)"><rect width="14" height="14" fill="var(--floor)" stroke="#283038" /><text x="20" y="12">floor (0x00)</text><rect x="120" width="14" height="14" fill="var(--grass)" stroke="#283038" /><text x="140" y="12">tall grass (0x02)</text><rect x="270" width="14" height="14" fill="var(--long)" stroke="#283038" /><text x="290" y="12">long grass (0x03), still refused</text></g>
+</svg>

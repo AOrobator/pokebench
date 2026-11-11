@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 200" width="700" role="img" aria-label="Runs whose reasoning named Rustboro, by cohort" height="200">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.barp{fill:var(--prior)}
+.barg{fill:var(--rule)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="200" style="fill:#ffffff;stroke:none" /><text x="20" y="20" class="t">Runs whose reasoning named Rustboro (bar = share of runs)</text>
+<g transform="translate(0,40)">
+<text x="20" y="14">cook bundle (12–60 min)</text><rect x="210" y="2" width="320" height="16" class="barg" /><rect x="210" y="2" width="293" height="16" class="barp" /><text x="540" y="14" class="m">11/12 · 736 turns</text>
+<text x="20" y="44">cook control (12–60 min)</text><rect x="210" y="32" width="320" height="16" class="barg" /><rect x="210" y="32" width="96" height="16" class="barp" /><text x="540" y="44" class="m">3/10 · 15 turns</text>
+<text x="20" y="74">factorial (30 min)</text><rect x="210" y="62" width="320" height="16" class="barg" /><rect x="210" y="62" width="107" height="16" class="barp" /><text x="540" y="74" class="m">8/24 · 144 turns</text>
+<text x="20" y="104">finals (45 min)</text><rect x="210" y="92" width="320" height="16" class="barg" /><rect x="210" y="92" width="142" height="16" class="barp" /><text x="540" y="104" class="m">4/9 · 5 turns</text>
+<text x="20" y="134">dry runs (2 min)</text><rect x="210" y="122" width="320" height="16" class="barg" /><text x="540" y="134" class="m">0/12 · 0 turns</text>
+</g>
+</svg>

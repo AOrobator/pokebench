@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" role="img" aria-label="On Route 119, a 40 by 140 map, the old 15 by 15 window covers about 4 percent of the map; the new view covers all of it." width="640" height="300">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f3f5f1;--panel:#ffffff;--fg:#1c2420;--muted:#5d6a62;--line:#c9d2cb;
+ --grass:#3f8f4f;--route:#1f6fb2;--warn:#c4502a;--soft:#e4ebe5;--water:#7fb6d9;
+ --display:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}
+svg{width:100%;height:auto;min-width:520px;display:block}
+.ts{fill:var(--muted);font:11px var(--body)}
+.th{fill:var(--fg);font:600 13px var(--body)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="300" style="fill:#ffffff;stroke:none" /><defs><pattern id="g" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="var(--soft)" /><path d="M0 0H8V8" fill="none" stroke="var(--line)" stroke-width=".6" /></pattern></defs>
+   <text class="th" x="150" y="22" text-anchor="middle">Before: local window</text>
+   <text class="th" x="470" y="22" text-anchor="middle">After: whole current map</text>
+   
+   <rect x="113" y="34" width="74" height="260" fill="url(#g)" stroke="var(--line)" />
+   <rect x="138" y="190" width="28" height="28" fill="var(--route)" fill-opacity=".25" stroke="var(--route)" stroke-width="2" />
+   <circle cx="152" cy="204" r="3" fill="var(--route)" />
+   <circle cx="130" cy="52" r="4" fill="var(--warn)" />
+   <text class="ts" x="198" y="208">15×15 seen</text>
+   <text class="ts" x="198" y="56">goal (unseen)</text>
+   <text class="ts" x="60" y="164" text-anchor="end">Route 119</text>
+   <text class="ts" x="60" y="178" text-anchor="end">40×140</text>
+   <rect x="433" y="34" width="74" height="260" fill="var(--route)" fill-opacity=".14" stroke="var(--route)" stroke-width="2" />
+   <rect x="433" y="34" width="74" height="260" fill="url(#g)" opacity=".55" />
+   <circle cx="472" cy="204" r="3" fill="var(--route)" />
+   <circle cx="450" cy="52" r="4" fill="var(--warn)" />
+   <polyline points="472,204 472,170 495,170 495,120 455,120 455,80 450,80 450,56" fill="none" stroke="var(--route)" stroke-width="2" stroke-dasharray="4 3" />
+   <text class="ts" x="518" y="208">player</text>
+   <text class="ts" x="518" y="56">goal, routed</text>
+   <text class="ts" x="518" y="124">one call walks</text>
+   <text class="ts" x="518" y="138">the whole path</text>
+  </svg>

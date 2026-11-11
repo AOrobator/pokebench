@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" role="img" aria-label="Call task states and where A or B is taken" width="720" height="150">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#22303a;--muted:#5d6b75;--line:#9fb0ba;--wait:#2f7d4f;--print:#b0632a;--off:#a33a3a;--paper:#ffffff}
+svg{min-width:640px;width:100%;height:auto}
+svg text{font:13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="150" style="fill:#ffffff;stroke:none" /><g fill="#fff" stroke="#9fb0ba"><rect x="10" y="40" width="110" height="50" rx="6" /><rect x="290" y="40" width="130" height="50" rx="6" /><rect x="600" y="40" width="110" height="50" rx="6" /></g>
+<rect x="140" y="40" width="130" height="50" rx="6" fill="#fff" stroke="#2f7d4f" stroke-width="2" />
+<rect x="440" y="40" width="140" height="50" rx="6" fill="#fff" stroke="#2f7d4f" stroke-width="2" />
+<text x="24" y="62">States 0 to 3</text><text x="24" y="78" class="small">load, slide in</text>
+<text x="152" y="62">State 4: dots</text><text x="152" y="78" class="small">ROM text, ends \p</text>
+<text x="302" y="62">Print next page</text><text x="302" y="78" class="small">state 0, not ready</text>
+<text x="452" y="62">State 5: message</text><text x="452" y="78" class="small">pages of gStringVar4</text>
+<text x="612" y="62">States 6, 7</text><text x="612" y="78" class="small">slide out, end</text>
+<g stroke="#5d6b75" fill="none"><path d="M120 65H140" /><path d="M270 65H290" /><path d="M420 65H440" /><path d="M580 65H600" /></g>
+<text x="170" y="112" class="small">A or B at \p</text>
+<text x="456" y="112" class="small">A or B at each page end</text>
+<text x="456" y="128" class="small">last: printer done, no sound</text>
+</svg>

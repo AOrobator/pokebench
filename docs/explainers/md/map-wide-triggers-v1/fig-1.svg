@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-label="LITTLEROOT TOWN column x=10 from (10,17) north, OFF and ON: the 7-tile window, the trigger at (10,9) and the planned 8-tile stride" width="900" height="560">
+
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f5f4ee;--fg:#172a29;--panel:#ffffff;--line:#36735b;--muted:#546562;--off:#a8432c;--offbg:#fbeeea;--on:#2c7a4b;--onbg:#e8f4ec;--tile:#eef3ea;--win:#dbe9f5;--trig:#f6d7a8;--route:#2d5f8a;--grid:#b9c8bf}
+*{box-sizing:border-box}
+svg{min-width:680px;width:100%;height:auto}
+svg text{fill:var(--fg);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .small{font-size:13px;fill:var(--muted)}
+svg .coord{font-size:12px;fill:var(--muted)}
+svg .white{fill:#ffffff}
+svg .tile{fill:var(--tile);stroke:var(--grid);stroke-width:1}
+svg .win{fill:var(--win);stroke:var(--grid);stroke-width:1}
+svg .trig{fill:var(--trig);stroke:var(--off);stroke-width:2}
+svg .route{stroke:var(--route);stroke-width:5;fill:none;stroke-linecap:round}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="560" style="fill:#ffffff;stroke:none" /><text x="20" y="28">OFF: 7-tile window</text>
+<g transform="translate(60,45)">
+<rect class="tile" x="0" y="0" width="50" height="50" />
+<rect class="trig" x="0" y="50" width="50" height="50" />
+<rect class="win" x="0" y="100" width="50" height="400" />
+<path d="M0 150H50M0 200H50M0 250H50M0 300H50M0 350H50M0 400H50M0 450H50" stroke="#b9c8bf" />
+<text x="-44" y="30" class="coord">y=8</text><text x="-44" y="80" class="coord">y=9</text><text x="-44" y="130" class="coord">y=10</text><text x="-44" y="180" class="coord">y=11</text><text x="-44" y="230" class="coord">y=12</text><text x="-44" y="280" class="coord">y=13</text><text x="-44" y="330" class="coord">y=14</text><text x="-44" y="380" class="coord">y=15</text><text x="-44" y="430" class="coord">y=16</text><text x="-44" y="480" class="coord">y=17</text>
+<circle cx="25" cy="475" r="15" fill="#2d5f8a" /><text x="18" y="481" class="white">P</text>
+<path class="route" d="M25 455 V75" />
+<path d="M17 85 L25 70 L33 85" fill="#2d5f8a" />
+<text x="60" y="80" class="small">trigger (10,9): not in the</text>
+<text x="60" y="96" class="small">state, 8 rows away</text>
+<text x="60" y="130" class="small">blue: rows 10–17 are within</text>
+<text x="60" y="146" class="small">7 tiles of (10,17)</text>
+<text x="60" y="250">Planned stride: 8 tiles,</text>
+<text x="60" y="272">(10,16) … (10,9)</text>
+<text x="60" y="310" class="small">The stride executor checks the</text>
+<text x="60" y="328" class="small">next step before each press.</text>
+<text x="60" y="346" class="small">At (10,10) the next step is the</text>
+<text x="60" y="364" class="small">trigger tile, so it stops:</text>
+<text x="60" y="384" class="small">"corridor changed or unsafe".</text>
+</g>
+
+<text x="470" y="28">ON: whole map</text>
+<g transform="translate(510,45)">
+<rect class="win" x="0" y="0" width="50" height="500" />
+<rect class="trig" x="0" y="50" width="50" height="50" />
+<path d="M0 50H50M0 100H50M0 150H50M0 200H50M0 250H50M0 300H50M0 350H50M0 400H50M0 450H50" stroke="#b9c8bf" />
+<text x="-44" y="30" class="coord">y=8</text><text x="-44" y="80" class="coord">y=9</text><text x="-44" y="130" class="coord">y=10</text><text x="-44" y="180" class="coord">y=11</text><text x="-44" y="230" class="coord">y=12</text><text x="-44" y="280" class="coord">y=13</text><text x="-44" y="330" class="coord">y=14</text><text x="-44" y="380" class="coord">y=15</text><text x="-44" y="430" class="coord">y=16</text><text x="-44" y="480" class="coord">y=17</text>
+<circle cx="25" cy="475" r="15" fill="#2d5f8a" /><text x="18" y="481" class="white">P</text>
+<path class="route" d="M25 455 V125" />
+<path d="M17 135 L25 120 L33 135" fill="#2d5f8a" />
+<text x="60" y="80" class="small">trigger (10,9): in the state</text>
+<text x="60" y="96" class="small">with its condition</text>
+<text x="60" y="250">Planned stride: 7 tiles,</text>
+<text x="60" y="272">(10,16) … (10,10)</text>
+<text x="60" y="310" class="small">planStride treats a listed</text>
+<text x="60" y="328" class="small">trigger tile as unsafe, so the</text>
+<text x="60" y="346" class="small">stride ends one tile short and</text>
+<text x="60" y="364" class="small">is walked as planned.</text>
+</g>
+</svg>

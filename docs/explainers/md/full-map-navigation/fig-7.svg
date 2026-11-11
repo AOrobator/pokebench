@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" role="img" aria-label="Left: a route hops a south ledge with one press. Right: a route goes around the chair's walled north and south sides but crosses it east to west." width="640" height="200">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f3f5f1;--panel:#ffffff;--fg:#1c2420;--muted:#5d6a62;--line:#c9d2cb;
+ --grass:#3f8f4f;--route:#1f6fb2;--warn:#c4502a;--soft:#e4ebe5;--water:#7fb6d9;
+ --display:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121815;--panel:#1a221e;--fg:#e3ebe5;--muted:#9aa89f;--line:#33413a;--grass:#62b873;--route:#5aa8e8;--warn:#ef8059;--soft:#222d27;--water:#3c6f8f;color-scheme:dark}
+svg{width:100%;height:auto;min-width:520px;display:block}
+.ts{fill:var(--muted);font:11px var(--body)}
+.tm{fill:var(--fg);font:11px var(--mono)}
+.th{fill:var(--fg);font:600 13px var(--body)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="640" height="200" style="fill:#ffffff;stroke:none" /><g transform="translate(40,20)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="0" width="28" height="28" /><rect x="0" y="56" width="28" height="28" /><rect x="0" y="84" width="28" height="28" />
+    </g>
+    <rect x="0" y="28" width="28" height="28" fill="var(--grass)" fill-opacity=".25" stroke="var(--grass)" />
+    <text class="th" x="14" y="19" text-anchor="middle">@</text>
+    <text class="th" x="14" y="47" text-anchor="middle">v</text>
+    <text class="th" x="14" y="103" text-anchor="middle">★</text>
+    <path d="M40,14 C64,14 64,70 40,70" fill="none" stroke="var(--route)" stroke-width="2.5" />
+    <text class="tm" x="66" y="40">DOWN = hop</text>
+    <text class="tm" x="66" y="56">0 → 2</text>
+    <line x1="40" y1="74" x2="40" y2="98" stroke="var(--route)" stroke-width="2.5" />
+    <text class="tm" x="66" y="92">DOWN</text>
+    <text class="ts" x="0" y="140">ledge-hops-v1 on: 2 presses,</text>
+    <text class="ts" x="0" y="156">landing checked as a 2-tile move.</text>
+    <text class="ts" x="0" y="172">Off, or from below: the ledge is a wall.</text>
+   </g>
+   <g transform="translate(360,20)">
+    <g fill="var(--soft)" stroke="var(--line)">
+     <rect x="0" y="0" width="28" height="28" /><rect x="28" y="0" width="28" height="28" /><rect x="56" y="0" width="28" height="28" />
+     <rect x="0" y="28" width="28" height="28" /><rect x="56" y="28" width="28" height="28" />
+     <rect x="0" y="56" width="28" height="28" /><rect x="28" y="56" width="28" height="28" /><rect x="56" y="56" width="28" height="28" />
+    </g>
+    <rect x="28" y="28" width="28" height="28" fill="var(--panel)" stroke="var(--line)" />
+    <line x1="28" y1="28" x2="56" y2="28" stroke="var(--warn)" stroke-width="4" />
+    <line x1="28" y1="56" x2="56" y2="56" stroke="var(--warn)" stroke-width="4" />
+    <text class="th" x="42" y="47" text-anchor="middle">+</text>
+    <text class="th" x="42" y="19" text-anchor="middle">@</text>
+    <text class="th" x="42" y="75" text-anchor="middle">★</text>
+    <polyline points="36,12 12,12 12,70 34,70" fill="none" stroke="var(--route)" stroke-width="2.5" />
+    <line x1="42" y1="22" x2="42" y2="62" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 4" />
+    <polyline points="6,42 78,42" fill="none" stroke="var(--route)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".7" />
+    <text class="ts" x="96" y="20">dashed red: refused,</text>
+    <text class="ts" x="96" y="36">walled north and south</text>
+    <text class="ts" x="96" y="56">dotted blue: open east</text>
+    <text class="ts" x="96" y="72">and west sides, allowed</text>
+    <text class="ts" x="0" y="140">one-way-tiles-v1 on, chair 0xC0:</text>
+    <text class="ts" x="0" y="156">4 presses around instead of 2 through.</text>
+    <text class="ts" x="0" y="172">Off: the chair is a wall and drawn as “.”.</text>
+   </g>
+  </svg>

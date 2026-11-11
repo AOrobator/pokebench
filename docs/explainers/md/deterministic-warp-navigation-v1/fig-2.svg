@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mobile-diagram" viewBox="0 0 340 438" role="img" aria-label="OFF walks around to the requested right exit; ON takes the nearer identical exit and presses down" width="340" height="438">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f6f5f0;--fg:#202124;--muted:#62656b;--panel:#fff;--rule:#d8d6cf;--on:#126b4d;--onbg:#def2e9;--off:#a3422f;--offbg:#f8e3dd;--blue:#315da8;--bluebg:#e3ebf8;--mono:ui-monospace,"SFMono-Regular",Menlo,monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media(min-width:1000000px){:root{--bg:#151719;--fg:#ececea;--muted:#a7a9ad;--panel:#1d2023;--rule:#34373b;--on:#59c99a;--onbg:#18342c;--off:#ff8069;--offbg:#3c211c;--blue:#86aef6;--bluebg:#1d2b45;color-scheme:dark}}
+svg{display:block;width:740px;max-width:none;height:auto}
+svg text{font-family:var(--body);fill:var(--fg);font-size:12px}
+.t{font-size:14px;font-weight:700}
+.s{fill:var(--muted)}
+.panel{fill:var(--panel);stroke:var(--rule)}
+.on{fill:var(--onbg);stroke:var(--on)}
+.off{fill:var(--offbg);stroke:var(--off)}
+.blue{fill:var(--bluebg);stroke:var(--blue)}
+.path{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.old{fill:none;stroke:var(--off);stroke-width:3;stroke-dasharray:7 6}
+.mobile-diagram{display:none}
+@media(max-width:600px){.mobile-diagram{display:block;width:100%}}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="340" height="438" style="fill:#ffffff;stroke:none" /><rect class="off" x="1" y="1" width="338" height="210" rx="10" /><text class="t" x="16" y="28">OFF · exact requested coordinate</text><text class="s" x="16" y="48">3 walks, then stop on the arrow warp</text>
+<g transform="translate(52 67)"><rect class="panel" x="0" y="0" width="48" height="48" /><rect class="panel" x="48" y="0" width="48" height="48" /><rect class="panel" x="96" y="0" width="48" height="48" /><rect class="panel" x="144" y="0" width="48" height="48" /><rect class="panel" x="0" y="48" width="48" height="48" /><rect class="blue" x="0" y="96" width="48" height="48" /><rect class="blue" x="96" y="96" width="48" height="48" /><text x="17" y="29">M</text><text x="14" y="126">↓</text><text x="110" y="126">↓</text><path class="old" d="M24 24 H72 V72 H120 V120" /></g>
+<rect class="on" x="1" y="227" width="338" height="210" rx="10" /><text class="t" x="16" y="254">ON · equivalent nearest coordinate</text><text class="s" x="16" y="274">DOWN enters the tile; DOWN activates it</text>
+<g transform="translate(52 293)"><rect class="panel" x="0" y="0" width="48" height="48" /><rect class="panel" x="48" y="0" width="48" height="48" /><rect class="panel" x="96" y="0" width="48" height="48" /><rect class="panel" x="144" y="0" width="48" height="48" /><rect class="panel" x="0" y="48" width="48" height="48" /><rect class="blue" x="0" y="96" width="48" height="48" /><rect class="blue" x="96" y="96" width="48" height="48" /><text x="17" y="29">M</text><text x="14" y="126">↓</text><text x="110" y="126">↓</text><path class="path" d="M24 24 V120" /><text class="t" x="60" y="116">DOWN once more</text></g>
+</svg>

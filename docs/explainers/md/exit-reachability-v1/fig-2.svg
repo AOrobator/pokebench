@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 224" width="488" height="224" role="img" aria-label="ROUTE103 local window and foot area from (16,7)">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --foot:#7cc49f; --water:#7fa7e0; --far:#d9c27a; --solid:#cfcdc6; --exit:#c2432f;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740;
+ --foot:#2f8a5f; --water:#3a5d94; --far:#8a7a3a; --solid:#2f3135; --exit:#ff7a63; color-scheme:dark}
+svg{display:block}
+svg text{font-family:var(--body);font-size:11px;fill:var(--fg)}
+.foot{fill:var(--foot)}
+.water{fill:var(--water)}
+.far{fill:var(--far)}
+.solid{fill:var(--solid)}
+.exit{fill:none;stroke:var(--exit);stroke-width:2.5}
+.walk{fill:none;stroke:var(--game);stroke-width:2.5}
+.me{fill:var(--fg)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="488" height="224" style="fill:#ffffff;stroke:none" /><rect class="solid" x="0" y="0" width="364" height="14" />
+<rect class="water" x="364" y="0" width="14" height="14" />
+<rect class="solid" x="0" y="14" width="364" height="14" />
+<rect class="water" x="364" y="14" width="14" height="14" />
+<rect class="solid" x="0" y="28" width="56" height="14" />
+<rect class="foot" x="56" y="28" width="168" height="14" />
+<rect class="solid" x="224" y="28" width="140" height="14" />
+<rect class="water" x="364" y="28" width="14" height="14" />
+<rect class="solid" x="0" y="42" width="56" height="14" />
+<rect class="foot" x="56" y="42" width="168" height="14" />
+<rect class="solid" x="224" y="42" width="140" height="14" />
+<rect class="water" x="364" y="42" width="14" height="14" />
+<rect class="solid" x="0" y="56" width="28" height="14" />
+<rect class="foot" x="28" y="56" width="224" height="14" />
+<rect class="solid" x="252" y="56" width="84" height="14" />
+<rect class="water" x="336" y="56" width="42" height="14" />
+<rect class="solid" x="0" y="70" width="28" height="14" />
+<rect class="foot" x="28" y="70" width="56" height="14" />
+<rect class="solid" x="84" y="70" width="112" height="14" />
+<rect class="foot" x="196" y="70" width="56" height="14" />
+<rect class="solid" x="252" y="70" width="112" height="14" />
+<rect class="water" x="364" y="70" width="14" height="14" />
+<rect class="solid" x="0" y="84" width="28" height="14" />
+<rect class="foot" x="28" y="84" width="154" height="14" />
+<rect class="solid" x="182" y="84" width="196" height="14" />
+<rect class="solid" x="0" y="98" width="28" height="14" />
+<rect class="foot" x="28" y="98" width="252" height="14" />
+<rect class="solid" x="280" y="98" width="56" height="14" />
+<rect class="water" x="336" y="98" width="28" height="14" />
+<rect class="solid" x="364" y="98" width="14" height="14" />
+<rect class="solid" x="0" y="112" width="28" height="14" />
+<rect class="foot" x="28" y="112" width="280" height="14" />
+<rect class="water" x="308" y="112" width="70" height="14" />
+<rect class="solid" x="0" y="126" width="28" height="14" />
+<rect class="foot" x="28" y="126" width="126" height="14" />
+<rect class="solid" x="154" y="126" width="14" height="14" />
+<rect class="foot" x="168" y="126" width="140" height="14" />
+<rect class="water" x="308" y="126" width="70" height="14" />
+<rect class="solid" x="0" y="140" width="56" height="14" />
+<rect class="foot" x="56" y="140" width="252" height="14" />
+<rect class="water" x="308" y="140" width="70" height="14" />
+<rect class="solid" x="0" y="154" width="56" height="14" />
+<rect class="foot" x="56" y="154" width="252" height="14" />
+<rect class="water" x="308" y="154" width="70" height="14" />
+<rect class="solid" x="0" y="168" width="196" height="14" />
+<rect class="foot" x="196" y="168" width="140" height="14" />
+<rect class="water" x="336" y="168" width="42" height="14" />
+<rect class="solid" x="0" y="182" width="56" height="14" />
+<rect class="foot" x="56" y="182" width="280" height="14" />
+<rect class="solid" x="336" y="182" width="42" height="14" />
+<rect class="solid" x="0" y="196" width="56" height="14" />
+<rect class="foot" x="56" y="196" width="196" height="14" />
+<rect class="solid" x="252" y="196" width="126" height="14" />
+<rect class="solid" x="0" y="210" width="56" height="14" />
+<rect class="foot" x="56" y="210" width="196" height="14" />
+<rect class="solid" x="252" y="210" width="84" height="14" />
+<rect class="far" x="336" y="210" width="28" height="14" />
+<rect class="water" x="364" y="210" width="14" height="14" />
+<circle class="me" cx="231.0" cy="105.0" r="11.200000000000001" />
+<rect class="walk" x="126" y="0" width="210" height="210" stroke-dasharray="5 3" />
+<rect class="exit" x="140" y="42" width="14" height="14" />
+<text x="157" y="56">MAY</text>
+<rect class="exit" x="126" y="84" width="14" height="14" />
+<text x="143" y="98">walk here first</text>
+</svg>

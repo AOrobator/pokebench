@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 120" width="860" height="120" role="img" aria-label="How the switch reaches the readout">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#d8f0e0;--page:#f6ffff;--fg:#202020;--muted:#506058;--fr:#318b73;--rb:#629cde;--pn:#9cdea4;--rw:#f6ffff;--ln:#62b48b;--win:#f8f8f8;--winline:#5a6a8c;--winin:#a8c0e8;--shadow:#d0d0c8;--cursor:#e04030;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef7f0;--box:#e6f4ea;--line:#62b48b;--panel:#f6ffff}
+@media (min-width:1000000px){:root{--bg:#10241c;--page:#17302a;--fg:#ecf2ee;--muted:#a9c2b6;--pn:#2f5a44;--rw:#1c3a31;--ln:#4f9a78;--win:#f8f8f8;--shadow:#0c1a14;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#1c3a31;--box:#24463a;--line:#4f9a78;--panel:#17302a}}
+*{box-sizing:border-box}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="860" height="120" style="fill:#ffffff;stroke:none" /><defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--fg)" /></marker></defs>
+<rect x="10" y="30" width="150" height="60" rx="6" fill="var(--box)" stroke="var(--line)" /><text x="20" y="55">preset / bundle arm</text><text x="20" y="75" class="small">features[id] = true</text>
+<line x1="160" y1="60" x2="195" y2="60" stroke="var(--fg)" marker-end="url(#c)" />
+<rect x="200" y="30" width="170" height="60" rx="6" fill="var(--box)" stroke="var(--line)" /><text x="210" y="55">serverFeatureEnv</text><text x="210" y="75" class="small">POKEBENCH_FEATURES_OFF</text>
+<line x1="370" y1="60" x2="405" y2="60" stroke="var(--fg)" marker-end="url(#c)" />
+<rect x="410" y="30" width="200" height="60" rx="6" fill="var(--fill)" stroke="var(--keep)" /><text x="420" y="55">rerender.read_state</text><text x="420" y="75" class="small">mart_stock_enabled → read_mart_stock</text>
+<line x1="610" y1="60" x2="645" y2="60" stroke="var(--fg)" marker-end="url(#c)" />
+<rect x="650" y="30" width="200" height="60" rx="6" fill="var(--box)" stroke="var(--line)" /><text x="660" y="55">format_readout</text><text x="660" y="75" class="small">block after the Interface lines</text>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" width="760" height="210" role="img" aria-label="Requests before, during and after a battle, with the note sent on each when off and only on field requests when on">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1d2433;--muted:#5a6475;--field:#7cc36b;--battle:#c0392b;--note:#e0a020;--line:#c9d2de}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="210" style="fill:#ffffff;stroke:none" /><g font-size="12" font-family="ui-monospace,Menlo,monospace">
+  <text x="10" y="18">request</text>
+  <g>
+   <rect x="90" y="28" width="70" height="26" fill="#7cc36b" /><text x="100" y="46">field</text>
+   <rect x="170" y="28" width="70" height="26" fill="#c0392b" /><text x="178" y="46" fill="#fff">battle</text>
+   <rect x="250" y="28" width="70" height="26" fill="#c0392b" /><text x="258" y="46" fill="#fff">battle</text>
+   <rect x="330" y="28" width="70" height="26" fill="#c0392b" /><text x="338" y="46" fill="#fff">battle</text>
+   <rect x="410" y="28" width="70" height="26" fill="#c0392b" /><text x="418" y="46" fill="#fff">battle</text>
+   <rect x="490" y="28" width="70" height="26" fill="#7cc36b" /><text x="500" y="46">field</text>
+   <rect x="570" y="28" width="70" height="26" fill="#7cc36b" /><text x="580" y="46">field</text>
+  </g>
+  <text x="10" y="96">OFF</text>
+  <g fill="#e0a020" stroke="#1d2433">
+   <circle cx="125" cy="92" r="9" /><circle cx="205" cy="92" r="9" /><circle cx="285" cy="92" r="9" /><circle cx="365" cy="92" r="9" /><circle cx="445" cy="92" r="9" /><circle cx="525" cy="92" r="9" /><circle cx="605" cy="92" r="9" />
+  </g>
+  <text x="10" y="146">ON</text>
+  <g fill="#e0a020" stroke="#1d2433">
+   <circle cx="125" cy="142" r="9" /><circle cx="525" cy="142" r="9" /><circle cx="605" cy="142" r="9" />
+  </g>
+  <g fill="none" stroke="#c9d2de"><circle cx="205" cy="142" r="9" /><circle cx="285" cy="142" r="9" /><circle cx="365" cy="142" r="9" /><circle cx="445" cy="142" r="9" /></g>
+  <text x="90" y="190" fill="#5a6475">gold = note sent with that request · empty = not sent · battle calls never advance the 12-call budget</text>
+ </g>
+</svg>

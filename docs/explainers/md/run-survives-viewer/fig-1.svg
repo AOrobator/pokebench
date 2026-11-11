@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Before: viewer, play and game server share one process group. After: play leads its own group." width="900" height="300">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{color-scheme:light dark;--bg:#f4f3ed;--ink:#20271f;--muted:#5d665a;--panel:#fff;--edge:#b8c1b2;--good:#1f7a3f;--bad:#b3261e;--soft:#eef1ea;--viewer:#c9d6e6;--play:#cfe5c4;--server:#f2d27a;--group:#e9e3d2}
+@media(min-width:1000000px){:root{--bg:#151c17;--ink:#e2eadf;--muted:#a8b3a4;--panel:#202b22;--edge:#536650;--good:#6fdc8c;--bad:#ff8a80;--soft:#26322a;--viewer:#33465c;--play:#2f5a33;--server:#7a6420;--group:#2b2a22}}
+*{box-sizing:border-box}
+svg{width:100%;height:auto;min-width:560px;display:block}
+.box{stroke:var(--edge);stroke-width:1.5}
+.v{fill:var(--viewer)}
+.p{fill:var(--play)}
+.s{fill:var(--server)}
+.grp{fill:var(--group);stroke:var(--edge);stroke-width:1.5;stroke-dasharray:6 4}
+.lab{fill:var(--ink);font:600 14px system-ui,sans-serif}
+.sub{fill:var(--muted);font:12.5px system-ui,sans-serif}
+.arr{stroke:var(--ink);stroke-width:2;fill:none;marker-end:url(#h)}
+.kill{stroke:var(--bad);stroke-width:2.5;fill:none}
+.ok{fill:var(--good);font:700 14px system-ui,sans-serif}
+.no{fill:var(--bad);font:700 14px system-ui,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="900" height="300" style="fill:#ffffff;stroke:none" /><defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke" /></marker></defs>
+<text class="lab" x="10" y="22">Before</text>
+<rect class="grp" x="10" y="34" width="420" height="230" rx="14" /><text class="sub" x="22" y="54">one process group: the viewer's</text>
+<rect class="box v" x="30" y="70" width="160" height="56" rx="10" /><text class="lab" x="44" y="96">viewer :8790</text><text class="sub" x="44" y="114">+ queue + finals runner</text>
+<rect class="box p" x="250" y="70" width="160" height="56" rx="10" /><text class="lab" x="264" y="96">live.js play</text><text class="sub" x="264" y="114">the trial's agent</text>
+<rect class="box s" x="250" y="180" width="160" height="56" rx="10" /><text class="lab" x="264" y="206">game server</text><text class="sub" x="264" y="224">pokebench_env.launcher</text>
+<path class="arr" d="M190 98H248" /><path class="arr" d="M330 126V178" />
+<path class="kill" d="M30 150l140 70M170 150L30 220" /><text class="no" x="40" y="250">Ctrl-C hits all three</text>
+<text class="lab" x="470" y="22">After</text>
+<rect class="grp" x="470" y="34" width="190" height="230" rx="14" /><text class="sub" x="482" y="54">viewer's group</text>
+<rect class="box v" x="485" y="70" width="160" height="56" rx="10" /><text class="lab" x="499" y="96">viewer :8790</text><text class="sub" x="499" y="114">+ queue + finals runner</text>
+<rect class="grp" x="690" y="34" width="200" height="230" rx="14" /><text class="sub" x="702" y="54">the trial's own group</text>
+<rect class="box p" x="710" y="70" width="160" height="56" rx="10" /><text class="lab" x="724" y="96">live.js play</text><text class="sub" x="724" y="114">detached, group leader</text>
+<rect class="box s" x="710" y="180" width="160" height="56" rx="10" /><text class="lab" x="724" y="206">game server</text><text class="sub" x="724" y="224">stays in play's group</text>
+<path class="arr" d="M645 98H708" /><path class="arr" d="M790 126V178" />
+<text class="ok" x="485" y="250">a restart stops only the viewer</text>
+</svg>

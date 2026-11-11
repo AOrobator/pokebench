@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 190" width="660" height="190" role="img" aria-label="Turns kept in the first collapsed requests of ef9f and 97a0">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8;--warn:#b07a12;--warnfill:#f7efdf;}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f;--warn:#e2b25a;--warnfill:#3a3020}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+svg .small{font-size:11px;fill:var(--muted)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="660" height="190" style="fill:#ffffff;stroke:none" /><g font-size="12">
+<text x="10" y="22" class="small">ef9f, request for turn 137</text>
+<g transform="translate(10,32)">
+<rect x="0" width="70" height="30" rx="4" fill="var(--fill)" stroke="var(--line)" /><text x="35" y="20" text-anchor="middle">125–130</text>
+<rect x="76" width="160" height="30" rx="4" fill="none" stroke="var(--drop)" stroke-dasharray="4 3" /><text x="156" y="20" text-anchor="middle" class="small">131–134 left out</text>
+<rect x="242" width="60" height="30" rx="4" fill="var(--warnfill)" stroke="var(--keep)" stroke-width="2" /><text x="272" y="20" text-anchor="middle">135</text>
+<rect x="308" width="60" height="30" rx="4" fill="var(--fill)" stroke="var(--keep)" stroke-width="2" /><text x="338" y="20" text-anchor="middle">136</text>
+<text x="380" y="20" class="small">repeats 6 · collapsed 4 · period 2</text>
+</g>
+<text x="10" y="102" class="small">97a0, request for turn 122</text>
+<g transform="translate(10,112)">
+<rect x="0" width="70" height="30" rx="4" fill="var(--fill)" stroke="var(--line)" /><text x="35" y="20" text-anchor="middle">104–115</text>
+<rect x="76" width="160" height="30" rx="4" fill="none" stroke="var(--drop)" stroke-dasharray="4 3" /><text x="156" y="20" text-anchor="middle" class="small">116–119 left out</text>
+<rect x="242" width="60" height="30" rx="4" fill="var(--warnfill)" stroke="var(--keep)" stroke-width="2" /><text x="272" y="20" text-anchor="middle">120</text>
+<rect x="308" width="60" height="30" rx="4" fill="var(--fill)" stroke="var(--keep)" stroke-width="2" /><text x="338" y="20" text-anchor="middle">121</text>
+<text x="380" y="20" class="small">repeats 6 · collapsed 4 · period 2</text>
+</g>
+</g>
+</svg>

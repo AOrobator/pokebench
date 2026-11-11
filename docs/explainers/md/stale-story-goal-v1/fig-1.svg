@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 268" width="720" role="img" aria-label="A place line is retired only when the native checklist shows that exact place's milestone is done" height="268">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+@media (max-width:600px){svg{max-width:none;width:720px}}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="268" style="fill:#ffffff;stroke:none" /><rect x="20" y="16" width="200" height="64" rx="8" class="box" /><text x="32" y="40" class="t">Latest place line</text><text x="32" y="60" class="s">MAY, "head back to the LAB"</text>
+<rect x="250" y="16" width="210" height="64" rx="8" class="game" /><text x="262" y="40" class="t">Story checklist</text><text x="262" y="60" class="s">Pokédex received</text>
+<rect x="490" y="16" width="210" height="64" rx="8" class="nav" /><text x="502" y="40" class="t">Exact place match</text><text x="502" y="60" class="s">Pokédex → Birch's lab</text>
+<line x1="220" y1="48" x2="242" y2="48" stroke="currentColor" /><line x1="460" y1="48" x2="482" y2="48" stroke="currentColor" />
+<rect x="120" y="120" width="480" height="112" rx="8" class="game" /><text x="136" y="148" class="t">Retire this line. Do not pick an older one.</text><text x="136" y="170" class="s">Quote stays. No door. Away-supervisor gets no goal.</text><text x="136" y="190" class="s">Checklist: the place that label names is done.</text><text x="136" y="210" class="s">Later dialogue without a place does not retire it.</text>
+</svg>

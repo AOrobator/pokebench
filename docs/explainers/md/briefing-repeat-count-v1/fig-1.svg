@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 210" width="800" role="img" aria-label="Recent attempts line with the switch off and on" height="210">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#d9d5cc;--panel:#ffffff;--keep:#2f7d4f;--drop:#b4442f;--accent:#2d5f9a;--fill:#eef3f8}
+@media (min-width:1000000px){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3833;--panel:#1f1e1b;--keep:#6cc08f;--drop:#e98a74;--accent:#86b3e6;--fill:#22303f}}
+svg text{fill:var(--fg);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="800" height="210" style="fill:#ffffff;stroke:none" /><rect x="10" y="10" width="780" height="85" rx="6" fill="var(--panel)" stroke="var(--drop)" stroke-width="2" />
+<text x="24" y="36" font-weight="600">Off (recorded, run f28d turn 2303)</text>
+<text x="24" y="64"><tspan font-family="ui-monospace,Menlo,monospace">Recent attempts (up to 3): navigate_to 10,5 → no change;</tspan></text>
+<text x="24" y="84"><tspan font-family="ui-monospace,Menlo,monospace">navigate_to 10,5 → moved to 10,5; navigate_to 10,5 → moved to 11,5</tspan></text>
+<rect x="10" y="115" width="780" height="85" rx="6" fill="var(--panel)" stroke="var(--keep)" stroke-width="2" />
+<text x="24" y="141" font-weight="600">On (same attempts; counts illustrative)</text>
+<text x="24" y="169"><tspan font-family="ui-monospace,Menlo,monospace">Recent attempts (up to 3): navigate_to 10,5 ×97 → no change;</tspan></text>
+<text x="24" y="189"><tspan font-family="ui-monospace,Menlo,monospace">navigate_to 10,5 → moved to 10,5; navigate_to 10,5 → moved to 11,5</tspan></text>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 250" width="700" role="img" aria-label="Exit marking on a door arrival" height="250">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="700" height="250" style="fill:#ffffff;stroke:none" /><text x="10" y="18" class="t">Map change A → B, from the recorded states alone</text>
+<rect x="10" y="32" width="300" height="150" rx="8" class="box" />
+<text x="20" y="52" class="t">A: LITTLEROOT TOWN (0/9)</text>
+<rect x="150" y="90" width="34" height="30" class="game" /><text x="167" y="110" text-anchor="middle">W</text>
+<text x="196" y="102" class="s">(14,8) → map 1/2</text>
+<rect x="150" y="122" width="34" height="30" class="navb" /><text x="167" y="142" text-anchor="middle">@</text>
+<text x="196" y="142" class="s">last tile on A (14,9)</text>
+<text x="20" y="172" class="s">warps to B within 1 tile of A's last tile</text>
+<rect x="390" y="32" width="300" height="150" rx="8" class="box" />
+<text x="400" y="52" class="t">B: PROF. BIRCH'S HOUSE 1F (1/2)</text>
+<rect x="430" y="122" width="34" height="30" class="game" /><text x="447" y="142" text-anchor="middle">W</text>
+<rect x="466" y="122" width="34" height="30" class="game" /><text x="483" y="142" text-anchor="middle">@</text>
+<text x="430" y="114" class="s">(1,8) (2,8) → map 0/9 warp 0</text>
+<rect x="466" y="70" width="34" height="30" class="prior" /><text x="483" y="90" text-anchor="middle">W</text>
+<text x="506" y="90" class="s">(2,2) → map 1/3: untaken</text>
+<text x="400" y="172" class="s">warps back to A within 1 tile of B's first tile, plus same-destination siblings</text>
+<path d="M310 107 H388" class="arr" /><text x="320" y="100" class="s">door</text>
+<text x="10" y="210" class="s">No warp that close: the warps to the other map count only if they all share one destination (else none).</text>
+<text x="10" y="228" class="s">No warp either way: the map connection between A and B counts as crossed (used by untaken-exits-v1).</text>
+</svg>

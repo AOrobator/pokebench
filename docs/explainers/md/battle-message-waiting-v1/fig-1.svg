@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" role="img" aria-label="Decision chain for the battle input clause" height="400">
+   <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; color-scheme:dark}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+svg .m{font-family:var(--mono);font-size:11px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.nav{fill:var(--nav-bg);stroke:var(--nav)}
+.arrow{stroke:var(--soft);fill:none;stroke-width:1.4}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="400" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="fill:var(--soft)" /></marker></defs>
+   <rect class="box" x="10" y="10" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="30">A player battle menu is ready?</text>
+   <text class="s" x="22" y="46">action, move, target, controller YES/NO</text>
+   <path class="arrow" d="M260 32 H330" marker-end="url(#a)" /><text class="s" x="282" y="26">yes</text>
+   <rect class="box" x="330" y="10" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="36">input ready (action select)   — unchanged</text>
+   <path class="arrow" d="M135 54 V80" marker-end="url(#a)" /><text class="s" x="142" y="72">no</text>
+
+   <rect class="box" x="10" y="80" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="100">Battle outcome set, or playback?</text>
+   <text class="s" x="22" y="116">finishing / replay</text>
+   <path class="arrow" d="M260 102 H330" marker-end="url(#a)" /><text class="s" x="282" y="96">yes</text>
+   <rect class="box" x="330" y="80" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="99">finishing (outcome won) · &lt;message clause&gt;</text>
+   <text class="m" x="342" y="115">recorded playback   — unchanged</text>
+   <path class="arrow" d="M135 124 V150" marker-end="url(#a)" /><text class="s" x="142" y="142">no</text>
+
+   <rect class="game" x="10" y="204" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="224">Printer 0 waits, autoScroll clear</text>
+   <text class="s" x="22" y="240">render state 1, 2 or 3</text>
+   <path class="arrow" d="M260 226 H330" marker-end="url(#a)" />
+   <rect class="game" x="330" y="204" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="230">battle message waiting: "&lt;page&gt;" — press A or B to continue</text>
+
+   <rect class="game" x="10" y="258" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="278">Printer 0 writing the page</text>
+   <text class="s" x="22" y="294">render state 0, 4, 5 or 6</text>
+   <path class="arrow" d="M260 280 H330" marker-end="url(#a)" />
+   <rect class="game" x="330" y="258" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="284">battle message printing: "&lt;page&gt;" — still being written; …</text>
+
+   <rect class="nav" x="10" y="150" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="170">Battle-script YES/NO box ready</text>
+   <text class="s" x="22" y="186">yesnobox, learn move, nickname</text>
+   <path class="arrow" d="M260 172 H330" marker-end="url(#a)" />
+   <rect class="nav" x="330" y="150" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="168">battle YES/NO box open (…), cursor on YES — UP or DOWN</text>
+   <text class="m" x="342" y="184">moves the cursor, A answers it, B answers NO</text>
+
+   <rect class="box" x="10" y="312" width="250" height="44" rx="6" />
+   <text class="t" x="22" y="332">Printer idle, battle callback busy</text>
+   <text class="s" x="22" y="348">animations, HP bars, auto messages</text>
+   <path class="arrow" d="M260 334 H330" marker-end="url(#a)" />
+   <rect class="box" x="330" y="312" width="380" height="44" rx="6" />
+   <text class="m" x="342" y="330">resolving (the game is playing animations or a message</text>
+   <text class="m" x="342" y="346">that closes on its own; no input until the game asks)</text>
+
+   <text class="s" x="10" y="380">Another screen over the battle (bag, party, evolution) keeps the OFF text. A reader error reads "battle message state unknown (…); check the screen" unless another screen or a ready menu owns input.</text>
+  </svg>

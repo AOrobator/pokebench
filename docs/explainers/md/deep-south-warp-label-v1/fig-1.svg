@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img" aria-label="Route 104 north tiles with the woods entrance labelled deep water exit when off and entrance when on">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--ink:#1d2433;--muted:#5a6475;--water:#5b9bd5;--grass:#7cc36b;--tree:#2f6b3a;--warp:#e0a020;--bad:#c0392b;--good:#2e8b57;--line:#c9d2de}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="760" height="250" style="fill:#ffffff;stroke:none" /><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#5a6475" /></marker></defs>
+ <g font-size="13" font-family="ui-monospace,Menlo,monospace">
+  <text x="20" y="22" font-weight="700">OFF (today)</text>
+  <text x="400" y="22" font-weight="700">ON</text>
+ </g>
+ <g id="grid">
+  <rect x="20" y="40" width="320" height="140" fill="#eef3f8" stroke="#c9d2de" />
+  <rect x="20" y="40" width="120" height="140" fill="#2f6b3a" />
+  <rect x="220" y="40" width="120" height="140" fill="#2f6b3a" />
+  <rect x="140" y="40" width="80" height="60" fill="#7cc36b" />
+  <rect x="140" y="100" width="40" height="40" fill="#e0a020" stroke="#1d2433" />
+  <rect x="180" y="100" width="40" height="40" fill="#e0a020" stroke="#1d2433" />
+  <text x="146" y="125" font-size="12">10,30</text><text x="186" y="125" font-size="12">11,30</text>
+  <rect x="140" y="140" width="80" height="40" fill="#2f6b3a" />
+  <text x="26" y="200" font-size="13">ROUTE 104 north, the woods entrance</text>
+ </g>
+ <g transform="translate(380,0)">
+  <rect x="20" y="40" width="320" height="140" fill="#eef3f8" stroke="#c9d2de" />
+  <rect x="20" y="40" width="120" height="140" fill="#2f6b3a" />
+  <rect x="220" y="40" width="120" height="140" fill="#2f6b3a" />
+  <rect x="140" y="40" width="80" height="60" fill="#7cc36b" />
+  <rect x="140" y="100" width="40" height="40" fill="#e0a020" stroke="#1d2433" />
+  <rect x="180" y="100" width="40" height="40" fill="#e0a020" stroke="#1d2433" />
+  <text x="146" y="125" font-size="12">10,30</text><text x="186" y="125" font-size="12">11,30</text>
+  <rect x="140" y="140" width="80" height="40" fill="#2f6b3a" />
+ </g>
+ <g font-family="ui-monospace,Menlo,monospace" font-size="13">
+  <text x="20" y="228" fill="#c0392b">Wp:deep_water_exit = warp (deep water exit)</text>
+  <text x="400" y="228" fill="#2e8b57">Wp:entrance = warp (entrance)</text>
+ </g>
+</svg>

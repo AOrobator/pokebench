@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-label="Two tile grids: an alternating loop on two tiles is counted; exploration out of a hub tile is not" width="720" height="250">
+ <style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#283038}
+:root{--bg:#f7f6f2; --fg:#1c1d1f; --soft:#5b5d61; --rule:#dedcd5; --panel:#ffffff;
+ --game:#1a7f5a; --game-bg:#e3f4ec; --prior:#c2432f; --prior-bg:#fbe7e2; --nav:#2a62c9; --nav-bg:#e4edfb; --hot:#c2432f; --water:#cfe3f7;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media (min-width:1000000px){:root:not([data-theme="light"]){--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151618; --fg:#e8e8e6; --soft:#a2a3a6; --rule:#2d2f33; --panel:#1d1f22;
+ --game:#4cc794; --game-bg:#16302a; --prior:#ff7a63; --prior-bg:#3a1f1a; --nav:#7aa7ff; --nav-bg:#1a2740; --hot:#ff7a63; --water:#1b3550; color-scheme:dark}
+svg{min-width:600px}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+svg .s{fill:var(--soft);font-size:11px}
+svg .t{font-weight:600;font-size:13px}
+.box{fill:var(--panel);stroke:var(--rule)}
+.game{fill:var(--game-bg);stroke:var(--game)}
+.prior{fill:var(--prior-bg);stroke:var(--prior)}
+.navb{fill:var(--nav-bg);stroke:var(--nav)}
+.arr{stroke:var(--soft);stroke-width:1.5;fill:none}
+.arr.g{stroke:var(--game)}
+.arr.p{stroke:var(--prior)}
+:root,:root *{--bg:#f8f8f8!important;--panel:#ffffff!important;--card:#ffffff!important;
+  --ink:#283038!important;--fg:#283038!important;--muted:#5a6b80!important;--dim:#5a6b80!important;--soft:#5a6b80!important;
+  --line:#c9d6e6!important;--rule:#c9d6e6!important;--grid:#e3eaf3!important;--code:#eef3fa!important;--link:#2a62b8!important;}
+:root{position:static!important;opacity:1!important;transform:none!important}
+</style><rect x="0" y="0" width="720" height="250" style="fill:#ffffff;stroke:none" /><text x="10" y="18" class="t">Counted: 4caa ledge, T567–T571</text>
+ <g transform="translate(10,30)">
+  <rect x="0" y="0" width="300" height="180" class="box" />
+  <rect x="60" y="60" width="60" height="60" class="prior" /><text x="72" y="95">(34,9)</text>
+  <rect x="120" y="60" width="60" height="60" class="navb" /><text x="132" y="95">(35,9)</text>
+    <path d="M100 70 C130 40 150 40 150 62" class="arr p" /><text x="118" y="36" class="s">RIGHT,DOWN</text>
+  <path d="M145 118 C120 150 100 150 92 120" class="arr p" /><text x="88" y="168" class="s">DOWN,LEFT</text>
+  <text x="190" y="80" class="s">ends: 34,9 · 35,9 ·</text>
+  <text x="190" y="96" class="s">34,9 · 35,9 · 34,9</text>
+  <text x="190" y="112" class="s">→ 3rd end on (34,9)</text>
+ </g>
+ <text x="370" y="18" class="t">Not counted: exploring from a hub</text>
+ <g transform="translate(370,30)">
+  <rect x="0" y="0" width="330" height="180" class="box" />
+  <rect x="135" y="60" width="60" height="60" class="game" /><text x="152" y="95">T</text>
+  <rect x="135" y="0" width="60" height="40" class="navb" /><text x="157" y="25">U</text>
+  <rect x="255" y="60" width="60" height="60" class="navb" /><text x="280" y="95">V</text>
+  <rect x="135" y="140" width="60" height="40" class="navb" /><text x="157" y="165">W</text>
+  <path d="M165 60 L165 40" class="arr g" /><path d="M195 90 L255 90" class="arr g" /><path d="M165 120 L165 140" class="arr g" />
+  <text x="10" y="80" class="s">T, U, T, V, T, W, T:</text>
+  <text x="10" y="96" class="s">4 end tiles since</text>
+  <text x="10" y="112" class="s">the 1st of the last</text>
+  <text x="10" y="128" class="s">3 ends on T</text>
+ </g>
+</svg>

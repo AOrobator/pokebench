@@ -138,7 +138,7 @@ export function atempoChain(rate: number): string {
   return [...steps, `atempo=${left.toFixed(6)}`].join(",");
 }
 
-export interface Voice { readonly path: string; readonly delayMs: number; readonly seconds: number }
+export interface Voice { readonly path: string; readonly delayMs: number }
 export interface EncoderPlan {
   readonly out: string;
   readonly fps: number;
@@ -162,37 +162,17 @@ export function planVoices(commentary: string, from: number, to: number, folder:
     if (!Value.Check(Spoken, line) || line.t < from || line.t >= to) continue;
     const at = Math.max(line.t, free);
     if (at - line.t > MOST_LATE || at + line.seconds > to) continue;
-    voices.push({ path: join(folder, line.wav), delayMs: Math.round((at - from) * 1000), seconds: line.seconds });
+    voices.push({ path: join(folder, line.wav), delayMs: Math.round((at - from) * 1000) });
     free = at + line.seconds + VOICE_GAP;
   }
   return voices;
 }
 
-const DUCK_DEPTH = 1 - 10 ** (-12 / 20), ATTACK_S = 0.15, RELEASE_S = 0.4;
-const term = (value: number): string => String(Number(value.toFixed(3)));
-const minus = (value: number): string => value < 0 ? `+${term(-value)}` : `-${term(value)}`;
-const largest = (parts: readonly string[]): string => {
-  if (parts.length === 1) return parts[0] ?? "0";
-  const half = Math.floor(parts.length / 2);
-  return `max(${largest(parts.slice(0, half))},${largest(parts.slice(half))})`;
-};
-
-// The game's gain over the clip as an ffmpeg expression in t: full, and 12 dB down while a line plays, reached
-// just as the line starts and let go after it ends. A balanced max keeps a long render's expression shallow.
-export function duckExpression(voices: readonly Voice[]): string {
-  if (voices.length === 0) return "1";
-  const dips = voices.map(voice => {
-    const start = voice.delayMs / 1000, end = start + voice.seconds;
-    return `clip(min((t${minus(start - ATTACK_S)})/${term(ATTACK_S)},(${term(end + RELEASE_S)}-t)/${term(RELEASE_S)}),0,1)`;
-  });
-  return `1-${DUCK_DEPTH.toFixed(6)}*${largest(dips)}`;
-}
-
-// Voices enter after the page's inputs; the game plays under them, ducked while each one speaks.
+// Voices enter after the page's inputs; the game plays under them.
 function voiceFilters(voices: readonly Voice[], firstInput: number, sound: string): string[] {
   const labels = voices.map((_, i) => `[w${String(i)}]`).join("");
   return [
-    `${sound}volume='${duckExpression(voices)}':eval=frame[under]`,
+    `${sound}volume=0.35[under]`,
     ...voices.map((voice, i) => `[${String(firstInput + i)}:a]aresample=${String(SAMPLE_RATE)},aformat=channel_layouts=stereo,adelay=${String(voice.delayMs)}:all=1[w${String(i)}]`),
     `[under]${labels}amix=inputs=${String(voices.length + 1)}:duration=first:normalize=0[a]`,
   ];

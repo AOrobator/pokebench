@@ -94,7 +94,11 @@ The input is an untrusted download.
 - [x] FF merge via landing board: `just land-join` (number 1), `git merge --ff-only cae3b65f0` (main 608c01540 → cae3b65f0; main had not moved, so all gates and reviews carry over unchanged). Post-main `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors; no-I/O proof). Not pushed; `just viewer-main` not run (not needed: no viewer or runtime change).
 
 **M3 — Closeout** (the operator)
-- [ ] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`
+- [x] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`. Branch `claude/verify-the-clear-docs` (prose only).
+  - [x] README: "Verify the clear" section after Results (download, `POKEBENCH_ROM`, `just verify-release <folder>`, what all PASS means and does not mean; optional `just replay-verify` and `just view-release`)
+  - [x] `runs/release-staging/67d7/VERIFY.md` (untracked release staging): "How to check it yourself" step 1 is `just verify-release` from a PokeBench clone; the manual checks stay as steps 2-6. The Claude Code session id prefix was removed from "Tokens and cost" (now "the gateway's session record"). `VERIFY.md` is not listed in `SHA256SUMS`, so the sums are unchanged.
+  - [x] Final snapshot file name: satisfied by the existing `raw-ram-final.json.gz` (byte copy of `raw-ram/00109027.json.gz`, listed in `SHA256SUMS`). `verify_release.KINDS["final snapshot"]` accepts `raw-ram-final*.json[.gz|.xz]`, so no rename.
+  - [ ] Independent review of the prose (caller handles review and landing)
 
 ## Closing the Loop
 
@@ -109,6 +113,7 @@ The input is an untrusted download.
 - After the cut: 50/50 tests; ruff and mypy clean on the changed files.
 - Guard deletion (each removed alone, test went red, restored): game-clear flag, badge flags, Rayquaza, gzip digest binding, last-snapshot binding, sequence/frame binding, tar links, tar names, tar size cap, operator events, features digest, seq order, turn contiguity, run_end completed, boot start, integrity mismatch, checkpoint sha256, checkpoint boot provenance, event line cap, final snapshot cap, RUN_END kind, RUN_END turn. Turn contiguity and checkpoint sha256 first survived (the tests also tripped other guards); `test_a_turn_gap_fails_even_when_run_end_agrees` and `test_a_same_size_swapped_state_fails` were added to pin them. RUN_END kind likewise survived until the RUN_END test covered each field.
 - First real run FAILed `checkpoints: provenance` on `RUN_END`, a third checkpoint kind (`checkpoint-capture.ts`: `kind: run_end`, `end_reason`, `turn`, `source`). Added its provenance rule and tests; the rerun passed.
+- 2026-11-11 18:05 ET: M3 closeout docs on `claude/verify-the-clear-docs` (worktree `~/dev/pokebench-verify-clear-docs` from main b2c7f71ae). README section and staged `VERIFY.md` step 1 written from the recipes and module docstrings of `verify_release`, `replay_verify` and `view_release`. Documentation validation: `git diff --check` clean; no build, lint or test suites (prose only). Found: the session id prefix also appears in the shipped agent trace (`session.json`, `calls.jsonl`, every `calls/call-*.jsonl`); left for the operator.
 
 ## Surprises
 

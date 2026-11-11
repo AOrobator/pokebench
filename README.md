@@ -114,6 +114,26 @@ Each chart shows every model's best run, read from its own recording. Times are 
 
 These runs, with their harness commits, presets, budgets and evidence, are in the [results ledger](docs/results.md).
 
+## Verify the clear
+
+You can check run 67d7's Hall of Fame clear yourself with your own ROM. No model, GPU or network is needed.
+
+1. Download the 67d7 release files, including `SHA256SUMS`, into one folder.
+2. Set `POKEBENCH_ROM` to your Pokémon Emerald ROM, as in Setup.
+3. Run `just verify-release <folder>`.
+
+It prints one `PASS` or `FAIL` line per check and exits non-zero on any `FAIL`. It reads the folder and never writes to it. All `PASS` means:
+
+- The files it reads match `SHA256SUMS`, and your ROM is the right one.
+- The event log starts from boot, has no operator input, and ends with the run's game-clear proof.
+- The run's final RAM snapshot, read with the game's own memory layout, shows the game-clear flag, all eight badges and Rayquaza in the party.
+- The checkpoints (one save state per milestone) are complete and match the run.
+
+This shows the release is intact and self-consistent. It does not replay the game. For that:
+
+- `just replay-verify <folder>` replays the run from power-on in mGBA with the logged inputs and recorded clock, and compares the emulator's RAM with each recorded snapshot. It stops at the first difference. By default it covers game frames 0 to 150,000; `--all` covers the whole run. It needs the mGBA build (`just build-mgba`).
+- `just view-release <folder>` checks the release, unpacks it under `runs/releases/`, and opens it in the viewer on `127.0.0.1`.
+
 ## Working on PokeBench
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for submitting a run or a reproduction and for the lint, test and review gates, and [SECURITY.md](SECURITY.md) for what binds where and how to report a vulnerability.

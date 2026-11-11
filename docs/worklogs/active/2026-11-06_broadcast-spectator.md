@@ -122,6 +122,7 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
 - [x] GREEN: env 122 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean; viewer 150 broadcast tests, broadcast modules 98.8% lines 91.1% branches, eslint and tsc clean on the changed files. `--side-only --thinking-from <bridge>` on 67d7: 1,876 turns of thinking (scrub blanked nothing), 4,124 cost rows, last $780.55. Duck: `volume='1-0.748811*max(...)':eval=frame` with one clipped attack/release ramp per line, balanced max. Store reads the side files once per run tail; event thinking wins over the side file; recorded dollars beat token pricing.
 - [ ] Trial v2 render t=52400-52668, frames checked, ducking measured
 - [ ] Review: Codex via `just tell-codex`
+  - Round 1, GPT on a6bec58b5..83af8282d (packet sha f91eb9b4): BLOCKING, real and reproduced: the scrub blanked only the first part of a path with spaces or parentheses. Fix: a path or URL is blanked from its start to the end of its line (fail closed).
 
 ## Closing the Loop
 

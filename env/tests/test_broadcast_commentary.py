@@ -991,3 +991,20 @@ def test_side_only_needs_a_bridge_and_the_whole_run() -> None:
         Options(run="run1", side_only=True, thinking_from=Path("/b"), voice_only=True),
     ):
         assert options_problem(bad) is not None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Open /Users/alice/Private Records/patient-HIV-positive.pdf before playing.\nNext line.",
+        "Open C:\\Users\\alice\\Private Records\\patient-HIV-positive.pdf before playing.\nNext line.",
+        "Open /tmp/(confidential-client)/invoice.pdf before playing.\nNext line.",
+        'Open "/Users/alice/My Files/x.txt" before playing.\nNext line.',
+        "Open https://example.com/a b c before playing.\nNext line.",
+    ],
+)
+def test_scrub_blanks_a_path_or_url_through_the_end_of_its_line(text: str) -> None:
+    out = scrub_private(text, [])
+    for gone in ("alice", "Records", "patient", "confidential", "invoice", "Files", "example", "playing"):
+        assert gone not in out
+    assert out.endswith("…\nNext line.")

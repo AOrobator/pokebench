@@ -94,6 +94,28 @@ def _first_line(stream: BinaryIO) -> tuple[str, bytes]:
     return run, line
 
 
+def _peek_run_id(files: ReleaseFiles, target: str) -> str:
+    """The run id from the first line only, without decoding the rest of the log.
+
+    The full pass checks everything else (single member, digest, every line) before publishing.
+    """
+    _, raw, stream = _stream(files, target)
+    with raw:
+        if not vr._is_tar(target):
+            return _first_line(stream)[0]
+        with vr._open_tar(stream, target) as tar:
+            member = tar.next()
+            if (
+                member is None
+                or member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE)
+                or vr.EVENT_MEMBER.fullmatch(member.name) is None
+            ):
+                raise ReleaseError("event archive does not start with a plain events*.jsonl file")
+            body = tar.extractfile(member)
+            assert body is not None
+            return _first_line(cast(BinaryIO, body))[0]
+
+
 def _event_lines(stream: BinaryIO, first: bytes, refs: dict[int, str] | None) -> Iterator[bytes]:
     yield first
     for _, line in vr._lines(stream, vr.EVENT_LINE_CAP, "event log"):
@@ -235,9 +257,7 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
         if tee.drain() != sums[target]:
             raise ReleaseError(f"{target}: sha256 mismatch")
 
-    tee, raw, events = _stream(files, targets["events"])
-    with raw:
-        run_id, _ = vr.read_event_source(events, targets["events"], _first_line)
+    run_id = _peek_run_id(files, targets["events"])
     previous = output.existing(run_id)
     if previous is not None:
         if previous != marker:

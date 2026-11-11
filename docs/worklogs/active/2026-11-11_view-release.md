@@ -58,6 +58,10 @@ Untrusted download, the same bounded non-extracting readers as `verify-release`.
 
 ## Surprises
 
+- Peeking the run id through `read_event_source` decoded the whole 4.3 GB events tar (it keeps iterating to prove there is one member). The peek now reads only the first member's first line; the full pass still enforces the single-member rule before publishing.
+- The trainer card, party and bag art are ROM-derived assets in `runs/sprites/` (`just trainer-card-art`, `party-art`, `bag-art`, which also need a pokeemerald checkout); a release folder has none, so the viewer shows "Trainer card artwork unavailable" and `/sprites/...` 404s. Cosmetic; not in this scope.
+- `/api/models`, `/api/current-runs` and `/api/runs/<id>/current` answer 503 on a release root (no current-run projector for a finished run); the run page replays from frames regardless.
+
 ## Multi-Model Review Log
 
 ## Boy Scout Log

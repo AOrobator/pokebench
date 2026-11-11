@@ -88,3 +88,18 @@ Integration head161829f25 is the source under full checks (test includes build,
 then lint/vendor/protected visuals). The freeze-record commit initially hit the
 worklog timestamp gate immediately after the merge; this substantive update records
 that source identity and the running checks. No hook was bypassed.
+
+## Independent review, round one
+
+Frozen base3ae49f1e0 / headd26c4c130, digest
+1b98e5caf5f6d9b7089801919452390f742b67c0956caa40496503ee266c602a.
+Independent GPT LGTM; Claude found no implementation blocker but BLOCKING docsB1:
+old viewer-only rollback cannot read compact rows, and old projector does not
+republish completed rows. Fix accepted: document compatible backup + both-consumer
+rollback order and limits; forward repair preferred. No backward writer/shim added.
+Other hardening notes are follow-ups outside the frozen owner boundary.
+
+Full gates passed on integrated source: agent3038, viewer1276, env3121, gateway39,
+coverage floors/no-I/O, lint/vendor and protected trainer visuals3/3. Browser card
+stability under held refresh and error/recovery remains an explicit completion
+receipt, separate from the already passing happy-path/progress/native fixture proof.

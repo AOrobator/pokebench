@@ -50,7 +50,13 @@ Recording truncation, replacement and generation changes invalidate old owners a
 
 For a service-only rollback, run `just current-stop`. This unloads the root-specific owned agent and saves its plist as `.plist.disabled`. Recordings, SQLite and old card files remain. A failed upgrade restores the previous own launch configuration and attempts to restart that service.
 
-To roll back the viewer, use the retained pre-rollout compiled CLI with `scripts/viewer-restart.sh <old-cli> 8790 <canonical-runs> <canonical-.env> <viewer-log>`, after coordinating the shared refresh. This restarts only the viewer. Keep derived data and pinned builds for diagnosis; do not delete source files or replay old metadata into active recordings.
+Before activating the compact-publication projector, take a consistent SQLite backup of the derived current database and retain the matching compiled viewer/projector builds. Do not copy a live SQLite file without its transactional state; use SQLite backup.
+
+A viewer-only rollback is supported only while the database still contains legacy publication rows. After any compact rows have been written, an old viewer cannot read them. Rolling back only the projector is also insufficient: completed rows are not automatically republished in the legacy format. Prefer a forward repair while retaining the compatible new reader.
+
+If a full rollback is required, coordinate it and stop both viewer consumers first: unload the owned projector with `just current-stop` and stop the validated served-viewer process using the same ownership checks as `viewer-restart.sh`. With no readers or writers open, restore the compatible pre-activation SQLite backup as a consistent database, then start the retained matching projector and viewer pair. Verify root binding, source anchors and the selected run after restart. Without such a backup, do not deploy an old reader over compact rows. Restoring the prior database also restores its prior display limitations, including the original 64 KiB failure; it is a recovery checkpoint, not a fix.
+
+Keep derived backups and pinned builds for diagnosis. Restore only derived viewer data: never delete, truncate or replace original recordings, native checkpoints, gameplay directories, or active runtime code to roll back the display.
 
 Do not run two projector instances against one runs root, remove lock files to bypass ownership, restart games to fix viewer freshness, or overwrite an active runtime checkout during preparation.
 

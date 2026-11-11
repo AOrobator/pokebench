@@ -62,14 +62,17 @@ It runs on macOS on Apple Silicon and on Linux x86_64 (tested on Ubuntu 24.04); 
   sudo apt-get install -y just cmake build-essential pkg-config libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpng-dev zlib1g-dev
   ```
 
-1. Clone with the game-server submodule.
+1. Clone, then check out the game-server submodule.
 
    ```bash
-   git clone --recursive https://github.com/AOrobator/pokebench.git
+   git clone https://github.com/AOrobator/pokebench.git
    cd pokebench
+   git submodule update --init env/vendor/continual-harness
    ```
 
-2. Copy the settings template and check the machine. `just doctor` is read-only: it prints PASS, FAIL or SKIP for each prerequisite, with the command that fixes each miss.
+   Initialise only that submodule: the game server has a nested submodule with no URL, so `git clone --recursive` ends with an error.
+
+2. Copy the settings template and check the machine. `just doctor` is read-only: it prints PASS, FAIL or SKIP for each prerequisite, with the command that fixes each miss. The model checks show SKIP until you set a model in step 5.
 
    ```bash
    cp .env.example .env

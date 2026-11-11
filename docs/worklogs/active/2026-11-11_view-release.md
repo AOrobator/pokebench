@@ -77,6 +77,16 @@ Real 67d7 release, `just view-release ~/dev/pokebench/runs/release-staging/67d7 
 
 ## Multi-Model Review Log
 
+### Round 1 — GPT (JOB review-gpt-view-release-e031ec5cf)
+
+Base 6c8c42247, head e031ec5cf, SHA-256 1d44f7f5…c3c3. 22 focused passed. `VERDICT: BLOCKING`, three Fix findings, all accepted:
+
+- [P1] Concurrent invocations shared one partial folder and `begin()` deleted it, so a published folder could miss `events.jsonl`. Fixed: `DiskOutput` now runs on an injected `Fs` (`RealFs` is the thin entrypoint). Each invocation gets its own `mkdtemp` staging folder, publishes by an atomic claim of the final name (mkdir, then rename onto that empty directory), and discards only its own staging. The second finisher gets "another view-release … finished first". Test: the reviewer's interleaving on an in-memory `Fs`. Real disk: two concurrent unpacks of the 67d7 release; one published 4,153 frames and 404 checkpoint files, the other refused, no partial left. A rerun reused it.
+- [P1] `--raw-ram` kept an unbounded references dict (with unvalidated digests) and index list. Fixed: digests must be 64 hex characters, at most `MAX_REFS` 500,000 references (67d7: 48,201), and the index is appended to the output line by line through a new `Output.append`. Tests for the digest, the cap and appends.
+- [P2] The reuse marker ignored `--raw-ram`. Fixed: the marker records `base` or `raw-ram`; a `base` unpack is refused for `--raw-ram` (remove and rerun), while a `raw-ram` unpack serves both. Test.
+- Guard deletion: each of the six new guards removed alone turns its test red. 26/26.
+- The gate run on e031ec5cf was stopped (superseded).
+
 ## Boy Scout Log
 
 ## Archive Milestone (user-gated)

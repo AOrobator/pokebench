@@ -179,6 +179,10 @@ class MemoryOutput:
         assert rel not in self.partial
         self.partial[rel] = b"".join(chunks)  # type: ignore[call-overload]
 
+    def append(self, rel: str, data: bytes) -> None:
+        assert self.partial is not None
+        self.partial[rel] = self.partial.get(rel, b"") + data
+
     def publish(self, run_id: str, marker: str) -> None:
         assert self.partial is not None
         self.published[run_id] = self.partial
@@ -461,3 +465,109 @@ def test_main_usage_and_failures() -> None:
         out=text,
     )
     assert code == 1 and "FAIL unpack" in text.getvalue()
+
+
+# --- review round 1: reuse modes, reference bounds, concurrent unpacks ---
+
+
+def test_a_base_unpack_is_not_reused_for_raw_ram_but_a_raw_ram_one_serves_both() -> None:
+    files = Build().files()
+    _, out = unpack(files)
+    assert out.markers[RUN].endswith(" base")
+    with pytest.raises(vrl.ReleaseError, match="without --raw-ram"):
+        unpack(files, raw_ram=True, output=out)
+    _, full = unpack(files, raw_ram=True)
+    assert full.markers[RUN].endswith(" raw-ram")
+    assert vrl.unpack(MemoryRelease(files), full, raw_ram=True).reused
+    assert vrl.unpack(MemoryRelease(files), full, raw_ram=False).reused
+
+
+def test_raw_ram_references_are_validated_and_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    build = Build()
+    build.ref_sha[0] = "x" * 8
+    assert_nothing_published(build.files(), "without a sha256 digest", raw_ram=True)
+    monkeypatch.setattr(vrl, "MAX_REFS", 1)
+    assert_nothing_published(Build().files(), "more than 1 snapshots", raw_ram=True)
+
+
+class MemoryFs:
+    """Directories and files in memory, with rename semantics like the real disk."""
+
+    def __init__(self) -> None:
+        self.dirs: set[Path] = set()
+        self.files: dict[Path, bytes] = {}
+        self.counter = 0
+
+    def entry(self, path: Path) -> str:
+        if path in self.files:
+            return "file"
+        return "dir" if path in self.dirs else "missing"
+
+    def read_text(self, path: Path) -> str:
+        return self.files[path].decode()
+
+    def make_unique_dir(self, parent: Path, prefix: str) -> Path:
+        self.counter += 1
+        path = parent / f"{prefix}{self.counter}.partial"
+        self.dirs.add(path)
+        return path
+
+    def write_new(self, path: Path, chunks: object) -> None:
+        assert path not in self.files
+        self.files[path] = b"".join(chunks)  # type: ignore[call-overload]
+
+    def append(self, path: Path, data: bytes) -> None:
+        self.files[path] = self.files.get(path, b"") + data
+
+    def rename_new(self, source: Path, target: Path) -> None:
+        if target in self.dirs or target in self.files:
+            raise FileExistsError(str(target))
+        moved = {p: target / p.relative_to(source) for p in self.files if source in p.parents}
+        for old, new in moved.items():
+            self.files[new] = self.files.pop(old)
+        self.dirs.discard(source)
+        self.dirs.add(target)
+
+    def remove_tree(self, path: Path) -> None:
+        for p in [p for p in self.files if path in p.parents]:
+            del self.files[p]
+        self.dirs.discard(path)
+
+
+def test_concurrent_unpacks_never_publish_a_mixed_or_partial_folder() -> None:
+    fs = MemoryFs()
+    root = Path("/repo/runs/releases")
+    a, b = vrl.DiskOutput(root, fs), vrl.DiskOutput(root, fs)
+    a.begin(RUN)
+    a.write("events.jsonl", [b"events"])
+    b.begin(RUN)  # the interleaving from review: B starts after A wrote its events
+    a.write("frames/000011_0.png", [b"png"])
+    a.publish(RUN, "sums base")
+    b.write("events.jsonl", [b"events"])
+    with pytest.raises(vrl.ReleaseError, match="finished first"):
+        b.publish(RUN, "sums base")
+    b.discard(RUN)
+    final = root / RUN
+    assert fs.files[final / RUN / "events.jsonl"] == b"events"
+    assert fs.files[final / RUN / "frames/000011_0.png"] == b"png"
+    assert vrl.DiskOutput(root, fs).existing(RUN) == "sums base"
+    assert not any(".partial" in str(p) for p in fs.files)
+
+
+def test_disk_output_discards_only_its_own_staging_and_rejects_stray_folders() -> None:
+    fs = MemoryFs()
+    root = Path("/r")
+    a, b = vrl.DiskOutput(root, fs), vrl.DiskOutput(root, fs)
+    a.begin(RUN)
+    a.append("raw-ram/index.jsonl", b"one\n")
+    a.append("raw-ram/index.jsonl", b"two\n")
+    b.begin(RUN)
+    b.write("events.jsonl", [b"b"])
+    b.discard(RUN)
+    b.discard(RUN)  # idempotent
+    a.publish(RUN, "m raw-ram")
+    assert fs.files[root / RUN / RUN / "raw-ram/index.jsonl"] == b"one\ntwo\n"
+    assert vrl.DiskOutput(root, fs).existing("other") is None
+    fs.dirs.add(root / "stray")
+    with pytest.raises(vrl.ReleaseError, match="not a finished unpack"):
+        vrl.DiskOutput(root, fs).existing("stray")

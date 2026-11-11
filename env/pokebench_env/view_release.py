@@ -17,6 +17,7 @@ import shutil
 import socket
 import sys
 import tarfile
+import tempfile
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,9 @@ REPO = Path(__file__).resolve().parents[2]
 RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 FRAME_MEMBER = re.compile(r"frames/(\d{6}_\d+\.png)")
 FRAME_CAP = 8 * 1024 * 1024
+MAX_REFS = 500_000  # raw_ram references kept for --raw-ram checks; 67d7 has 48,201
+SHA256 = re.compile(r"[0-9a-f]{64}")
+MARKER_FILE = ".release-sha256sums"
 MAX_FRAMES = 200_000
 # The viewer reads these to find model endpoints and public origins; a release view has neither.
 STRIPPED_ENV = ("POKEBENCH_ENDPOINT_FILE", "POKEBENCH_VIEWER_ORIGINS")
@@ -53,6 +57,8 @@ class Output(Protocol):
     def begin(self, run_id: str) -> None: ...
 
     def write(self, rel: str, chunks: Iterable[bytes]) -> None: ...
+
+    def append(self, rel: str, data: bytes) -> None: ...
 
     def publish(self, run_id: str, marker: str) -> None: ...
 
@@ -125,12 +131,13 @@ def _event_lines(stream: BinaryIO, first: bytes, refs: dict[int, str] | None) ->
             except ValueError:
                 raise ReleaseError("event log has a line that is not JSON") from None
             ref = event.get("raw_ram") if isinstance(event, dict) else None
-            if (
-                isinstance(ref, dict)
-                and type(ref.get("sequence")) is int
-                and isinstance(ref.get("sha256"), str)
-            ):
-                refs[cast(int, ref["sequence"])] = cast(str, ref["sha256"])
+            if isinstance(ref, dict) and type(ref.get("sequence")) is int:
+                digest = ref.get("sha256")
+                if not isinstance(digest, str) or SHA256.fullmatch(digest) is None:
+                    raise ReleaseError("event log has a raw_ram reference without a sha256 digest")
+                refs[cast(int, ref["sequence"])] = digest
+                if len(refs) > MAX_REFS:
+                    raise ReleaseError(f"event log references more than {MAX_REFS:,} snapshots")
         yield line
 
 
@@ -199,7 +206,6 @@ def _checkpoints(stream: BinaryIO, name: str, output: Output) -> int:
 
 def _raw_ram(stream: BinaryIO, output: Output, refs: Mapping[int, str]) -> int:
     """Rebuild raw-ram/ as the run wrote it: gzip level 1, mtime 0, of the exact JSON text."""
-    index: list[bytes] = []
     count = 0
     for number, line in vr._lines(stream, MAX_ARCHIVE_BYTES + 1, "raw-RAM log"):
         body = line[:-1]
@@ -227,9 +233,12 @@ def _raw_ram(stream: BinaryIO, output: Output, refs: Mapping[int, str]) -> int:
             "bytes": len(packed),
             "raw_bytes": sum(r["size"] for r in value["regions"]),
         }
-        index.append(json.dumps(entry, separators=(",", ":")).encode() + b"\n")
+        output.append(
+            "raw-ram/index.jsonl", json.dumps(entry, separators=(",", ":")).encode() + b"\n"
+        )
         count += 1
-    output.write("raw-ram/index.jsonl", index)
+    if count == 0:
+        output.write("raw-ram/index.jsonl", [])
     return count
 
 
@@ -258,10 +267,16 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
             raise ReleaseError(f"{target}: sha256 mismatch")
 
     run_id = _peek_run_id(files, targets["events"])
+    mode = "raw-ram" if raw_ram else "base"
     previous = output.existing(run_id)
     if previous is not None:
-        if previous != marker:
+        previous_sums, _, previous_mode = previous.partition(" ")
+        if previous_sums != marker:
             raise ReleaseError(f"runs/releases/{run_id} holds a different release; remove it first")
+        if raw_ram and previous_mode != "raw-ram":
+            raise ReleaseError(
+                f"runs/releases/{run_id} was unpacked without --raw-ram; remove it and rerun"
+            )
         for target in targets.values():
             tee, raw, _ = _stream(files, target)
             with raw:
@@ -296,7 +311,7 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
             with raw:
                 snapshots = _raw_ram(ram, output, refs or {})
                 check(targets["raw-RAM log"], tee)
-        output.publish(run_id, marker)
+        output.publish(run_id, f"{marker} {mode}")
     except BaseException:
         output.discard(run_id)
         raise
@@ -344,50 +359,111 @@ def art_note(runs_root: Path) -> str:
     )
 
 
-# The thin disk and process entrypoints; unpack() and viewer_command() are tested in memory.
-class DiskOutput:  # pragma: no cover
-    def __init__(self, root: Path) -> None:
+class Fs(Protocol):
+    """The few disk operations DiskOutput needs."""
+
+    def entry(self, path: Path) -> str: ...  # "missing", "dir", "link" or "file"
+
+    def read_text(self, path: Path) -> str: ...
+
+    def make_unique_dir(self, parent: Path, prefix: str) -> Path: ...
+
+    def write_new(self, path: Path, chunks: Iterable[bytes]) -> None: ...
+
+    def append(self, path: Path, data: bytes) -> None: ...
+
+    def rename_new(self, source: Path, target: Path) -> None: ...  # fails if target exists
+
+    def remove_tree(self, path: Path) -> None: ...
+
+
+class DiskOutput:
+    """One invocation's run folder: its own uniquely named staging folder, renamed into place.
+
+    Two invocations never share staging, never delete each other's, and the second to finish
+    finds the published folder and fails rather than replacing it.
+    """
+
+    def __init__(self, root: Path, fs: "Fs | None" = None) -> None:
         self.root = root
-        self._run: Path | None = None
-
-    def _final(self, run_id: str) -> Path:
-        return self.root / run_id
-
-    def _partial(self, run_id: str) -> Path:
-        return self.root / f".{run_id}.partial"
+        self.fs: Fs = fs if fs is not None else RealFs()
+        self._staging: Path | None = None
+        self._run_id: str | None = None
 
     def existing(self, run_id: str) -> str | None:
-        final = self._final(run_id)
-        if not final.exists():
+        final = self.root / run_id
+        kind = self.fs.entry(final)
+        if kind == "missing":
             return None
-        marker = final / ".release-sha256sums"
-        if final.is_symlink() or not marker.is_file():
+        if kind != "dir" or self.fs.entry(final / MARKER_FILE) != "file":
             raise ReleaseError(f"{final} exists but is not a finished unpack; remove it first")
-        return marker.read_text().strip()
+        return self.fs.read_text(final / MARKER_FILE).strip()
 
     def begin(self, run_id: str) -> None:
-        self.root.mkdir(parents=True, exist_ok=True)
-        partial = self._partial(run_id)
-        if partial.exists():
-            shutil.rmtree(partial)
-        (partial / run_id).mkdir(parents=True)
-        self._run = partial / run_id
+        self._staging = self.fs.make_unique_dir(self.root, f".{run_id}.")
+        self._run_id = run_id
+
+    def _path(self, rel: str) -> Path:
+        assert self._staging is not None and self._run_id is not None
+        return self._staging / self._run_id / rel
 
     def write(self, rel: str, chunks: Iterable[bytes]) -> None:
-        assert self._run is not None
-        path = self._run / rel
+        self.fs.write_new(self._path(rel), chunks)
+
+    def append(self, rel: str, data: bytes) -> None:
+        self.fs.append(self._path(rel), data)
+
+    def publish(self, run_id: str, marker: str) -> None:
+        assert self._staging is not None
+        self.fs.write_new(self._staging / MARKER_FILE, [marker.encode() + b"\n"])
+        try:
+            self.fs.rename_new(self._staging, self.root / run_id)
+        except FileExistsError:
+            raise ReleaseError(
+                f"another view-release of {run_id} finished first; run again to reuse it"
+            ) from None
+        self._staging = None
+
+    def discard(self, run_id: str) -> None:
+        if self._staging is not None:
+            self.fs.remove_tree(self._staging)
+            self._staging = None
+
+
+# The thin disk and process entrypoints; everything above is tested in memory.
+class RealFs:  # pragma: no cover
+    def entry(self, path: Path) -> str:
+        if path.is_symlink():
+            return "link"
+        if path.is_dir():
+            return "dir"
+        return "file" if path.exists() else "missing"
+
+    def read_text(self, path: Path) -> str:
+        return path.read_text()
+
+    def make_unique_dir(self, parent: Path, prefix: str) -> Path:
+        parent.mkdir(parents=True, exist_ok=True)
+        return Path(tempfile.mkdtemp(prefix=prefix, suffix=".partial", dir=parent))
+
+    def write_new(self, path: Path, chunks: Iterable[bytes]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "xb") as file:
             for chunk in chunks:
                 file.write(chunk)
 
-    def publish(self, run_id: str, marker: str) -> None:
-        partial = self._partial(run_id)
-        (partial / ".release-sha256sums").write_text(marker + "\n")
-        os.replace(partial, self._final(run_id))
+    def append(self, path: Path, data: bytes) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "ab") as file:
+            file.write(data)
 
-    def discard(self, run_id: str) -> None:
-        shutil.rmtree(self._partial(run_id), ignore_errors=True)
+    def rename_new(self, source: Path, target: Path) -> None:
+        # mkdir claims the name atomically; rename onto that empty directory is then ours alone.
+        target.mkdir()
+        os.rename(source, target)
+
+    def remove_tree(self, path: Path) -> None:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def _free_port() -> int:  # pragma: no cover

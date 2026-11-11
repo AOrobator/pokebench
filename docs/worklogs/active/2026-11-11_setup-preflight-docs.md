@@ -40,6 +40,7 @@ Follow-ups from the Linux trial, out of scope here: an isMain() helper for impor
 - [x] Codex review-setup-preflight-docs-56e639c12: VERDICT: LGTM (PNGs pixel-identical on 3.11, audit reproduces every plotted point; 1 s rounding note only)
 - [x] docs/images/charts/COSTS.md: provenance of every plotted dollar figure; local-model figures marked as copied from the article and not reproducible from disk
 - [x] Claude lane (claude -p, ~/.claude-review, plan mode) on 640ba5c74..5df0de1ca, packet sha256 4ddffbee…6045043: CHANGES. (1) Linux pkg-config probe used env/.venv/bin/pkg-config (PyPI pkgconf) when the venv is on PATH, false-FAILing ffmpeg/libpng: doctor now picks the first pkg-config on PATH outside env/.venv, as build-mgba.sh does (2 RED tests first). (2) justfile no-python3 fallback suggested brew on Linux: now names both platforms. test_doctor 35 passed; ruff, format, mypy clean. Grok lane unavailable until 11/17 (recorded, the operator said land it)
-- [ ] Claude lane re-review of the fix
+- [x] Claude lane round 2 on 5df0de1ca..99b2bf8ce: LGTM
 - [x] COSTS.md local section corrected (coordinator, from the operator 11/9 choice): basis is the cheapest OpenRouter provider per model; Qwen3.6 fp8 host $0.011/$0.101 per M recomputes d41e to $3.01 (article $2.94); GLM and Qwen3.8 rates not recorded, figures are the article's; re-priced column removed
 - [x] Claude lane round 3 on 99b2bf8ce..39af55d4f: CHANGES, one finding (operator handle in COSTS.md); now "operator"
+- [x] Claude lane round 4 on 39af55d4f..8814ca0ab: LGTM. Ready to land: Codex (GPT) LGTM through 56e639c12, Claude LGTM through 8814ca0ab, Grok unavailable until 11/17; The operator: "land it"

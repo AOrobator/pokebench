@@ -84,3 +84,19 @@ export function parseFeatureDescriptions(value: unknown): ReadonlyMap<string, st
 
 // Shared immutable-metadata validation uses the same owner as workbench configs.
 export {config as isWorkbenchConfig};
+
+// Whether the viewer must load /api/cards to know the selected run (its card, splits, config).
+// projectorRuns is how many runs the current projector listed: none means this runs root has no
+// projector service (a release or scratch root), so the cards are the only record of the run.
+export interface CardEnrichmentInput {
+  readonly projector: boolean;
+  readonly runId: string | null;
+  readonly projectorRuns: number;
+  readonly snapshot: { readonly metadata: boolean; readonly card: boolean } | null;
+}
+export function needsCardEnrichment(input: CardEnrichmentInput): boolean {
+  if (!input.projector) return true;
+  if (input.runId === null) return false;
+  if (input.projectorRuns === 0) return true;
+  return input.snapshot !== null && (!input.snapshot.metadata || !input.snapshot.card);
+}

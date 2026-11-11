@@ -32,7 +32,8 @@ No new endpoint or input; `/api/cards` is already fetched and validated by `pars
 **M1 — Source readiness**
 - [x] Worklog
 - [x] Tests (RED)
-- [ ] Implement; cheap checks; guard deletion; full gates
+- [x] Implement (`needsCardEnrichment` in workbench-data.ts; app.ts uses it); viewer tsc and eslint clean; workbench tests 25/25. Guard: removing the projectorRuns===0 line turns the new test red; restored.
+- [ ] Full gates
 - [ ] Browser check: scratch multi-run root (67d7 + 37ca clone) with no projector, where SPLITS races the frontier; single-run root still settles (with splits-no-frontier) or is unchanged
 - [ ] Codex review; ready to land
 

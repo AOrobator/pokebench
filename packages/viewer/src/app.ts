@@ -29,7 +29,7 @@ import { parsePartyData, partyPage, type PartyData, type PartyTab, type PartyUi 
 import { browserGlyphSheet, drawGlyphs, fillCards, loadCardArt, syncCards, type LoadedArt } from "./card-dom.js";
 import { cardRow } from "./card-row.js";
 import { currentSplits } from "./current-public.js";
-import { PROBE_SESSION, WORKBENCH_POLL_MS, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
+import { PROBE_SESSION, WORKBENCH_POLL_MS, needsCardEnrichment, parseWorkbench, type WorkbenchRun, type WorkbenchData } from "./workbench-data.js";
 import { isProbeRun, plateFacts } from "./workbench-view.js";
 
 export interface StreamLike {
@@ -742,8 +742,8 @@ export class App {
   // Current snapshots carry bounded card anchors and on-demand saved progress.
   // Legacy producers or an absent card may still need the older enrichment path.
   private needsWorkbenchEnrichment(): boolean {
-    if (this.current === null) return true;
-    return this.runId !== null&&this.current.state.snapshot!==null&&(this.current.state.snapshot.metadata===undefined||this.current.state.snapshot.run.card==null);
+    const snapshot = this.current?.state.snapshot ?? null;
+    return needsCardEnrichment({ projector: this.current !== null, runId: this.runId, projectorRuns: this.current?.state.runs.length ?? 0, snapshot: snapshot === null ? null : { metadata: snapshot.metadata !== undefined, card: snapshot.run.card != null } });
   }
 
   private loadWorkbench(): Promise<void> {

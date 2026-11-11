@@ -9,11 +9,11 @@
 | GPT-6 Astra `429f` | 718.54 | Heat Badge (turn 2418) | cumulative to the badge | operator's 10/30 run-grades report, Codex native session usage |
 | GPT-6.1 Sol `3300` | 149.92 | Dynamo Badge (turn 858) | cumulative to the badge | `runs/<id>/attached-harness/codex/native.jsonl` |
 | DeepSeek V4.1 Flash `5f0f` | 9.56 | Balance Badge (turn 1684) | cumulative to the badge | `runs/<id>/events.jsonl` usage |
-| Qwen3.6 35B-A3B `d41e` | 2.94 | Dynamo Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
-| Qwen3.6 35B-A3B, Rayquaza lane `3bb0` | 2.82 | Balance Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
-| GLM-5.3 Flash `6bbd` | 2.85 | Dynamo Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
-| Qwen3.8 27B `7da5` | 1.04 | Stone Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
-| Qwen3.8 27B, Rayquaza lane `6056` | 6.09 | Knuckle Badge | article figure | cheapest OpenRouter provider (the operator, 11/9) |
+| Qwen3.6 35B-A3B `d41e` | 2.94 | Dynamo Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
+| Qwen3.6 35B-A3B, Rayquaza lane `3bb0` | 2.82 | Balance Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
+| GLM-5.3 Flash `6bbd` | 2.85 | Dynamo Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
+| Qwen3.8 27B `7da5` | 1.04 | Stone Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
+| Qwen3.8 27B, Rayquaza lane `6056` | 6.09 | Knuckle Badge | article figure | cheapest OpenRouter provider (operator, 11/9) |
 
 ## Claude Opus 5.5 (chain and `67d7`)
 

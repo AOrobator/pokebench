@@ -72,3 +72,11 @@ export function sourceEvidence(path:string):string{
  for(const name of receipts){const file=join(folder,name);if(!existsSync(file))continue;const parent=dirname(file);if(lstatSync(parent).isSymbolicLink())throw new Error("Evidence directory refuses symbolic links");const stat=lstatSync(file);if(stat.isSymbolicLink()||!stat.isFile())throw new Error("Invalid evidence receipt source");keys.push(`${name}:${String(stat.dev)}:${String(stat.ino)}:${String(stat.size)}:${String(stat.mtimeMs)}:${String(stat.ctimeMs)}`);}
  return JSON.stringify({prefix:prefixSignature(path),receipts:keys});
 }
+
+// Current counters/state depend on the append-only event source and restoration
+// prefix, not independently refreshed grading receipts. Accept old cache evidence
+// envelopes so this migration resumes their existing byte cursors.
+export function sameEventEvidence(saved:string,live:string):boolean {
+ const prefix=(text:string):string|null=>{try{const v:unknown=JSON.parse(text);return typeof v==="object"&&v!==null&&"prefix" in v&&typeof v.prefix==="string"?v.prefix:null;}catch{return null;}};
+ const before=prefix(saved),after=prefix(live);return before!==null&&after!==null&&before===after;
+}

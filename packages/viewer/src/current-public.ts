@@ -1,3 +1,4 @@
+import {parseCurrentMetadata,metadataReference,type CurrentMetadata} from "./current-metadata.js";
 // Browser-safe display protocol. It is deliberately not a resumable checkpoint.
 import {emptyCurrent,parseCurrent,currentView,MAX_OPEN_TOOLS,type CurrentState} from "./current-state.js";
 import {parseWorkbench,type WorkbenchRun,type WorkbenchSplit} from "./workbench-data.js";
@@ -6,20 +7,23 @@ import type {RunEvent} from "@pokebench/agent/events";
 // An older history page keeps up to four times the newest page's 64 events.
 export const HISTORY_REPLY_EVENTS=256;
 export interface CurrentSummary {
+ metadata?:string;
  version:1;id:string;generation:string;revision:number;seq:number;at:number;clockAt:number;updatedAt:number;observedAt:number;complete:boolean;
  header:NonNullable<CurrentState["start"]>;run:WorkbenchRun;endedAt:number|null;totals:CurrentState["totals"]|null;control:CurrentState["control"]|null;
  context:CurrentState["context"];retry:CurrentState["retry"];warning:string|null;problem:string|null;
  phase:{kind:"indexing"|"thinking"|"tool"|"idle"|"paused"|"ended";pending:number;tools:string[]};
  health:{enabled:boolean;owner:boolean;ok:boolean|null;checkedAt:number|null};
- progress:{validation:"unverified";recorded:{name:string;seq:number;turn:number;at:number;native?:boolean}[]};
+ progress:{validation:"unverified";count?:number;recorded:{name:string;seq:number;turn:number;at:number;native?:boolean}[]};
 }
 export interface CurrentSnapshot extends CurrentSummary {end:CurrentState["end"];display:Pick<CurrentState,"state"|"partyState"|"card"|"health"|"frame">&Partial<Pick<CurrentState,"thought"|"streaming">>&{thinkingSince?:number|null;partyIsState?:true}}
-export type CurrentQuery={kind:"list";now:number;after?:string|null;limit?:number}|{kind:"current";run:string;now:number}|{kind:"updates";after:string|null;now:number;run?:string}|{kind:"history";run:string;before:string|null;now:number};
+export type CurrentQuery={kind:"list";now:number;after?:string|null;limit?:number}|{kind:"current";run:string;now:number}|{kind:"updates";after:string|null;now:number;run?:string}|{kind:"history";run:string;before:string|null;now:number}|{kind:"metadata";run:string;reference:string;now:number}|{kind:"progress";run:string;generation:string;after:string|null;now:number};
 export type CurrentAnswer=
  |{kind:"list";version:1;epoch:string;cursor:string;runs:CurrentSummary[];next:string|null;indexing:boolean;problems:string[]}
  |{kind:"current";version:1;epoch:string;cursor:string;snapshot:CurrentSnapshot|null}
  |{kind:"updates";version:1;epoch:string;cursor:string;reset:boolean;more:boolean;changes:({id:string;removed:true}|{id:string;removed:false;summary:CurrentSummary;snapshot?:CurrentSnapshot})[]}
  |{kind:"history";version:1;epoch:string;generation:string;state:"ready"|"indexing"|"reset"|"oversized";events:RunEvent[];before:string|null}
+ |{kind:"metadata";version:1;epoch:string;run:string;reference:string;value:CurrentMetadata|null}
+ |{kind:"progress";version:1;epoch:string;generation:string;records:CurrentSummary["progress"]["recorded"];cursor:string;next:string|null;state:"ready"|"reset"|"indexing"}
  |{kind:"unavailable";version:1;problem:string};
 const object=(v:unknown):v is Record<string,unknown>=>typeof v==="object"&&v!==null&&!Array.isArray(v);
 const n=(v:unknown):v is number=>typeof v==="number"&&Number.isFinite(v)&&v>=0;
@@ -27,7 +31,8 @@ const integer=(v:unknown):v is number=>n(v)&&Number.isSafeInteger(v);
 const nullableN=(v:unknown)=>v===null||n(v);
 const nullableText=(v:unknown)=>v===null||typeof v==="string";
 const only=(v:unknown,allowed:readonly string[]):boolean=>object(v)&&Object.keys(v).every(k=>allowed.includes(k));
-const keys=["version","id","generation","revision","seq","at","clockAt","updatedAt","observedAt","complete","header","run","endedAt","totals","control","context","retry","warning","problem","phase","health","progress"];
+const keys=["metadata","version","id","generation","revision","seq","at","clockAt","updatedAt","observedAt","complete","header","run","endedAt","totals","control","context","retry","warning","problem","phase","health","progress"];
+export const isCurrentProgressRecord=(r:unknown):boolean=>object(r)&&Object.keys(r).every(k=>["name","seq","turn","at","native"].includes(k))&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean");
 export function publicCheckpoint(s:CurrentSummary,display:CurrentSnapshot["display"]={state:null,partyState:null,card:null,health:null,frame:null,thought:null,streaming:{thinking:"",text:""},thinkingSince:null},end:CurrentState["end"]=null):CurrentState{
  const blank=emptyCurrent();return parseCurrent({...blank,run:s.id,seq:s.seq,nextSeq:s.seq+1,at:s.at,turn:s.run.turn,start:s.header,end,state:display.state,partyState:display.partyIsState===true?display.state:display.partyState,card:display.card,health:display.health,frame:display.frame,thought:display.thought??null,streaming:display.streaming??blank.streaming,requestAt:display.thinkingSince??null,context:s.context,retry:s.retry,totals:s.totals??blank.totals,control:s.control??blank.control,warning:s.warning});
 }
@@ -38,7 +43,9 @@ function summary(value:unknown,detail:boolean):CurrentSummary{
  const h=v["health"],p=v["phase"],g=v["progress"];
  if(!only(h,["enabled","owner","ok","checkedAt"])||!object(h)||typeof h["enabled"]!=="boolean"||typeof h["owner"]!=="boolean"||(h["ok"]!==null&&typeof h["ok"]!=="boolean")||!nullableN(h["checkedAt"]))return fail();
  if(!only(p,["kind","pending","tools"])||!object(p)||!["indexing","thinking","tool","idle","paused","ended"].includes(String(p["kind"]))||!integer(p["pending"])||!Array.isArray(p["tools"])||p["pending"]>MAX_OPEN_TOOLS||p["tools"].length>16||p["tools"].length>p["pending"]||!p["tools"].every((t:unknown)=>typeof t==="string"))return fail();
- if(!only(g,["validation","recorded"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every((r:unknown)=>object(r)&&typeof r["name"]==="string"&&integer(r["seq"])&&integer(r["turn"])&&integer(r["at"])&&(r["native"]===undefined||typeof r["native"]==="boolean")))return fail();
+ if(!only(g,["validation","recorded","count"])||!object(g)||g["validation"]!=="unverified"||!Array.isArray(g["recorded"])||g["recorded"].length>1024||!g["recorded"].every(isCurrentProgressRecord))return fail();
+ if(v["metadata"]!==undefined&&(typeof v["metadata"]!=="string"||!/^[a-f0-9]{64}$/.test(v["metadata"])))return fail();
+ if(g["count"]!==undefined&&(!integer(g["count"])||g["count"]<g["recorded"].length||g["count"]>1024))return fail();
  const data=parseWorkbench({version:1,at:0,milestones:[],runs:[v["run"]],problems:[]}),run=data.runs[0];
  if(run===undefined||run.id!==v["id"]||run.splits.length!==0||run.measurement!==undefined||run.excluded!==null)return fail();
  if(v["complete"]?(v["totals"]===null||v["control"]===null):v["totals"]!==null)return fail();
@@ -65,6 +72,8 @@ export function parseCurrentQuery(value:unknown):CurrentQuery{
  if(kind==="list"&&only(value,["kind","now","after","limit"])&&(value["after"]==null||text(value["after"]))&&(value["limit"]===undefined||(integer(value["limit"])&&value["limit"]>=1&&value["limit"]<=100)))return value as unknown as CurrentQuery;
  if(kind==="current"&&only(value,["kind","now","run"])&&run(value["run"]))return value as unknown as CurrentQuery;
  if(kind==="updates"&&only(value,["kind","now","after","run"])&&(value["after"]===null||text(value["after"]))&&(value["run"]===undefined||run(value["run"])))return value as unknown as CurrentQuery;
+ if(kind==="metadata"&&only(value,["kind","now","run","reference"])&&run(value["run"])&&metadataReference(value["reference"]))return value as unknown as CurrentQuery;
+ if(kind==="progress"&&only(value,["kind","now","run","generation","after"])&&run(value["run"])&&text(value["generation"])&&(value["after"]===null||text(value["after"])))return value as unknown as CurrentQuery;
  if(kind==="history"&&only(value,["kind","now","run","before"])&&run(value["run"])&&(value["before"]===null||text(value["before"])))return value as unknown as CurrentQuery;
  return fail();
 }
@@ -74,6 +83,8 @@ export function parseCurrentAnswer(value:unknown):CurrentAnswer{
  const nullable=(v:unknown):boolean=>v===null||text(v);
  if(value["kind"]==="unavailable"&&only(value,["kind","version","problem"])&&text(value["problem"],1024))return value as unknown as CurrentAnswer;
  if(!text(value["epoch"],128))return fail();
+ if(value["kind"]==="metadata"&&only(value,["kind","version","epoch","run","reference","value"])&&text(value["run"],128)&&metadataReference(value["reference"])){if(value["value"]!==null){const metadata=parseCurrentMetadata(value["value"]);if(metadata.header.run!==value["run"])return fail();}return value as unknown as CurrentAnswer;}
+ if(value["kind"]==="progress"&&only(value,["kind","version","epoch","generation","records","cursor","next","state"])&&text(value["generation"],256)&&text(value["cursor"])&&nullable(value["next"])&&["ready","reset","indexing"].includes(String(value["state"]))&&Array.isArray(value["records"])&&value["records"].length<=64&&value["records"].every(isCurrentProgressRecord))return value as unknown as CurrentAnswer;
  if(value["kind"]==="list"&&only(value,["kind","version","epoch","cursor","runs","next","indexing","problems"])&&text(value["cursor"])&&nullable(value["next"])&&typeof value["indexing"]==="boolean"&&Array.isArray(value["problems"])&&value["problems"].length<=16&&value["problems"].every(p=>text(p,1024))&&Array.isArray(value["runs"])&&value["runs"].length<=100){value["runs"].forEach(parseCurrentSummary);return value as unknown as CurrentAnswer;}
  if(value["kind"]==="current"&&only(value,["kind","version","epoch","cursor","snapshot"])&&text(value["cursor"])){if(value["snapshot"]!==null)parseCurrentSnapshot(value["snapshot"]);return value as unknown as CurrentAnswer;}
  if(value["kind"]==="updates"&&only(value,["kind","version","epoch","cursor","reset","more","changes"])&&text(value["cursor"])&&typeof value["reset"]==="boolean"&&typeof value["more"]==="boolean"&&Array.isArray(value["changes"])&&value["changes"].length<=256){

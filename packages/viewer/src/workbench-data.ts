@@ -81,3 +81,6 @@ export function parseFeatureDescriptions(value: unknown): ReadonlyMap<string, st
   if (!Array.isArray(list) || !list.every((f): f is { id: string; description: string } => object(f) && string(f.id) && string(f.description))) throw new Error("Invalid feature catalog; switch descriptions are unavailable.");
   return new Map(list.filter(f => f.description !== "").map(f => [f.id, f.description]));
 }
+
+// Shared immutable-metadata validation uses the same owner as workbench configs.
+export {config as isWorkbenchConfig};

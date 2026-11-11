@@ -33,3 +33,10 @@ it("restores a consumed damaged-line warning before the next valid event arrives
  expect(foldDisplayEvent(stateBefore,line.event,line.problem).seq).toBe(next.seq);
  expect(restored.problem).toBeUndefined();
 });
+
+it("retains event checkpoints when independent grading evidence changes",async()=>{
+ const {sameEventEvidence}=await import("./current-source.js");
+ expect(sameEventEvidence(JSON.stringify({prefix:"fixed",receipts:["old"]}),JSON.stringify({prefix:"fixed",receipts:["new"]}))).toBe(true);
+ expect(sameEventEvidence(JSON.stringify({prefix:"fixed",receipts:[]}),JSON.stringify({prefix:"changed",receipts:[]}))).toBe(false);
+ expect(sameEventEvidence("broken",JSON.stringify({prefix:"fixed"}))).toBe(false);
+});

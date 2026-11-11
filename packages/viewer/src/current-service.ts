@@ -10,7 +10,7 @@ import {Value} from "typebox/value";
 import {RUN_ID_PATTERN} from "@pokebench/agent/events";
 import {behindLive,emptyCurrent,foldCurrent,foldDisplayEvent,parseCurrent,jumpToTail,type CurrentState} from "./current-state.js";
 import {openCurrentStore,type SavedCurrent,type HistoryOffset,type CurrentStoreOptions} from "./current-store.js";
-import {CurrentSourceFile,openCurrentSource,currentRunDirectory,lineCursor,readCurrentLines,prefixSignature,sourceEvidence,SourceBudgetError,type LineCursor,type CurrentLine} from "./current-source.js";
+import {CurrentSourceFile,openCurrentSource,currentRunDirectory,lineCursor,readCurrentLines,prefixSignature,sourceEvidence,sameEventEvidence,SourceBudgetError,type LineCursor,type CurrentLine} from "./current-source.js";
 import {newDigest,parseDigest,updateDigest,finishDigest,checkpointDigest} from "./current-digest.js";
 import {publishCurrent} from "./current-projection.js";
 import {RUN_LOG_MAX_BYTES} from "./run-log.js";
@@ -66,7 +66,7 @@ export class CurrentProjector{
  }
  private start(run:string,source:CurrentSourceFile):Job|null{
   const current=this.store.get(run),stage=this.store.rebuilding(run),raw=this.store.auxiliary(run),saved=current??stage;
-  if(saved!==null&&raw!==null){const aux=parseProjectorAux(raw);if(source.compatible(saved.source)&&(stage===null||source.compatible(stage.source))&&saved.source.evidence===sourceEvidence(source.path)){
+  if(saved!==null&&raw!==null){const aux=parseProjectorAux(raw);if(source.compatible(saved.source)&&(stage===null||source.compatible(stage.source))&&sameEventEvidence(saved.source.evidence,sourceEvidence(source.path))){
     const job:Job={run,current,stage,aux,cursor:lineCursor(current?.source.offset??aux.headerEnd,aux.currentGap),rebuild:lineCursor(stage?.source.offset??aux.headerEnd,aux.rebuildGap),prefixCursor:null,dirty:!this.store.published(run),force:!this.store.published(run),lastCommit:this.monotonic()-this.limits.commitMs,index:[],init:lineCursor(),generation:saved.source.generation,fresh:false};
     if(!aux.complete&&aux.reconstruct&&stage===null){const start=current?.state.start;if(start===null||start===undefined)throw new Error("Missing reconstruction start");const state=foldCurrent(emptyCurrent(),start,aux.namespace);job.stage=this.store.stage(state,source.capture(aux.headerEnd,job.generation,sourceEvidence(source.path)),[],JSON.stringify(aux));}
     this.initializing.delete(run);return job;
@@ -132,7 +132,7 @@ export class CurrentProjector{
 
  private async advance(job:Job,source:CurrentSourceFile,reconstruct:boolean):Promise<boolean>{
   const signature=sourceEvidence(source.path),saved=job.current??job.stage;if(saved===null)throw new Error("Missing source checkpoint");
-  if(!source.compatible(saved.source)||signature!==saved.source.evidence||(job.stage!==null&&!source.compatible(job.stage.source))){this.store.remove(job.run);this.jobs.delete(job.run);this.initializing.delete(job.run);return true;}
+  if(!source.compatible(saved.source)||!sameEventEvidence(saved.source.evidence,signature)||(job.stage!==null&&!source.compatible(job.stage.source))){this.store.remove(job.run);this.jobs.delete(job.run);this.initializing.delete(job.run);return true;}
   this.jump(job,source,signature);
   job.aux.observedAt=this.now();if(job.aux.problem!==null){job.aux.problem=null;job.dirty=true;}this.healthOwner(job);if(job.current?.state.end===null&&this.monotonic()-job.lastCommit>=this.limits.healthMs)job.dirty=true;let progress=false;
   if(job.current!==null&&job.current.state.end===null){

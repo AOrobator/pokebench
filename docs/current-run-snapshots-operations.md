@@ -6,7 +6,7 @@ The independent projector is the only normal current-state writer. Source JSONL 
 
 Run `just current-main` to prepare an immutable build of local main and install or upgrade the current user's launch agent. Its `KeepAlive` and `RunAtLoad` cover projector crashes and login recovery. SQLite commits the reducer checkpoint, consumed-byte cursor, public current state, revision journal and sparse history index atomically. A new process replays only uncommitted source bytes. One root lock prevents competing projector writers.
 
-Run `just viewer-main` for a viewer-only refresh. This does not stop the projector. Both preparation commands acquire `/private/tmp/pokebench-latest-main-prepare.lock` nonblockingly; do not acquire that lock again around either command. Coordinate the shared refresh through the repository owner before invoking it.
+Run `just viewer-main` for a coordinated refresh: the backward-compatible web viewer starts first, then the projector, both from the same immutable build. Gameplay and recording processes are not restarted. Both preparation commands acquire `/private/tmp/pokebench-latest-main-prepare.lock` nonblockingly; do not acquire that lock again around either command. Coordinate the shared refresh through the repository owner before invoking it.
 
 Normal browser startup uses `/api/current-runs`, selected `/current`, and revision updates before history. No URL opt-in or harness/bundle switch is required. `--current-db` remains a technical database path override. The projector is never started from a GET or from the viewer process.
 
@@ -53,3 +53,32 @@ For a service-only rollback, run `just current-stop`. This unloads the root-spec
 To roll back the viewer, use the retained pre-rollout compiled CLI with `scripts/viewer-restart.sh <old-cli> 8790 <canonical-runs> <canonical-.env> <viewer-log>`, after coordinating the shared refresh. This restarts only the viewer. Keep derived data and pinned builds for diagnosis; do not delete source files or replay old metadata into active recordings.
 
 Do not run two projector instances against one runs root, remove lock files to bypass ownership, restart games to fix viewer freshness, or overwrite an active runtime checkout during preparation.
+
+
+## Durable live publication boundaries
+
+Current checkpoints, consumed byte offsets, counters and sparse event indexes stay
+in SQLite. Normal restarts resume those offsets; changes to independent grading
+receipts do not invalidate event-derived state. A changed event source identity,
+byte anchor or restoration prefix still requires validation/reconstruction. The
+original recordings remain the authority for grading.
+
+The 64 KiB per-run live-summary bound applies to current facts, not run length.
+Immutable header/configuration is stored once by SHA-256 reference in
+`current_metadata`, and the browser caches it across polls. Effective extensions
+remain in the live record. Current summaries carry at most the furthest reached
+card milestone and the latest anchor. Full observed milestone records remain in
+the durable checkpoint, available in 64-record progress pages with incremental
+cursors; these are explicitly unverified display data, not graded splits.
+
+Current, metadata and progress reads do not scan the game event log. The normal
+viewer avoids legacy full-log card enrichment when the current snapshot contains
+configuration and party facts. Opening a completed run with `#run=` keeps its
+final snapshot; explicit `#replay=` retains full playback. Same-epoch list refreshes
+keep existing cards until pagination completes, and a selected last-known card
+stays visible when health or publication reports a problem.
+
+The migration adds metadata storage and accepts old publication rows/checkpoint
+evidence. It does not delete snapshots, indexes, run data or recordings. A coupled
+refresh is needed to install the protocol on both consumers. Reload an already
+open browser page once to load the new client.

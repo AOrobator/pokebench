@@ -1,4 +1,4 @@
-"""Prepare immutable viewer builds and supervise only the current-state projector."""
+"""Prepare immutable builds and coordinate viewer/projector refreshes."""
 
 import argparse
 import fcntl

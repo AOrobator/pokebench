@@ -33,9 +33,9 @@ Changes only the wording of the replacement; every name pattern is still scrubbe
 - [x] Round-2 fix (GPT BLOCKING, 2 x P2): sentence-start context now passes through an opening link bracket and an inline-code backtick, and inline code defers the name to `scrub` of the assembled text. Conversion-level regression for both; regeneration changed 0 files
 - [x] Round-3 fix (GPT BLOCKING, 1 x P2): the 13-character regex window is replaced by `_starts_sentence`, which skips opening markers, accepts a table cell or a line start (headings, quotes, bullets, numbered items), and otherwise strips closing markdown (emphasis, backticks, quotes, brackets, link targets of any length) back to the punctuation; context is the last 400 characters. Conversion-level regression with bold, a long link and code sentence ends; regeneration changed 0 files
 - [x] Round-4 fix (GPT BLOCKING, 2 x P2): `_starts_sentence` reads the whole text before the name (no window), and single quotes (straight and curly) count as openers. Regression: a 420-character link target and quoted sentences; regeneration changed 0 files, `just explainer-twins` 1.9 s
-- [ ] Full gates (CPU window requested first; the first window failed in seconds on a missing node_modules in the new worktree, since installed)
-- [ ] Codex review (covers 79704679f..head, both commits)
-- [ ] Land (the operator approved landing for item 3; item 2 asks for the change)
+- [x] Full gates at cabcd91a9 (CPU START 4:32 PM): `just lint` green; `just test` green (agent 3,042, viewer 1,281, env 3,340, gateway 39). Earlier windows were stopped early for review fixes or failed on a missing node_modules
+- [x] Codex review: round 5 `VERDICT: LGTM` at cabcd91a9 (rounds 1-4 BLOCKING on capitalisation inputs, all fixed)
+- [x] Landed: rebased onto main a0f449986 (no overlap; patch-id a6d994e0 unchanged), `git merge --ff-only` to d929fad03 as number 1 on the board (the operator 21:26Z: "land twins-fake-host and twins-operator-wording once Codex says LGTM"). Post-merge `just test` on d929fad03 green (agent 3,042, viewer 1,281, env 3,364, gateway 39)
 
 ## Closing the Loop
 
@@ -60,6 +60,10 @@ Delta b4849357a..f7a221ae4; round-2 inputs pass, 914 generated files match, no m
 ### Round 4 — GPT (JOB review-gpt-twins-operator-wording-r4-ab7801a1f)
 
 Delta f7a221ae4..ab7801a1f; 914 files, zero drift, zero markers. `VERDICT: BLOCKING`, two Fix: a link target over 400 characters hid the sentence end; an opening single quote was not skipped. Both fixed in round 5. Gates on ab7801a1f stopped early; RELEASE sent.
+
+### Round 5 — GPT (JOB review-gpt-twins-operator-wording-r5-cabcd91a9)
+
+Delta ab7801a1f..cabcd91a9; both round-4 findings addressed; 914 files zero drift, zero markers. `VERDICT: LGTM`.
 
 ## Boy Scout Log
 

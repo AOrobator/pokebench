@@ -21,7 +21,9 @@ Branch `claude/setup-preflight-docs`. Approved by the operator: setup/verify/exp
 - [x] pnpm setup on Node 25+: corepack is no longer bundled, so README and `just doctor`'s fix say `npm install -g corepack`, then `corepack enable pnpm`; test_doctor 32 passed, ruff and mypy clean on the touched files
 - [x] COMMIT: `fix(setup): install corepack before enabling pnpm on Node 25+` (07574e8f0)
 - [x] Codex review review-setup-preflight-docs-39b9b2d24 round 1: CHANGES, 4 findings. (1) corepack not bundled: fixed in 07574e8f0. (2) malformed endpoint URLs crashed urlparse: doctor now FAILs them. (3) .env.example gained POKEBENCH_RUNS and PREPARE_LOCK. (4) `just doctor` runs python -B, so it writes no bytecode. test_doctor 33 passed; ruff, ruff format and mypy clean on touched files
-- [ ] Codex round 2 on 39b9b2d24..HEAD
+- [x] COMMIT: `fix(doctor): fail malformed endpoint URLs, write no bytecode, list two env vars` (e997617be)
+- [x] Codex round 2 (review-setup-preflight-docs-e997617be): CHANGES. Round-1 findings all resolved; two ledger findings: d718 started in Cave of Origin B1F after the Wallace discussion, not at Sky Pillar; Budget cells now list every recorded operator extension (429f, 1121, d718, and d41e by the same check), and 429f's unrecorded turn-limit raise is marked as such
+- [ ] Codex round 3
 
 Follow-ups from the Linux trial, out of scope here: an isMain() helper for import.meta.main; .npmrc engine-strict and .node-version; a Linux branch in build-mgba.sh; mypy ignore codes that depend on the mGBA build; smoke.py hiding server stderr; the verify_release hint naming a nonexistent `just replay-verify`; a port parameter for `just view`; build-stamp not writing dist/build-stamp.json.
 

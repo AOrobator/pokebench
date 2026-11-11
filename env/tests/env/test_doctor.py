@@ -114,7 +114,8 @@ def test_tiers_stop_at_the_requested_tier() -> None:
     ("system", "machine", "status"),
     [
         ("Darwin", "x86_64", "FAIL"),
-        ("Linux", "x86_64", "SKIP"),
+        ("Linux", "x86_64", "PASS"),
+        ("Linux", "aarch64", "SKIP"),
         ("Windows", "AMD64", "FAIL"),
         ("", "", "FAIL"),
     ],
@@ -208,7 +209,7 @@ def test_linux_build_tools_use_pkg_config_and_never_brew() -> None:
     )
     assert [c.status for c in ready] == ["PASS"] * 4
     assert by_name(ready)["C toolchain"].detail == "gcc found"
-    assert "untested" in by_name(ready)["ffmpeg"].detail
+    assert by_name(ready)["ffmpeg"].detail == "ffmpeg headers found"
 
     def recording(argv):  # type: ignore[no-untyped-def]
         asked.append(tuple(argv))
@@ -226,7 +227,8 @@ def test_linux_build_tools_use_pkg_config_and_never_brew() -> None:
 
 def test_linux_runs_every_tier_without_crashing() -> None:
     checks = by_name(run_checks(probes(system="Linux", machine="x86_64")))
-    assert checks["platform"].status == "SKIP"
+    assert checks["platform"].status == "PASS"
+    assert "Ubuntu 24.04" in checks["platform"].detail
     assert "homebrew" not in checks
 
 
@@ -234,7 +236,7 @@ def test_mgba() -> None:
     assert doctor.check_mgba(probes(files=set())).fix == "just setup && just build-mgba"
     broken = {(VENV, "-I", "-c", "import mgba.core, mgba.image"): None}
     assert doctor.check_mgba(probes(commands=broken)).fix == "just build-mgba"
-    assert "macOS-only" in doctor.check_mgba(probes(system="Linux", commands=broken)).fix
+    assert doctor.check_mgba(probes(system="Linux", commands=broken)).fix == "just build-mgba"
 
 
 def test_rom() -> None:

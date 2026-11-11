@@ -3,7 +3,7 @@
 How far can a local vision-language model get in Pokémon Emerald when it is given a specialized harness?
 
 - **Agent:** TypeScript on [pi](https://github.com/badlogic/pi-mono). It plays through an OpenAI-compatible model endpoint you configure (a local llama.cpp or vLLM server, or a gateway that reports each model's limits); there is no built-in one. See [Connect a model](docs/connect-a-model.md) for local servers, gateways, Hermes, Claude and Codex.
-- **Environment:** a native mGBA build on Apple Silicon. It drives the [continual-harness](https://github.com/sethkarten/continual-harness) game server (the PokéAgent Challenge starter kit), vendored unmodified at a pinned commit.
+- **Environment:** a native mGBA build on Apple Silicon or Linux x86_64. It drives the [continual-harness](https://github.com/sethkarten/continual-harness) game server (the PokéAgent Challenge starter kit), vendored unmodified at a pinned commit.
 - **Observability:** a viewer shows the live game, button presses, thinking traces and tool calls.
 
 You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`. It is never committed. Keep it outside the repo, for example at `~/.roms/pokemon-emerald.gba`, and set `POKEBENCH_ROM` to that path in the gitignored `.env`.
@@ -15,7 +15,7 @@ You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf
 > | Platform | Status |
 > |---|---|
 > | macOS on Apple Silicon (arm64) | Tested. Everything here runs on it. |
-> | Linux | Untested. A trial on a GPU box is in progress; `scripts/build-mgba.sh` is macOS-only today. |
+> | Linux x86_64 | Tested on Ubuntu 24.04 (2026-11-11): setup, `just test`, `just lint`, `just build-mgba`, `just smoke` and the viewer. Other distributions are untested. |
 > | Windows | Not supported. |
 
 ### Prerequisites
@@ -23,11 +23,20 @@ You supply the ROM, Pokémon Emerald (USA, Europe), SHA-1 `f3ae088181bf583e55daf
 | Tool | Why | macOS (Homebrew) | Linux (apt) |
 |---|---|---|---|
 | [just](https://github.com/casey/just) | runs every command here | `just` | `just` |
-| Node.js 26 or newer | agent and viewer; older Node exits 0 without running them | `node` | from nodejs.org or nvm |
+| Node.js 26 or newer | agent and viewer; `pnpm install` refuses older Node, and the CLIs stop with an error on Node before 24.2 | `node` | from nodejs.org or nvm |
 | pnpm 10.32.1 | Node packages, pinned in `package.json`; Node 25+ no longer bundles corepack | `npm install -g corepack`, then `corepack enable pnpm` | `npm install -g corepack`, then `corepack enable pnpm` |
 | [uv](https://docs.astral.sh/uv/) and Python 3.11 | Python environment | `uv`, then `uv python install 3.11` | uv installer, then `uv python install 3.11` |
 | cmake and a C toolchain | building mGBA | `cmake`; `xcode-select --install` | `cmake build-essential` |
 | FFmpeg and libpng, with headers | building mGBA | `ffmpeg libpng` | `libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpng-dev pkg-config` |
+
+On Debian or Ubuntu, refresh the package lists first; a stale list can ask for a `libpng-dev` the mirror has already replaced, and apt then installs nothing:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y cmake build-essential pkg-config libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpng-dev zlib1g-dev
+```
+
+Ubuntu's own `nodejs` package is older than Node 26; use a release from nodejs.org.
 
 ### Steps
 

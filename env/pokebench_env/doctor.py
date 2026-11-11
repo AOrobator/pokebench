@@ -6,7 +6,8 @@ and the apt package. Tiers build on each other: core is enough for `just test`, 
 the checks of every tier before it. The exit status is non-zero only when a check that ran failed;
 an unset model endpoint is a SKIP. Nothing here writes, installs or starts anything; every probe of
 the machine arrives through `Probes`. It runs on any python3 from 3.9, so it can report a missing
-Python 3.11 before env/.venv exists. Linux is untested: its checks use pkg-config, never brew.
+Python 3.11 before env/.venv exists. On Linux (tested on Ubuntu 24.04 x86_64) the checks use
+pkg-config, never brew.
 """
 
 from __future__ import annotations
@@ -94,6 +95,8 @@ def check_platform(p: Probes) -> Check:
             f"macOS {p.machine}: only Apple Silicon is supported",
             "use a Mac with Apple Silicon (arm64)",
         )
+    if p.system == "Linux" and p.machine == "x86_64":
+        return Check("core", name, "PASS", "Linux x86_64: tested on Ubuntu 24.04 (2026-11-11)")
     if p.system == "Linux":
         return Check("core", name, "SKIP", f"Linux {p.machine}: untested, expect rough edges")
     return Check(
@@ -101,7 +104,7 @@ def check_platform(p: Probes) -> Check:
         name,
         "FAIL",
         f"{p.system or 'unknown'}: not supported",
-        "use macOS on Apple Silicon (Linux is untested)",
+        "use macOS on Apple Silicon or Linux x86_64",
     )
 
 
@@ -258,10 +261,10 @@ def check_build_tools(p: Probes) -> list[Check]:
     for name, pkgs, apt in libraries:
         missing = [pkg for pkg in pkgs if p.run(["pkg-config", "--exists", pkg]) is None]
         if missing:
-            detail = f"no headers for {', '.join(missing)} (untested platform)"
+            detail = f"no headers for {', '.join(missing)}"
             checks.append(Check("game", name, "FAIL", detail, _both(name, apt)))
         else:
-            checks.append(Check("game", name, "PASS", f"{name} headers found (untested platform)"))
+            checks.append(Check("game", name, "PASS", f"{name} headers found"))
     return checks
 
 
@@ -272,8 +275,9 @@ def check_mgba(p: Probes) -> Check:
             "game", "mGBA binding", "FAIL", "env/.venv missing", "just setup && just build-mgba"
         )
     if p.run([str(venv), "-I", "-c", "import mgba.core, mgba.image"]) is None:
-        fix = "just build-mgba" if _macos(p) else "just build-mgba (macOS-only script today)"
-        return Check("game", "mGBA binding", "FAIL", "mgba does not import in env/.venv", fix)
+        return Check(
+            "game", "mGBA binding", "FAIL", "mgba does not import in env/.venv", "just build-mgba"
+        )
     return Check("game", "mGBA binding", "PASS", "mgba.core imports in env/.venv")
 
 

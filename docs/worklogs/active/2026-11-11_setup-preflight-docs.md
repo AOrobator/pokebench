@@ -30,3 +30,6 @@ Follow-ups from the Linux trial, out of scope here: an isMain() helper for impor
 
 - [x] COMMIT: `docs(readme): add the badges-over-time and badges-for-the-money charts` (2b6f36339)
 - [x] Chart generator committed (docs/images/charts/build_charts.py, audit_runs.py); regenerating gives byte-identical PNGs; ruff check and format clean; privacy grep over the diff clean
+- [x] COMMIT: `docs(charts): add the README chart generator and its run audit` (rebased; was d90a9d033)
+- [x] Rebased onto main 640ba5c74 (linux-mgba-build and node-version-guards landed); none of this branch was on main; no conflicts
+- [x] Linux tested: doctor PASSes Linux x86_64 (Ubuntu 24.04, 2026-11-11), SKIPs other Linux arches, drops "untested platform" and "macOS-only" wording; README takes the deferred README edits from claude/linux-mgba-build-on-setup-docs and claude/node-version-guards-on-setup-docs (corepack row kept); test_doctor 34 passed (4 RED first)

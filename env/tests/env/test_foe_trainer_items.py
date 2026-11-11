@@ -346,7 +346,11 @@ def test_the_focus_punch_setup_script_still_counts_as_before_the_turn() -> None:
     m.put(STACK + 0x20, bytes([2]))
     items = read_foe_trainer_items(m.read, True)
     assert items is not None and items.used == ()
+    m.put(STACK, struct.pack("<I", SELECT))
     m.put(STACK + 0x20, bytes([1]))
+    cant_run = read_foe_trainer_items(m.read, True)
+    assert cant_run is not None and cant_run.used == ()
+    m.put(STACK, struct.pack("<I", 0x0803AAAA))
     end_of_turn = read_foe_trainer_items(m.read, True)
     assert end_of_turn is not None and end_of_turn.used == (FoeItem(0, "FULL RESTORE"),)
     for size in (0, 9):

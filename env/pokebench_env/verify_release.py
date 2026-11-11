@@ -31,6 +31,8 @@ T = TypeVar("T")
 EVENT_LINE_CAP = 16 * 1024 * 1024
 STATE_CAP = 8 * 1024 * 1024
 SIDECAR_CAP = 1024 * 1024
+SUMS_CAP = 1024 * 1024
+EXTENSION_CAP = 64 * 1024
 MAX_MEMBERS = 4096
 ROM_CAP = 64 * 1024 * 1024
 CHUNK = 1 << 20
@@ -513,12 +515,36 @@ class CheckpointFacts:
     sidecars: dict[str, object] = field(default_factory=dict)
 
 
+EXTENSION_TYPES = (
+    tarfile.XHDTYPE,
+    tarfile.XGLTYPE,
+    tarfile.SOLARIS_XHDTYPE,
+    tarfile.GNUTYPE_LONGNAME,
+    tarfile.GNUTYPE_LONGLINK,
+)
+
+
+class _BoundedTarInfo(tarfile.TarInfo):
+    """tarfile reads PAX and GNU long-name payloads before yielding a member, so bound them here."""
+
+    def _proc_member(self, tar: tarfile.TarFile) -> tarfile.TarInfo:
+        if self.type in EXTENSION_TYPES and self.size > EXTENSION_CAP:
+            raise ReleaseError(
+                f"checkpoint archive has a {self.size}-byte extension header "
+                f"(limit {EXTENSION_CAP})"
+            )
+        if self.type == tarfile.GNUTYPE_SPARSE:
+            raise ReleaseError("checkpoint archive has a sparse member")
+        member: tarfile.TarInfo = super()._proc_member(tar)  # type: ignore[misc]
+        return member
+
+
 def _open_tar(stream: BinaryIO, name: str) -> tarfile.TarFile:
     if name.endswith(".xz"):
-        return tarfile.open(fileobj=stream, mode="r|xz")
+        return tarfile.open(fileobj=stream, mode="r|xz", tarinfo=_BoundedTarInfo)
     if name.endswith(".gz"):
-        return tarfile.open(fileobj=stream, mode="r|gz")
-    return tarfile.open(fileobj=stream, mode="r|")
+        return tarfile.open(fileobj=stream, mode="r|gz", tarinfo=_BoundedTarInfo)
+    return tarfile.open(fileobj=stream, mode="r|", tarinfo=_BoundedTarInfo)
 
 
 def scan_checkpoints(stream: BinaryIO, name: str) -> CheckpointFacts:
@@ -765,7 +791,11 @@ def _integrity(
         problems.add("missing SHA256SUMS")
         return _check("integrity", problems, "")
     with files.open("SHA256SUMS") as raw:
-        sums, problems = parse_sums(raw.read(SIDECAR_CAP))
+        body = raw.read(SUMS_CAP + 1)
+    if len(body) > SUMS_CAP:
+        problems.add(f"SHA256SUMS is larger than {SUMS_CAP} bytes")
+        return _check("integrity", problems, "")
+    sums, problems = parse_sums(body)
     for target in found.values():
         if isinstance(target, str) and target not in sums:
             problems.add(f"{target}: not listed in SHA256SUMS")

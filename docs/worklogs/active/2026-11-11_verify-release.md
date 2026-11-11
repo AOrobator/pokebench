@@ -71,7 +71,7 @@ The input is an untrusted download.
 - [x] Guard deletion check (rule 5): 22 guards removed one at a time, each turns a test red, restored (see Session Log)
 - [x] Real check: 67d7 staging folder outside `runs/`, 15/15 PASS, 27.9 s wall
 - [x] COMMIT: `feat(verify-release): fast release check with the final RAM snapshot` (ea5f06478, GREEN)
-- [ ] Full gates: `just lint` exit 0 (ea5f06478); `just verify-vendor` OK; `just test` running
+- [x] Full gates on f5262a74c: `just lint` exit 0; `just verify-vendor` OK; `just test` exit 0 (agent 249 files/3,038, viewer 121/1,276, env 3,171, gateway 39; all floors; no-I/O proof OK)
 - The operator asked (17:09Z, delivered late) why it scanned gigabytes; answered with options (a) full event-log pass ~28 s, (b) first/last line ~1 s, (c) shelve. Coordinator 17:21Z: go with (a).
 - [ ] Review: Codex GPT lane via `just tell-codex`; two-round cap
 - Outcome: `just verify-release <folder>` prints 15 PASS/FAIL lines for a 67d7-style release in well under a minute. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd, per-snapshot RAM. Terminator: review LGTM. Split trigger: any need for emulator execution.
@@ -125,6 +125,15 @@ The input is an untrusted download.
 | PB13 close the loop | PASS | Real 67d7 output recorded under Closing the Loop; full gates recorded below. |
 
 Zero FAIL rows.
+
+### Round 1 — GPT (Codex coordinator, JOB review-gpt-verify-release-f5262a74c)
+
+Packet base 608c01540, head f5262a74c, diff SHA-256 70612537…63e6af, `/private/tmp/review-verify-release-f5262a74c/`. Worker verified the digest, ran the focused tests (50 passed) and reproduced both findings in memory. `VERDICT: BLOCKING`.
+
+- Fix [P1] `scan_checkpoints`: tarfile reads PAX and GNU long-name payloads before yielding a member, so a 4 MiB PAX comment passed and peaked at ~21 MB, scalable to memory exhaustion. Fixed: `_BoundedTarInfo._proc_member` rejects extension headers over 64 KiB (`EXTENSION_CAP`) and sparse members before tarfile reads them; small extension headers stay allowed. Tests: oversized PAX comment, a forged 8 GB PAX header backed by 1 KiB, a 64 KiB+ GNU long name, a sparse member, and a small PAX header that still passes.
+- Fix [P2] `_integrity`: `SHA256SUMS` was read with `read(SIDECAR_CAP)` and silently truncated. Fixed: own `SUMS_CAP` (1 MiB), read cap+1, overflow is a named integrity FAIL. Test: a manifest one byte over the cap FAILs; at the cap the absent file is reported missing.
+- Guard deletion: each new guard removed alone turns its test red; restored. Focused 54/54; ruff and mypy clean; real 67d7 rerun 15/15 PASS, 28.4 s.
+- No objection from the reviewer to the scope or the recompressed-snapshot binding policy.
 
 ## Boy Scout Log
 

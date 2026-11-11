@@ -788,6 +788,72 @@ def test_run_end_save_must_match_run_end() -> None:
     assert "run-end save" not in result(report, "checkpoints: archive").detail
 
 
+def resum(files: dict[str, bytes]) -> dict[str, bytes]:
+    files["SHA256SUMS"] = "".join(
+        f"{sha256(v)}  {k}\n" for k, v in files.items() if k != "SHA256SUMS"
+    ).encode()
+    return files
+
+
+def pax_tar(build: Build, comment: str) -> bytes:
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        parts = {k: json.dumps(v).encode() for k, v in build.sidecars.items()} | build.states
+        for name, body in parts.items():
+            info = tarfile.TarInfo(f"checkpoints/{name}")
+            info.size = len(body)
+            if name == "GAME_CLEAR_FINAL.state":
+                info.pax_headers = {"comment": comment}
+            tar.addfile(info, io.BytesIO(body))
+    return out.getvalue()
+
+
+def test_small_extension_headers_are_allowed() -> None:
+    build = Build()
+    files = build.files()
+    files["checkpoints-67d7.tar"] = pax_tar(build, "made by bsdtar")
+    assert run(resum(files)).ok
+
+
+def test_oversized_extension_headers_fail_before_tarfile_reads_them() -> None:
+    build = Build()
+    files = build.files()
+    files["checkpoints-67d7.tar"] = pax_tar(build, "x" * (vr.EXTENSION_CAP + 1))
+    assert "extension header" in failed(run(resum(files)))["checkpoints: archive"]
+    # A header that declares an 8 GB PAX payload, backed by nothing: rejected before any read.
+    forged = tarfile.TarInfo("checkpoints/././@PaxHeader")
+    forged.type = tarfile.XHDTYPE
+    forged.size = 8_000_000_000
+    files["checkpoints-67d7.tar"] = forged.tobuf(tarfile.USTAR_FORMAT) + bytes(1024)
+    assert "8000000000-byte extension header" in failed(run(resum(files)))["checkpoints: archive"]
+    long_name = tarfile.TarInfo("checkpoints/" + "A" * (vr.EXTENSION_CAP + 1) + ".state")
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w", format=tarfile.GNU_FORMAT) as tar:
+        tar.addfile(long_name, io.BytesIO(b""))
+    files["checkpoints-67d7.tar"] = out.getvalue()
+    assert "extension header" in failed(run(resum(files)))["checkpoints: archive"]
+
+
+def test_sparse_members_fail() -> None:
+    build = Build()
+    sparse = tarfile.TarInfo("checkpoints/SPARSE.state")
+    sparse.type = tarfile.GNUTYPE_SPARSE
+    files = build.files()
+    files["checkpoints-67d7.tar"] = sparse.tobuf(tarfile.GNU_FORMAT) + bytes(1024)
+    assert "sparse" in failed(run(resum(files)))["checkpoints: archive"]
+
+
+def test_oversized_checksum_manifest_fails_instead_of_truncating(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    files = Build().files()
+    files["SHA256SUMS"] += f"{'0' * 64}  absent-file.txt\n".encode()
+    monkeypatch.setattr(vr, "SUMS_CAP", len(files["SHA256SUMS"]) - 1)
+    assert "SHA256SUMS is larger than" in failed(run(files))["integrity"]
+    monkeypatch.setattr(vr, "SUMS_CAP", len(files["SHA256SUMS"]))
+    assert "absent-file.txt: missing" in failed(run(files))["integrity"]
+
+
 def test_corrupt_tar_fails() -> None:
     files = Build().files()
     files["checkpoints-67d7.tar"] = b"not a tar archive" * 100

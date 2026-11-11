@@ -68,3 +68,10 @@ affected types/lint. Repeat full gates and cumulative independent reviews pendin
   compensating twice; Chromium desktop recovery drift is below 1 px.
 - Disabled native browser anchoring for the stats pane because explicit keyed
   restoration owns that scrolling region; prevents intermittent double correction.
+- Final phone correction gives each existing budget row a stable key, so a barely
+  clipped loading-counter box cannot outrank the actual budget row being read.
+  This changes attributes only, not appearance. Browser setup now establishes its
+  baseline after initial asynchronous history loading, before the forced recovery.
+- Trainer design check initially failed because isolated worktree lacked ignored
+  local ROM art. Re-run with POKEBENCH_CARD_ART pointing at the canonical existing
+  art directory; no fixtures, assertions or baselines are changed.

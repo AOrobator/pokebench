@@ -76,11 +76,11 @@ export function partyNotice(view: RunView): string {
 
 function budgetBar(label: string, fraction: number, value: string): string {
   const clamped = Math.min(1, Math.max(0, fraction));
-  return `<div class="row"><span class="l">${label}</span><div class="budget-track"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
+  return `<div class="row" data-keep="stats-budget-${esc(label)}"><span class="l">${label}</span><div class="budget-track"><i class="${level(clamped)}" style="width:${(clamped * 100).toFixed(0)}%"></i></div><span class="v">${value}</span></div>`;
 }
 
 function budgetMissing(label: string, text: string): string {
-  return `<div class="row"><span class="l">${label}</span><span class="v">${text}</span></div>`;
+  return `<div class="row" data-keep="stats-budget-${esc(label)}"><span class="l">${label}</span><span class="v">${text}</span></div>`;
 }
 
 export function budgets(view: RunView, nowMs: number, totalsKnown = true): string {

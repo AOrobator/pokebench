@@ -166,6 +166,7 @@ class Build:
         self.raw_log = b"zstd raw-RAM log for the replay"
         self.final_ref_sha256: str | None = None
         self.events_tar = False
+        self.trace: bytes | None = None
         self.tar_name = "checkpoints-67d7.tar"
 
     def add(self, event_type: str, turn: int, **body: object) -> None:
@@ -232,6 +233,8 @@ class Build:
             self.tar_name + self.ext: pack(self.tar_bytes()),
             "raw-ram-67d7.jsonl.zst": self.raw_log,
         }
+        if self.trace is not None:
+            files["agent-trace-67d7.tar" + self.ext] = pack(self.trace)
         sums = "".join(f"{sha256(data)}  {name}\n" for name, data in files.items())
         return files | {"SHA256SUMS": sums.encode()}
 
@@ -1084,3 +1087,168 @@ def test_main_usage_and_unreadable_inputs() -> None:
     )
     assert code == 1
     assert "FAIL rom: cannot read POKEBENCH_ROM" in out.getvalue()
+
+
+# --- agent trace totals (informational, never a PASS/FAIL check) ---
+
+
+def model_usage(
+    cost: float, *, inp: int, write: int, read: int, out: int, think: int
+) -> dict[str, object]:
+    return {
+        "inputTokens": inp,
+        "outputTokens": out,
+        "thinkingTokens": think,
+        "cacheReadInputTokens": read,
+        "cacheCreationInputTokens": write,
+        "webSearchRequests": 0,
+        "costUSD": cost,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "canonicalModel": "claude-opus-5-5",
+        "provider": "firstParty",
+        "costBasis": "list",
+    }
+
+
+def result_line(
+    session: str, cost: float, usage: dict[str, dict[str, object]]
+) -> dict[str, object]:
+    return {
+        "type": "result",
+        "subtype": "success",
+        "session_id": session,
+        "total_cost_usd": cost,
+        "usage": {"input_tokens": 4, "output_tokens": 9},
+        "modelUsage": usage,
+    }
+
+
+def trace_tar(members: dict[str, bytes], *, extra: list[tarfile.TarInfo] | None = None) -> bytes:
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w") as tar:
+        for folder in ("calls", "requests"):
+            info = tarfile.TarInfo(folder)
+            info.type = tarfile.DIRTYPE
+            tar.addfile(info)
+        for name, body in members.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(body)
+            tar.addfile(info, io.BytesIO(body))
+        for info in extra or []:
+            tar.addfile(info)
+    return out.getvalue()
+
+
+def jsonl(*lines: dict[str, object]) -> bytes:
+    return b"".join(json.dumps(line).encode() + b"\n" for line in lines)
+
+
+def two_session_trace() -> dict[str, bytes]:
+    a1 = model_usage(1.0, inp=10, write=100, read=1000, out=5, think=1)
+    a2 = model_usage(2.5, inp=30, write=300, read=3000, out=15, think=3)
+    b1 = model_usage(0.25, inp=1, write=2, read=3, out=4, think=0)
+    sonnet = model_usage(0.5, inp=7, write=0, read=0, out=2, think=0)
+    return {
+        "calls/call-1-1.jsonl": jsonl(
+            {"type": "system", "subtype": "init", "session_id": "A"},
+            {"type": "assistant", "session_id": "A", "message": {"content": "result"}},
+            result_line("A", 1.0, {"claude-opus-5-5": a1}),
+        ),
+        "calls/call-2-1.jsonl": jsonl(result_line("A", 2.5, {"claude-opus-5-5": a2})),
+        "calls/call-3-1.jsonl": jsonl(
+            result_line("B", 0.75, {"claude-opus-5-5": b1, "claude-sonnet-5-5": sonnet})
+        ),
+        "gateway.jsonl": jsonl(result_line("Z", 999.0, {"x": a1})),  # not a call file: ignored
+        "requests/request-1.json": b'{"type": "result", "total_cost_usd": 999}',
+        "session.json": b"{}",
+    }
+
+
+@pytest.mark.parametrize("ext", ["", ".gz", ".xz"])
+def test_trace_totals_take_each_sessions_cumulative_usage_and_sum_sessions(ext: str) -> None:
+    build = Build()
+    build.ext = ext
+    build.trace = trace_tar(two_session_trace())
+    report = run(build.files())
+    assert failed(report) == {}
+    assert len(report.checks) == 15
+    assert result(report, "integrity").detail.startswith("4 files read match SHA256SUMS")
+    assert (
+        "tokens (agent trace, 2 sessions, 3 results): input 38; cache write 302; "
+        "cache read 3,003; output 21 (thinking 3)"
+    ) in report.totals
+    assert "list cost: $3.25 (the agent trace's Claude Code costUSD, list basis)" in report.totals
+
+
+def test_trace_totals_for_the_67d7_shape() -> None:
+    usage = model_usage(
+        780.5451723999995, inp=7967144, write=75149150, read=574225342, out=1643515, think=361372
+    )
+    build = Build()
+    build.trace = trace_tar(
+        {
+            "calls/call-4119-1.jsonl": jsonl(
+                result_line("s", 780.5451723999995, {"claude-opus-5-5": usage})
+            )
+        }
+    )
+    report = run(build.files())
+    assert (
+        "tokens (agent trace, 1 session, 1 result): input 7,967,144; cache write 75,149,150; "
+        "cache read 574,225,342; output 1,643,515 (thinking 361,372)"
+    ) in report.totals
+    assert "list cost: $780.55 (the agent trace's Claude Code costUSD, list basis)" in report.totals
+
+
+def test_no_trace_and_zstd_only_trace() -> None:
+    report = run(Build().files())
+    assert "list cost: not in this release (the agent trace is not shipped)" in report.totals
+    files = Build().files() | {"agent-trace-67d7.tar.zst": b"zstd"}
+    lines = run(files).totals
+    assert any("agent trace: only zstd copies" in line for line in lines)
+
+
+def trace_note(members: dict[str, bytes], extra: list[tarfile.TarInfo] | None = None) -> str:
+    build = Build()
+    build.trace = trace_tar(members, extra=extra)
+    report = run(build.files())
+    assert report.ok  # informational: a bad trace never fails a check
+    return next(line for line in report.totals if line.startswith("agent trace:"))
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        {**result_line("A", 1.0, {}), "total_cost_usd": "1.0"},
+        {**result_line("A", 1.0, {}), "total_cost_usd": -1.0},
+        {**result_line("A", 1.0, {}), "session_id": 7},
+        result_line("A", 1.0, {"m": {"inputTokens": -1}}),
+        result_line("A", 1.0, {"m": {"inputTokens": True}}),
+        {**result_line("A", 1.0, {}), "modelUsage": []},
+    ],
+)
+def test_malformed_result_lines_make_the_trace_unreadable(line: dict[str, object]) -> None:
+    assert "unreadable" in trace_note({"calls/call-1-1.jsonl": jsonl(line)})
+
+
+def test_trace_bounds_and_links(monkeypatch: pytest.MonkeyPatch) -> None:
+    good = two_session_trace()
+    assert "no Claude Code result lines" in trace_note({"calls/call-1-1.jsonl": b"{}\n"})
+    assert "unreadable" in trace_note({"calls/call-1-1.jsonl": b"not json\n"})
+    link = tarfile.TarInfo("calls/call-9-1.jsonl")
+    link.type = tarfile.SYMTYPE
+    link.linkname = "/etc/passwd"
+    assert "link" in trace_note(good, [link])
+    monkeypatch.setattr(vr, "TRACE_MEMBER_CAP", 64)
+    assert "larger than 64 bytes" in trace_note(good)
+    monkeypatch.undo()
+    monkeypatch.setattr(vr, "TRACE_MAX_MEMBERS", 3)
+    assert "more than 3 members" in trace_note(good)
+    monkeypatch.undo()
+    monkeypatch.setattr(vr, "EVENT_LINE_CAP", 64)
+    build = Build()
+    build.trace = trace_tar(good)
+    # The event log itself is over this cap too, so read the trace scanner directly.
+    with pytest.raises(vr.ReleaseError, match="longer than 64 bytes"):
+        vr.scan_agent_trace(io.BytesIO(build.trace), "agent-trace.tar")

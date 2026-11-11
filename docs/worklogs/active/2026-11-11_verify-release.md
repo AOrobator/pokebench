@@ -76,6 +76,13 @@ The input is an untrusted download.
 - [x] Review: Codex GPT lane via `just tell-codex`: rounds 1-3 BLOCKING (fixed), round 4 LGTM
 - Outcome: `just verify-release <folder>` prints 15 PASS/FAIL lines for a 67d7-style release in well under a minute. Consumers: release readers, `VERIFY.md`. Non-goals: video, replay, viewer, other runs' releases, zstd, per-snapshot RAM. Terminator: review LGTM. Split trigger: any need for emulator execution.
 
+**M1b — Tokens and list cost from the agent trace** (coordinator 17:58Z; The operator's decision card "Land now, tokens next"), branch `claude/verify-release-tokens` off cae3b65f0
+- [x] Write tests: per-session cumulative usage at the max `total_cost_usd`, summed across sessions, multiple models; non-call members ignored; absent and zstd-only trace; malformed result lines; links, member size, member count and line caps. Informational only: a bad trace never fails a check, and the check count stays 15.
+- [ ] COMMIT: `test(verify-release): agent-trace token totals` (RED)
+- [ ] Implement `scan_agent_trace` (bounded, safe streaming tar; only `calls/call-*.jsonl` read; Claude Code stream-json `result` lines)
+- [ ] Cheap checks, guard deletion, full gates, real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
+- [ ] Codex review (small); stop at ready to land
+
 **M2 — Landing** (the operator)
 - [ ] ASK USER: land
 - [ ] FF merge via landing board, post-main `just test`

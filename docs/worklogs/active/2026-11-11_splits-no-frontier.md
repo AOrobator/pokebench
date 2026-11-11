@@ -1,6 +1,6 @@
 # SPLITS: settle when there is no frontier to race
 
-Status: M1 READY TO LAND (source 793b4124c; gates green; GPT LGTM) on `claude/splits-no-frontier` (worktree `~/dev/pokebench-splits-no-frontier`), off main 640ba5c74. Asked for by the coordinator 2026-11-11 19:23Z, from the view-release browser check. Landing needs the operator.
+Status: M1 LANDED on local main at defa1cf1a (the operator 19:58:13Z: "@claude land view-release and splits-no-frontier"); post-main `just test` green. No push; no viewer refresh (not asked), so the live 8790 viewer does not have it yet on `claude/splits-no-frontier` (worktree `~/dev/pokebench-splits-no-frontier`), off main 640ba5c74. Asked for by the coordinator 2026-11-11 19:23Z, from the view-release browser check. Landing needs the operator.
 
 ## Problem Statement
 
@@ -38,6 +38,8 @@ No new input, network or file access; HTML escaping unchanged.
 - [x] Codex review: GPT LGTM; stopped at ready to land
 
 **M2 — Landing** (the operator); then `just viewer-main` only on the operator's words
+- [x] Rebased onto main twice (view-release landing, then a worklog-only archive commit); the feature diff is byte-identical each time (patch-id 71ce56b0…); splits tests 48/48. Merged with `git merge --ff-only` only after confirming number 1 on the board: main → defa1cf1a. Post-main `just test` exit 0 (agent 3,042, viewer 1,279, env 3,319, gateway 39; floors; no-I/O proof).
+- [ ] `just viewer-main` (needs the operator's words)
 
 ## Closing the Loop
 

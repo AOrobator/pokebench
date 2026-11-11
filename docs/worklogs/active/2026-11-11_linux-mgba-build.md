@@ -36,3 +36,13 @@ Non-goals: Windows, other distros, doctor changes (owned by setup-preflight-docs
 
 - Round 1, Codex (JOB review-claude-linux-mgba-build-11408e61c; base 39b9b2d24, head 11408e61c, packet sha256 3dbc6edf…87e5): VERDICT: CHANGES. [P2] with env/.venv activated, `command -v pkg-config` is the venv's PyPI pkgconf, so preflight and cmake both use it and the build fails on Ubuntu. Accepted: `system_pkg_config` takes the first pkg-config on PATH outside env/.venv (physical-path compare) for both preflight and cmake. Darwin extraction confirmed equivalent.
 - Round 2, Codex (JOB review-claude-linux-mgba-build-df5bb6036; base 39b9b2d24, head df5bb6036, packet sha256 b579fd3a…92ea5): VERDICT: LGTM, no blocking findings. Re-proved on GPU host: activated venv and plain PATH both build with PKG_CONFIG_EXECUTABLE=/usr/bin/pkg-config, FFmpeg ON, binding OK; smoke OK.
+
+## Rebase onto main (2026-11-11)
+
+The operator chose "Code now, README later" (decision card, 19:16Z): land the code before `claude/setup-preflight-docs`.
+
+- Reviewed history saved as `claude/linux-mgba-build-on-setup-docs` (1762d5b57). Rebuilt from `git diff 39b9b2d24 1762d5b57 -- . ':!README.md'` applied onto main d895675f6 (clean). README edits moved to `claude/linux-setup-readme` (127f33ce8, on setup-preflight-docs e997617be), to merge after setup-preflight-docs lands.
+- COMMIT: `feat(build-mgba): Linux branch, proven on Ubuntu 24.04 x86_64` (5aede769b)
+- [x] Gates on the rebased tree (Mac, CPU window granted 19:17Z): `just test` exit 0 (agent 3038, viewer 1276, env 3258 at 82.88/77.18/77.77 vs floor 69, gateway 39 at 46.25/42.86/23.60 vs floor 22, no-I/O guards OK); `just lint` exit 0
+- [x] Codex review of the rebased diff: LGTM (JOB review-claude-linux-mgba-build-rebased-5aede769b, packet sha256 991fcf7d…84d2); build-mgba.sh byte-identical to the approved df5bb6036
+- [ ] Land: land-join, ff merge, post-main `just test`, evidence commit, land-done

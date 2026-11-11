@@ -1,6 +1,6 @@
 # `just verify-release`: one-command check of a published clear
 
-Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z; evidence fe1215c24), post-main `just test` green. M1b (tokens) on `claude/verify-release-tokens`. M3 closeout needs the operator. Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 17:10Z (both relayed by the coordinator). No push, no viewer refresh.
+Status: M1 LANDED on local main at cae3b65f0 (the operator: "land it", 18:00:04Z; evidence fe1215c24), post-main `just test` green. M1b (tokens) ready to land on `claude/verify-release-tokens`. M3 closeout needs the operator. Approved by the operator 2026-11-11 16:50Z; scope cut by the operator 17:10Z (both relayed by the coordinator). No push, no viewer refresh.
 
 ## Problem Statement
 
@@ -81,10 +81,12 @@ The input is an untrusted download.
 - [x] COMMIT: `test(verify-release): agent-trace token totals` (RED, 88def9f7a: 12 failed, 65 passed)
 - [x] Implement `scan_agent_trace` (bounded, safe streaming tar via `_BoundedTarInfo`; only `calls/call-*.jsonl` read; links, non-regular call files, >64 MiB members, >65,536 members, lines over 16 MiB, non-JSON and malformed result lines make the trace "unreadable" in the totals; the trace is hashed like every file read). Event-log token line relabelled `tokens (event log)`.
 - [x] Cheap checks: 79/79, ruff, mypy. Guard deletion: 8 guards removed alone; "max cost per session" and the cost type check first survived, pinned by `test_a_later_but_smaller_result_does_not_replace_the_session_total` and a boolean-cost case; all red now. Real release (read-only, folder unchanged): 15/15 PASS, 57.1 s, 273 MB peak; integrity 4 files read; totals exactly as expected below.
-- [ ] Full gates; real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
-- [ ] Codex review (small); stop at ready to land
+- [x] Full gates; real release run (expected 67d7: input 7,967,144; cache write 75,149,150; cache read 574,225,342; output 1,643,515, thinking 361,372; $780.55 list; 1 session, 4,132 results)
+- [x] Codex review (small): round 1 BLOCKING (fixed), round 2 LGTM; stopped at ready to land
   - Round 1 (JOB review-gpt-verify-release-tokens-055b6bd2d, base cae3b65f0, head 055b6bd2d, SHA-256 614e7555…a143a): `VERDICT: BLOCKING`, one Fix [P1]: non-call members were skipped before the size cap, so a streamed 1 TiB ignored member (or a compressed bomb) was decompressed in full. Fixed: the member size cap now runs on every member before the skip. Test: a 1 TiB declared `requests/huge.bin` backed by a few bytes is refused. Guard deletion: putting the skip first again turns it red. 80/80.
   - The gate run started on 055b6bd2d was stopped (files changed mid-run); gates rerun on the fixed head.
+  - Round 2 (JOB review-gpt-verify-release-tokens-r2-e8cf93eef, delta 055b6bd2d..e8cf93eef, SHA-256 af963951…dd814): P1 resolved, no new findings, 80 passed. `VERDICT: LGTM`.
+  - Gates on 600578b78 (main fe1215c24 merged in): `just lint` exit 0; `just test` exit 0 (agent 3,038, viewer 1,276, env 3,201, gateway 39; floors; no-I/O proof). Real release: 15/15 PASS, 56.9 s, expected totals exact. READY TO LAND (needs the operator's go).
 
 **M2 — Landing** (the operator)
 - [x] ASK USER: land — the operator, 18:00:04Z: "land it"

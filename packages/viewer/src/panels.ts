@@ -704,6 +704,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "foe-item-recap-v1":"foe-items-league-stock.html",
  "foe-trainer-items-v1":"foe-items-league-stock.html",
  "league-stock-up-v1":"foe-items-league-stock.html",
+ "menu-option-null-id-v1":"menu-option-null-id-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",
  "gym-readiness-readout-v1":"gym-readiness-readout-v1.html",

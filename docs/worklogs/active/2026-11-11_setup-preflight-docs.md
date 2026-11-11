@@ -33,3 +33,7 @@ Follow-ups from the Linux trial, out of scope here: an isMain() helper for impor
 - [x] COMMIT: `docs(charts): add the README chart generator and its run audit` (rebased; was d90a9d033)
 - [x] Rebased onto main 640ba5c74 (linux-mgba-build and node-version-guards landed); none of this branch was on main; no conflicts
 - [x] Linux tested: doctor PASSes Linux x86_64 (Ubuntu 24.04, 2026-11-11), SKIPs other Linux arches, drops "untested platform" and "macOS-only" wording; README takes the deferred README edits from claude/linux-mgba-build-on-setup-docs and claude/node-version-guards-on-setup-docs (corepack row kept); test_doctor 34 passed (4 RED first)
+- [x] Full gates on 9a310051c (Mac): just lint clean; just test green: agent 3042, viewer 1276, env 3292 (lines 83.15% vs floor 69), claude-gateway 39 (lines 46.25% vs floor 22)
+- [x] COMMIT: `feat(doctor): Linux x86_64 is tested on Ubuntu 24.04` (9a310051c)
+- [x] Codex review-setup-preflight-docs-9a310051c: CHANGES. (1) build_charts.py used 3.12-only f-string quote nesting: fixed, ast-parses on env/.venv Python 3.11, regenerated PNGs byte-identical. (2) audit_runs.py missed League and checkpoint milestones: rewritten to print first-observed badges, Elite Four, Wallace and game clear, and to stitch chains (6302+1121+69d8+d718) at the checkpoint each next leg loaded; output matches every plotted point (67d7 Sidney/Drake differ by 1 s: audit rounds, chart truncates). No unit tests: both scripts sit outside the test roots and read runs/ directly
+- [ ] Codex re-review

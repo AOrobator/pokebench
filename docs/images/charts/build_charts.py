@@ -239,9 +239,8 @@ for name, c, a, b, _, _ in rows:
     d = f"M{X(0)},{Y(0)}"
     for n, v in pts:
         d += f" H{X(v):.1f} V{Y(n):.1f}"
-    o.append(
-        f'<path d="{d}" fill="none" stroke="{c}" stroke-width="2.6" {'stroke-dasharray="3 4"' if a else ""}/>'
-    )
+    dash = 'stroke-dasharray="3 4"' if a else ""
+    o.append(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="2.6" {dash}/>')
     for n, v in [q for q in pts[:-1] if q[0] <= 8]:
         o.append(f'<circle cx="{X(v):.1f}" cy="{Y(n):.1f}" r="2.6" fill="{c}"/>')
     o.append(

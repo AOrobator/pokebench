@@ -18,3 +18,4 @@ No feature switch: README tooling only, no harness behavior.
 
 - 2026-11-11 4:12 PM: RED. New and updated tests in env/tests/env/test_readme_charts.py: 26 fail, 19 pass.
 - 2026-11-11 4:20 PM: GREEN. 45 tests pass under the no-I/O guard, readme_charts.py 99% branch coverage. ruff, ruff format and mypy are clean. Byte-identical output: check-points against ~/dev/pokebench/runs matches, and both HTML pages from the old code (79704679f) and the new code are identical. `just readme-charts pionts` exits 2 with a usage error before running anything; with [positional-arguments], the default stage still reaches $1.
+- 2026-11-11 4:16 PM: in the relay-granted window (4:11 PM), just lint and just test are green at 4858372e4: agent 3,042, viewer 1,281, env 3,364 (floor 69, at 83.68%), claude-gateway 39, no-I/O proof OK. Window released.

@@ -61,4 +61,4 @@ From the 8th counted call the note adds how many of all counted calls stopped wh
 
 - Not merged. Tests: counter unit cases, coordinator episode, the a8f9 replay above, registry and wiring, viewer Activity History without a timeline mark.
 - Pending experiment `experiments/same-target-no-progress-v1.json` (not queued); joins the bundle arm of `bundle-v-control` and `bundle-cook-1h`, off in control.
-- Not done: measured runs (only the operator approves and launches them).
+- Not done: measured runs (only Operator approves and launches them).

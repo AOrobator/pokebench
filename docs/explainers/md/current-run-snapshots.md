@@ -75,4 +75,4 @@ Default builds: `~/.cache/pokebench/<canonical-root-hash>/builds/<main-SHA>`. Da
 
 ## Rollout status
 
-The rollout worklog records each milestone, review, measured gate and actual served build separately. The operator authorized service activation and shared viewer refresh after readiness. Active game and agent processes must retain their identities and start times. Consult docs/worklogs/active/2026-10-25_current-run-snapshots.md and the current runtime receipts for the activation state.
+The rollout worklog records each milestone, review, measured gate and actual served build separately. Operator authorized service activation and shared viewer refresh after readiness. Active game and agent processes must retain their identities and start times. Consult docs/worklogs/active/2026-10-25_current-run-snapshots.md and the current runtime receipts for the activation state.

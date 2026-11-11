@@ -232,7 +232,7 @@ Prompt text, navigation tools and automatic input handling that help the model a
 - [No open story goal](md/no-open-story-goal-v1.md) · [HTML](no-open-story-goal-v1.html) — After the Magma Emblem in run a0b4, the latest place-naming line was ARCHIE's, about MT. PYRE, a place the run had already reached.
 - [Notice the starter decision. Keep the choice with the model.](md/starter-decision-salience-v1.md) · [HTML](starter-decision-salience-v1.html) — This treatment adds one neutral reminder at a verified ready starter menu.
 - [Open goal prompt](md/open-goal-prompt-v1.md) · [HTML](open-goal-prompt-v1.html) — One sentence of the system prompt changes.
-- [Original-speed deadline pacing](md/original-speed-pacing-v1.md) · [HTML](original-speed-pacing-v1.html) — The operator goal is an actual 80 core frames per second during normal play.
+- [Original-speed deadline pacing](md/original-speed-pacing-v1.md) · [HTML](original-speed-pacing-v1.html) — Operator goal is an actual 80 core frames per second during normal play.
 - [Pick up the Master Ball](md/opus-rq-master-ball-v1.md) · [HTML](opus-rq-master-ball-v1.html) — Free field in Aqua Hideout B1F with a readable bag.
 - [Plan the corridor. Validate each step. Stop at its end.](md/safe-navigation-strides-v1.md) · [HTML](safe-navigation-strides-v1.html) — A* still routes to the coordinate the model chooses.
 - [PokéNav call auto-advance](md/pokenav-call-auto-advance-v1.md) · [HTML](pokenav-call-auto-advance-v1.html) — Qwen run 88ea spent 116 turns and about 22 minutes inside the forced tutorial.
@@ -283,7 +283,7 @@ Prompt text, navigation tools and automatic input handling that help the model a
 
 ## Guards and loop breakers
 
-Checks that catch a stuck or looping model, refuse unsafe actions, or end a stalled run under limits the operator set.
+Checks that catch a stuck or looping model, refuse unsafe actions, or end a stalled run under limits Operator set.
 
 - [A milestone drought produces a notice](md/milestone-stall-stop-v1.md) · [HTML](milestone-stall-stop-v1.html) — After 10 unpaused minutes with no newly observed milestone counted by this clock, it requests one factual note.
 - [Auto-talk after a quiet stretch](md/auto-talk-v3.md) · [HTML](auto-talk-v3.html) — Auto-talk-v1 only acts on a loop: 8 turns making the same call while the game state stays the same, or 3 replies with no tool call.

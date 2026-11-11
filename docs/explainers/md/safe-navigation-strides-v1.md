@@ -45,7 +45,7 @@ The previous 50-run audit had **1,021 zero-travel calls**. Of these, **901** wer
 
 In an owned Petalburg checkpoint probe, the incumbent moved two tiles and stopped; the candidate completed the requested eight-tile corridor at the exact endpoint. This is engineering correctness evidence, not a measured model improvement.
 
-Candidate branch: a working branch. General defaults remain OFF; the operator enabled this switch in the canonical bundle treatment on 2026-10-19, with control OFF. Native proof and focused tests are recorded; the worklog records full gates, cloud review and landing separately. No experiment is queued or approved.
+Candidate branch: a working branch. General defaults remain OFF; Operator enabled this switch in the canonical bundle treatment on 2026-10-19, with control OFF. Native proof and focused tests are recorded; the worklog records full gates, cloud review and landing separately. No experiment is queued or approved.
 
 <details>
 <summary>Source grounding and limits</summary>

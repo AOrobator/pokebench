@@ -61,7 +61,7 @@ It names each trainer once while the party stays weak on that map; a trainer tha
 | Home, MOM | `SaveBlock2.playerGender`; flags 0x52, 0x12F, 0xD8, 0x85, badge 5; vars 0x4082, 0x408C | BRENDANS HOUSE 1F; MOM heals |
 | Quoted words | `sText_NoRunningFromTrainers`, `sText_NoPPLeft` (src/battle_message.c); `gText_WouldYouLikeToRestYourPkmn`; `PlayersHouse_1F_Text_YouShouldRestABit` |  |
 
-A pytest reads e046's real RAM (seq 16066 and 16287) with the operator's ROM through the production reader and gets exactly the facts pokeemerald's source names for those objects and moves. The facts reach the agent as `heal_before_trainers` in the state JSON, only while the switch is on; the readout text never changes.
+A pytest reads e046's real RAM (seq 16066 and 16287) with Operator's ROM through the production reader and gets exactly the facts pokeemerald's source names for those objects and moves. The facts reach the agent as `heal_before_trainers` in the state JSON, only while the switch is on; the readout text never changes.
 
 ## Measured on 14 recorded runs
 

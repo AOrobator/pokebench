@@ -64,7 +64,7 @@ llama-server b10236 serving Qwen3.6-35B-A3B lists `presence_penalty` in `/props`
 ## 5. Status
 
 - Registered as `presence-penalty-v1` (guidance group, no dependencies). Default off in every preset.
-- The operator wants it in the `bundle-v-control` bundle arm only. The readiness thread edits that bundle file; this branch does not.
+- Operator wants it in the `bundle-v-control` bundle arm only. The readiness thread edits that bundle file; this branch does not.
 - Gates green at the M3 commit: agent tests 1451 passed, coverage at or above 90 (`presence-penalty.ts` and `provider.ts` at 100%).
 - Multi-model review: pending.
 - Measured runs: none. There is no evidence yet that it helps or hurts.

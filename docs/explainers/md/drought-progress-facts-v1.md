@@ -35,7 +35,7 @@ Briney's trip is credited by the earned arrival, not a claim inferred from board
 
 GLM 0d5d received drought claims during battles (seq 26728 / 43858) and after earned postbadge progress. Qwen ee12 broke out at turn 429 after a drought note at seq 11919 exposed an untried south exit. The offline regression preserves that entire note byte for byte with the switch OFF, and preserves every fact line with it ON.
 
-On 24 October, the operator authorized bundle ON and control OFF in the two future recipes bundle-v-control-2h and bundle-v-control, and waived the separate safety probe. The switch still defaults OFF elsewhere. The single-arm CLI paths are rehearsed through an injected fake runner. No probes, launches or active-run changes are part of this implementation.
+On 24 October, Operator authorized bundle ON and control OFF in the two future recipes bundle-v-control-2h and bundle-v-control, and waived the separate safety probe. The switch still defaults OFF elsewhere. The single-arm CLI paths are rehearsed through an injected fake runner. No probes, launches or active-run changes are part of this implementation.
 
 <details>
 <summary>Recording and OFF invariance</summary>

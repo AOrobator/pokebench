@@ -84,6 +84,6 @@ The golden test `env/tests/env/test_battle_message_waiting.py` holds the RAM win
 ## Status
 
 - Default OFF. Meant to be ON in both arms of bundle-v-control (the bundle file is owned by the readiness thread).
-- Tests, coverage (≥90 on both stacks), lint (known mypy `mgba._pylib` only), build and verify-vendor run; the real-ROM tests ran with the operator ROM.
+- Tests, coverage (≥90 on both stacks), lint (known mypy `mgba._pylib` only), build and verify-vendor run; the real-ROM tests ran with Operator ROM.
 - Not done here: measured runs; the loop guard's battle blind spot (another thread); the Interface line's "input not ready", which is not owned by this switch.
 - The YES/NO box clause rests on pokeemerald source (`Cmd_yesnobox`, `Cmd_yesnoboxlearnmove`, `Cmd_yesnoboxstoplearningmove`, `Cmd_trygivecaughtmonnick`) and synthetic tests only: no recorded run has shown a learn-move, nickname or switch-offer box. It is kept because without it such a box would read "no input until the game asks", the same observe-loop bug.

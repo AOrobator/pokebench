@@ -70,7 +70,7 @@ The search compared facts-only placement, a generic reminder, an assumption corr
 
 The fixed larger comparison used eight histories and four paired draws each: candidate32/32 versus baseline24/32 on current-question understanding plus an intent-matched committed first answer. Known cases scored16/16 versus9/16; fresh contrasts16/16 versus15/16. Family-level p=0.125 limits generalization. Three candidate replies still invented reward details, and no game tool was executed.
 
-The operator approved this cue ON only in the current bundle, with omitted/global defaults OFF and control unchanged. No runs are started by this change. The existing page owner, state/source checks and expiry behavior are reused; the neutral-control interaction is covered by production-factory tests.
+Operator approved this cue ON only in the current bundle, with omitted/global defaults OFF and control unchanged. No runs are started by this change. The existing page owner, state/source checks and expiry behavior are reused; the neutral-control interaction is covered by production-factory tests.
 
 <details>
 <summary>Source and verification</summary>

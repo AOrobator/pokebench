@@ -20,7 +20,7 @@ Talk to people: in this game, people tell you where to go next. After each story
 
 Talk to people: talking to people gives you information about the world and can move the story forward. When you are unsure where to go, or after the story has moved on, talking to the people around you is a good way to learn more. What people tell you is evidence; use it to decide where to go.
 
-Highlighted: the v1 lines the operator read as pointing toward particular people. With dialogue auto-advance on, both versions are followed by the same sentence, in the same paragraph:
+Highlighted: the v1 lines Operator read as pointing toward particular people. With dialogue auto-advance on, both versions are followed by the same sentence, in the same paragraph:
 
 ```
 Talking is cheap: face the person and press A; the harness reads the conversation until your next decision.
@@ -63,4 +63,4 @@ The registry has no way to declare two switches mutually exclusive; its only ref
 ## Status
 
 - **Tests**: `packages/agent/src/explorer-guidance-v2.test.ts`: exact text, placement, talking-is-cheap pairing, v1 unchanged on and off, both on, preset path, registry; OFF builds every main prompt byte for byte (sha256 golden from the incumbent and from every switch on, each main switch flipped, two targets)
-- **Not done**: measured runs (only the operator approves them)
+- **Not done**: measured runs (only Operator approves them)

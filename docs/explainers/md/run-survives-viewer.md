@@ -54,6 +54,6 @@ This used this branch's runner, plus a stand-in for `live.js play` that writes r
 
 ## 6. Status
 
-Viewer tests (662), the 90% coverage gate, tsc and eslint all pass. Claude found three blocking problems across two reviews; all are fixed and tested. A final Claude + Grok review is pending. Not merged, and 8790 is not restarted: merging to main while the finals run stalls them at the next run boundary, so that waits for the operator.
+Viewer tests (662), the 90% coverage gate, tsc and eslint all pass. Claude found three blocking problems across two reviews; all are fixed and tested. A final Claude + Grok review is pending. Not merged, and 8790 is not restarted: merging to main while the finals run stalls them at the next run boundary, so that waits for Operator.
 
 Known limits: pid liveness uses signal 0, so a reused pid of a dead play process could make adoption wait until its game server stops answering. A lease written before this change names no run, so it relies on the live-run check alone.

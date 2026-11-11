@@ -202,4 +202,4 @@ Switch off, the readout and the typed state are byte for byte today's: `test_off
 ## Status
 
 - Tests: `env/tests/env/test_exit_labels.py` (b300 raw-RAM fixtures 7745 and 7751 plus a synthetic ROM).
-- Not measured. A pending experiment entry is registered; only the operator approves runs.
+- Not measured. A pending experiment entry is registered; only Operator approves runs.

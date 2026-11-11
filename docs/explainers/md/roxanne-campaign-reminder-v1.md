@@ -22,4 +22,4 @@ A recovery requires leaving the gym, gaining a Pokémon, level, evolution or mov
 
 ## Evidence and launch boundary
 
-The offline controller freezes batches, records every terminal trace, masks only the inserted reminder for grading, and keeps protected validation separate from revision. Fake-clock rehearsals demonstrate control flow; they establish no model benefit. Campaign launch still requires the operator's authorization and a qualified launch host.
+The offline controller freezes batches, records every terminal trace, masks only the inserted reminder for grading, and keeps protected validation separate from revision. Fake-clock rehearsals demonstrate control flow; they establish no model benefit. Campaign launch still requires Operator's authorization and a qualified launch host.

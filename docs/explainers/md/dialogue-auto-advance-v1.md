@@ -99,4 +99,4 @@ Only the stale box notes are replaced ("locks field controls until it closes", "
 
 ## Status
 
-Agent and viewer tests, lint, build and both coverage gates pass; one live smoke against the real game server (above). Not done: the multi-model review, and any measured runs. Pending experiment `experiments/dialogue-auto-advance.json` (activation NEW_GAME_CREATED) joins the strong-bundle cohort only with the operator's approval. The Birch intro speech and battle text are separate screens and are not advanced.
+Agent and viewer tests, lint, build and both coverage gates pass; one live smoke against the real game server (above). Not done: the multi-model review, and any measured runs. Pending experiment `experiments/dialogue-auto-advance.json` (activation NEW_GAME_CREATED) joins the strong-bundle cohort only with Operator's approval. The Birch intro speech and battle text are separate screens and are not advanced.

@@ -4,11 +4,11 @@ Harness switch · people-id-cards-v1 · default OFF · needs people-ledger-v1
 
 > Markdown twin of [people-id-cards-v1.html](../people-id-cards-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.
 
-When a person comes into view, the result shows their ID card: only what the game itself has shown or stored about them in this run. The harness writes no relation, role, trainer fact or goal of its own; the game's words are quoted whole, directions included. One prompt line asks the model to consider who this person is to it and where they fit in the story. Approved by the operator 2026-10-16, 4:47 PM New York time.
+When a person comes into view, the result shows their ID card: only what the game itself has shown or stored about them in this run. The harness writes no relation, role, trainer fact or goal of its own; the game's words are quoted whole, directions included. One prompt line asks the model to consider who this person is to it and where they fit in the story. Approved by Operator 2026-10-16, 4:47 PM New York time.
 
 ## Why
 
-Run `4caa`: after PROF. BIRCH said at turn 143 `"My kid, MAY, is also studying POKéMON while helping me out."`, the model reached Route 103 and spent turns 199–266 walking toward the water-gated east side. MAY was on screen in 8 of those results (turns 211, 239, 246, 262–266); the other readouts named her only as an out-of-view entry. It talked to her at turn 267. The operator asked for an ID card, not a supervisor telling the model what to do.
+Run `4caa`: after PROF. BIRCH said at turn 143 `"My kid, MAY, is also studying POKéMON while helping me out."`, the model reached Route 103 and spent turns 199–266 walking toward the water-gated east side. MAY was on screen in 8 of those results (turns 211, 239, 246, 262–266); the other readouts named her only as an out-of-view entry. It talked to her at turn 267. Operator asked for an ID card, not a supervisor telling the model what to do.
 
 ## When a card is shown
 

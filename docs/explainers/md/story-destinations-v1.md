@@ -46,7 +46,7 @@ Actual output: the T273 test replays the recorded events of 4caa through the swi
 
 ![Littleroot Town with its three doors](story-destinations-v1/fig-2.svg)
 
-*Sketch, not to scale. The coordinates are the ROM's WarpEvents for map 0/9 (pret/pokeemerald 731ad5b `data/maps/LittlerootTown/map.json`: (14,8) MAYS_HOUSE_1F, (5,8) BRENDANS_HOUSE_1F, (7,16) PROFESSOR_BIRCHS_LAB), checked by `env/tests/env/test_places.py` against the operator's ROM. Names are the readout's: with displayed-place-names-v1 the houses take their sign text, so for a male player MAYS_HOUSE is "PROF. BIRCH'S HOUSE". The ROM table is read rather than the vendor's map files because those disagree with the ROM on the Lavaridge gym's warps.*
+*Sketch, not to scale. The coordinates are the ROM's WarpEvents for map 0/9 (pret/pokeemerald 731ad5b `data/maps/LittlerootTown/map.json`: (14,8) MAYS_HOUSE_1F, (5,8) BRENDANS_HOUSE_1F, (7,16) PROFESSOR_BIRCHS_LAB), checked by `env/tests/env/test_places.py` against Operator's ROM. Names are the readout's: with displayed-place-names-v1 the houses take their sign text, so for a male player MAYS_HOUSE is "PROF. BIRCH'S HOUSE". The ROM table is read rather than the vendor's map files because those disagree with the ROM on the Lavaridge gym's warps.*
 
 ## Rules, from the tests
 
@@ -81,5 +81,5 @@ Replayed with `packages/agent/test-support/measure-story-destinations.ts` over 1
 ## Status
 
 - Alias correction a working branch. Default off; registered as the pending experiment `experiments/story-destinations.json` (not queued), whose arms have `dialogue-auto-advance-v1` and `displayed-place-names-v1` on, as the bundle arm does (`character-presence-v1` stays as the finals incumbent has it; the block no longer uses it). Without displayed place names the table names the lab LITTLEROOT TOWN PROFESSOR BIRCHS LAB, so "LAB" still resolves but "POKéMON LAB" and "He lives" (PROF. BIRCH'S HOUSE) are reported as not resolved.
-- Not done: measured runs. Whether the model uses the block is untested; only the operator approves runs.
+- Not done: measured runs. Whether the model uses the block is untested; only Operator approves runs.
 - Decision probes (`just probe-decision`) have no game server, so a probe with this switch on says the map table could not be read.

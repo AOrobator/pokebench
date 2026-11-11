@@ -49,4 +49,4 @@ Battle recap: you lost to MAY (trainer 535) on ROUTE103 (map 0/18) at turn 371 a
 
 ## Status
 
-Gates: `just test`, `just lint`, `just build`, `just coverage` (90% floor). Replays on recorded runs 54a7 and sh02 only; no measured runs, no live probe (lane freeze until 10 AM). The pending experiment entry is registered, not queued; only the operator approves runs.
+Gates: `just test`, `just lint`, `just build`, `just coverage` (90% floor). Replays on recorded runs 54a7 and sh02 only; no measured runs, no live probe (lane freeze until 10 AM). The pending experiment entry is registered, not queued; only Operator approves runs.

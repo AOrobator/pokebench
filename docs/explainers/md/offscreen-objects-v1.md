@@ -89,5 +89,5 @@ The tests (`env/tests/env/test_offscreen_objects.py`, fixture `offscreen-objects
 
 - Milestone M1. Registered in `packages/agent/src/features.ts` as an observation switch that needs `live-object-sprites-v1`. Default off in both stacks.
 - Gates at M1 GREEN: agent, viewer and Python tests pass with the ROM; `offscreen_objects`, `character_presence` and `readout` at 100% Python coverage.
-- The operator wants it in the bundle-v-control bundle arm. The readiness thread edits the bundle file; this branch does not.
+- Operator wants it in the bundle-v-control bundle arm. The readiness thread edits the bundle file; this branch does not.
 - Not done: multi-model review, viewer card link, measured runs. No claim that it helps.

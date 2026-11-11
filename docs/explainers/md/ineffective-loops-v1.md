@@ -45,7 +45,7 @@ The loop guard records a `cycle` warning with this text. With `loop-guard-superv
 Your recent moves name different targets but keep ending on the same one or two tiles, with no new map, tile or story milestone in between: switching between these few targets is not getting anywhere. Reassess what stops you there using observed evidence, then choose a different route or destination.
 ```
 
-Diagnostics go where loop-guard events already go: the run's `loop_guard` events, Activity History and the raw inspector. The notices reuse the existing `cycle` and `observation` loop-guard kinds, so the TIMELINE draws them with its existing loop-guard mark, as it draws every loop-guard warning today; this switch adds no timeline marks, lanes, labels or colors and changes no viewer event or timeline rendering code (only the explainer mapping in panels.ts). Whether these warnings should be kept off the timeline is an open question for the operator.
+Diagnostics go where loop-guard events already go: the run's `loop_guard` events, Activity History and the raw inspector. The notices reuse the existing `cycle` and `observation` loop-guard kinds, so the TIMELINE draws them with its existing loop-guard mark, as it draws every loop-guard warning today; this switch adds no timeline marks, lanes, labels or colors and changes no viewer event or timeline rendering code (only the explainer mapping in panels.ts). Whether these warnings should be kept off the timeline is an open question for Operator.
 
 ## Measured on recorded runs
 

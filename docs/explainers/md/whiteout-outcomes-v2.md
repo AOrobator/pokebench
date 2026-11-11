@@ -41,6 +41,6 @@ pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881: overworld.c DoWhiteOu
 
 Offline fixtures preserve GLM run 0d5d state records 65354→65369, 72982→72984 and 77543→77545. No historical log is rewritten. This is evidence correction, not measured gameplay benefit.
 
-The operator approved v2 ON in the bundle arm and OFF in control for bundle-v-control-2h and bundle-v-control. Existing briefing and recap consumers stay enabled. Other defaults remain OFF. These recipe changes affect future trials; active and frozen runs stay untouched. No gameplay, GPU or probe launch is authorized here.
+Operator approved v2 ON in the bundle arm and OFF in control for bundle-v-control-2h and bundle-v-control. Existing briefing and recap consumers stay enabled. Other defaults remain OFF. These recipe changes affect future trials; active and frozen runs stay untouched. No gameplay, GPU or probe launch is authorized here.
 
 </details>

@@ -113,6 +113,6 @@ The prompt change needs `bounded-navigation-v1`; the registry records that depen
 | Item | State |
 |---|---|
 | Default | Off |
-| Bundle | The operator wants it in the `bundle-v-control` bundle arm. The readiness thread edits the bundle file; this branch does not. |
+| Bundle | Operator wants it in the `bundle-v-control` bundle arm. The readiness thread edits the bundle file; this branch does not. |
 | Review | Multi-model review pending |
 | Measured runs | None. Nothing here shows it helps. |

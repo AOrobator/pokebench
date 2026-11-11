@@ -72,4 +72,4 @@ The route passes HIKER MARC's template tile (1,6), so the walk would also end ne
 
 ## Status
 
-Gates and the Claude and Grok review are recorded in the worklog. Not measured: the pending experiment `experiments/story-battle-heal-gate-v1.json` waits for the operator.
+Gates and the Claude and Grok review are recorded in the worklog. Not measured: the pending experiment `experiments/story-battle-heal-gate-v1.json` waits for Operator.

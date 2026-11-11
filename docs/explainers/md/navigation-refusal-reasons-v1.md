@@ -91,4 +91,4 @@ The switch is read only from the FeatureSet given to `withNavigation`. It needs 
 ## Status
 
 - **Tests**: `packages/agent/src/navigation-refusal-reasons.test.ts`: every reason ON, OFF byte-identical, counter hint priority, factory path
-- **Not done**: Multi-model review; measured runs. A pending experiment entry is registered; it runs only after readiness passes and the operator approves it.
+- **Not done**: Multi-model review; measured runs. A pending experiment entry is registered; it runs only after readiness passes and Operator approves it.

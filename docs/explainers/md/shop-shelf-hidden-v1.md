@@ -32,7 +32,7 @@ Source pokeemerald 731ad5b, and every map header of the US ROM.
 | Other script tiles, signs, secret bases | Every other listed event | Their own scripts | Listed |
 | Hidden items | 112 | An item | Listed |
 
-A shop shelf does have a script. It is the one scripted thing hidden, because the operator named it. Pressing A at a shelf still shows the game's text.
+A shop shelf does have a script. It is the one scripted thing hidden, because Operator named it. Pressing A at a shelf still shows the game's text.
 
 ## Replay of recorded Mart turns
 

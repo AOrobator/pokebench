@@ -72,4 +72,4 @@ b300 at seq 15233: object 3 YOUNGSTER (TRAINER_TOMMY 321) is loaded at (3,9) fac
 
 ## Status
 
-Tests: `env/tests/env/test_trainer_sight.py` (synthetic rule, endpoint, b300 raw RAM with the operator's ROM) and `packages/agent/src/trainer-sight.test.ts` (b300 refusal text, confirm, OFF, wiring). No measured runs yet. The pending experiment is `experiments/trainer-sight-check-v1.json`.
+Tests: `env/tests/env/test_trainer_sight.py` (synthetic rule, endpoint, b300 raw RAM with Operator's ROM) and `packages/agent/src/trainer-sight.test.ts` (b300 refusal text, confirm, OFF, wiring). No measured runs yet. The pending experiment is `experiments/trainer-sight-check-v1.json`.

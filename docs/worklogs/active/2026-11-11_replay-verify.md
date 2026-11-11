@@ -1,6 +1,6 @@
 # `just replay-verify`: replay a published run from power-on and compare its RAM
 
-Status: M1 READY TO LAND (head 099445fbc; gates green; GPT round 2 LGTM) on `claude/replay-verify` (worktree `~/dev/pokebench-replay-verify`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("We need to commit the replay tool"), scoped by the coordinator. Landing needs the operator.
+Status: M1 LANDED on local main at 04fc1aada (the operator 18:48:59Z: "@claude land replay-verify"); post-main `just test` green. No push, no viewer refresh on `claude/replay-verify` (worktree `~/dev/pokebench-replay-verify`), off main a6a9eff8f. Requested by the operator 2026-11-11 18:27Z ("We need to commit the replay tool"), scoped by the coordinator. Landing needs the operator.
 
 ## Problem Statement
 
@@ -53,6 +53,7 @@ Untrusted download: the same bounded, non-extracting readers as `verify-release`
 - Non-goals: video or audio re-encoding, screenshot (PNG) matching, the viewer. Terminator: review LGTM.
 
 **M2 — Landing** (the operator)
+- [x] `just land-join` (number 1), `git merge --ff-only 04fc1aada` (main a6a9eff8f → 04fc1aada; main had not moved). Post-main `just test` exit 0 (agent 3,038, viewer 1,276, env 3,228, gateway 39; floors; no-I/O proof).
 
 ## Closing the Loop
 

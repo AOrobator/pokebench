@@ -18,6 +18,6 @@ Cite "a Claude Code session transcript (outside the repo)" instead of the sessio
 
 ## Milestones
 
-- [x] M1: replace the citations, focused readme_charts tests green (46 passed), commit.
+- [x] M1: replace the citations, focused readme_charts tests green (46 passed). COMMIT: `docs(charts): cite a Claude Code session transcript, not its session ID` (45594130d)
   Outside the repo, same day: pass3/session_ids.py gap tightened (sha256/hash/digest/md5 end shape B), 0 matches on the public history; GUARD_PATTERN added to the blocklist; pass3 blob and message callbacks run session_ids.scrub; the updated pass3 leaves the public main hash unchanged; test_session_ids 4/4 OK.
 - [ ] M2: Codex review, land on local main (caller's step, not this branch's author).

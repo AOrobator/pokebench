@@ -20,6 +20,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import unicodedata
 import urllib.request
 import wave
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -289,11 +290,22 @@ def possessive(phonemes: str) -> str:
     return "s" if last.endswith(VOICELESS_END) else "z"
 
 
+def _fold(text: str) -> str:
+    """Lower case without accents, one character for one, so positions still line up."""
+    out = []
+    for char in text:
+        base = unicodedata.normalize("NFD", char)[0].lower()
+        out.append(base if len(base) == 1 else char)
+    return "".join(out)
+
+
 def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], str]) -> str:
     """The line's phonemes: listed names from the lexicon, everything else from espeak."""
     if not lexicon:
         return phonemize(text)
-    names = "|".join(re.escape(name) for name in sorted(lexicon, key=len, reverse=True))
+    text = unicodedata.normalize("NFC", text)
+    folded = {_fold(unicodedata.normalize("NFC", name)): spoken for name, spoken in lexicon.items()}
+    names = "|".join(re.escape(name) for name in sorted(folded, key=len, reverse=True))
     pattern = re.compile(rf"(?<!\w)({names})(['’]s)?(?!\w)")
     spoken = ""
     last = 0
@@ -303,10 +315,10 @@ def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], s
         if piece:
             spoken += (" " if spoken and spaced else "") + piece
 
-    for match in pattern.finditer(text):
+    for match in pattern.finditer(_fold(text)):
         between = text[last : match.start()]
         add(phonemize(between), not between[:1] or between[:1].isspace())
-        name = lexicon[match[1]]
+        name = folded[match[1]]
         add(name + (possessive(name) if match[2] else ""), True)
         last = match.end()
     rest = text[last:]

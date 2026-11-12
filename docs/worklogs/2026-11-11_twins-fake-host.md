@@ -43,3 +43,5 @@ Removes a private hostname from a test; adds nothing.
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive
+
+Archived 2026-11-11 19:58 ET on the operator's approval.

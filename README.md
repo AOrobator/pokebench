@@ -44,7 +44,7 @@ Each turn the harness reads the game's memory, turns it into a text readout the 
 
 - **Agent:** TypeScript on [pi](https://github.com/badlogic/pi-mono), talking to any OpenAI-compatible endpoint.
 - **Environment:** a native mGBA build driving the [continual-harness](https://github.com/sethkarten/continual-harness) game server, the starter kit for the [PokéAgent Challenge](https://pokeagent.github.io/) (NeurIPS 2025), vendored unmodified at a pinned commit.
-- **Feature switches:** every harness behavior sits behind a switch whose off state is the old behavior, so changes can be A/B tested. Explainers for each switch live in `docs/explainers/`.
+- **Feature switches:** every harness behavior sits behind a switch whose off state is the old behavior, so changes can be A/B tested. Each switch has an explainer with diagrams: see the [feature explainers](docs/explainers/README.md).
 
 ## Quick start
 
@@ -111,7 +111,7 @@ It runs on macOS on Apple Silicon and on Linux x86_64 (tested on Ubuntu 24.04); 
 - [Connect a model](docs/connect-a-model.md)
 - [Benchmarking and grading](docs/benchmarking/)
 - [The Rayquaza lane curriculum](docs/curriculum/)
-- [Feature explainers](docs/explainers/)
+- [Feature explainers](docs/explainers/README.md), one per harness feature and switch, with diagrams
 - [Human play](docs/human-play.md)
 
 ## Citation

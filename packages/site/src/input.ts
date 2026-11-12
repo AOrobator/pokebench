@@ -210,6 +210,13 @@ export function parsePoints(v: unknown): Points {
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// Parsed by the URL standard and required to print back unchanged, so every link built from it is absolute and valid.
+function validBaseUrl(value: string): boolean {
+  if (!URL.canParse(value)) return false;
+  const u = new URL(value);
+  return u.protocol === "https:" && u.hostname !== "" && u.username === "" && u.password === "" && u.search === "" && u.hash === "" && u.pathname.endsWith("/") && u.href === value;
+}
+
 export function parseSiteData(v: unknown): SiteData {
   const doc = obj(v, "site.json");
   only(doc, "site.json", ["github_url", "base_url", "data_date", "cheapest_badges", "human", "series", "models"]);
@@ -263,7 +270,7 @@ export function parseSiteData(v: unknown): SiteData {
   });
   for (const m of models) if (!series.some((s) => s.slug === m.slug)) throw new InputError(`models: no series uses "${m.slug}"`);
   const baseUrl = text(doc.base_url, "base_url");
-  if (!/^https:\/\/[^\s"'<>]+\/$/.test(baseUrl)) throw new InputError("base_url: expected an https URL ending in /");
+  if (!validBaseUrl(baseUrl)) throw new InputError("base_url: expected an https URL with a host and a path ending in /, and no user, query or fragment");
   return {
     githubUrl,
     baseUrl,

@@ -18,6 +18,13 @@ describe("parsePosts", () => {
     expect(at(posts, 1).models).toEqual([]);
   });
 
+  it("rejects characters XML cannot carry, so the feed stays well-formed", () => {
+    expect(() => one("2026-11-11-x.md", post(["date: 2026-11-11", "title: Bad \u0001 title"]))).toThrow(/character U\+0001/);
+    expect(() => one("2026-11-11-x.md", post(["date: 2026-11-11", "title: T"], "Body with \u001f in it."))).toThrow(/character U\+001F/);
+    expect(() => one("2026-11-11-x.md", post(["date: 2026-11-11", "title: T"], "Lone \ud800 surrogate."))).toThrow(/character U\+D800/);
+    expect(one("2026-11-11-x.md", post(["date: 2026-11-11", "title: Tabs\tand emoji 🎮 are fine"])).map((x) => x.title)).toEqual(["Tabs\tand emoji 🎮 are fine"]);
+  });
+
   it("orders posts of one date by file name", () => {
     const posts = parsePosts([{ name: "2026-11-11-b.md", text: post(["date: 2026-11-11", "title: B"]) }, { name: "2026-11-11-a.md", text: post(["date: 2026-11-11", "title: A"]) }], slugs);
     expect(posts.map((p) => p.name)).toEqual(["2026-11-11-a", "2026-11-11-b"]);

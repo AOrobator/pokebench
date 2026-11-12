@@ -334,5 +334,9 @@ describe("parseSiteData base_url", () => {
     expect(() => parseSiteData(f.site)).toThrow(/base_url/);
     f.site.base_url = "https://example.github.io/pokebench";
     expect(() => parseSiteData(f.site)).toThrow(/base_url/);
+    for (const bad of ["https://?x=/", "https:///pokebench/", "https://example.github.io/pokebench/?q=/", "https://example.github.io/pokebench/#a/", "https://user@example.github.io/", "https://exa mple.io/"]) {
+      f.site.base_url = bad;
+      expect(() => parseSiteData(f.site), bad).toThrow(/base_url/);
+    }
   });
 });

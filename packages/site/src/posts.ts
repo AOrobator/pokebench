@@ -56,7 +56,20 @@ function models(value: string | undefined, file: string, known: ReadonlySet<stri
   return slugs;
 }
 
+// XML 1.0 can carry tab, newline, carriage return and these ranges; anything else would make feed.xml malformed.
+function xmlChar(cp: number): boolean {
+  return cp === 0x9 || cp === 0xa || cp === 0xd || (cp >= 0x20 && cp <= 0xd7ff) || (cp >= 0xe000 && cp <= 0xfffd) || (cp >= 0x10000 && cp <= 0x10ffff);
+}
+
+function checkXmlText(file: PostFile): void {
+  for (const ch of file.text) {
+    const cp = Number(ch.codePointAt(0));
+    if (!xmlChar(cp)) throw new InputError(`${file.name}: character U+${cp.toString(16).toUpperCase().padStart(4, "0")} cannot appear in a post`);
+  }
+}
+
 function parsePost(file: PostFile, known: ReadonlySet<string>): Post {
+  checkXmlText(file);
   const named = FILE.exec(file.name);
   if (named === null) throw new InputError(`${file.name}: expected a file name like YYYY-MM-DD-slug.md`);
   const { fields, body } = frontMatter(file);

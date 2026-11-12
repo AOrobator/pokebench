@@ -6,6 +6,9 @@ export interface FixtureInputs {
   site: Record<string, unknown>;
   runs: Record<string, unknown>;
   posts: { name: string; text: string }[];
+  explainers: { readme: string; files: { name: string; text: string }[] };
+  credits: { iconsLicence: string; fontsNotice: string };
+  contributing: boolean;
   assets: Map<string, Uint8Array>;
 }
 
@@ -30,6 +33,87 @@ export const POST_CLEARS = [
   "",
   "- two hints",
   "- a **dash** tool",
+  "",
+].join("\n");
+
+export const EXPLAINER_ALPHA = [
+  "Harness switch · observation · `alpha-v1` · off by default",
+  "",
+  "# Alpha tiles",
+  "",
+  "> Markdown twin of [alpha-v1.html](../alpha-v1.html), generated from the HTML by `just explainer-twins`. The HTML is the source; edit it, not this file.",
+  "",
+  "<a id=\"overview\"></a>",
+  "With the switch on, the model reads the tiles &amp; their glyphs.",
+  "See [beta](beta-v1.md), [the top](#overview) and [the docs](https://example.com/docs).",
+  "",
+  "## 1. What went wrong",
+  "",
+  "![Rows 5 to 8 of the map](alpha-v1/fig-1.svg)",
+  "",
+  "***Rows 5–8.** The tile the model misread.*",
+  "",
+  "### Detail",
+  "",
+  "| Glyph | Words |",
+  "|---|---|",
+  "| `v \\| ^` | ledge<br>hops down |",
+  "| `#` | collision \\[wall\\] |",
+  "",
+  "```",
+  "Local map <raw> & more",
+  "   5   g   g",
+  "```",
+  "",
+  "> Help me! I was robbed<br>",
+  "> I have to get it back!",
+  "",
+  "- first item",
+  "  continued here",
+  "- second *item*",
+  "",
+  "1. Lost battle<br>",
+  "   ↓ First overworld state",
+  "2. Record whiteout",
+  "",
+  "<details>",
+  "<summary>Limits and status</summary>",
+  "",
+  "Not measured yet.",
+  "",
+  "</details>",
+  "",
+].join("\n");
+
+export const EXPLAINER_BETA = ["# Beta", "", "Beta says hello."].join("\n");
+
+export const EXPLAINER_README = [
+  "# PokéBench explainers",
+  "",
+  "Intro text.",
+  "",
+  "## What the model sees",
+  "",
+  "Readouts built from game memory.",
+  "",
+  "- [Alpha tiles](md/alpha-v1.md) · [HTML](alpha-v1.html) — Names the `four` tiles.",
+  "",
+  "## Guards and loop breakers",
+  "",
+  "Checks that catch a stuck model.",
+  "",
+  "- [Beta](md/beta-v1.md) · [HTML](beta-v1.html) — Says hello.",
+  "",
+].join("\n");
+
+export const FONTS_NOTICE = [
+  "# Vendored fonts",
+  "",
+  "The viewer serves these fonts itself.",
+  "",
+  "| File | Family | Copyright | License |",
+  "|---|---|---|---|",
+  "| press-start-2p.woff2 | Press Start 2P | © 2012 The Press Start 2P Project Authors | SIL Open Font License 1.1 |",
   "",
 ].join("\n");
 
@@ -108,6 +192,9 @@ export function fixture(): FixtureInputs {
       { name: "2026-11-02-hello.md", text: POST_HELLO },
       { name: "2026-11-11-model-a-clears.md", text: POST_CLEARS },
     ],
+    explainers: { readme: EXPLAINER_README, files: [{ name: "alpha-v1.md", text: EXPLAINER_ALPHA }, { name: "beta-v1.md", text: EXPLAINER_BETA }] },
+    credits: { iconsLicence: "MIT License\n\nCopyright (c) 2019 Gerrit Halfmann\n\nPermission is hereby granted <free>.", fontsNotice: FONTS_NOTICE },
+    contributing: true,
     assets: new Map<string, Uint8Array>([
       ["site.css", bytes(FIXTURE_CSS)],
       ["fonts/press-start-2p.woff2", bytes("font")],
@@ -119,6 +206,10 @@ export function fixture(): FixtureInputs {
       ["img/badges-over-time-dark.png", bytes("png")],
       ["img/badges-for-the-money.png", bytes("png")],
       ["img/badges-for-the-money-dark.png", bytes("png")],
+      ["img/harness-loop.webp", bytes("webp")],
+      ["img/harness-loop-dark.webp", bytes("webp")],
+      ["explainers.js", bytes("// filter")],
+      ["explainers/alpha-v1/fig-1.svg", bytes("<svg/>")],
     ]),
   };
 }

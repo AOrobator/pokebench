@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { html } from "./html.js";
 import { page, type Shell } from "./layout.js";
 
-const shell: Shell = { sections: ["home", "results"], githubUrl: "https://github.com/example/pokebench", footer: html`<p>foot</p>` };
+const shell: Shell = { sections: ["home", "results"], githubUrl: "https://github.com/example/pokebench", footer: (root) => html`<p>foot <a href="${root}credits.html">Credits</a></p>` };
 
 describe("page", () => {
   it("marks only the current section and links the others", () => {

@@ -16,6 +16,7 @@ describe("buildSite", () => {
     const pages = [
       "index.html", "results.html", "models.html", "models/model-a.html", "models/model-b.html", "models/model-c.html", "runs.html", "runs/ab07.html",
       "updates.html", "updates/2026-11-11-model-a-clears.html", "updates/2026-11-02-hello.html", "feed.xml",
+      "explainers.html", "explainers/alpha-v1.html", "explainers/beta-v1.html", "method.html", "credits.html",
     ];
     expect([...out.keys()].sort()).toEqual([...pages, ...f.assets.keys()].sort());
     expect(out.get("img/badges-over-time.png")).toBe(f.assets.get("img/badges-over-time.png"));
@@ -99,7 +100,8 @@ describe("buildSite", () => {
     expect(home).toContain('<a class="m-models" href="models.html">');
     expect(home).toContain('<a class="m-runs" href="runs.html">');
     expect(home).toContain('<a class="m-updates" href="updates.html">');
-    expect(home).not.toContain("explainers.html");
+    expect(home).toContain('<a class="m-explainers" href="explainers.html">');
+    expect(home).toContain('<a class="m-method" href="method.html">');
     expect(home).toContain('href="https://github.com/example/pokebench"');
   });
 
@@ -456,5 +458,84 @@ describe("run page cost", () => {
     f.posts = f.posts.filter((p) => !p.text.includes("runs/ab07.html"));
     const p = text(buildSite(f), "runs/b001.html");
     expect(p).toContain("ABOUT $2.50 AT API PRICES (ESTIMATE)");
+  });
+});
+
+const visible = (page: string): string =>
+  page.slice(page.indexOf("<main"), page.indexOf("</main>")).replace(/<[^>]*>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+
+describe("explainers", () => {
+  it("lists every explainer by group with title, summary and a search box that works only with script", () => {
+    const x = text(buildSite(fixture()), "explainers.html");
+    expect(x).toContain("2 explainers in 2 groups");
+    expect(x).toContain("WHAT THE MODEL SEES · 1");
+    expect(x).toContain("Readouts built from game memory.");
+    expect(x).toContain('<a href="explainers/alpha-v1.html">Alpha tiles</a>');
+    expect(x).toContain("Names the <code>four</code> tiles.");
+    expect(x).toContain('data-q="alpha tiles names the four tiles."');
+    expect(x).toContain('<label class="search" hidden>');
+    expect(x).toContain('<script src="explainers.js" defer></script>');
+    expect(x).toContain('<a class="m-explainers" href="explainers.html" aria-current="page">');
+  });
+
+  it("renders an explainer in the site frame with the same text and figures as its Markdown (INV-7)", () => {
+    const p = text(buildSite(fixture()), "explainers/alpha-v1.html");
+    const v = visible(p);
+    for (const words of [
+      "Alpha tiles", "With the switch on, the model reads the tiles & their glyphs.", "1. What went wrong", "Rows 5–8. The tile the model misread.",
+      "Detail", "ledge", "hops down", "collision [wall]", "Local map <raw> & more", "Help me! I was robbed", "I have to get it back!",
+      "first item continued here", "second item", "Lost battle", "↓ First overworld state", "Record whiteout", "Limits and status", "Not measured yet.",
+    ]) expect(v).toContain(words);
+    expect(p).toContain('<img src="alpha-v1/fig-1.svg" alt="Rows 5 to 8 of the map" loading="lazy">');
+    expect(p).toContain('<a href="beta-v1.html">beta</a>');
+    expect(p).toContain('<a href="#overview">the top</a>');
+    expect(p).not.toContain("Markdown twin");
+    expect(p).toContain('<a class="pbtn" href="../explainers.html">◀ ALL EXPLAINERS</a>');
+    expect(p).toContain('<a class="m-explainers" href="../explainers.html" aria-current="page">');
+  });
+
+  it("refuses an explainer that links a figure the build does not have", () => {
+    const f = fixture();
+    f.assets.delete("explainers/alpha-v1/fig-1.svg");
+    expect(() => buildSite(f)).toThrow(/alpha-v1\/fig-1\.svg/);
+  });
+
+  it("refuses an explainer with raw HTML it cannot render safely, naming it", () => {
+    const f = fixture();
+    f.explainers.files.push({ name: "gamma-v1.md", text: "# G\n\n<b>bold</b>" });
+    expect(() => buildSite(f)).toThrow(/gamma-v1\.md/);
+  });
+});
+
+describe("method and credits", () => {
+  it("explains a turn with the light and dark diagram, and links the explainers with their count", () => {
+    const m = text(buildSite(fixture()), "method.html");
+    expect(m).toMatch(/<source media="\(prefers-color-scheme: dark\)" srcset="img\/harness-loop-dark\.webp">/);
+    expect(m).toContain('src="img/harness-loop.webp"');
+    expect(m).toContain('<a class="pbtn" href="explainers.html">BROWSE ALL 2</a>');
+    expect(m).toContain('<a class="pbtn" href="https://github.com/example/pokebench/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>');
+    expect(m).toContain("HOW A TURN WORKS");
+    expect(m).toContain('<a class="m-method" href="method.html" aria-current="page">');
+  });
+
+  it("drops the CONTRIBUTING button when the repository has no CONTRIBUTING.md", () => {
+    const f = fixture();
+    f.contributing = false;
+    expect(text(buildSite(f), "method.html")).not.toContain("CONTRIBUTING");
+  });
+
+  it("credits the icons with their licence text, the fonts from their notice, and states the game-art policy", () => {
+    const c = text(buildSite(fixture()), "credits.html");
+    expect(c).toContain('<pre class="licence">MIT License\n\nCopyright (c) 2019 Gerrit Halfmann\n\nPermission is hereby granted &lt;free&gt;.</pre>');
+    expect(c).toContain("<td>Press Start 2P</td>");
+    expect(c).toContain("SIL Open Font License 1.1");
+    expect(c).not.toContain("The viewer serves these fonts itself");
+    expect(c).toContain("No Nintendo or GAME FREAK artwork");
+  });
+
+  it("links Credits from every page footer", () => {
+    const out = buildSite(fixture());
+    expect(text(out, "index.html")).toContain('<a href="credits.html">Credits</a>');
+    expect(text(out, "explainers/alpha-v1.html")).toContain('<a href="../credits.html">Credits</a>');
   });
 });

@@ -3,7 +3,7 @@ import { count, hms, milestoneLabel, progress, progressLong, span } from "../for
 import { html, join, type Html } from "../html.js";
 import { BADGES, LEAGUE } from "../milestones.js";
 import { medals } from "../medals.js";
-import { harness, help, modelHref, modelKind, runHref, type ModelGroup } from "./common.js";
+import { harness, help, modelHref, modelKind, runHref, traces, type ModelGroup } from "./common.js";
 
 const bestOf = (g: ModelGroup, assisted: boolean): SeriesRuns | undefined => g.series.find((s) => s.entry.assisted === assisted);
 
@@ -35,11 +35,11 @@ function seriesLine(s: SeriesRuns): Html {
   return html`<p>${e.assisted ? "With help" : "Without help"}: ${progressLong(e.level, e.furthest)} in ${hms(e.seconds)}, run${s.all.length > 1 ? "s" : ""} ${ids}.</p>`;
 }
 
-function runRows(s: SeriesRuns): Html[] {
+function runRows(githubUrl: string, s: SeriesRuns): Html[] {
   return s.all.map((r) => {
     const id = r.release === undefined ? html`<span class="mono">${r.short}</span>` : html`<a class="mono" href="${runHref("../", r)}">${r.short}</a>`;
     const when = r.linked === undefined ? r.date : `${r.date} · linked run ${r.linked}`;
-    return html`<tr><td>${id}<span class="sub">${when}</span></td><td>${help(s.entry)}</td><td data-l="STARTED FROM">${r.start}</td><td data-l="RESULT">${r.result}</td><td class="num" data-l="TURNS">${count(r.turns)}</td><td class="c-harn">${harness(r)}</td></tr>`;
+    return html`<tr><td>${id}<span class="sub">${when}</span></td><td>${help(s.entry)}</td><td data-l="STARTED FROM">${r.start}</td><td data-l="RESULT">${r.result}</td><td class="num" data-l="TURNS">${count(r.turns)}</td><td data-l="TRACES">${traces(githubUrl, r)}</td><td class="c-harn">${harness(githubUrl, r)}</td></tr>`;
   });
 }
 
@@ -65,7 +65,7 @@ function splits(helped: SeriesRuns, plain: SeriesRuns): Html {
 <p class="note">Time from the start of each model's best run with help and without, hours:minutes:seconds.</p></div>`;
 }
 
-export function modelPage(g: ModelGroup): Html {
+export function modelPage(githubUrl: string, g: ModelGroup): Html {
   const m = g.meta;
   const head = `${m.name.toUpperCase()} · ${modelKind(m)} · REASONING EFFORT ${m.effort.toUpperCase()} · CONTEXT WINDOW ${count(m.context)} TOKENS`;
   const helped = bestOf(g, true);
@@ -77,7 +77,7 @@ export function modelPage(g: ModelGroup): Html {
 </section>
 <h2 class="sect">RUNS</h2>
 <div class="card"><div class="tbl"><table class="stackp">
-<thead><tr><th>RUN ID</th><th>HELP</th><th>STARTED FROM</th><th>RESULT</th><th class="num">TURNS</th><th class="c-harn">HARNESS SETTINGS</th></tr></thead>
-<tbody>${g.series.flatMap(runRows)}</tbody></table></div></div>
+<thead><tr><th>RUN ID</th><th>HELP</th><th>STARTED FROM</th><th>RESULT</th><th class="num">TURNS</th><th>TRACES</th><th class="c-harn">HARNESS SETTINGS</th></tr></thead>
+<tbody>${g.series.flatMap((s) => runRows(githubUrl, s))}</tbody></table></div></div>
 ${helped !== undefined && plain !== undefined ? splits(helped, plain) : html``}`;
 }

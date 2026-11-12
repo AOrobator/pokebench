@@ -3,7 +3,7 @@ import { count, hms, progress, size, usd } from "../format.js";
 import { html, type Html } from "../html.js";
 import type { Release, RunInfo } from "../input.js";
 import { TOP_LEVEL } from "../milestones.js";
-import { help, inline, modelHref, runHref, type ModelGroup } from "./common.js";
+import { help, inline, modelHref, runHref, traces, type ModelGroup } from "./common.js";
 
 interface Listed {
   readonly run: RunInfo;
@@ -17,14 +17,14 @@ export function listRuns(groups: readonly ModelGroup[]): Listed[] {
     .sort((a, b) => Date.parse(b.run.started) - Date.parse(a.run.started));
 }
 
-export function runsIndex(groups: readonly ModelGroup[]): Html {
+export function runsIndex(githubUrl: string, groups: readonly ModelGroup[]): Html {
   const rows = listRuns(groups).map(({ run, series, group }) => {
     const id = run.release === undefined ? html`<span class="mono">${run.short}</span>` : html`<a class="mono" href="${runHref("", run)}">${run.short}</a>`;
-    return html`<tr><td>${id}</td><td data-l="MODEL"><a href="${modelHref("", group.meta.slug)}">${group.meta.name}</a></td><td data-l="DATE">${run.date}</td><td data-l="HELP">${help(series.entry)}</td><td data-l="RESULT">${run.result}</td><td class="num" data-l="TURNS">${count(run.turns)}</td></tr>`;
+    return html`<tr><td>${id}</td><td data-l="MODEL"><a href="${modelHref("", group.meta.slug)}">${group.meta.name}</a></td><td data-l="DATE">${run.date}</td><td data-l="HELP">${help(series.entry)}</td><td data-l="RESULT">${run.result}</td><td class="num" data-l="TURNS">${count(run.turns)}</td><td data-l="TRACES">${traces(githubUrl, run)}</td></tr>`;
   });
-  return html`<div class="win intro"><p>Every run on the leaderboard, newest first. A run with a linked id has a released record you can download and check.</p></div>
+  return html`<div class="win intro"><p>Every run on the leaderboard, newest first. A run with a linked id has a released record you can download and check.</p><p>Under TRACES, the thinking file has one line per turn with the model's reasoning, and the trace is the full record of every model call. The two GPT runs played through Codex also have a Codex transcript; GPT's reasoning is encrypted, so their thinking files hold no readable reasoning.</p></div>
 <div class="card"><div class="tbl"><table class="stackp">
-<thead><tr><th>RUN ID</th><th>MODEL</th><th>DATE</th><th>HELP</th><th>RESULT</th><th class="num">TURNS</th></tr></thead>
+<thead><tr><th>RUN ID</th><th>MODEL</th><th>DATE</th><th>HELP</th><th>RESULT</th><th class="num">TURNS</th><th>TRACES</th></tr></thead>
 <tbody>${rows}</tbody></table></div></div>`;
 }
 

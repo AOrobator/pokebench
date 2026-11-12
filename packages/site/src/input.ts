@@ -85,6 +85,14 @@ export interface Release {
   readonly assetsNote: string;
 }
 
+export const TRACE_LABELS = ["thinking", "trace", "Codex transcript"] as const;
+export type TraceLabel = (typeof TRACE_LABELS)[number];
+
+export interface Traces {
+  readonly tag: string;
+  readonly files: readonly { readonly label: TraceLabel; readonly name: string }[];
+}
+
 export interface RunInfo {
   readonly id: string;
   // The last four characters of the id, as the viewer and the results name runs.
@@ -99,6 +107,8 @@ export interface RunInfo {
   readonly code: string;
   readonly linked?: string;
   readonly release?: Release;
+  // Released per-run files (the model's thinking, the full trace) in a GitHub release.
+  readonly traces?: Traces;
 }
 
 type Obj = Readonly<Record<string, unknown>>;
@@ -328,6 +338,23 @@ function parseRelease(v: unknown, what: string): Release {
   };
 }
 
+function isTraceLabel(v: unknown): v is TraceLabel {
+  return (TRACE_LABELS as readonly unknown[]).includes(v);
+}
+
+function parseTraces(v: unknown, what: string): Traces {
+  const t = obj(v, what);
+  only(t, what, ["tag", "files"]);
+  const files = list(t.files, `${what}.files`).map((raw, i) => {
+    const w = `${what}.files[${String(i)}]`;
+    const f = obj(raw, w);
+    only(f, w, ["label", "name"]);
+    if (!isTraceLabel(f.label)) throw new InputError(`${w}.label: expected one of ${TRACE_LABELS.join(", ")}`);
+    return { label: f.label, name: matching(f.name, `${w}.name`, URL_NAME, "a plain file name") };
+  });
+  return { tag: matching(t.tag, `${what}.tag`, URL_NAME, "a plain tag name"), files };
+}
+
 export function parseRuns(v: unknown): readonly RunInfo[] {
   const doc = obj(v, "runs.json");
   only(doc, "runs.json", ["runs"]);
@@ -335,7 +362,7 @@ export function parseRuns(v: unknown): readonly RunInfo[] {
   return list(doc.runs, "runs").map((raw, i): RunInfo => {
     const what = `runs[${String(i)}]`;
     const r = obj(raw, what);
-    only(r, what, ["id", "started", "start", "result", "turns", "preset", "code", "linked", "release"]);
+    only(r, what, ["id", "started", "start", "result", "turns", "preset", "code", "linked", "release", "traces"]);
     const id = text(r.id, `${what}.id`);
     if (id.length < 5) throw new InputError(`${what}.id: expected an id longer than its four-character short id`);
     const short = id.slice(-4);
@@ -354,6 +381,7 @@ export function parseRuns(v: unknown): readonly RunInfo[] {
       code: matching(r.code, `${what}.code`, COMMIT, "a 9-character commit"),
       ...("linked" in r ? { linked: matching(r.linked, `${what}.linked`, LINKED, '"n of m"') } : {}),
       ...("release" in r ? { release: parseRelease(r.release, `${what}.release`) } : {}),
+      ...("traces" in r ? { traces: parseTraces(r.traces, `${what}.traces`) } : {}),
     };
   });
 }

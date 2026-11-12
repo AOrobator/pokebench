@@ -73,7 +73,7 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
       section: "models",
       crumbs: ["MODELS", g.meta.name],
       depth: 1,
-      body: modelPage(g),
+      body: modelPage(site.githubUrl, g),
     }));
   }
   out.set("runs.html", page(shell, {
@@ -82,7 +82,7 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     section: "runs",
     crumbs: ["RUNS"],
     depth: 0,
-    body: runsIndex(view.groups),
+    body: runsIndex(site.githubUrl, view.groups),
   }));
   for (const g of view.groups) {
     for (const s of g.series) {

@@ -7,8 +7,21 @@
       "result": "Dynamo Badge at turn 675; stopped at its 4-hour limit",
       "turns": 848,
       "preset": "opus55-control-4h",
-      "code": "5ad4882bc",
-      "linked": "1 of 4"
+      "code": "ee04b0c58",
+      "linked": "1 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg1_harness-ee04b0c_6302_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg1_harness-ee04b0c_6302_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-07T10-06-29_claude-opus-5-5_1121",
@@ -17,8 +30,21 @@
       "result": "Heat, Balance and Feather Badges; stopped at its 5-hour limit",
       "turns": 1133,
       "preset": "opus55-6302-continuation",
-      "code": "5ad4882bc",
-      "linked": "2 of 4"
+      "code": "ee04b0c58",
+      "linked": "2 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg2_harness-ee04b0c_1121_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg2_harness-ee04b0c_1121_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-07T16-42-59_claude-opus-5-5_69d8",
@@ -27,8 +53,21 @@
       "result": "Mind Badge at turn 503; stopped at its 4-hour limit",
       "turns": 1038,
       "preset": "opus55-1121-continuation",
-      "code": "5ad4882bc",
-      "linked": "3 of 4"
+      "code": "ee04b0c58",
+      "linked": "3 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg3_harness-ee04b0c_69d8_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg3_harness-ee04b0c_69d8_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-07T21-23-08_claude-opus-5-5_d718",
@@ -37,8 +76,21 @@
       "result": "Rain Badge at turn 283, then Sidney, Phoebe and Glacia; stopped at its 4 h 30 min limit",
       "turns": 1214,
       "preset": "opus55-69d8-continuation",
-      "code": "5ad4882bc",
-      "linked": "4 of 4"
+      "code": "ee04b0c58",
+      "linked": "4 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg4_harness-ee04b0c_d718_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg4_harness-ee04b0c_d718_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-10T15-37-43_opus-rayquaza-boot_67d7",
@@ -47,7 +99,16 @@
       "result": "Hall of Fame at turn 4,119; the run ended on its own when the game was beaten",
       "turns": 4124,
       "preset": "opus-rayquaza-lane",
-      "code": "aaecbda17",
+      "code": "fac85e7be",
+      "traces": {
+        "tag": "opus-5.5-rayquaza-lane-67d7-2026-11-11",
+        "files": [
+          {
+            "label": "trace",
+            "name": "agent-trace-67d7.tar.xz"
+          }
+        ]
+      },
       "release": {
         "tag": "opus-5.5-rayquaza-lane-67d7-2026-11-11",
         "kicker": "HEAVILY ASSISTED · RAYQUAZA LANE · RELEASED FOR CHECKING",
@@ -225,7 +286,20 @@
       "result": "Balance Badge, then reached the Fortree Gym; stopped by the operator after 10 hours",
       "turns": 2181,
       "preset": "current-control-24h-8k",
-      "code": "49aadfe76"
+      "code": "6b616fab3",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-04_deepseek-v4.1-flash_standard_harness-6b616fa_5f0f_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-04_deepseek-v4.1-flash_standard_harness-6b616fa_5f0f_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-10-25T10-50-57_gpt-6-astra_429f",
@@ -234,7 +308,24 @@
       "result": "Heat Badge, then reached the Petalburg Gym; stopped by the operator after 12 h 32 min",
       "turns": 2741,
       "preset": "gpt-6-astra-30m-diagnostic-probe",
-      "code": "aacff2371"
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_thinking.jsonl.gz"
+          },
+          {
+            "label": "Codex transcript",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_codex-transcript.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-07T01-55-08_gpt-6.1-sol_3300",
@@ -243,7 +334,24 @@
       "result": "Dynamo Badge and Wattson's Shock Wave; stopped at its 12-hour limit",
       "turns": 862,
       "preset": "sol61-control-12h",
-      "code": "aef93554a"
+      "code": "db9a2d01c",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_thinking.jsonl.gz"
+          },
+          {
+            "label": "Codex transcript",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_codex-transcript.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-10-24T19-31-52_qwen36-gpu1_d41e",
@@ -252,7 +360,20 @@
       "result": "Dynamo Badge, then reached Slateport's harbor; stopped by the operator after 27 h 25 min",
       "turns": 7248,
       "preset": "bundle-v-control-2h-dryrun-cook-dry-run-control",
-      "code": "aacff2371"
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-24_qwen3.6-35b-a3b_standard_harness-817e1ee_d41e_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-24_qwen3.6-35b-a3b_standard_harness-817e1ee_d41e_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-08T18-33-33_rayquaza-lane-qwen36_3bb0",
@@ -261,7 +382,20 @@
       "result": "Balance Badge, then received HM Surf; stopped at its 24-hour limit",
       "turns": 7015,
       "preset": "rayquaza-lane-24h-v3-cook-bundle",
-      "code": "d2d8c3791"
+      "code": "6faea475f",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-08_qwen3.6-35b-a3b_rayquaza-lane_harness-6faea47_3bb0_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-08_qwen3.6-35b-a3b_rayquaza-lane_harness-6faea47_3bb0_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-10-24T19-37-24_glm53-mac_6bbd",
@@ -270,7 +404,7 @@
       "result": "two badges, the last the Dynamo Badge, then reached Slateport's harbor; ended on a model error after 28 h 6 min",
       "turns": 1041,
       "preset": "glm53-flash-4h-dryrun-cook-solo-bundle-a-1-dry-run-bundle",
-      "code": "aacff2371"
+      "code": "817e1eed5"
     },
     {
       "id": "2026-11-01T01-37-02_hyperqwen-gpu0_7da5",
@@ -279,7 +413,7 @@
       "result": "Stone Badge, then the Match Call tutorial; stopped at its 24-hour limit",
       "turns": 1330,
       "preset": "hyperqwen-bundle-24h-cook-bundle",
-      "code": "fe51cafc6"
+      "code": "25af31b00"
     },
     {
       "id": "2026-11-07T00-28-59_rayquaza-lane-qwen_6056",
@@ -288,7 +422,20 @@
       "result": "Knuckle Badge as its fourth badge, then reached the Petalburg Gym; stopped at its 24-hour limit",
       "turns": 2378,
       "preset": "rayquaza-lane-24h-v2-cook-bundle",
-      "code": "c1d30ff68"
+      "code": "b3b467dcf",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_qwen3.8-27b_rayquaza-lane_harness-b3b467d_6056_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_qwen3.8-27b_rayquaza-lane_harness-b3b467d_6056_trace.tar.xz"
+          }
+        ]
+      }
     }
   ]
 }

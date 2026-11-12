@@ -51,8 +51,15 @@ export function runIds(root: string, runs: readonly RunInfo[]): Html {
   return join(runs.map((r) => runId(root, r)), " → ");
 }
 
-export function harness(run: RunInfo): Html {
-  return html`<span class="mono">${run.preset}</span><span class="sub mono">code ${run.code}</span>`;
+export function harness(githubUrl: string, run: RunInfo): Html {
+  return html`<span class="mono">${run.preset}</span><a class="sub mono" href="${`${githubUrl}/commit/${run.code}`}">code ${run.code}</a>`;
+}
+
+// "thinking · trace" links to the run's released files, or a dash.
+export function traces(githubUrl: string, run: RunInfo): Html {
+  const t = run.traces;
+  if (t === undefined) return html`—`;
+  return join(t.files.map((f) => html`<a href="${`${githubUrl}/releases/download/${t.tag}/${f.name}`}">${f.label}</a>`), " · ");
 }
 
 export function cost(e: Entry): Html {

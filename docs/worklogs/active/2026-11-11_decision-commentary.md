@@ -1,5 +1,7 @@
 # Decision commentary and readable agent text
 
+Status: source reviewed and landed; post-main checks PASS. Shared viewer and gameplay activation held for the operator’s instruction.
+
 ## Problem Statement
 The operator requests extra observability early in the Astra run. Native Responses often returns only tools. The viewer also hides reply text when thinking exists and clears its panel at the next turn. Build brief model commentary, clearly separate from exposed reasoning, without another provider request or wrapper.
 
@@ -55,3 +57,6 @@ None.
 - M1 source readiness complete. Frozen bfb54c4c8 / base49174be8b / exact diff8e13d017cb8e56f86c7eac80723535da8a643823289390f29a7e58bba4a5a866. Claude CLI and fresh no-history GPT commentary_review both VERDICT: LGTM, clean packet independently reproduced before/after. Grok standing waiver disclosed. Synthesis and all PB1–PB13/nine test-quality checks recorded in ignored evidence packet; no accepted source fixes or scope growth. State-only (different prompt owner) support and stronger generic markup pins are follow-ups, not Astra activation claims.
 - Actual recorded turn82/assistant2347 verified through current panel and clicked Agent Trace raw inspector: both fields present, no page errors. Replay fixture changes only identity and game port, preserves source prefix and recorded frames. All final screenshots at1280/1440/375 inspected. Shared viewer and ef7d untouched.
 - M2 landing pending. M3 activation held for operator decision; no source changes remain.
+
+- M2 complete: current main stayed49174be8b throughout frozen review; no upstream contract delta or evidence invalidation. Board#1 verified with exact CODEX_THREAD_ID 00000000-0000-4000-8000-f963182cab76. FF merge to adc35182d; post-main just test/build PASS3053 agent+1310 viewer+3466 env+39 gateway, floors/no-I/O PASS. CPU RELEASE sent. Final evidence-only commit contains no runtime/policy/authorization change.
+- M3 remains held. Source preparation fully complete; no source work remains. Shared8790 PID61682 and active ef7d PID70357 PPID1 unchanged. Owned scratch viewer/projector stopped; originals preserved. Prepared next-run preset at runs/launch-receipts/astra-commentary-20261111/preset.json adds only decision-commentary-v1:true to existing authorized variant, all existing fields/limits unchanged; not launched. Canonical8791 explainer returns200. Operator must explicitly instruct stop/restart and viewer refresh before activation; no model compliance/latency/gameplay benefit claimed.

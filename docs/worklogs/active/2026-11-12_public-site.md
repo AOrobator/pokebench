@@ -85,8 +85,8 @@ Outcome: the leaderboard with the badges-over-time chart above it, a page per mo
 
 **M3 — Updates and RSS**
 Outcome: update posts from `site/updates/*.md`, an index, and `feed.xml`. Path set: `packages/site/src/pages/updates.ts`, `packages/site/src/feed.ts`, `site/updates/2026-11-11-opus-clears-emerald.md` (the first post, text from the mockup). Non-goals: comments or any server. Terminator as M1, plus `feed.xml` validating as RSS 2.0 in a test.
-- [ ] Write tests: front-matter validation, newest-first order, escaping, feed item fields and absolute links from the configured base URL
-- [ ] COMMIT: `test(site): cover updates and feed` (RED)
+- [x] Write tests: front-matter validation, newest-first order, escaping, feed item fields and absolute links from the configured base URL. Also: the Markdown subset (paragraphs, `##`, `-` lists, bold, code, links; raw HTML escaped; only https or plain relative links, prefixed for nested pages), file names `YYYY-MM-DD-<slug>.md` matching a real date, model slugs known to site.json, ties ordered by file name, pubDate at noon New York with the US DST rule, a tag-balance and escaping check on feed.xml, the feed link in every page head, Home's latest-update card, `base_url` (https, trailing slash). Review follow-ups: run-page headline says estimate, short ids must be `[a-z0-9]{4}`, `size(999_999)` is 1.0 MB. M2 landed on main at 3d64c8f89 (coordinator).
+- [x] COMMIT: `test(site): cover updates and feed` (this commit). RED: 81 of 156 fail.
 - [ ] Implement; cheap checks; gates
 - [ ] COMMIT: `feat(site): update posts and RSS feed` (GREEN)
 - [ ] Browser proof; independent review

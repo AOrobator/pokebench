@@ -77,6 +77,12 @@ describe("size", () => {
     expect(size(107997516)).toBe("108 MB");
     expect(size(2_500_000_000)).toBe("2.5 GB");
   });
+
+  it("moves up a unit instead of writing 1000 of the smaller one", () => {
+    expect(size(999)).toBe("999 B");
+    expect(size(999_999)).toBe("1.0 MB");
+    expect(size(9_960)).toBe("10 kB");
+  });
 });
 
 describe("count", () => {

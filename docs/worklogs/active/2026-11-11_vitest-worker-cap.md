@@ -9,7 +9,7 @@ Production path set: packages/agent/vitest.config.ts and packages/viewer/vitest.
 - [x] Inspect pinned Vitest API and existing recipes/configuration.
 - [x] Apply eight-worker caps; real config-loader RED before edit in both packages (`undefined !== 8`); GREEN and cheap checks below.
 - [x] Quiet CPU window: just lint, measured just test (includes build), just verify-vendor.
-- [ ] Freeze packet; principles self-review; Claude and GPT review; synthesis.
+- [x] Freeze packet; principles self-review; Claude and GPT review; synthesis.
 - [ ] Land through board; post-main just test; record evidence and release.
 
 ## Validation plan
@@ -33,3 +33,12 @@ Main advanced dc5436a3a -> 2c1fdf7f3 with only an unrelated direct-provider work
 Packet preparation correction: main moved to d3ae55add between the branch merge and packet creation; the first packet accidentally compared to that unmerged new base and showed an unrelated evidence reversal. Canceled the incomplete Claude invocation (no verdict counted), preserved /tmp/vitest-cap-aborted-* artifacts, and resynced main before resealing. No source changes; gate evidence remains valid.
 
 COMMIT: branch-only integration sync7a8292fbe retained all source evidence. Evidence commit initially rejected by freshness hook because the merge had just created a newer commit; updated this log and retried with hooks enabled. Canceled the prematurely launched review; no verdict counted for either aborted packet.
+
+## Multi-model review and synthesis — round 1
+Frozen base a6adc45f840f8d7f1ad640f8a035c86116881220; head fadd406bb148c0ce5b83f96a10905fa4085b9e47; binary diff SHA256 bcc5919962b4f07ce513a9c785ebb21337d8e9710269e09a0de939e456fa42f9. Clean HEAD/status and digest reproduced before/after both reviews. Packet /tmp/vitest-cap-review.diff; boundary /tmp/vitest-cap-boundary.md; principles /tmp/vitest-cap-principles.md covers all PB1–PB13, 6 PASS/7 N/A/0 FAIL. Original base-to-head source delta remains two literals; no review-generated scope growth.
+
+Claude CLI, dedicated reviewer profile, permission-mode plan: VERDICT: LGTM (/tmp/vitest-cap-claude.log; events and separate stderr retained). Independent GPT cloud lane: fresh Codex subagent gpt_review, fork_turns=none, VERDICT: LGTM; independently reproduced fixed-ref digest and clean pre/post HEAD/status. Grok standing waiver confirmed by relay, disclosed. No local inference reviewer used. Two earlier packet-preparation invocations were canceled without a counted verdict; review round1 uses only this final clean frozen identity.
+
+Consensus: no blockers; pinned API and actual pool consumer honor the cap; selection/setup/coverage/guards/recipes unchanged. Contradictions: none. Unique findings: Claude cosmetic spacing observations (no source changes needed), and hypothetical future repeated worker-tuning study (out of scope). Unsupported claims: no three-suite performance or repeatability claim made. Missing prelanding evidence: none; post-main just test still required. Finding disposition: 0 blockers, 0 accepted fixes, 0 scope expansions; future tuning is a nonblocking hardening follow-up. Convergence: green in first complete round; unchanged paths/owners/contracts.
+
+All nine test-quality dimensions examined: (1) real loader reaches both configuration callers; (2) separately observed RED then GREEN for both literals, exact unchanged-config assertions; (3) no shared-global changes; (4) no shared-collection assertions; (5) no flake fix or shared-state test added, resource bound is operator-requested; (6) no retries/sleeps/skips/serialization; (7) exact-value assertions retain actual/expected payload; (8) bounded one config load/snapshot/compare per package, no growing fixture loops; (9) no production-size fixture filling. Residual risk: one timing sample with final~2s unrelated lint overlap; manual CLI overrides can change configured cap. Terminates source review; proceed to board and post-main verification.

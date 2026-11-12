@@ -6,7 +6,8 @@ export type Output = string | Uint8Array;
 
 const REMOTE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 const REMOTE_INSIDE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'<>;,)]+/i;
-const TAG = /<([a-z][a-z0-9]*)\b([^>]*)>/gi;
+// Quoted attribute values may contain ">", so the tag pattern steps over them.
+const TAG = /<([a-z][a-z0-9]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi;
 const ATTR = /([a-z][a-z0-9:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi;
 const STYLE_ELEMENT = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
 // Attributes whose value is a URL the browser fetches or navigates to.
@@ -40,7 +41,7 @@ function attrRefs(page: string): Ref[] {
 
 function cssRefs(css: string): Ref[] {
   const refs: Ref[] = [];
-  for (const m of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/gi)) refs.push({ url: String(m[2]), fetched: true });
+  for (const m of css.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^'")\s]*))\s*\)/gi)) refs.push({ url: m[1] ?? m[2] ?? String(m[3]), fetched: true });
   for (const m of css.matchAll(/@import\s+(['"])([^'"]*)\1/gi)) refs.push({ url: String(m[2]), fetched: true });
   return refs;
 }

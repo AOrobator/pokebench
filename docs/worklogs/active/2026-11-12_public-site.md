@@ -135,7 +135,13 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 - GPT (Codex CLI gpt-5.6-sol, read-only): VERDICT: BLOCKING. check.ts accepted single-quoted/unquoted remote src, poster, object data, meta refresh, and resolved root-absolute `/site.css` against the page folder. Follow-ups: unused `raw()`; quadratic join.
 - Fallback subagent (Sonnet, read-only, fresh): VERDICT: LGTM. Non-blocking: earned-order test does not separate from game order; a test name mislabelled; no duplicate-label or furthest-is-latest cross-checks; checker scope.
 - Triage: **Fix** the checker (it is the INV-3 guard; concrete inputs pass wrongly). **Follow-up** (not in this branch): test-name/earned-order test strengthening, assisted⇔help and duplicate-label cross-checks, `raw()` removal, quadratic join, root-relative already fixed here. **Rebut**: cheapest tile wording is the approved plan's rule and is disclosed in the sub-label.
-- Fix: check.ts parses any quoting, treats poster/data/action/formaction/background/xlink:href as URL attributes, flags a network URL inside any other attribute (meta refresh), scans `<style>` bodies, and rejects root-absolute paths. 5 new tests, all red before the fix (guard-bites proof). Site 76/76, 99.2/98.14/100/100; tsc, eslint clean; real `just site` still builds clean. COMMIT: `fix(site): make the network and link check fail closed` (this commit).
+- Fix: check.ts parses any quoting, treats poster/data/action/formaction/background/xlink:href as URL attributes, flags a network URL inside any other attribute (meta refresh), scans `<style>` bodies, and rejects root-absolute paths. 5 new tests, all red before the fix (guard-bites proof). Site 76/76, 99.2/98.14/100/100; tsc, eslint clean; real `just site` still builds clean. COMMIT: `fix(site): make the network and link check fail closed` (335aa66a5).
+
+**M1 round 2** (BASE b720e63a6, HEAD 335aa66a5, SHA-256 3b631350…13ab).
+- Claude CLI: VERDICT: LGTM (non-blocking: `>` inside a quoted attribute, script bodies/image-set/SVG not scanned, some tests assert counts only, srcset comma splitting).
+- GPT (Codex CLI gpt-5.6-sol): VERDICT: BLOCKING on two parser holes: `<img alt=">" src="https://…">` hides `src`; a quoted CSS `url("…)…")` is not read.
+- Fallback subagent: pending at time of writing.
+- Round cap reached (2 rounds). Prepared the narrow fix for exactly the two listed inputs, pending the operator's choice: quote-aware TAG pattern and quoted/unquoted `url()` forms; 2 new tests red before, green after. Site 78/78, 99.2/98.18/100/100; tsc, eslint clean; `just site` still builds clean. COMMIT: `fix(site): read quoted values that contain > or )` (this commit).
 
 ## Boy Scout Log
 

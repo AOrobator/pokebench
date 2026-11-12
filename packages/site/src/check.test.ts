@@ -44,6 +44,14 @@ describe("problems: zero network (INV-3)", () => {
     expect(out).toHaveLength(2);
   });
 
+  it("sees attributes after a quoted value that contains >", () => {
+    expect(problems(new Map([["index.html", page('<img alt=">" src="https://x/p.png">')]]))).toEqual(['index.html: network request to "https://x/p.png"']);
+  });
+
+  it("reads a quoted CSS url() that contains a closing parenthesis", () => {
+    expect(problems(new Map([["site.css", '.x { background: url("https://x/a).png"); }']]))).toEqual(['site.css: network request to "https://x/a).png"']);
+  });
+
   it("ignores data: urls and in-page fragments", () => {
     expect(problems(new Map([["index.html", page('<a href="#top">top</a><img src="data:image/png;base64,AAA">')]]))).toEqual([]);
   });

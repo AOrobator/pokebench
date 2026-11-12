@@ -134,7 +134,7 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
 ### Piece 13: dense lines sized to each turn
 The operator 2026-11-11: "the video seems to go a long time in between thinking out loud when there are more agent traces to be read". 67d7 measured: turns every 11.0 s median (p10 4.3, p90 29.9); 1,222 lines over 4,124 turns, 9.7% of the run spoken. Kokoro bm_lewis at 0.95 speaks 2.77 words/s median (seconds = 0.77 + 0.306 x words). `--dense` (claude writer only; default unchanged): a second system prompt that voices every turn with thinking or a meaningful action and skips only true repeats, and each turn in the batch carries `seconds` (time until the next turn, 10 s for the last) and `max_words` = floor((seconds - 1.0) / 0.31), capped at MAX_WORDS. Rooms come from every turn, so a resume asks with the same budgets. The render needs no change: a line waits for the last one and is dropped if it would start more than 3 s late.
 - [x] RED
-- [ ] GREEN
+- [x] GREEN: 133 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean
 - [ ] Trial on the Sky Pillar window: lines per turn, coverage, cost; numbers to the coordinator before the full rewrite
 - [ ] Review: Codex
 

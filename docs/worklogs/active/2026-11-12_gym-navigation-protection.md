@@ -40,3 +40,9 @@ Receipts and synthesis: runs/gym-navigation-proof/. No self-merge: ask operator 
 Main advanced from 3d64c8f89783a08ce61419e52d615ef047f1ca71 to efe4dbd859f27a0f7c314630047169310c097418 (public site/feed only). No agent/env/preset, dependency, event/schema or gate owner changed. Main merged cleanly into owned branch; executable feature delta unchanged. Retain frozen gates/reviews; combined post-main just test remains required if landing is authorized. No shared viewer refresh or current-run intervention.
 
 Integration merge 599c9d7dd273612dfba7bc44c5f0794116bc5d8c. Evidence-only commit retry after same-second worklog freshness rejection; no hook bypass.
+
+## Standing waiver verified; landing authorized
+
+The earlier Grok-blocked status above is superseded. Independently read original native project transcript 00000000-0000-4000-8000-1bb4e739f4f4.jsonl lines 4145/4964/6309, including server-copied the operator user citation [private message reference] at 2026-10-22T14:47:31Z: "land without grok. you're not a very good coordinator if you force me to go into chats". The preceding original cited user reply and its question context establish general Claude + GPT + distinct fallback approval during Grok outages. Current scheduler confirms the standing scope. This is verification of prior operator authorization, not a mailbox-created new waiver.
+
+Claude CLI, independent GPT, Sol fallback and distinct Astra fallback all returned VERDICT: LGTM on the frozen packet. Grok 4.5/4.7 usage-cap failures retained; reduced vendor diversity disclosed. No Grok verdict fabricated. Scope still excludes af33 intervention or any new run. Dedicated preset setting changes future launch configuration only; no live feature flips.

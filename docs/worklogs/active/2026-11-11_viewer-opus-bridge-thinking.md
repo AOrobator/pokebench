@@ -11,7 +11,7 @@ Viewer-only fallback for empty recorded thinking, bound to successful session-ga
 - [x] GREEN implementation and focused checks.
 - [x] CPU window, full gates, headless browser proof at desktop/phone widths, trainer-card check.
 - [x] Principles, frozen Claude and GPT reviews (Grok standing waiver per job).
-- [ ] Landing board, main test; report landed separately from activation.
+- [x] Landing board, main test; report landed separately from activation.
 
 ## Evidence
 Read-only example: run 1121 assistant seq 5628, turn 97, call_945; bridge launch-receipts/opus55-control-4h-20261107/bridge/calls.jsonl request 945 completes 1ms before event. Transcript call-945-1.jsonl contains a 503-character thinking block. Session also serves other runs, so run binding is mandatory.
@@ -47,3 +47,9 @@ Headless candidate6/6:Chromium and WebKit at1280×900,1440×900,375×812. CURREN
 Steady-screen RAF proof at desktop/phone in both engines:7 forced changed updates each,192–255 sampled frames,0px maximum movement, focus held. Final receipt runs/gateway-thinking-proof/receipt-final.json; RAF receipt steady-raf.json. Initial failed proof attempts are retained:missing art; absent scratch projector; active truncated recording's unavailable live service; invalid injected summary/snapshot revision pair; hidden desktop select; follow-latest inadvertently enabled; one WebKit interrupted intercepted request, resolved with wait-for-handler cleanup. These were fixture issues corrected without production changes.
 Proof fixture copies the exact original prefix through seq5628, one original frame and native bridge call945; a clearly documented synthetic terminal seq5629 makes that prefix offline replay only. It is not a claim about the actual run's terminal state. Original recordings and shared services untouched. Scratch server stopped. Local copies under runs/mockups/viewer-gateway-thinking/; checked screenshot links return200.
 COMMIT: `docs(worklog): record gateway thinking verification` (this commit). Implementation/review/proof complete; board landing and combined main test pending. Activation held: no viewer-main without the operator's words.
+
+## Landing and activation hold
+Landed fast-forward main e2b027064→642b66588 as board#1 with this chat's exact ID 00000000-0000-4000-8000-52a30bedb61e. Post-main `nice -n10 just test` completed EXIT0:3042 agent,1305 viewer,3466 env (including upstream mailbox tests),39 gateway; coverage floors and no-I/O proof pass. Receipt:owned worktree runs/reviews/gateway-thinking/post-main-test.log.
+CPU scheduler granted priority START at21:34 ET, then sent HOLD after our test began because another branch had already started its gates. Attempted to identify and stop only the owned main gate. It finished naturally before targeted termination; no process was killed. Two premature mailbox stop claims were corrected explicitly with the exit0 receipt. CPU released; no additional suite started.
+All final screenshots inspected and linked under http://127.0.0.1:8791/viewer-gateway-thinking/. Source landing is complete. Activation remains held:shared8790 listener PID78013 still serves its previous cached build; no viewer-main was run. No gameplay process was started, stopped or changed.
+COMMIT: `docs(worklog): record gateway thinking landing and main checks` (this evidence-only commit).

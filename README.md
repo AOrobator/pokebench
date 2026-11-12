@@ -34,7 +34,7 @@ Every run is recorded, and the viewer replays it with the game screen, the model
 
 The splits page races one run against the frontier, badge by badge, with the story graph and where both runs are on the map.
 
-![The splits page racing Opus's clear against the frontier, grouped by badge](docs/images/viewer-splits.webp)
+![The PokéNav splits page racing Opus's clear against the frontier, grouped by badge, with the story graph and map](docs/images/viewer-splits.webp)
 
 ## How it works
 

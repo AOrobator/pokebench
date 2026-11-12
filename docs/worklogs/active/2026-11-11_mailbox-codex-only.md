@@ -40,7 +40,10 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 - [x] Codex review r1 (job review-claude-mailbox-codex-only-r1, head f75ef4eb4): VERDICT: CHANGES. P2 archive rename strands a sender waiting on the box lock (FileNotFoundError); P2 the five main() tests trip the no-I/O guard via argparse gettext os.stat (5 fail, 7 pass under uv's CPython 3.11.16; my earlier 12-pass run used the main checkout's venv and did not reproduce it).
 - [x] r1 fixes: archive moves a box's files but leaves the folder and its lock file, so a waiting caller still finds the folder; the address checks moved into pure `preflight()`, tested without building a parser. 14 passed via `uv run --project env python -m pytest -q -p no:cacheprovider env/tests/env/test_agent_mail_addressing.py` and from env/. Scratchpad race rehearsal (temp dir, not a test): a sender queued behind the archive lock returned normally and its letter landed in the emptied box.
 - [x] Codex review r2 (job review-claude-mailbox-codex-only-r2, frozen base 306a6e8d8, head dd13d0687): VERDICT: LGTM. Codex reran both uv commands (14 passed) and a temp-mailroom rehearsal.
-- [ ] Full `just test` / `just lint` (needs a CPU window), cloud review lanes, landing on the operator's own approval.
+- [ ] Claude review lane (fresh subagent on 306a6e8d8..1108da7ac, diff + worklog only).
+- [-] Grok lane skipped: Grok is out until 2026-11-17 (project coordinator note, 2026-11-12 02:04Z).
+- [ ] Full `just test` / `just lint` after a CPU START from the relay (requested 2026-11-11 ~9:05 PM ET).
+- [ ] Landing on the operator's own approval in the project thread.
 
 ## Closing the Loop
 

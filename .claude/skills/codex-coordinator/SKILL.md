@@ -27,6 +27,8 @@ A letter whose `to_thread` is this thread's own id is a job (talk-to-codex, "Ask
 
 A message queued into this thread by `codex queue` (Claude's `just tell-codex` falls back to it when this thread is not listening) that starts `JOB <job id>:` is a job too. It has no claim to acknowledge; the same lookup for a chat titled `JOB <job id>` decides whether to start its worker.
 
+The mailbox carries Codex↔Claude letters and landing-board notices only (operator decision 2026-11-12). A reply to a Claude branch uses `just tell-claude --to <branch>`, which refuses a branch no worktree has checked out; send to the relay (no `--to`) instead.
+
 A letter with no `to_thread` is a question for you. Answer it the same way as a failure report: write the answer to a file, then `just tell-claude --from "codex coordinator" --file <that file>`.
 
 If the watcher is not running (`pgrep -f mailbox-watch` finds nothing), ask the user to start it with `just codex-wake-watch <this thread's id>`; do not start a waiting loop instead. The watcher stops by itself if it cannot wake this thread (archived or gone); it first sends waiting letters on by `codex queue`. When this thread retires, stop the watcher with `pkill -f mailbox-watch` so letters go by `codex queue` again.

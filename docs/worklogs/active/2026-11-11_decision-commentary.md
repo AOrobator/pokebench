@@ -1,6 +1,6 @@
 # Decision commentary and readable agent text
 
-Status: source reviewed and landed; post-main checks PASS. Shared viewer and gameplay activation held for the operator’s instruction.
+Status: source reviewed, landed and activated after the operator’s restart instruction; see af33 launch receipt and boot-video worklog.
 
 ## Problem Statement
 The operator requests extra observability early in the Astra run. Native Responses often returns only tools. The viewer also hides reply text when thinking exists and clears its panel at the next turn. Build brief model commentary, clearly separate from exposed reasoning, without another provider request or wrapper.
@@ -60,3 +60,5 @@ None.
 
 - M2 complete: current main stayed49174be8b throughout frozen review; no upstream contract delta or evidence invalidation. Board#1 verified with exact CODEX_THREAD_ID 00000000-0000-4000-8000-f963182cab76. FF merge to adc35182d; post-main just test/build PASS3053 agent+1310 viewer+3466 env+39 gateway, floors/no-I/O PASS. CPU RELEASE sent. Final evidence-only commit contains no runtime/policy/authorization change.
 - M3 remains held. Source preparation fully complete; no source work remains. Shared8790 PID61682 and active ef7d PID70357 PPID1 unchanged. Owned scratch viewer/projector stopped; originals preserved. Prepared next-run preset at runs/launch-receipts/astra-commentary-20261111/preset.json adds only decision-commentary-v1:true to existing authorized variant, all existing fields/limits unchanged; not launched. Canonical8791 explainer returns200. Operator must explicitly instruct stop/restart and viewer refresh before activation; no model compliance/latency/gameplay benefit claimed.
+
+- Authorized activation complete2026-11-11: The operator approved restart from boot and viewer refresh, adding automatic video for boot runs. Boot-video source landed b87c50669, required post-main checks passed, viewer/projector0ac4ac689 active. Replacement2026-11-11T23-10-48_astra-commentary-rayquaza_af33 at23:16:19ET, native Astra medium, same24h/operator and20000turns/preset.45 initial completed replies all contain saved commentary and all native response hashes complete; video/audio growing and raw RAM validated. Desktop/phone actual Watch and commentary proof inspected. Source/launch details in2026-11-11_boot-video-default.md and runs/launch-receipts/astra-commentary-20261111. Old ef7d preserved; no more activation hold, no additional stop condition.

@@ -27,6 +27,10 @@ Ten prose-only README.md files: `docs/`, `docs/designs/`, `docs/findings/`, `doc
 
 ## Multi-Model Review Log
 
+### Round 1 — GPT (JOB review-gpt-dir-readmes-94671915a)
+
+`VERDICT: BLOCKING`, three P2 accuracy fixes, all accepted: experiments/README now says `target` also ends the run unless `stopAt` is set; viewer README says HTTP(S) origins (cli.ts accepts both); docs/README drops the one-explainer-per-switch claim (413 features, 345 explainers including tooling pages).
+
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive

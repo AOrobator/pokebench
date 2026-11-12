@@ -2,7 +2,7 @@
 
 This package is PokeBench's local web viewer for runs, live or finished, plus the command-line tools that launch runs and fixed-N experiments.
 
-`just view` serves it at `http://127.0.0.1:8790/`. The server binds `127.0.0.1` only, and answers only loopback `Host` headers plus any https origins listed in `POKEBENCH_VIEWER_ORIGINS` in the gitignored `.env`; every other host gets a 403. See [SECURITY.md](../../SECURITY.md).
+`just view` serves it at `http://127.0.0.1:8790/`. The server binds `127.0.0.1` only, and answers only loopback `Host` headers plus any HTTP(S) origins listed in `POKEBENCH_VIEWER_ORIGINS` in the gitignored `.env`; every other host gets a 403. See [SECURITY.md](../../SECURITY.md).
 
 ## What it shows
 

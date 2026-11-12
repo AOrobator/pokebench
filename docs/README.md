@@ -7,7 +7,7 @@ This folder holds PokeBench's written documentation: how to run it, what it has 
 - [connect-a-model.md](connect-a-model.md): how a run finds its model endpoint (local server or gateway) and learns the model's limits. PokeBench has no built-in model.
 - [results.md](results.md): the results ledger. Each row is read from a run's own recording, with its harness commit, preset and evidence.
 - [features.md](features.md): every harness feature switch, its default and whether it was on in run 67d7. Generated from the agent source.
-- [explainers/README.md](explainers/README.md): the index of explainers, one per feature switch, as Markdown twins of the HTML pages.
+- [explainers/README.md](explainers/README.md): the index of the feature and tooling explainers, as Markdown twins of the HTML pages.
 
 ## Other top-level files
 
@@ -20,7 +20,7 @@ This folder holds PokeBench's written documentation: how to run it, what it has 
 
 - [benchmarking/](benchmarking/): the evaluation rubric (version 0.1), the grading protocol and the history of the decisions behind them. A specification, not an implemented grader.
 - [curriculum/](curriculum/): game-knowledge material for the heavily assisted Rayquaza lane, including guides, deviation audits and notes on a human speedrun route. Start at [curriculum/README.md](curriculum/README.md).
-- [explainers/](explainers/): one self-contained HTML page per feature switch, with a Markdown twin and SVG diagrams under `md/`.
+- [explainers/](explainers/): self-contained HTML explainers for harness features, switches and tooling, each with a generated Markdown twin and SVG diagrams under `md/`.
 - [experiments/](experiments/): HTML overviews of designed experiments (arms, start, outcome, power, run rules), plus a few result and rubric files. See [experiments/README.md](experiments/README.md).
 - [findings/](findings/): evidence records about the game and the harness, mostly how a readout was verified against the game source and ROM. See [findings/README.md](findings/README.md).
 - [designs/](designs/): design documents for measurement and comparison contracts. See [designs/README.md](designs/README.md).

@@ -11,7 +11,8 @@ export interface BroadcastView {
   readonly party: readonly BroadcastMon[];
   readonly badges: readonly string[];
   readonly frame: string | null;
-  readonly think: { readonly turn: number; readonly text: string } | null;
+  // From the thought's first words to the next turn's thought (null while it is still the newest).
+  readonly think: { readonly turn: number; readonly text: string; readonly start: number; readonly end: number | null } | null;
   readonly action: { readonly name: string; readonly detail: string } | null;
   readonly cost: number | null;
   readonly caption: string | null;
@@ -37,6 +38,15 @@ export function clockText(seconds: number): string {
   return `${String(Math.floor(s / 3600))}:${String(Math.floor(s % 3600 / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
+const HOLD = 0.15, REACH = 0.85, LIVE_SPAN_S = 20;
+// How far down a long thought the panel is at t: it holds at the top, then scrolls evenly to reach the end before
+// the next thought replaces it. A function of t alone, so a rendered frame is the same every time.
+export function scrollFraction(t: number, start: number, end: number | null): number {
+  const span = (end ?? start + LIVE_SPAN_S) - start;
+  if (!(span > 0)) return 1;
+  return Math.min(1, Math.max(0, (t - start - HOLD * span) / ((REACH - HOLD) * span)));
+}
+
 export function thinkingTail(text: string, chars = TAIL_CHARS): string[] {
   let body = text.trim().replace(/\n\s*\n+/g, "\n");
   if (body.length > chars) { body = body.slice(-chars); body = body.slice(body.search(/\s/) + 1); }
@@ -52,6 +62,7 @@ export class BroadcastTimeline {
   private readonly pressList: Of<"press">[] = [];
   private readonly mileList: Of<"mile">[] = [];
   private readonly spent: { t: number; input: number; output: number; cacheRead: number }[] = [];
+  private readonly paid: Of<"usd">[] = [];
   private ended: number | null = null;
 
   get end(): number | null { return this.ended; }
@@ -66,6 +77,7 @@ export class BroadcastTimeline {
       else if (item.k === "press") this.pressList.push(item);
       else if (item.k === "mile") this.mileList.push(item);
       else if (item.k === "end") this.ended = item.t;
+      else if (item.k === "usd") this.paid.push(item);
       else {
         const before = this.spent.at(-1) ?? { input: 0, output: 0, cacheRead: 0 };
         this.spent.push({ t: item.t, input: before.input + item.input, output: before.output + item.output, cacheRead: before.cacheRead + item.cacheRead });
@@ -77,16 +89,21 @@ export class BroadcastTimeline {
     const newest = upTo(this.thoughts, t) - 1, item = this.thoughts[newest];
     if (item === undefined) return null;
     const pieces: string[] = [];
+    let start = item.t;
     for (let index = newest; index >= 0; index -= 1) {
       const piece = this.thoughts[index];
       if (piece === undefined || piece.turn !== item.turn) break;
       pieces.unshift(piece.d);
+      start = piece.t;
       if (piece.k === "thought") break;
     }
-    return { turn: item.turn, text: pieces.join("") };
+    const next = this.thoughts.slice(newest + 1).find(piece => piece.turn !== item.turn);
+    return { turn: item.turn, text: pieces.join(""), start, end: next?.t ?? null };
   }
 
+  // Recorded dollars, when the run has them, beat a price worked out from tokens.
   private costAt(t: number, rates: BroadcastRates | null): number | null {
+    if (this.paid.length > 0) return last(this.paid, t)?.usd ?? 0;
     if (rates === null) return null;
     const used = last(this.spent, t);
     return used === null ? 0 : (used.input * rates.input + used.output * rates.output + used.cacheRead * rates.cacheRead) / 1_000_000;

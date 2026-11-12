@@ -50,6 +50,6 @@ Each series' `cost.kind` in `chart-data.json` says how its dollars are found.
 ### Pinned figures
 
 - **Claude Opus 5.5** ran through the Claude session gateway on a Claude Max plan, so `events.jsonl` records zero tokens. The cost comes from the Claude Code session transcript in the gateway's config directory, outside the repository: the last cumulative `totalCostUSD` (in `"type":"cost-state"` lines, at Anthropic's list prices) at or before the milestone's time.
-  - **Chain:** $679.16 at d718's `ELITE_FOUR_GLACIA_DEFEATED`, session `redacted-id…`. All four legs ran in one session, so this figure **includes** the leg tails the stitched timeline drops (about 42 minutes before the last leg) and overstates the stitched path.
-  - **Rayquaza lane `67d7`:** $780.00 at `GAME_CLEAR_CONFIRMED`, session `redacted-id…`. The README's $780.55 is the whole run, to `run_end`.
+  - **Chain:** $679.16 at d718's `ELITE_FOUR_GLACIA_DEFEATED`, from a Claude Code session transcript (outside the repo). All four legs ran in one session, so this figure **includes** the leg tails the stitched timeline drops (about 42 minutes before the last leg) and overstates the stitched path.
+  - **Rayquaza lane `67d7`:** $780.00 at `GAME_CLEAR_CONFIRMED`, from a Claude Code session transcript (outside the repo). The README's $780.55 is the whole run, to `run_end`.
 - **GPT-6 Astra `429f`:** $718.54 to the Heat Badge, from the operator's run-grades report of 2026-10-30. 657,608,898 input tokens, of which 653,478,400 were cache reads, and 475,056 output, at $10 / $1 / $50 per million. The run folder's own Codex transcript ends before the Heat Badge, so this **cannot be recomputed from the repository**.

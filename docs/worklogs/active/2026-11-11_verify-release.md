@@ -94,7 +94,11 @@ The input is an untrusted download.
 - [x] FF merge via landing board: `just land-join` (number 1), `git merge --ff-only cae3b65f0` (main 608c01540 → cae3b65f0; main had not moved, so all gates and reviews carry over unchanged). Post-main `just test` exit 0 (agent 3,038, viewer 1,276, env 3,186, gateway 39; floors; no-I/O proof). Not pushed; `just viewer-main` not run (not needed: no viewer or runtime change).
 
 **M3 — Closeout** (the operator)
-- [ ] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`
+- [x] README "Verify the clear" section; `VERIFY.md` step 1 points at `just verify-release`; the release ships `raw-ram-final-67d7.json.gz` (the run's `raw-ram/00109027.json.gz`) and lists it in `SHA256SUMS`. Branch `claude/verify-the-clear-docs` (prose only).
+  - [x] README: "Verify the clear" section after Results (download, `POKEBENCH_ROM`, `just verify-release <folder>`, what all PASS means and does not mean; optional `just replay-verify` and `just view-release`)
+  - [x] `runs/release-staging/67d7/VERIFY.md` (untracked release staging): "How to check it yourself" step 1 is `just verify-release` from a PokeBench clone; the manual checks stay as steps 2-6. The Claude Code session id prefix was removed from "Tokens and cost" (now "the gateway's session record"). `VERIFY.md` is not listed in `SHA256SUMS`, so the sums are unchanged.
+  - [x] Final snapshot file name: satisfied by the existing `raw-ram-final.json.gz` (byte copy of `raw-ram/00109027.json.gz`, listed in `SHA256SUMS`). `verify_release.KINDS["final snapshot"]` accepts `raw-ram-final*.json[.gz|.xz]`, so no rename.
+  - [x] Independent review of the prose: GPT LGTM round 2; landed at 4b20daa52
 
 ## Closing the Loop
 
@@ -104,11 +108,18 @@ The input is an untrusted download.
 
 ## Session Log
 
+- 2026-11-11 18:31 ET: claude/verify-the-clear-docs landed fast-forward at 4b20daa52 as number 1 on the board (GPT round 2 `VERDICT: LGTM`; round 1 BLOCKING on two README overclaims, fixed). Gates on 8eae230c1: lint green, test green; post-merge `just test` on 4b20daa52 green (agent 3,042, viewer 1,286, env 3,446, gateway 39).
+
+- 2026-11-11 18:30 ET: GPT review of 8eae230c1 BLOCKING, 2 x P2 (README overclaimed): all PASS does not prove every milestone has a checkpoint, and verify-release hashes only the files it reads. README now says each checkpoint present has a matching pair with agreeing digests and metadata, says other listed files are only checked for presence, and points to `shasum -a 256 -c SHA256SUMS` for every file. Same correction in the staged 67d7-r2 VERIFY.md. Prose-only delta after the gates ran on 8eae230c1.
+
+- 2026-11-11 18:30 ET: Quick-start rehearsal from a fresh clone of public main 780321615 on the gpubox (Linux) and the Mac: setup, build-mgba, lint, test, verify-rom and smoke all green on both. Two fixes on this branch: README step 1 clones plainly and initialises only `env/vendor/continual-harness` (the vendor has a nested `pokered` submodule with no URL, so `--recurse-submodules` exits 128); `.env.example` comments out the placeholder `POKEBENCH_MODEL` and `POKEBENCH_GATEWAY_URL`, so a fresh `just doctor` reports the model tier as SKIP (16 passed, 0 failed, 2 skipped, exit 0) instead of FAIL.
+
 - 2026-11-11: worktree from main `608c01540`. Discovery: 67d7 has 189,738 events (4.3 GB), 109,028 raw-RAM snapshots (16 GB gz), 202 checkpoint pairs. The last state event (seq 189736) references snapshot 109027 with the sha256 of `raw-ram/00109027.json.gz`. Max event line 462,570 bytes.
 - 17:09Z pause, then 17:10Z scope cut (see above). Before the pause: 57/57 tests on the full-scan design; WIP commit 66b87cd7c.
 - After the cut: 50/50 tests; ruff and mypy clean on the changed files.
 - Guard deletion (each removed alone, test went red, restored): game-clear flag, badge flags, Rayquaza, gzip digest binding, last-snapshot binding, sequence/frame binding, tar links, tar names, tar size cap, operator events, features digest, seq order, turn contiguity, run_end completed, boot start, integrity mismatch, checkpoint sha256, checkpoint boot provenance, event line cap, final snapshot cap, RUN_END kind, RUN_END turn. Turn contiguity and checkpoint sha256 first survived (the tests also tripped other guards); `test_a_turn_gap_fails_even_when_run_end_agrees` and `test_a_same_size_swapped_state_fails` were added to pin them. RUN_END kind likewise survived until the RUN_END test covered each field.
 - First real run FAILed `checkpoints: provenance` on `RUN_END`, a third checkpoint kind (`checkpoint-capture.ts`: `kind: run_end`, `end_reason`, `turn`, `source`). Added its provenance rule and tests; the rerun passed.
+- 2026-11-11 18:05 ET: M3 closeout docs on `claude/verify-the-clear-docs` (worktree `~/dev/pokebench-verify-clear-docs` from main b2c7f71ae). README section and staged `VERIFY.md` step 1 written from the recipes and module docstrings of `verify_release`, `replay_verify` and `view_release`. Documentation validation: `git diff --check` clean; no build, lint or test suites (prose only). Found: the session id prefix also appears in the shipped agent trace (`session.json`, `calls.jsonl`, every `calls/call-*.jsonl`); left for the operator.
 
 ## Surprises
 

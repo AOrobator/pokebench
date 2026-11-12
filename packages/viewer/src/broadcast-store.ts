@@ -2,10 +2,10 @@
 // so a long recording never stalls the viewer and a poll of a live run stays cheap. Reads only; the commentary and
 // pricing it picks up live under runs/broadcast/, never in a run's own folder.
 import { join } from "node:path";
-import { Type } from "typebox";
+import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { BroadcastRates, BroadcastResponse, CommentaryLine } from "./broadcast-feed.js";
-import { createBroadcastReducer, wantedLine, type BroadcastReducer } from "./broadcast-reducer.js";
+import { createBroadcastReducer, wantedLine, type BroadcastReducer, type BroadcastSide } from "./broadcast-reducer.js";
 
 export interface BroadcastDisk {
   readBytes(path: string, offset: number, length: number): Buffer;
@@ -32,6 +32,8 @@ export function commentaryWav(runsRoot: string, runId: string, name: string): st
 }
 
 const LineSchema = Type.Object({ turn: Type.Integer(), t: Type.Number(), text: Type.String(), wav: Type.String(), said: Type.Optional(Type.Union([Type.Number(), Type.Null()])) });
+const ThinkingRow = Type.Object({ turn: Type.Integer(), thinking: Type.String() });
+const CostRow = Type.Object({ turn: Type.Integer(), usd: Type.Number() });
 const RateSchema = Type.Object({ input_per_million: Type.Number(), output_per_million: Type.Number(), cache_read_per_million: Type.Number() });
 const HEAD_BYTES = 256;
 const NEWLINE = 0x0a;
@@ -46,6 +48,24 @@ function commentaryOf(text: string | null): CommentaryLine[] {
     if (Value.Check(LineSchema, value)) lines.push(value);
   }
   return lines;
+}
+
+function rowsOf<S extends typeof ThinkingRow | typeof CostRow>(text: string | null, schema: S): Static<S>[] {
+  const rows: Static<S>[] = [];
+  for (const line of (text ?? "").split("\n")) {
+    let value: unknown;
+    try { value = JSON.parse(line); } catch { continue; }
+    if (Value.Check(schema, value)) rows.push(value);
+  }
+  return rows;
+}
+
+// Read once, when the run's log is first read: they are written after a run has finished.
+function sideOf(disk: BroadcastDisk, folder: string): BroadcastSide {
+  return {
+    thinking: new Map(rowsOf(disk.readText(join(folder, "thinking.jsonl")), ThinkingRow).map(row => [row.turn, row.thinking])),
+    usd: new Map(rowsOf(disk.readText(join(folder, "cost.jsonl")), CostRow).map(row => [row.turn, row.usd])),
+  };
 }
 
 function ratesOf(text: string | null, model: string): BroadcastRates | null {
@@ -82,7 +102,7 @@ export function createBroadcastStore(options: BroadcastStoreOptions): BroadcastS
   const tailOf = (runId: string): Tail => {
     const known = tails.get(runId);
     tails.delete(runId);
-    const tail = known ?? { reducer: createBroadcastReducer(), offset: 0, rest: Buffer.alloc(0), pending: Promise.resolve(), said: { text: null, lines: [] } };
+    const tail = known ?? { reducer: createBroadcastReducer(sideOf(disk, join(options.runsRoot, "broadcast", runId))), offset: 0, rest: Buffer.alloc(0), pending: Promise.resolve(), said: { text: null, lines: [] } };
     tails.set(runId, tail);
     for (const oldest of tails.keys()) { if (tails.size <= keepRuns) break; tails.delete(oldest); }
     return tail;

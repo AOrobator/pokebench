@@ -35,7 +35,7 @@
       "cost": {
         "kind": "pinned",
         "usd": 679.16,
-        "source": "Claude Code session transcript redacted-id (gateway config dir, outside the repo): last cumulative totalCostUSD at or before d718's ELITE_FOUR_GLACIA_DEFEATED. Includes the leg tails the stitched timeline drops."
+        "source": "a Claude Code session transcript (in the gateway config dir, outside the repo): last cumulative totalCostUSD at or before d718's ELITE_FOUR_GLACIA_DEFEATED. Includes the leg tails the stitched timeline drops."
       },
       "label_offset": [
         -16,
@@ -53,7 +53,7 @@
       "cost": {
         "kind": "pinned",
         "usd": 780.0,
-        "source": "Claude Code session transcript redacted-id (outside the repo): last cumulative totalCostUSD at or before GAME_CLEAR_CONFIRMED."
+        "source": "a Claude Code session transcript (outside the repo): last cumulative totalCostUSD at or before GAME_CLEAR_CONFIRMED."
       },
       "label_offset": [
         -16,
@@ -194,7 +194,7 @@
       "title": "Badges over time",
       "subtitle": "Each step is a gym badge, then each Elite Four member and the Champion beaten, at the time it happened. Every model’s best run, against keepingiticy’s English-language world record.",
       "notes": [
-        "* Heavily assisted: the Rayquaza lane adds a just-in-time guide to the harness. Dotted lines and hollow end points are lane runs.",
+        "* Heavily assisted: the Rayquaza lane adds help to the harness. The Qwen lane runs follow a just-in-time guide to the next milestone. The Opus lane run has no guide, only four one-time hints and a Mach Bike dash tool. Dotted lines and hollow end points are lane runs.",
         "keepingiticy’s Elite Four splits aren’t marked; the line runs from the Rain Badge to the Champion at 2:28:39. Unassisted Opus ran out of time against Drake.",
         "Unassisted Qwen3.6, Qwen3.8 and GLM start from a main-menu save with fast text already set; every other run, the Rayquaza lane runs included, starts from power-on. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded."
       ]

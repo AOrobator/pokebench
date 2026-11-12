@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BroadcastItem } from "./broadcast-feed.js";
-import { BroadcastTimeline, clockText, thinkingTail } from "./broadcast-timeline.js";
+import { BroadcastTimeline, clockText, scrollFraction, thinkingTail } from "./broadcast-timeline.js";
 
 const MON = { name: "SWAMPERT", level: 45, hp: 24, maxHp: 159 };
 const ITEMS: BroadcastItem[] = [
@@ -34,9 +34,20 @@ describe("the broadcast timeline", () => {
   it("streams a turn's thinking up to t and keeps the last thought until a new one starts", () => {
     const b = timeline();
     expect(b.view(2, [], null).think).toBeNull();
-    expect(b.view(3.5, [], null).think).toEqual({ turn: 1, text: "Let " });
-    expect(b.view(8.5, [], null).think).toEqual({ turn: 1, text: "Let me think" });
-    expect(b.view(9, [], null).think).toEqual({ turn: 2, text: "Second" });
+    expect(b.view(3.5, [], null).think).toEqual({ turn: 1, text: "Let ", start: 3, end: 9 });
+    expect(b.view(8.5, [], null).think).toEqual({ turn: 1, text: "Let me think", start: 3, end: 9 });
+    expect(b.view(9, [], null).think).toEqual({ turn: 2, text: "Second", start: 9, end: null });
+  });
+
+  it("scrolls a thought from its top, holding first and reaching its end before the next one", () => {
+    expect(scrollFraction(10, 10, 30)).toBe(0);
+    expect(scrollFraction(13, 10, 30)).toBe(0);
+    expect(scrollFraction(20, 10, 30)).toBeCloseTo(0.5);
+    expect(scrollFraction(27, 10, 30)).toBe(1);
+    expect(scrollFraction(40, 10, 30)).toBe(1);
+    expect(scrollFraction(5, 10, 30)).toBe(0);
+    expect(scrollFraction(20, 10, null)).toBeCloseTo(0.5);
+    expect(scrollFraction(10, 10, 10)).toBe(1);
   });
 
   it("adds up cost from usage so far, and has none without rates", () => {
@@ -45,6 +56,14 @@ describe("the broadcast timeline", () => {
     expect(b.view(5, [], rates).cost).toBeCloseTo(3.5);
     expect(b.view(10, [], rates).cost).toBeCloseTo(4.5);
     expect(b.view(10, [], null).cost).toBeNull();
+  });
+
+  it("counts recorded dollars when the run has them, with or without rates", () => {
+    const b = timeline();
+    b.add([{ k: "usd", t: 4, usd: 1.25 }, { k: "usd", t: 9, usd: 2.5 }]);
+    expect(b.view(3, [], null).cost).toBe(0);
+    expect(b.view(5, [], null).cost).toBe(1.25);
+    expect(b.view(10, [], rates).cost).toBe(2.5);
   });
 
   it("captions only the current turn, once its line's time has come", () => {

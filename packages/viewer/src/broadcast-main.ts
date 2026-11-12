@@ -1,7 +1,7 @@
 // Boots the read-only /broadcast page. ?run= picks a run (default: the newest live one), ?t= holds one moment of it
 // (default: follow), ?transparent=1 leaves the game and background out for compositing, ?voice=0 keeps a live page silent.
 import { parseBroadcast, type BroadcastResponse, type CommentaryLine } from "./broadcast-feed.js";
-import { BroadcastTimeline, clockText, thinkingTail, type BroadcastView } from "./broadcast-timeline.js";
+import { BroadcastTimeline, clockText, scrollFraction, thinkingTail, type BroadcastView } from "./broadcast-timeline.js";
 import { BADGE_URLS, actionHtml, badgesHtml, laneHtml, laneMarks, modelTitle, partyHtml, runPill, thinkingHtml } from "./broadcast-view.js";
 import { BroadcastVoice, liveCaption } from "./broadcast-voice.js";
 import { esc } from "./format.js";
@@ -145,7 +145,10 @@ export async function mountBroadcast(doc: Document, deps: BroadcastDeps): Promis
     paint(part("where"), `${esc(view.where ?? "")}${view.foe === null ? "" : ` <b>vs ${esc(view.foe)}</b>`}`);
     write(part("clock"), clockText(t));
     write(part("think-label"), view.think === null ? "THINKING" : `THINKING · turn ${String(view.think.turn)}`);
-    paint(part("think"), thinkingHtml(thinkingTail(view.think?.text ?? "")));
+    const think = part("think");
+    paint(think, thinkingHtml(thinkingTail(view.think?.text ?? "", Infinity)));
+    const room = Math.max(0, think.scrollHeight - think.clientHeight);
+    think.scrollTop = view.think === null ? 0 : Math.round(room * scrollFraction(t, view.think.start, view.think.end));
     paint(part("action"), view.action === null ? "" : actionHtml(view.action));
     paint(part("party"), partyHtml(view.party));
     paint(part("badges"), badgesHtml(view.badges, sprites));

@@ -6,7 +6,7 @@ How far can a vision-language model get in Pokémon Emerald when the harness aro
 
 ## Results
 
-Claude Opus 5.5 beat the game in one run from power-on, in 4,124 turns and 17 hours 16 minutes. It caught Rayquaza at Sky Pillar with the Master Ball, lost to Glacia on its first Elite Four attempt, restocked at the League mart and won the retry. That run used the Rayquaza lane, which adds a just-in-time game guide to the harness, so it counts as heavily assisted.
+Claude Opus 5.5 beat the game in one run from power-on, in 4,124 turns and 17 hours 16 minutes. It caught Rayquaza at Sky Pillar with the Master Ball, lost to Glacia on its first Elite Four attempt, restocked at the League mart and won the retry. That run used the Rayquaza lane: no game guide, but four one-time hints (the Mach Bike, the Master Ball's route, Sky Pillar and Rayquaza's League moveset) and a Mach Bike dash tool, so it counts as heavily assisted. The Qwen lane runs follow a just-in-time guide to the next milestone.
 
 | Model | Setup | Furthest | Time |
 |---|---|---|---|

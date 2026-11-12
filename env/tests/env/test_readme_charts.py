@@ -380,6 +380,15 @@ def test_pages_plot_every_line_and_mark_assisted_runs():
     assert 'text-anchor="end">Local<' in money_page
 
 
+def test_card_hugs_the_chart_at_whole_pixel_heights():
+    css = rc.CSS
+    assert ".card{width:fit-content;" in css
+    # whole-pixel line heights keep the card's height whole, so the PNG has no page strip
+    assert "h1{font-size:30px;line-height:36px;" in css
+    assert "p{margin:0;color:#44525e;font-size:15px;line-height:22px}" in css
+    assert ".note{margin-top:8px;font-size:13.5px;line-height:20px}" in css
+
+
 def test_pages_need_points_for_every_series():
     with pytest.raises(rc.ChartError, match="run the points stage"):
         rc.build_pages(chart_data(SERIES), {"series": []})

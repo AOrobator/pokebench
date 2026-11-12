@@ -52,6 +52,21 @@ describe("the broadcast page", () => {
     expect(s.timers).toHaveLength(0);
   });
 
+  it("anchors a long thought at the top and scrolls through it as t moves on", async () => {
+    const long = { k: "thought", t: 10, turn: 2, d: "A long thought" };
+    const s = setup("?run=r1&t=3", () => Promise.resolve(answer({ items: [...ITEMS, long, { k: "thought", t: 30, turn: 3, d: "Next" }] })));
+    const page = await s.mount();
+    const body = s.part("think");
+    Object.defineProperty(body, "scrollHeight", { configurable: true, value: 1200 });
+    Object.defineProperty(body, "clientHeight", { configurable: true, value: 200 });
+    await page.setTime(10);
+    expect(body.scrollTop).toBe(0);
+    await page.setTime(20);
+    expect(body.scrollTop).toBe(500);
+    await page.setTime(29);
+    expect(body.scrollTop).toBe(1000);
+  });
+
   it("shows a dash for cost with no rates, and the caption when a line exists", async () => {
     const s = setup("?run=r1&t=5", () => Promise.resolve(answer({ rates: null, commentary: [{ turn: 1, t: 3, text: "Going in.", wav: "1.wav" }] })));
     await s.mount();

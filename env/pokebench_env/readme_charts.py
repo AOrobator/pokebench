@@ -485,14 +485,18 @@ def endlabel(n: int) -> str:
 
 
 # .in is as wide as the charts' SVG, so the card never clips the legend's right edge whatever the
-# browser window; render with a viewport of at least 1400 px.
+# browser window; render with a viewport of at least 1400 px. The card hugs .in so the outer band is
+# even on every side, and whole-pixel line heights keep its height whole, so the element screenshot
+# takes no strip of page background.
 CSS = (
     "body{margin:0;background:#f7f3e8;font-family:-apple-system,BlinkMacSystemFont,"
     '"Helvetica Neue",Arial,sans-serif;color:#24323d}\n'
-    """.card{margin:18px;border:4px solid #2c5f55;border-radius:30px;padding:6px;background:#2c5f55}
-.in{background:#fff;border:5px solid #5ab89c;border-radius:24px;padding:28px 34px 22px;width:1240px}
-h1{font-size:30px;margin:4px 0 6px}p{margin:0;color:#44525e;font-size:15px;line-height:1.45}"""
-    ".note{margin-top:8px;font-size:13.5px}"
+    ".card{width:fit-content;margin:18px;border:4px solid #2c5f55;border-radius:30px;padding:6px;"
+    "background:#2c5f55}\n"
+    ".in{background:#fff;border:5px solid #5ab89c;border-radius:24px;padding:28px 34px 22px;"
+    "width:1240px}\nh1{font-size:30px;line-height:36px;margin:4px 0 6px}"
+    "p{margin:0;color:#44525e;font-size:15px;line-height:22px}"
+    ".note{margin-top:8px;font-size:13.5px;line-height:20px}"
 )
 
 

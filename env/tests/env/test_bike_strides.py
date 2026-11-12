@@ -327,3 +327,35 @@ def test_only_a_ridden_corridor_may_run_past_eight_tiles():
     too_long = [{"x": x, "y": 2} for x in range(1, 18)]
     with pytest.raises(ValidationError):
         StrideRequest.model_validate({**body, "path": too_long})
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("warp_x,behavior", [(0, 0), (1, 0), (1, 0x68)])
+def test_travel_stride_uses_active_warp_evidence(enabled, warp_x, behavior):
+    """af33 T795: ordinary floor over a dormant warp must not strand the player.
+
+    field_control_avatar.c IsWarpMetatileBehavior requires an activating behavior.
+    Test the production travel-to-stride installer, with OFF retaining the refusal.
+    """
+    from pokebench_env.travel import install_travel
+
+    server, m, body = setup()
+    body["path"] = [{"x": 1, "y": 2}]
+    # One static warp at the origin or target; behavior 0x68 is a live Lavaridge pad.
+    m.put(0x08501000, bytes([0, 1, 0, 0]) + struct.pack("<III", 0, 0x08502000, 0))
+    m.put(0x08502000, struct.pack("<hhBBBB", warp_x, 2, 3, 0, 2, 4))
+    m.put(0x02007000, struct.pack("<H", behavior))
+    applied = []
+
+    class Walker:
+        def run_frame_with_buttons(self, buttons):
+            applied.append(buttons)
+            if "RIGHT" in buttons:
+                m.put(OBJECT_EVENTS + 0x10, struct.pack("<hh", 8, 9))
+
+    api = FastAPI()
+    install_travel(api, Walker, server, m.read, safe_strides=True, active_warps=enabled)
+    r = drive(api, server, Walker().run_frame_with_buttons, body, frames=2)
+    allowed = enabled and behavior == 0
+    assert r["reason"] == ("completed" if allowed else "corridor changed or unsafe")
+    assert any("RIGHT" in buttons for buttons in applied) == allowed

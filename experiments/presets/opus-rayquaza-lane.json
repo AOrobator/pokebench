@@ -387,7 +387,7 @@
     "drought-turns-only-v1": false,
     "drought-hold-screens-v1": false,
     "field-obstacle-respawn-v1": false,
-    "gym-puzzle-supervisor-hold-v1": false,
+    "gym-puzzle-supervisor-hold-v1": true,
     "opus-rq-mach-bike-v1": true,
     "opus-rq-master-ball-v1": true,
     "opus-rq-catch-v1": true,

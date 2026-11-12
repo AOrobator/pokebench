@@ -4,7 +4,13 @@
 
 A map event is only an entrance candidate when its tile supports activation.
 
-`active-warp-exits-v1` — default OFF. Enabled only in the bundle of the two evolving recipes. Control stays OFF.
+`active-warp-exits-v1` — default OFF. The current control and treatment configs enable it, as does the dedicated Opus/Astra Rayquaza preset.
+
+## Stride execution agrees with the map
+
+In Astra run af33, turn 795, Lavaridge Gym ordinary floor at (13,17) covered a dormant warp record. The map omitted that entrance, but stride validation still rejected every route away from it. With this switch ON, stride validation uses the same live-tile filter. OFF retains the old refusal. Live pads, objects, scripts, collision and elevation checks still stop strides.
+
+Ordinary floor + dormant warp → excluded from warp hazards → validate the remaining corridor checks → move. Live entrance tile → retain warp hazard → stop before activation.
 
 ## Why
 

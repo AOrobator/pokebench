@@ -67,8 +67,18 @@ it("retries a late transcript and discovers appended calls after the cache inter
  body=transcript();expect(await reader.event(event)).toMatchObject({thinking:"native gateway thinking"});expect(discoveries).toBe(2);
 });
 it("maps continuation turns by recorded call ID, and keeps the last successful attempt",async()=>{
- const f=fixture([row(),row({attempt:2,record:"call-945-2.jsonl"})]);
- expect(await f.reader.event({...f.event,turn:97})).toMatchObject({turn:97,thinking:"native gateway thinking"});
+ const f=fixture(),reader=createGatewayThinking({now:()=>0,assistant:()=>Promise.resolve(null),sources:()=>Promise.resolve([{key:"bridge",text:[row(),row({attempt:2,record:"call-945-2.jsonl"})].map(r=>JSON.stringify(r)).join("\n")}]),transcript:(_key,record)=>Promise.resolve(record==="call-945-2.jsonl"?transcript("latest thought"):transcript("old thought","old reply"))});
+ expect(await reader.event({...f.event,turn:97})).toMatchObject({turn:97,thinking:"latest thought"});
  const wrong=new Log().add(3001,assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_97",name:"press",args:{}}]}));
- expect(await f.reader.event(wrong)).toBe(wrong);
+ expect(await reader.event(wrong)).toBe(wrong);
+});
+
+it.each([
+ ['noise {"x":1} then {"name":"press","text":"heal first"} {','heal first'],
+ ['```json\n{"name":"press","text":"heal first"}\n```','heal first'],
+ ['{"name":"press","text":7}','7'],
+ ['{"name":"press","text":{"é":[true,null,7]}}','{"\\u00e9": [true, null, 7]}'],
+])("reads gateway-valid wrapped JSON and normalized notes: %s",async(result,reply)=>{
+ const record=transcript().split('\n')[0]+'\n'+JSON.stringify({type:'result',session_id:'session',is_error:false,result});
+ const f=fixture([row()],record);expect(await f.reader.event({...f.event,text:reply})).toMatchObject({thinking:'native gateway thinking'});
 });

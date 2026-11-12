@@ -25,3 +25,7 @@ One sentence after the results table, beside the results ledger link, linking bo
 - 2026-11-11 19:50 ET: GPT (Codex job `review-gpt-readme-features-link-566b872b9`) round 1 BLOCKING, one P2: "says what each switch does" overclaims, since 53 of 413 switch rows in docs/features.md have no explainer. Links, the features.md description and style passed. Fixed by narrowing the sentence to "links the explainer for each switch that has one".
 - 2026-11-11 19:52 ET: GPT round 2 (job `review-gpt-readme-features-link-r2-dd9497cff`) `VERDICT: LGTM` on packet sha256 779ec4c8…f0df: the narrowed wording resolves the P2, all 360 feature-table explainer links resolve and appear in the index.
 - 2026-11-11 19:58 ET: The operator approved archiving three finished worklogs (linux-mgba-build, twins-fake-host, twins-operator-wording); moved to docs/worklogs/ on this branch so they land with it.
+
+## Landing
+
+- 2026-11-11 19:57 ET: landed fast-forward at c7fcbcdf4 as number 1 on the board, on the operator's direct "land the readme change". GPT lane LGTM on dd9497cff. Claude lane blocked (claude CLI OAuth expired; Cursor Opus and Sonnet at usage limit until 11/17), so it landed on the operator's instruction without it. Archive commit c7fcbcdf4 is file moves plus one-line notes. Docs-only, so post-main check is `just explainer-twins-check` on main (345 pages up to date); no `just test`.

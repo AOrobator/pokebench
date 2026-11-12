@@ -4,7 +4,7 @@ import type {IncomingMessage,ServerResponse} from "node:http";
 import {CurrentPoolError,type CurrentPool} from "./current-pool.js";
 import type {CurrentQuery,CurrentAnswer} from "./current-public.js";
 export interface CurrentApi {handle(req:IncomingMessage,res:ServerResponse,parts:readonly string[],now:number):Promise<boolean>}
-export function createCurrentApi(pool:CurrentPool,options:{maxBytes?:number;responseMs?:number}={}):CurrentApi{
+export function createCurrentApi(pool:CurrentPool,options:{maxBytes?:number;responseMs?:number;enrich?:(answer:CurrentAnswer)=>Promise<CurrentAnswer>}={}):CurrentApi{
  const max=options.maxBytes??8*1024*1024,deadline=options.responseMs??10000;
  if(!Number.isSafeInteger(max)||max<64||max>8*1024*1024||!Number.isSafeInteger(deadline)||deadline<1||deadline>10000)throw new Error("Invalid current HTTP limits");
  return {handle:async(req,res,parts,now)=>{
@@ -21,7 +21,8 @@ export function createCurrentApi(pool:CurrentPool,options:{maxBytes?:number;resp
    const allowed=list?["after","limit"]:updates?["after","run"]:operation==="history"?["before"]:operation==="metadata"?["reference"]:operation==="progress"?["generation","after"]:[];
    if([...params.keys()].some(key=>!allowed.includes(key)||params.getAll(key).length!==1))throw new CurrentPoolError(400,"Invalid current query parameters");
    const query:CurrentQuery=list?{kind:"list",now,after:params.get("after"),...(params.has("limit")?{limit:Number(params.get("limit"))}:{})}:updates?{kind:"updates",now,after:params.get("after"),...(params.has("run")?{run:params.get("run")??""}:{})}:operation==="history"?{kind:"history",now,run:id??"",before:params.get("before")}:operation==="metadata"?{kind:"metadata",now,run:id??"",reference:params.get("reference")??""}:operation==="progress"?{kind:"progress",now,run:id??"",generation:params.get("generation")??"",after:params.get("after")}: {kind:"current",now,run:id??""};
-   const answer:CurrentAnswer=await pool.query(query);
+   const raw=await pool.query(query);
+   const answer:CurrentAnswer=options.enrich===undefined?raw:await options.enrich(raw);
    const status=answer.kind==="unavailable"?503:answer.kind==="current"&&answer.snapshot===null?202:answer.kind==="history"?answer.state==="reset"?409:answer.state==="oversized"?413:answer.state==="indexing"?202:200:200;
    send(status,answer);
   }catch(error){send(error instanceof CurrentPoolError?error.status:503,{error:error instanceof CurrentPoolError?error.message:"Current snapshots unavailable"});}

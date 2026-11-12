@@ -25,3 +25,11 @@ it("routes immutable metadata and checkpoint progress independently from live po
  for(const [url,operation] of [["/api/runs/fixture/metadata?reference="+"a".repeat(64),"metadata"],["/api/runs/fixture/progress?generation=g&after=cursor","progress"]]){const r=new Response();await api.handle(request(url??""),response(r),["api","runs","fixture",operation??""],7);}
  expect(queries).toEqual([{kind:"metadata",run:"fixture",reference:"a".repeat(64),now:7},{kind:"progress",run:"fixture",generation:"g",after:"cursor",now:7}]);
 });
+it("enriches display answers before applying the byte limit and ETag",async()=>{
+ const original:CurrentAnswer={kind:"history",version:1,epoch:"e",generation:"g",state:"ready",events:[],before:null};
+ let calls=0;
+ const api=createCurrentApi(pool(()=>Promise.resolve(original)),{enrich:answer=>{calls++;return Promise.resolve({...answer,epoch:"bridge"});}}),r=new Response();
+ await api.handle(request("/api/runs/fixture/history"),response(r),["api","runs","fixture","history"],7);
+ expect(calls).toBe(1);expect(JSON.parse(r.body)).toMatchObject({epoch:"bridge"});expect(original.epoch).toBe("e");
+ const cached=new Response();await api.handle(request("/api/runs/fixture/history",{"if-none-match":r.headers.get("etag")??""}),response(cached),["api","runs","fixture","history"],7);expect(cached.status).toBe(304);
+});

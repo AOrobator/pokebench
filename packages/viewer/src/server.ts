@@ -1,3 +1,4 @@
+import {gatewayThinkingDisk} from "./gateway-thinking-disk.js";
 import { PAGE_SPRITE_PATH } from "./trainer-page.js";
 import {createCurrentPool,type CurrentPoolOptions} from "./current-pool.js";
 import {createCurrentApi,type CurrentApi} from "./current-api.js";
@@ -772,7 +773,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
   const currentPool = options.current === undefined ? null : createCurrentPool({...options.current, runsRoot:options.runsRoot});
-  const currentApi = currentPool === null ? null : createCurrentApi(currentPool);
+  const currentApi = currentPool === null ? null : createCurrentApi(currentPool,{enrich:gatewayThinkingDisk(options.runsRoot).answer});
   const loopDelay = monitorEventLoopDelay({ resolution: 10 });
   loopDelay.enable();
   const dispatchTimings = new Map<string, Timing>();

@@ -361,6 +361,8 @@ describe("a released run that is one of several linked runs", () => {
     delete rec(f.runs.runs, 2).release;
     release.notes = [];
     rec(f.runs.runs, 0).release = release;
+    // The fixture post links run ab07's page, which this release move removes.
+    f.posts = f.posts.filter((p) => !p.text.includes("runs/ab07.html"));
     const out = buildSite(f);
     expect(out.has("runs/ab07.html")).toBe(false);
     const p = text(out, "runs/aa01.html");
@@ -451,6 +453,7 @@ describe("run page cost", () => {
     const release = rec(f.runs.runs, 2).release;
     delete rec(f.runs.runs, 2).release;
     rec(f.runs.runs, 3).release = release;
+    f.posts = f.posts.filter((p) => !p.text.includes("runs/ab07.html"));
     const p = text(buildSite(f), "runs/b001.html");
     expect(p).toContain("ABOUT $2.50 AT API PRICES (ESTIMATE)");
   });

@@ -7,7 +7,11 @@ import { groupModels, type SiteView } from "./pages/common.js";
 import { home } from "./pages/home.js";
 import { modelPage, modelsIndex } from "./pages/models.js";
 import { results } from "./pages/results.js";
-import { runPage, runsIndex } from "./pages/runs.js";
+import { feed, postPath } from "./feed.js";
+import { plainText } from "./markdown.js";
+import { listRuns, runPage, runsIndex } from "./pages/runs.js";
+import { postPage, updatesIndex } from "./pages/updates.js";
+import { parsePosts, type PostFile } from "./posts.js";
 import { standings } from "./standings.js";
 
 export class SiteError extends Error {}
@@ -17,6 +21,8 @@ export interface SiteInputs {
   readonly points: unknown;
   readonly site: unknown;
   readonly runs: unknown;
+  // Update posts: each file's name and Markdown text.
+  readonly posts: readonly PostFile[];
   // Files copied into the site unchanged, keyed by their path in the built site.
   readonly assets: ReadonlyMap<string, Uint8Array>;
 }
@@ -28,9 +34,10 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
   const points = parsePoints(inputs.points);
   const st = standings(parseChartData(inputs.chartData), points, site);
   const cat = catalog(st.entries, parseRuns(inputs.runs));
+  const posts = parsePosts(inputs.posts, new Set(site.models.map((m) => m.slug)));
   const view: SiteView = { st, cat, groups: groupModels(site.models, [...cat.bySeries.values()]), githubUrl: site.githubUrl };
   const shell: Shell = {
-    sections: ["home", "results", "models", "runs"],
+    sections: ["home", "results", "models", "runs", "updates"],
     githubUrl: site.githubUrl,
     footer: html`<p class="foot">DATA FROM THE RESULTS, ${site.dataDate} · PRICES AS OF ${points.pricesAsOf}</p>
 <p class="credits">Icons: <a href="https://github.com/halfmage/pixelarticons">pixelarticons</a> © 2019 Gerrit Halfmann, MIT licence. Fonts: Press Start 2P, Inter and JetBrains Mono, SIL Open Font License 1.1.</p>`,
@@ -48,7 +55,7 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     section: "home",
     crumbs: ["HOME"],
     depth: 0,
-    body: home(st),
+    body: home(st, posts[0], listRuns(view.groups).find((l) => l.run.release !== undefined)?.run),
   }));
   out.set("results.html", page(shell, {
     title: "Results · PokéBench",
@@ -84,6 +91,25 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     depth: 0,
     body: runsIndex(site.githubUrl, view.groups),
   }));
+  out.set("updates.html", page(shell, {
+    title: "Updates · PokéBench",
+    description: "New models, harness versions and released runs on PokéBench, newest first.",
+    section: "updates",
+    crumbs: ["UPDATES"],
+    depth: 0,
+    body: updatesIndex(posts),
+  }));
+  for (const p of posts) {
+    out.set(postPath(p), page(shell, {
+      title: `${p.title} · PokéBench`,
+      description: plainText(p.first),
+      section: "updates",
+      crumbs: ["UPDATES", p.date],
+      depth: 1,
+      body: postPage(p, view.groups),
+    }));
+  }
+  out.set("feed.xml", feed(site.baseUrl, posts));
   for (const g of view.groups) {
     for (const s of g.series) {
       for (const run of s.all) {

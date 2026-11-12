@@ -47,6 +47,8 @@ export interface ModelMeta {
 
 export interface SiteData {
   readonly githubUrl: string;
+  // The published site's address, for the feed's absolute links.
+  readonly baseUrl: string;
   readonly dataDate: string;
   readonly cheapestBadges: number;
   readonly human: { readonly name: string; readonly note: string };
@@ -210,7 +212,7 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseSiteData(v: unknown): SiteData {
   const doc = obj(v, "site.json");
-  only(doc, "site.json", ["github_url", "data_date", "cheapest_badges", "human", "series", "models"]);
+  only(doc, "site.json", ["github_url", "base_url", "data_date", "cheapest_badges", "human", "series", "models"]);
   const githubUrl = text(doc.github_url, "github_url");
   if (!githubUrl.startsWith("https://")) throw new InputError("github_url: expected an https URL");
   const cheapestBadges = doc.cheapest_badges;
@@ -260,8 +262,11 @@ export function parseSiteData(v: unknown): SiteData {
     if (s.local !== (m.kind === "local")) throw new InputError(`series[${String(i)}].local: model "${s.slug}" is ${m.kind}`);
   });
   for (const m of models) if (!series.some((s) => s.slug === m.slug)) throw new InputError(`models: no series uses "${m.slug}"`);
+  const baseUrl = text(doc.base_url, "base_url");
+  if (!/^https:\/\/[^\s"'<>]+\/$/.test(baseUrl)) throw new InputError("base_url: expected an https URL ending in /");
   return {
     githubUrl,
+    baseUrl,
     dataDate: text(doc.data_date, "data_date"),
     cheapestBadges,
     human: { name: text(human.name, "human.name"), note: text(human.note, "human.note") },
@@ -382,6 +387,7 @@ export function parseRuns(v: unknown): readonly RunInfo[] {
     const id = text(r.id, `${what}.id`);
     if (id.length < 5) throw new InputError(`${what}.id: expected an id longer than its four-character short id`);
     const short = id.slice(-4);
+    if (!/^[a-z0-9]{4}$/.test(short)) throw new InputError(`${what}.id: its last four characters "${short}" must be lowercase letters and digits`);
     if (seen.has(short)) throw new InputError(`${what}.id: short id "${short}" is used twice`);
     seen.add(short);
     const started = text(r.started, `${what}.started`);

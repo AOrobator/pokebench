@@ -29,11 +29,18 @@ async function assets(): Promise<Map<string, Uint8Array>> {
   return map;
 }
 
+async function posts(): Promise<{ name: string; text: string }[]> {
+  const dir = join(root, "site", "updates");
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".md")).sort();
+  return Promise.all(names.map(async (name) => ({ name, text: await readFile(join(dir, name), "utf8") })));
+}
+
 const built = buildSite({
   chartData: await json("docs/images/charts/chart-data.json"),
   points: await json("docs/images/charts/chart-points.json"),
   site: await json("site/data/site.json"),
   runs: await json("site/data/runs.json"),
+  posts: await posts(),
   assets: await assets(),
 });
 await rm(out, { recursive: true, force: true });

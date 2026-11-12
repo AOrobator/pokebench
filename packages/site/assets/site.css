@@ -22,7 +22,7 @@
   --hd-shade: #c5c5cd; --hd-fade: #eeeee6;
   /* PokéNav message-window cards and their tables */
   --msg-fill: #fff6d5; --msg-edge: #d5d5ac; --card-ink: #283038; --card-head: var(--msg-line); --rule: #d8d0b0;
-  --sub-2: #5a6a78; --where: #5c6370; --ref-row: #fff0f0; --faster: #1d6b12; --slower: #b0151c;
+  --sub-2: #5a6a78; --where: #5c6370; --ref-row: #fff0f0; --faster: #1d6b12; --slower: #b0151c; --post-date: #b80b0b;
 }
 
 * { box-sizing: border-box; }
@@ -131,6 +131,24 @@ figure.chart.wide { margin: 18px 0 0; }
 .btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
 .go { display: inline-block; text-decoration: none; font: 9px/1.6 'Press Start 2P', monospace; color: #fff; background: #d03a3a; border: 4px solid #8a2020; border-radius: 12px; padding: 10px 14px; box-shadow: 0 4px 0 #6a1818; }
 a.go { color: #fff; }
+
+/* PokéNav option-style small buttons */
+.pbtn { display: inline-block; text-decoration: none; font: 8px/1.8 'Press Start 2P', monospace; border: 3px solid #3a6ea5; background: #fff; color: #283038; border-radius: 8px; padding: 8px 11px; box-shadow: 0 3px 0 #22476e; }
+a.pbtn { color: #283038; }
+.dialog.small { padding: 16px 20px; margin-bottom: 0; }
+.dialog.small p { font-size: 9px; }
+
+/* update posts */
+.post { margin-bottom: 14px; }
+.post .date { font: 8px/1.6 'Press Start 2P', monospace; color: var(--post-date); }
+.post h1, .post h2 { font-size: 10px; line-height: 1.7; margin: 8px 0; color: var(--card-head); }
+.post h2 a { color: inherit; }
+.post.full h1 { font-size: 13px; }
+.post.full h2 { font-size: 9px; margin-top: 18px; }
+.post .pbtn { margin-top: 4px; }
+.post .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.post ul { margin: 0 0 8px; padding-left: 22px; }
+.home-foot { margin-top: 18px; }
 
 /* cream PokéNav message-window cards */
 .card { background: var(--msg-fill); border: 3px solid var(--msg-line); border-radius: 6px; box-shadow: inset 0 0 0 2px var(--msg-edge); padding: 14px; min-width: 0; color: var(--card-ink); }
@@ -242,8 +260,9 @@ ol.steps { margin: 0; padding-left: 22px; } ol.steps li { margin-bottom: 8px; }
   /* cards and tables: dark interior, the cream card's double edge kept as two slate lines */
   :root {
     --msg-fill: #182231; --msg-edge: #243143; --card-ink: #e3e8ef; --card-head: #d3dce8; --rule: #2f3c4f;
-    --sub-2: #a9b6c6; --where: #b4c0cf; --ref-row: #3a1f26; --faster: #7be08f; --slower: #ff8a7a; --intro: #c3cdd9;
+    --sub-2: #a9b6c6; --where: #b4c0cf; --ref-row: #3a1f26; --faster: #7be08f; --slower: #ff8a7a; --intro: #c3cdd9; --post-date: #ff8a7a;
   }
+  .pbtn, a.pbtn { background: #24344a; color: #e3e8ef; border-color: #5f8fc4; box-shadow: 0 3px 0 #0a111b; }
   .card { border-color: #56657a; }
   th { border-bottom-color: #56657a; }
   .sect { color: #e3e8ef; text-shadow: 2px 2px 0 #000; }

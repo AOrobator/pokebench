@@ -29,11 +29,12 @@ const UNITS = ["B", "kB", "MB", "GB"] as const;
 export function size(bytes: number): string {
   let v = bytes;
   let unit = 0;
-  while (v >= 1000 && unit < UNITS.length - 1) {
+  // 999.5 and up would round to "1000", so it moves up a unit.
+  while (v >= 999.5 && unit < UNITS.length - 1) {
     v /= 1000;
     unit++;
   }
-  return `${unit > 0 && v < 10 ? v.toFixed(1) : v.toFixed(0)} ${String(UNITS[unit])}`;
+  return `${unit > 0 && v < 9.95 ? v.toFixed(1) : v.toFixed(0)} ${String(UNITS[unit])}`;
 }
 
 function checkLevel(level: number): void {

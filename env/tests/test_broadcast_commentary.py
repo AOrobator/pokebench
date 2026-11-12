@@ -1147,7 +1147,7 @@ def test_listed_names_take_their_phonemes_and_the_rest_goes_to_espeak() -> None:
     lexicon = {"Manectric": "MAN", "Ever Grande": "EG", "Pokémon": "POK"}
     assert (
         to_phonemes("Manectric fainted, so Pokémon rest at Ever Grande.", lexicon, fake_phonemize)
-        == "MAN <fainted, so> POK <rest at> EG <.>"
+        == "MAN <fainted, so> POK <rest at> EG<.>"
     )
 
 

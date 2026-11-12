@@ -189,10 +189,18 @@ def _player(read: ReadMemory) -> tuple[int, tuple[int, int], tuple[int, int], by
 
 
 def _safe_next(
-    read: ReadMemory, s: Stride, save: int, position: tuple[int, int], map_id: tuple[int, int]
+    read: ReadMemory,
+    s: Stride,
+    save: int,
+    position: tuple[int, int],
+    map_id: tuple[int, int],
+    *,
+    active_warps: bool = False,
 ) -> bool:
     target = s.request.path[s.completed].pair()
-    local = read_local_map(read, position, map_id, radius=1)
+    # Match the planner/readout under active-warp-exits-v1: an ordinary floor tile
+    # can cover a dormant WarpEvent (Lavaridge Gym entry at 13,17).
+    local = read_local_map(read, position, map_id, radius=1, active_warps=active_warps)
     if local is None:
         return False
     points = {(t.x, t.y): t for t in local.tiles}
@@ -228,7 +236,12 @@ def _safe_next(
 
 
 def install_strides(
-    api: FastAPI, emulator: type[FrameEmulator], server: QueuedStride, read: ReadMemory
+    api: FastAPI,
+    emulator: type[FrameEmulator],
+    server: QueuedStride,
+    read: ReadMemory,
+    *,
+    active_warps: bool = False,
 ) -> None:
     original = emulator.run_frame_with_buttons
     retained: OrderedDict[str, Stride] = OrderedDict()
@@ -292,7 +305,7 @@ def install_strides(
                     return stop(s, "no movement")
             if native.controllable is not True or obj[0xB] & 15 != s.request.elevation:
                 return stop(s, "field input or elevation changed")
-            if not _safe_next(read, s, save, position, map_id):
+            if not _safe_next(read, s, save, position, map_id, active_warps=active_warps):
                 return stop(s, "corridor changed or unsafe")
             target = s.request.path[s.completed]
             direction = DELTAS[(target.x - position[0], target.y - position[1])]
@@ -338,7 +351,7 @@ def install_strides(
         if not bike_hold(remaining, counter, mach):
             return []
         if s.checked != s.completed:
-            if not _safe_next(read, s, save, position, map_id):
+            if not _safe_next(read, s, save, position, map_id, active_warps=active_warps):
                 return stop(s, "corridor changed or unsafe")
             s.checked = s.completed
         target = s.request.path[s.completed]

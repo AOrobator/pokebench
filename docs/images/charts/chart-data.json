@@ -35,7 +35,7 @@
       "cost": {
         "kind": "pinned",
         "usd": 679.16,
-        "source": "Claude Code session transcript redacted-id (gateway config dir, outside the repo): last cumulative totalCostUSD at or before d718's ELITE_FOUR_GLACIA_DEFEATED. Includes the leg tails the stitched timeline drops."
+        "source": "a Claude Code session transcript (in the gateway config dir, outside the repo): last cumulative totalCostUSD at or before d718's ELITE_FOUR_GLACIA_DEFEATED. Includes the leg tails the stitched timeline drops."
       },
       "label_offset": [
         -16,
@@ -53,7 +53,7 @@
       "cost": {
         "kind": "pinned",
         "usd": 780.0,
-        "source": "Claude Code session transcript redacted-id (outside the repo): last cumulative totalCostUSD at or before GAME_CLEAR_CONFIRMED."
+        "source": "a Claude Code session transcript (outside the repo): last cumulative totalCostUSD at or before GAME_CLEAR_CONFIRMED."
       },
       "label_offset": [
         -16,

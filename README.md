@@ -125,7 +125,7 @@ It runs on macOS on Apple Silicon and on Linux x86_64 (tested on Ubuntu 24.04); 
 ```bibtex
 @software{orobator2026pokebench,
   author = {Orobator, Andrew},
-  title  = {PokéBench: Harness Engineering for Long-Horizon Agents},
+  title  = {{PokéBench}: Harness Engineering for Long-Horizon Agents},
   year   = {2026},
   url    = {https://github.com/AOrobator/pokebench}
 }

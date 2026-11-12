@@ -1117,5 +1117,5 @@ def test_a_resume_in_the_other_mode_is_refused() -> None:
     assert resume_mode_problem("", dense=True) is None
     assert resume_mode_problem(plain, dense=False) is None
     assert resume_mode_problem(dense, dense=True) is None
-    assert resume_mode_problem(plain + "\nnot json", dense=True) is not None
+    assert resume_mode_problem("not json\n[1]\n" + plain, dense=True) is not None
     assert resume_mode_problem(dense, dense=False) is not None

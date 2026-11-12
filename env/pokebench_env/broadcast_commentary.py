@@ -664,6 +664,7 @@ class Batch:
     cost_usd: float
     ok: bool
     covered: list[int]
+    dense: bool = False
 
 
 @dataclass(frozen=True)
@@ -691,6 +692,20 @@ def covered_turns(log: str) -> set[int]:
         except (ValueError, KeyError, TypeError):
             continue
     return covered
+
+
+def resume_mode_problem(log: str, dense: bool) -> str | None:
+    """Why a folder's earlier batches cannot be resumed in this mode, or None."""
+    for raw in log.splitlines():
+        try:
+            record = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(record, dict) and record.get("ok") is True:
+            if (record.get("dense") is True) != dense:
+                written = "with" if record.get("dense") is True else "without"
+                return f"this folder's lines were written {written} --dense: use a new --out"
+    return None
 
 
 def write_claude_lines(
@@ -766,6 +781,7 @@ def write_claude_lines(
                     cost_usd=round(spent, 6),
                     ok=got is not None,
                     covered=sorted(wanted),
+                    dense=dense,
                 )
             )
     finally:
@@ -1089,7 +1105,11 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     complete = True
     if not args.voice_only and args.writer == "claude":
         batches = folder / "claude-batches.jsonl"
-        covered = covered_turns(batches.read_text(encoding="utf-8")) if batches.exists() else set()
+        log = batches.read_text(encoding="utf-8") if batches.exists() else ""
+        mode = resume_mode_problem(log, args.dense)
+        if mode is not None:
+            parser.error(mode)
+        covered = covered_turns(log)
 
         def record(batch: Batch) -> None:
             with batches.open("a", encoding="utf-8") as out:

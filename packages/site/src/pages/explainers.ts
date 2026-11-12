@@ -5,7 +5,7 @@ import { inlineHtml, plainText } from "../markdown.js";
 
 // Summaries on the index sit one folder above the explainer pages.
 function indexLink(githubUrl: string, what: string): (url: string) => string {
-  const link = explainerLink(githubUrl, what);
+  const link = explainerLink(githubUrl, what, "readme");
   return (url) => {
     const to = link(url);
     return /^(?:https:|#)/.test(to) ? to : `explainers/${to}`;
@@ -15,9 +15,10 @@ function indexLink(githubUrl: string, what: string): (url: string) => string {
 export function explainersIndex(githubUrl: string, groups: readonly ExplainerGroup[]): Html {
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const cards = groups.map((g) => {
+    const o = { what: "explainers README", html: true, link: indexLink(githubUrl, "explainers README") };
     const items = g.items.map((i) => {
-      const q = `${i.title} ${plainText(i.summary)}`.toLowerCase();
-      return html`<li data-q="${q}"><a href="explainers/${i.slug}.html">${i.title}</a><span class="sub">${inlineHtml(i.summary, { what: "explainers README", html: true, link: indexLink(githubUrl, "explainers README") })}</span></li>`;
+      const q = `${plainText(i.title)} ${plainText(i.summary)}`.toLowerCase();
+      return html`<li data-q="${q}"><a href="explainers/${i.slug}.html">${inlineHtml(i.title, o)}</a><span class="sub">${inlineHtml(i.summary, o)}</span></li>`;
     });
     return html`<details class="card cat" open><summary><h2>${g.title.toUpperCase()} · ${String(g.items.length)}</h2></summary><p class="note">${g.about}</p><ul class="xlist">${items}</ul></details>`;
   });

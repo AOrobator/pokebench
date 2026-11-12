@@ -39,7 +39,8 @@ const INLINE = new RegExp(
     "\\*(?![\\s*])(?<em>(?:[^*]|\\*\\*[^*]+\\*\\*)+?)(?<!\\s)\\*(?!\\*)",
     "\\*(?=\\*\\*)(?<em2>(?:[^*]|\\*\\*[^*]+\\*\\*)+?)(?<!\\s)\\*(?!\\*)",
     "\\*\\*(?<bold>.+?)\\*\\*",
-    "(?<tag></?[a-zA-Z][^>]*>)",
+    // Any other tag, and any comment, doctype or processing instruction (<! or <?), fails in explainer mode.
+    "(?<tag></?[a-zA-Z][^>]*>|<[!?])",
   ].join("|"),
   "g",
 );

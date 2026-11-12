@@ -44,17 +44,18 @@ const HTTPS = /^https:\/\/[^\s"'<>]+$/;
 const FRAGMENT = /^#[a-z0-9_-]+$/i;
 const SIBLING = /^([a-z0-9][a-z0-9._-]*)\.md(#[a-z0-9_-]+)?$/i;
 const SEGMENT = /^[A-Za-z0-9._-]+$/;
-const SOURCE_DIR = ["docs", "explainers", "md"];
+const README_ENTRY = /^md\/([a-z0-9][a-z0-9._-]*)\.md(#[a-z0-9_-]+)?$/i;
 
-// Where an explainer's link goes on the site: a sibling explainer's page, a fragment, an https page, or,
-// for any other path in the repository, its file on GitHub. Nothing may leave the repository.
-export function explainerLink(githubUrl: string, what: string): (url: string) => string {
+// Where an explainer's link goes on the site: another explainer's page, a fragment, an https page, or,
+// for any other path in the repository, its file on GitHub. Nothing may leave the repository. Links are
+// read from where their Markdown lives: md/ for an explainer, docs/explainers for the README index.
+export function explainerLink(githubUrl: string, what: string, from: "md" | "readme" = "md"): (url: string) => string {
   return (url) => {
     if (HTTPS.test(url) || FRAGMENT.test(url)) return url;
-    const sibling = SIBLING.exec(url);
-    if (sibling !== null) return `${String(sibling[1])}.html${sibling[2] ?? ""}`;
+    const page = (from === "md" ? SIBLING : README_ENTRY).exec(url);
+    if (page !== null) return `${String(page[1])}.html${page[2] ?? ""}`;
     const [path = "", fragment] = url.split("#");
-    const parts = [...SOURCE_DIR];
+    const parts = from === "md" ? ["docs", "explainers", "md"] : ["docs", "explainers"];
     for (const seg of path.split("/")) {
       if (!SEGMENT.test(seg)) throw new InputError(`${what}: link "${url}" must be https or a path inside the repository`);
       if (seg === "..") {

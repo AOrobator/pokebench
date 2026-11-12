@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { at, find, rec } from "../test-support/at.js";
-import { fixture } from "../test-support/fixture.js";
+import { EXPLAINER_ALPHA, fixture } from "../test-support/fixture.js";
 import { buildSite, SiteError } from "./site.js";
 
 const text = (out: ReadonlyMap<string, string | Uint8Array>, path: string): string => {
@@ -461,8 +461,48 @@ describe("run page cost", () => {
   });
 });
 
-const visible = (page: string): string =>
-  page.slice(page.indexOf("<main"), page.indexOf("</main>")).replace(/<[^>]*>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+const ENTITY: Readonly<Record<string, string>> = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&amp;": "&" };
+const decode = (t: string): string => t.replace(/&(?:lt|gt|quot|#39|amp);/g, (e) => ENTITY[e] ?? e);
+const collapse = (t: string): string => t.replace(/\s+/g, " ").trim();
+
+// The words a reader sees in rendered markup: inline tags vanish, block tags separate words.
+function articleText(markup: string): string {
+  return collapse(decode(markup.replace(/<\/?(?:b|em|code|a|span)(?:\s[^>]*)?>/g, "").replace(/<img [^>]*>/g, "").replace(/<[^>]*>/g, " ")));
+}
+
+// The same words read straight from the Markdown, written independently of the renderer: only Markdown
+// syntax and the generated "Markdown twin of" note are dropped.
+function markdownText(md: string): string {
+  const out: string[] = [];
+  let fenced = false;
+  for (const line of md.split("\n")) {
+    if (line.startsWith("```")) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) {
+      out.push(line);
+      continue;
+    }
+    if (line.startsWith("> Markdown twin of") || /^\|[\s:|-]+$/.test(line) || line === "<details>" || line === "</details>") continue;
+    let t = /^#+ /.test(line)
+      ? line.replace(/^#+ /, "")
+      : line.replace(/^> ?/, "").replace(/^[-*] /, "").replace(/^\s*\d+\. /, "").replace(/^<summary>(.*)<\/summary>$/, "$1");
+    if (t.startsWith("|")) t = t.split(/(?<!\\)\|/).slice(1, -1).join(" ");
+    t = t
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/<a id="[^"]*"><\/a>/g, "")
+      .replace(/<br\s*\/?>/g, " ")
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/(?<!\s)\*+|\*+(?!\s)/g, "")
+      .replace(/\\(.)/g, "$1");
+    out.push(decode(t));
+  }
+  return collapse(out.join("\n"));
+}
+
+const markdownFigures = (md: string): string[] => [...md.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)].map((m) => String(m[1]));
 
 describe("explainers", () => {
   it("lists every explainer by group with title, summary and a search box that works only with script", () => {
@@ -478,15 +518,12 @@ describe("explainers", () => {
     expect(x).toContain('<a class="m-explainers" href="explainers.html" aria-current="page">');
   });
 
-  it("renders an explainer in the site frame with the same text and figures as its Markdown (INV-7)", () => {
+  it("renders an explainer in the site frame with exactly the text and figures of its Markdown (INV-7)", () => {
     const p = text(buildSite(fixture()), "explainers/alpha-v1.html");
-    const v = visible(p);
-    for (const words of [
-      "Alpha tiles", "With the switch on, the model reads the tiles & their glyphs.", "1. What went wrong", "Rows 5–8. The tile the model misread.",
-      "Detail", "ledge", "hops down", "collision [wall]", "Local map <raw> & more", "Help me! I was robbed", "I have to get it back!",
-      "first item continued here", "second item", "Lost battle", "↓ First overworld state", "Record whiteout", "Limits and status", "Not measured yet.",
-    ]) expect(v).toContain(words);
-    expect(p).toContain('<img src="alpha-v1/fig-1.svg" alt="Rows 5 to 8 of the map" loading="lazy">');
+    const article = p.slice(p.indexOf('<article class="card doc">'), p.indexOf("</article>") + "</article>".length);
+    expect(articleText(article)).toBe(markdownText(EXPLAINER_ALPHA));
+    expect([...article.matchAll(/<img src="([^"]*)"/g)].map((m) => m[1])).toEqual(markdownFigures(EXPLAINER_ALPHA));
+    expect(markdownFigures(EXPLAINER_ALPHA)).toEqual(["alpha-v1/fig-1.svg"]);
     expect(p).toContain('<a href="beta-v1.html">beta</a>');
     expect(p).toContain('<a href="#overview">the top</a>');
     expect(p).not.toContain("Markdown twin");
@@ -498,6 +535,21 @@ describe("explainers", () => {
     const f = fixture();
     f.assets.delete("explainers/alpha-v1/fig-1.svg");
     expect(() => buildSite(f)).toThrow(/alpha-v1\/fig-1\.svg/);
+  });
+
+  it("refuses comments, doctypes and processing instructions in an explainer, naming it", () => {
+    for (const bad of ["<!-- hidden note -->", "<!doctype html>", '<?xml version="1.0"?>', "<!x"]) {
+      const f = fixture();
+      f.explainers.files.push({ name: "gamma-v1.md", text: `# G\n\nBefore ${bad} after.` });
+      f.explainers.readme += "\n- [G](md/gamma-v1.md) · [HTML](gamma-v1.html) — G.\n";
+      expect(() => buildSite(f)).toThrow(/gamma-v1\.md: raw HTML/);
+    }
+  });
+
+  it("keeps posts escaping a comment as text", () => {
+    const f = fixture();
+    f.posts = [{ name: "2026-11-11-x.md", text: "---\ndate: 2026-11-11\ntitle: T\n---\n\nA <!-- note --> b." }];
+    expect(text(buildSite(f), "updates/2026-11-11-x.html")).toContain("A &lt;!-- note --&gt; b.");
   });
 
   it("refuses an explainer with raw HTML it cannot render safely, naming it", () => {
@@ -551,11 +603,21 @@ describe("method and credits", () => {
     expect(text(buildSite(h), "credits.html")).toContain('<a href="https://openfontlicense.org">OFL</a>');
   });
 
-  it("points links in index summaries at the explainer pages", () => {
+  it("resolves links in index summaries from the README's folder: md/ files are explainer pages, others go to GitHub", () => {
     const f = fixture();
-    f.explainers.readme = f.explainers.readme.replace("Says hello.", "Says hello, see [alpha](alpha-v1.md) and [x](https://example.com).");
+    f.explainers.readme = f.explainers.readme.replace("Says hello.", "Says hello, see [alpha](md/alpha-v1.md#how), [features](../features.md) and [x](https://example.com).");
     const x = text(buildSite(f), "explainers.html");
-    expect(x).toContain('<a href="explainers/alpha-v1.html">alpha</a>');
+    expect(x).toContain('<a href="explainers/alpha-v1.html#how">alpha</a>');
+    expect(x).toContain('<a href="https://github.com/example/pokebench/blob/main/docs/features.md">features</a>');
     expect(x).toContain('<a href="https://example.com">x</a>');
+  });
+
+  it("renders index titles as Markdown, so an escaped star shows without its backslash", () => {
+    const f = fixture();
+    f.explainers.readme = f.explainers.readme.replace("[Alpha tiles](md/alpha-v1.md)", "[Alpha \\*tiles](md/alpha-v1.md)");
+    const x = text(buildSite(f), "explainers.html");
+    expect(x).toContain('<a href="explainers/alpha-v1.html">Alpha *tiles</a>');
+    expect(x).toContain('data-q="alpha *tiles names the four tiles."');
+    expect(x).not.toContain("\\*");
   });
 });

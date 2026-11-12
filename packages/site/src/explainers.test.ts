@@ -75,3 +75,13 @@ describe("explainerLink edge cases", () => {
     expect(() => link("../x.md#a b")).toThrow(InputError);
   });
 });
+
+describe("explainerLink from the README", () => {
+  const link = explainerLink("https://github.com/example/pokebench", "README", "readme");
+  it("sends md/<slug>.md to the explainer page and resolves other paths from docs/explainers", () => {
+    expect(link("md/beta-v1.md")).toBe("beta-v1.html");
+    expect(link("md/beta-v1.md#x")).toBe("beta-v1.html#x");
+    expect(link("../features.md")).toBe("https://github.com/example/pokebench/blob/main/docs/features.md");
+    expect(link("beta-v1.html")).toBe("https://github.com/example/pokebench/blob/main/docs/explainers/beta-v1.html");
+  });
+});

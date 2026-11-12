@@ -9,8 +9,8 @@ Viewer-only fallback for empty recorded thinking, bound to successful session-ga
 ## Milestone
 - [x] RED pure injected-reader tests committed.
 - [x] GREEN implementation and focused checks.
-- [ ] CPU window, full gates, headless browser proof at desktop/phone widths, trainer-card check.
-- [ ] Principles, frozen Claude and GPT reviews (Grok standing waiver per job).
+- [x] CPU window, full gates, headless browser proof at desktop/phone widths, trainer-card check.
+- [x] Principles, frozen Claude and GPT reviews (Grok standing waiver per job).
 - [ ] Landing board, main test; report landed separately from activation.
 
 ## Evidence
@@ -39,3 +39,11 @@ Claude R1 observations triage: archive format expansion and stale-copy selection
 Main advanced from 306a6e8d8c0a2c484a8ae2203e950ca56aea37bb to e2b02706444ad5a78b2e3022402a035752661534 during R2. Upstream changes are mailbox addressing/archive logic, its tests and workflow prose, plus a new mail-archive recipe. They do not alter viewer/release contracts, schemas, dependencies, build/test recipes or consumers. Reviewed production delta remains byte-identical against new main (excluding evidence-only docs/worklogs), SHA256 7a737f6841ba6f6418c038e0cf5e9dc53906aac6ea059c91cc27f4a531b124c0. Retain frozen reviews, full gates, trainer and browser evidence on their original pins. Required combined post-main `just test` will cover new upstream tests.
 R2 frozen616c0cf27 / digest401aa0f3…9148: Claude and independent GPT both terminal LGTM; same complete cumulative packet, clean pre/post identity reproduced. Grok standing waiver from assigned job. GPT pathological malformed-JSON scan-cost concern is follow-up; no new production domain. Session comparisons also separately broken/restored in memory with mixed-session records (both prove refusal, wrong attachment when broken, refusal after restoration); no candidate changes.
 COMMIT: integration of main mailbox changes and evidence (this merge commit).
+
+## Final candidate proof
+R2 full lint/build/test/vendor pass:3042 agent,1305 viewer,3451 env,39 gateway; no-I/O guards and floors pass. Trainer-card protection and baseline screenshots3/3 pass unchanged.
+Read-only real-data check on main runs/:1121 seq5628/turn97 goes from0 to465 thinking characters using request945, beginning “MAXIE is down, so the next stop is Jagged Pass…”. No run filtering, grading or source log writes.
+Headless candidate6/6:Chromium and WebKit at1280×900,1440×900,375×812. CURRENT and expanded trace/raw inspector show the native text and original240×160 recorded frame. Pointer/keyboard trace toggles and party→trace return preserve disclosure state. All12 final screenshots plus missing-thinking screenshot opened and visually inspected. Missing thinking is simulated in the browser only, then unroute/reload restores native text. Final receipt has no page errors. Served main.js equals built bytes,SHA256a2fe34d2b64e3010e594f46d60bb48114fe9a8219bf532bfbb8305127265fbaa.
+Steady-screen RAF proof at desktop/phone in both engines:7 forced changed updates each,192–255 sampled frames,0px maximum movement, focus held. Final receipt runs/gateway-thinking-proof/receipt-final.json; RAF receipt steady-raf.json. Initial failed proof attempts are retained:missing art; absent scratch projector; active truncated recording's unavailable live service; invalid injected summary/snapshot revision pair; hidden desktop select; follow-latest inadvertently enabled; one WebKit interrupted intercepted request, resolved with wait-for-handler cleanup. These were fixture issues corrected without production changes.
+Proof fixture copies the exact original prefix through seq5628, one original frame and native bridge call945; a clearly documented synthetic terminal seq5629 makes that prefix offline replay only. It is not a claim about the actual run's terminal state. Original recordings and shared services untouched. Scratch server stopped. Local copies under runs/mockups/viewer-gateway-thinking/; checked screenshot links return200.
+COMMIT: `docs(worklog): record gateway thinking verification` (this commit). Implementation/review/proof complete; board landing and combined main test pending. Activation held: no viewer-main without the operator's words.

@@ -137,6 +137,7 @@ The operator 2026-11-11: "the video seems to go a long time in between thinking 
 - [x] GREEN: 133 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean
 - [ ] Trial on the Sky Pillar window: lines per turn, coverage, cost; numbers to the coordinator before the full rewrite
 - [ ] Review: Codex
+  - GPT/Codex on main..e0d6d4591 (sha 302bf54c): LGTM. Fallback (Sonnet): LGTM. Claude CLI: BLOCKING, real: a resume ignored the writer mode, so --dense on a folder already written plain did nothing, and a mode switch mid-run mixed lines. Fix: batches record `dense`; a resume in the other mode is refused. Its PB6/PB8 wording notes accepted (per-turn max_words is advice; rooms are within the --start/--end window). The full rewrite writes to a new empty folder, so it is unaffected.
 
 ## Closing the Loop
 

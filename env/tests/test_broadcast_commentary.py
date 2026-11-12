@@ -1090,3 +1090,32 @@ def test_dense_writer_switches_only_the_system_prompt() -> None:
 def test_dense_is_a_claude_writer_option() -> None:
     assert options_problem(Options(run="r", writer="claude", claude_model="m", dense=True)) is None
     assert options_problem(Options(run="r", endpoint=LOCAL, dense=True)) is not None
+
+
+from pokebench_env.broadcast_commentary import resume_mode_problem  # noqa: E402
+
+
+def test_batches_record_whether_they_were_dense() -> None:
+    batches: list[Batch] = []
+    write_claude_lines(
+        steps(1),
+        [],
+        set(),
+        lambda _p: reply(answer({1: "On my way."})),
+        lambda _l: None,
+        batches.append,
+        lambda _m: None,
+        [],
+        dense=True,
+    )
+    assert [b.dense for b in batches] == [True]
+
+
+def test_a_resume_in_the_other_mode_is_refused() -> None:
+    plain = json.dumps({"ok": True, "covered": [1]})
+    dense = json.dumps({"ok": True, "covered": [2], "dense": True})
+    assert resume_mode_problem("", dense=True) is None
+    assert resume_mode_problem(plain, dense=False) is None
+    assert resume_mode_problem(dense, dense=True) is None
+    assert resume_mode_problem(plain + "\nnot json", dense=True) is not None
+    assert resume_mode_problem(dense, dense=False) is not None

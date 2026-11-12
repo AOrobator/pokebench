@@ -30,7 +30,7 @@ DeepSeek V4.1 Flash also took the Stone Badge 55m 13s after power-on (run `80c8`
 
 Every run is recorded, and the viewer replays it with the game screen, the model's thinking, its tool calls and a timeline of button presses and milestones.
 
-![The viewer replaying the end of Opus's single-run clear](docs/images/viewer-run.webp)
+![The viewer during Opus's run at turn 97, with that turn's thinking in the CURRENT panel](docs/images/viewer-thinking.webp)
 
 The splits page races one run against the frontier, badge by badge, with the story graph and where both runs are on the map.
 

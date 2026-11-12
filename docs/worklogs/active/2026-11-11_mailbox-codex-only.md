@@ -39,7 +39,7 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 - [x] Archive run with this branch's code against the real mailroom (2026-11-11 ~21:05 ET). Before: 91 boxes in `to/`, 89 unread letters. Dry run: would move 86. Real run: moved 86 to `runs/agent-mail/archive/2026-11-12/` (83 unread, 298 logged letters intact). After: 5 boxes in `to/` (claude/ended-run-stream-error 3 unread, claude/twins-fake-host 1, codex/fortree-push-preview-plan 1, claude/readme-features-link 0, codex-coordinator 0); a second run moved 0.
 - [x] Codex review r1 (job review-claude-mailbox-codex-only-r1, head f75ef4eb4): VERDICT: CHANGES. P2 archive rename strands a sender waiting on the box lock (FileNotFoundError); P2 the five main() tests trip the no-I/O guard via argparse gettext os.stat (5 fail, 7 pass under uv's CPython 3.11.16; my earlier 12-pass run used the main checkout's venv and did not reproduce it).
 - [x] r1 fixes: archive moves a box's files but leaves the folder and its lock file, so a waiting caller still finds the folder; the address checks moved into pure `preflight()`, tested without building a parser. 14 passed via `uv run --project env python -m pytest -q -p no:cacheprovider env/tests/env/test_agent_mail_addressing.py` and from env/. Scratchpad race rehearsal (temp dir, not a test): a sender queued behind the archive lock returned normally and its letter landed in the emptied box.
-- [ ] Codex review r2.
+- [x] Codex review r2 (job review-claude-mailbox-codex-only-r2, frozen base 306a6e8d8, head dd13d0687): VERDICT: LGTM. Codex reran both uv commands (14 passed) and a temp-mailroom rehearsal.
 - [ ] Full `just test` / `just lint` (needs a CPU window), cloud review lanes, landing on the operator's own approval.
 
 ## Closing the Loop
@@ -56,7 +56,7 @@ Real CLI against the real mailroom (read-only): `tell-claude --to claude/scrub-s
 
 ## Multi-Model Review Log
 
-- r1 Codex/GPT: CHANGES (2×P2), fixed in the next commit. r2 pending.
+- r1 Codex/GPT: CHANGES (2×P2), fixed in the next commit. - r2 Codex/GPT: LGTM on 306a6e8d8..dd13d0687.
 
 ## Boy Scout Log
 

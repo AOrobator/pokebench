@@ -10,7 +10,7 @@ One run, one arm, with the operator-authorized limits. A launch is not done unti
 
 `scripts/launch.sh --meta <dir> --model <id>` does the launch: it refuses a bad preset, endpoint, port or commit, starts the run detached with `POKEBENCH_CHECKPOINT_FRONTIER=1`, and writes `launch.receipt.json`. Every start saves frontier checkpoints by default; `POKEBENCH_CHECKPOINT_FRONTIER=0` turns that off on a hand launch.
 
-`--record` also starts `pokebench_env.recorder` before the run, detached, writing hourly picture and sound files to `runs/<meta>/recording/`. It only reads from the game server, so its failure cannot reach the run; check `recording.jsonl` for failures.
+Every boot-start run through `pokebench_env.launcher` automatically starts the existing `pokebench_env.recorder`, detached, before the first agent action. It writes hourly video and audio under `runs/<run id>/recording/` and watches the game server PID so capture seals on exit instead of following later port reuse. Check `recording.jsonl`, the recorder PID and growing files before calling a boot run launched. `ffmpeg` must be installed. Checkpoint starts keep the previous behavior; manual recording remains available. Do not start a second recorder over the automatic one. Recording is read-only and does not add gameplay stop conditions.
 
 `--backup <folder>` with `--record` starts `scripts/recording-backup.sh`, which copies finished segments, the journal and `events.jsonl` to `<folder>/<run id>/` every 10 minutes at low priority. It only copies, and logs to `recording/backup.log`.
 

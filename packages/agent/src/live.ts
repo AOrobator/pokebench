@@ -1,3 +1,4 @@
+import {readDirectCodexProvider,recordDirectCodexTransport} from "./direct-codex-runtime.js";
 import {loadCheckpointResearchNote,checkpointResearchNoteReceipt} from "./checkpoint-research-note.js";
 import type {Model,Api} from "@mariozechner/pi-ai";
 import {gzipSync} from "node:zlib";
@@ -163,6 +164,7 @@ interface Live {
   readonly port: number;
   readonly gatewayUrl: string;
   readonly apiKey: string | undefined;
+  readonly directApiKey?:()=>string;
 }
 
 // An unset port is allocated and then recorded on the run claim, never guessed down from a constant:
@@ -181,7 +183,7 @@ function allocateGamePort(): number {
   return port;
 }
 
-async function live(): Promise<Live> {
+async function live(directEnabled=false): Promise<Live> {
   const config = loadConfig(process.env);
   const configured = new URL(config.gameServerUrl);
   if (configured.hostname !== "127.0.0.1") {
@@ -190,7 +192,12 @@ async function live(): Promise<Live> {
   const port = configured.port === "" ? allocateGamePort() : Number(configured.port);
   const wanted = requireModel(config);
   const { endpoint } = config;
+  if(directEnabled&&endpoint.kind!=="codex")throw Error("direct-codex-provider-v1 requires POKEBENCH_CODEX_PROVIDER_FILE");
   let lane: { readonly models: GatewayModel[]; readonly baseUrl: string; readonly apiKey: string | undefined };
+  if (endpoint.kind === "codex") {
+    const direct=readDirectCodexProvider(endpoint.path,wanted,directEnabled);
+    return {model:direct.model,port,gatewayUrl:direct.model.baseUrl,apiKey:undefined,directApiKey:direct.getApiKey};
+  }
   if (endpoint.kind === "gateway") {
     lane = { models: await discoverModels({ gatewayUrl: endpoint.url, visionModels: config.visionModels }), baseUrl: endpoint.url, apiKey: undefined };
   } else {
@@ -314,7 +321,7 @@ async function playAgent(): Promise<void> {
   if(continuation!==null){validateLiveContinuationStart(continuation,start);validateLiveContinuationFeatures(continuation,features);}
   const captureMode=checkpointSelection(process.env);
   const experiment=experimentFromEnv(process.env);
-  const { model, port, gatewayUrl, apiKey } = await live();
+  const { model, port, gatewayUrl, apiKey, directApiKey } = await live(features["direct-codex-provider-v1"]);
   if(preset!==null&&preset.sampling.maxTokens>model.maxTokens)throw new Error("Play preset maxTokens exceeds the discovered model limit");
   const runId=assigned??newRunId(new Date(),model.id,()=>randomBytes(2).toString("hex"));
   const maxTokens=preset?.sampling.maxTokens??Math.min(PLAY_MAX_TOKENS,model.maxTokens);
@@ -369,7 +376,7 @@ async function playAgent(): Promise<void> {
       // model-error-recovery-v1: one per run; a refused prompt lowers a sticky ceiling, a dead lane is
       // probed before the retry. Two consecutive model errors are absorbed; the third ends the run.
       const recovery = features["model-error-recovery-v1"]
-        ? new ModelErrorRecovery({baseUrl: model.baseUrl, ...(apiKey===undefined?{}:{apiKey}), record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
+        ? new ModelErrorRecovery({baseUrl: model.baseUrl, ...(directApiKey===undefined?{}:{readinessProbe:()=>Promise.resolve(true)}), ...(apiKey===undefined?{}:{apiKey}), record:(reason)=> { recorder.retry(reason,1,limits.failureLimit); }})
         : null;
       const {governor,control:runControl,callControl} = controlledRun({
         limits,
@@ -452,7 +459,11 @@ async function playAgent(): Promise<void> {
       recorder.subscribe(event=>{streamLog.observe(event);});
       globalThis.fetch=streamLog.fetch(globalThis.fetch);
       lifecycle.beforeRunEnd(()=>streamLog.flush());
-      const normalBase=playLoopBase(model, thinking, apiKey, maxTokens, features, exact===undefined?undefined:payload=>exact.fit(payload));
+      const normalBase={...playLoopBase(model, thinking, apiKey, maxTokens, features, exact===undefined?undefined:payload=>exact.fit(payload)),...(directApiKey===undefined?{}:{getApiKey:directApiKey})};
+      if(directApiKey!==undefined){
+        if(stateMode||continuation!==null)throw Error("Direct Codex provider currently supports the ordinary play loop only");
+        globalThis.fetch=recordDirectCodexTransport(globalThis.fetch,join(RUNS_ROOT,runId,"provider-transcript"),()=>recorder.currentTurn());
+      }
       const loop = piLoop({
         systemPrompt,
         loopDetector,

@@ -20,6 +20,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import unicodedata
 import urllib.request
 import wave
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -96,6 +97,26 @@ BATCH_SYSTEM = (
     'earlier lines. Reply with only a JSON array of objects {"turn": <number>, "line": '
     '"<text, or empty>"} for turns in this batch.'
 )
+
+DENSE_SYSTEM = (
+    "You voice a game-playing AI as it plays Pokemon Emerald for a live audience. You get a batch "
+    "of consecutive turns. For each: `at` (time into the run), `thinking` (its private thinking, "
+    "often empty), `said` (its own short note on the turn), `did` (the action it took), `seconds` "
+    "(time until its next turn) and `max_words`. Write what the AI says aloud: first person as the "
+    "AI playing (I), present or near future, plain spoken English. Give a line on every turn that "
+    "has thinking or a meaningful action, so the audience follows along turn by turn; leave a turn "
+    "empty only when it repeats the turn before it, such as advancing the same dialogue again, or "
+    "when its max_words is under 3. A line has at most max_words words so it ends before the next "
+    "turn. Use only what the turn data says: add no fact, reason, plan or outcome of your own. "
+    "Never name a button or say press; no coordinates, map numbers, tool names, damage numbers or "
+    "abbreviations like KO or HP. Do not repeat the earlier lines or the line before. Reply with "
+    'only a JSON array of objects {"turn": <number>, "line": "<text, or empty>"} for turns in '
+    "this batch."
+)
+# Kokoro bm_lewis at speed 0.95 on 67d7's 1,222 lines: seconds = 0.77 + 0.306 x words.
+LINE_LEAD_S = 1.0
+WORD_S = 0.31
+LAST_ROOM_S = 10.0
 
 WANTED = ("run_start", "run_end", "turn_start", "assistant")
 STEP_KINDS = ("run_start", "turn_start", "assistant", "tool_call")
@@ -243,6 +264,66 @@ def wav_bytes(voiced: Voiced) -> bytes:
         wav.setframerate(voiced.rate)
         wav.writeframes(voiced.pcm)
     return out.getvalue()
+
+
+def load_lexicon(text: str) -> dict[str, str]:
+    """Spoken names: `name<TAB>phonemes<TAB>respelling<TAB>source` rows; `#` lines are comments."""
+    lexicon: dict[str, str] = {}
+    for raw in text.splitlines():
+        if raw.startswith("#"):
+            continue
+        cells = raw.split("\t")
+        if len(cells) >= 2 and cells[0].strip() and cells[1].strip():
+            lexicon[cells[0].strip()] = cells[1].strip()
+    return lexicon
+
+
+SIBILANT_END = ("s", "z", "ʃ", "ʒ")
+VOICELESS_END = ("p", "t", "k", "f", "θ")
+
+
+def possessive(phonemes: str) -> str:
+    """The 's sound after a name: /ɪz/ after a hiss, /s/ after a voiceless stop, else /z/."""
+    last = phonemes.rstrip("ːˈˌ ")
+    if last.endswith(SIBILANT_END):
+        return "ɪz"
+    return "s" if last.endswith(VOICELESS_END) else "z"
+
+
+def _fold(text: str) -> str:
+    """Lower case without accents, one character for one, so positions still line up."""
+    out = []
+    for char in text:
+        base = unicodedata.normalize("NFD", char)[0].lower()
+        out.append(base if len(base) == 1 else char)
+    return "".join(out)
+
+
+def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], str]) -> str:
+    """The line's phonemes: listed names from the lexicon, everything else from espeak."""
+    if not lexicon:
+        return phonemize(text)
+    text = unicodedata.normalize("NFC", text)
+    folded = {_fold(unicodedata.normalize("NFC", name)): spoken for name, spoken in lexicon.items()}
+    names = "|".join(re.escape(name) for name in sorted(folded, key=len, reverse=True))
+    pattern = re.compile(rf"(?<!\w)({names})(['’]s)?(?!\w)")
+    spoken = ""
+    last = 0
+
+    def add(piece: str, spaced: bool) -> None:
+        nonlocal spoken
+        if piece:
+            spoken += (" " if spoken and spaced else "") + piece
+
+    for match in pattern.finditer(_fold(text)):
+        between = text[last : match.start()]
+        add(phonemize(between), not between[:1] or between[:1].isspace())
+        name = folded[match[1]]
+        add(name + (possessive(name) if match[2] else ""), True)
+        last = match.end()
+    rest = text[last:]
+    add(phonemize(rest), not rest[:1] or rest[:1].isspace())
+    return spoken
 
 
 def voice_lines(
@@ -556,18 +637,40 @@ def clock(seconds: float) -> str:
     return f"{whole // 3600}:{whole // 60 % 60:02d}:{whole % 60:02d}"
 
 
-def batch_prompt(steps: Sequence[Step], earlier: Sequence[str]) -> str:
+def word_budget(seconds: float) -> int:
+    """Words a line can have and still end before the next turn begins."""
+    return max(0, min(MAX_WORDS, int((seconds - LINE_LEAD_S) / WORD_S)))
+
+
+def turn_rooms(steps: Sequence[Step]) -> dict[int, float]:
+    """Seconds from each turn to the next; the run's last turn gets a default."""
+    ordered = sorted(steps, key=lambda step: step.t)
+    rooms = {a.turn: round(b.t - a.t, 2) for a, b in zip(ordered, ordered[1:], strict=False)}
+    if ordered:
+        rooms[ordered[-1].turn] = LAST_ROOM_S
+    return rooms
+
+
+def _turn_entry(step: Step, rooms: dict[int, float] | None) -> Json:
+    entry: Json = {
+        "turn": step.turn,
+        "at": clock(step.t),
+        "thinking": step.thinking,
+        "said": step.text,
+        "did": list(step.tools),
+    }
+    if rooms is not None:
+        room = rooms.get(step.turn, LAST_ROOM_S)
+        entry["seconds"] = room
+        entry["max_words"] = word_budget(room)
+    return entry
+
+
+def batch_prompt(
+    steps: Sequence[Step], earlier: Sequence[str], rooms: dict[int, float] | None = None
+) -> str:
     said = "\n".join(f"- {line}" for line in earlier) or "(none)"
-    turns = [
-        {
-            "turn": step.turn,
-            "at": clock(step.t),
-            "thinking": step.thinking,
-            "said": step.text,
-            "did": list(step.tools),
-        }
-        for step in steps
-    ]
+    turns = [_turn_entry(step, rooms) for step in steps]
     return (
         f"Earlier lines, already spoken:\n{said}\n\nTurns:\n"
         f"{json.dumps(turns, ensure_ascii=False)}\n\n"
@@ -622,6 +725,7 @@ class Batch:
     cost_usd: float
     ok: bool
     covered: list[int]
+    dense: bool = False
 
 
 @dataclass(frozen=True)
@@ -651,6 +755,20 @@ def covered_turns(log: str) -> set[int]:
     return covered
 
 
+def resume_mode_problem(log: str, dense: bool) -> str | None:
+    """Why a folder's earlier batches cannot be resumed in this mode, or None."""
+    for raw in log.splitlines():
+        try:
+            record = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(record, dict) and record.get("ok") is True:
+            if (record.get("dense") is True) != dense:
+                written = "with" if record.get("dense") is True else "without"
+                return f"this folder's lines were written {written} --dense: use a new --out"
+    return None
+
+
 def write_claude_lines(
     steps: Sequence[Step],
     existing: Sequence[Line],
@@ -661,7 +779,9 @@ def write_claude_lines(
     log: Callable[[str], None],
     names: Sequence[str],
     size: int = BATCH,
+    dense: bool = False,
 ) -> Done:
+    rooms = turn_rooms(steps) if dense else None
     lines = sorted(existing, key=lambda line: line.t)
     done = {line.turn for line in lines} | covered
     todo = [step for step in steps if step.turn not in done]
@@ -672,7 +792,7 @@ def write_claude_lines(
             batch = todo[index : index + size]
             first = batch[0]
             earlier = [line.text for line in lines if line.t < first.t][-CONTEXT_LINES:]
-            prompt = batch_prompt(batch, earlier)
+            prompt = batch_prompt(batch, earlier, rooms)
             wanted = {step.turn for step in batch}
             got: dict[int, str] | None = None
             spent = 0.0
@@ -722,6 +842,7 @@ def write_claude_lines(
                     cost_usd=round(spent, 6),
                     ok=got is not None,
                     covered=sorted(wanted),
+                    dense=dense,
                 )
             )
     finally:
@@ -729,7 +850,7 @@ def write_claude_lines(
     return Done(lines, calls, round(cost, 6), retries, refused, failed)
 
 
-def claude_argv(claude: str, model: str) -> list[str]:
+def claude_argv(claude: str, model: str, dense: bool = False) -> list[str]:
     return [
         claude,
         "-p",
@@ -738,7 +859,7 @@ def claude_argv(claude: str, model: str) -> list[str]:
         "--output-format",
         "json",
         "--system-prompt",
-        BATCH_SYSTEM,
+        DENSE_SYSTEM if dense else BATCH_SYSTEM,
         "--tools",
         "",
         "--no-session-persistence",
@@ -801,9 +922,11 @@ class Options:
     claude_config_dir: str | None = None
     thinking_from: Path | None = None
     side_only: bool = False
+    dense: bool = False
     follow: bool = False
     lines_only: bool = False
     voice_only: bool = False
+    lexicon: Path | None = None
     voice: str = VOICE
     lang: str = VOICE_LANG
     speed: float = VOICE_SPEED
@@ -822,6 +945,10 @@ def options_problem(options: Options) -> str | None:
         return "--speed must be above 0 and at most 4"
     if options.lines_only and options.voice_only:
         return "--lines-only and --voice-only exclude each other"
+    if options.lexicon is not None and options.lines_only:
+        return "--lexicon is for voicing; --lines-only makes no voice"
+    if options.dense and options.writer != "claude":
+        return "--dense needs --writer claude"
     if options.side_only and options.thinking_from is None:
         return "--side-only needs --thinking-from"
     if options.side_only and (options.start != 0.0 or options.end != float("inf")):
@@ -861,6 +988,11 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
         help="claude writer: a session gateway's --bridge folder holding the run's thinking",
     )
     parser.add_argument(
+        "--dense",
+        action="store_true",
+        help="claude writer: a line on nearly every turn, sized to the time until the next",
+    )
+    parser.add_argument(
         "--side-only",
         action="store_true",
         help="write thinking.jsonl and cost.jsonl for /broadcast from --thinking-from, only",
@@ -873,6 +1005,11 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
     parser.add_argument("--speed", type=float, default=VOICE_SPEED)
     parser.add_argument("--out", type=Path, help="default: <runs>/broadcast/<run>")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
+    parser.add_argument(
+        "--lexicon",
+        type=Path,
+        help="voicing: a TSV of names and the phonemes to speak them with",
+    )
     parser.add_argument(
         "--kokoro",
         type=Path,
@@ -955,7 +1092,11 @@ def _log_lines(path: Path) -> Iterator[str]:  # pragma: no cover - the disk
 
 
 def _synth(  # pragma: no cover - the voice model
-    models: Path, voice: str = VOICE, lang: str = VOICE_LANG, speed: float = VOICE_SPEED
+    models: Path,
+    voice: str = VOICE,
+    lang: str = VOICE_LANG,
+    speed: float = VOICE_SPEED,
+    lexicon: dict[str, str] | None = None,
 ) -> Callable[[str], Voiced]:
     kokoro = importlib.import_module("kokoro_onnx").Kokoro(
         str(models / "kokoro-v1.0.onnx"), str(models / "voices-v1.0.bin")
@@ -963,7 +1104,15 @@ def _synth(  # pragma: no cover - the voice model
     numpy = importlib.import_module("numpy")
 
     def speak(text: str) -> Voiced:
-        audio, rate = kokoro.create(text, voice=voice, speed=speed, lang=lang)
+        if lexicon:
+            phonemes = to_phonemes(
+                text, lexicon, lambda part: kokoro.tokenizer.phonemize(part, lang)
+            )
+            audio, rate = kokoro.create(
+                phonemes, voice=voice, speed=speed, lang=lang, is_phonemes=True
+            )
+        else:
+            audio, rate = kokoro.create(text, voice=voice, speed=speed, lang=lang)
         pcm = (numpy.clip(audio, -1, 1) * 32767).astype("<i2").tobytes()
         return Voiced(pcm=pcm, rate=int(rate))
 
@@ -991,7 +1140,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         (folder / name).write_bytes(data)
 
     def synth() -> Callable[[str], Voiced]:
-        return _synth(args.kokoro, args.voice, args.lang, args.speed)
+        lexicon = load_lexicon(args.lexicon.read_text(encoding="utf-8")) if args.lexicon else None
+        return _synth(args.kokoro, args.voice, args.lang, args.speed, lexicon)
 
     log_path = args.runs / args.run / "events.jsonl"
     if args.side_only and args.thinking_from is not None:
@@ -1037,13 +1187,17 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     complete = True
     if not args.voice_only and args.writer == "claude":
         batches = folder / "claude-batches.jsonl"
-        covered = covered_turns(batches.read_text(encoding="utf-8")) if batches.exists() else set()
+        log = batches.read_text(encoding="utf-8") if batches.exists() else ""
+        mode = resume_mode_problem(log, args.dense)
+        if mode is not None:
+            parser.error(mode)
+        covered = covered_turns(log)
 
         def record(batch: Batch) -> None:
             with batches.open("a", encoding="utf-8") as out:
                 out.write(json.dumps(asdict(batch)) + "\n")
 
-        argv_ = claude_argv(args.claude, claude_model)
+        argv_ = claude_argv(args.claude, claude_model, args.dense)
         env = claude_env(dict(os.environ), args.claude_config_dir)
         steps = read_steps(_log_lines(log_path), args.start, args.end)
         if args.thinking_from is not None:
@@ -1067,6 +1221,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
                 record,
                 functools.partial(print, flush=True),
                 private_names(),
+                dense=args.dense,
             )
         lines = done.lines
         complete = done.complete

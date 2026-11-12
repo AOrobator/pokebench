@@ -14,6 +14,11 @@ function hostDeps(env: Record<string, string | undefined> = {}): FixedHostDeps {
 }
 
 describe("a frozen plain run", () => {
+  it("preserves an explicitly selected direct provider for an ordinary run",async()=>{
+    const envs:Record<string,string>[]=[];
+    await frozenPlay({host:{verifyBuild:()=>Promise.resolve(null)},hostDeps:hostDeps({POKEBENCH_CODEX_PROVIDER_FILE:"/owned/provider.json"}),spawn:spec=>{envs.push(spec.env);return Promise.resolve(0);},out:()=>{}},COMMIT);
+    expect(envs[0]?.["POKEBENCH_CODEX_PROVIDER_FILE"]).toBe("/owned/provider.json");
+  });
   it("keeps the frontier checkpoint setting the launcher exported", async () => {
     const envs: Record<string, string>[] = [];
     await frozenPlay({

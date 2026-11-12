@@ -7,6 +7,7 @@ export default defineConfig({
     alias: { "@pokebench/agent/events": fileURLToPath(new URL("../agent/src/events.ts", import.meta.url)) },
   },
   test: {
+    maxWorkers: 8,
     include: ["src/**/*.test.ts"],
     setupFiles: ["../agent/test-support/no-io.ts"],
     coverage: {

@@ -225,8 +225,11 @@ export function deliverInitialPlayTask<T>(start:{readonly kind:"boot"}|{readonly
 // reads where the map's top layer covers the sprite (screen_center.py).
 const SCREEN_CENTER_SECTION = "Finding yourself on screen: in the overworld the camera follows you, so your character is the sprite on the tile at the exact center of the screenshot (the 8th of the 15 columns across; the image's center point is the center of your tile, and your sprite's head reaches into the tile above). This holds except while a scripted scene moves the camera or a warp fades the screen. Any other character sprite on the screen is someone else. Some map tiles are drawn over your sprite when you walk under them; the readout says so when your tile or the one above it is one of them.";
 
+export const DECISION_COMMENTARY = "Decision commentary: Before each tool call, write one or two short sentences in ordinary response text stating the relevant observation, your immediate intent, and why the chosen action fits. Mention uncertainty when it matters. Keep routine actions brief. Give a concise decision explanation, not private internal reasoning. Then call the tool in the same response.";
+const withCommentary = (prompt: string, features: FeatureSet): string => features["decision-commentary-v1"] ? `${prompt}\n\n${DECISION_COMMENTARY}` : prompt;
+
 export function playSystemPrompt(features: FeatureSet, target: string | null, scene: PromptScene | "core" = "unknown"): string {
-  if (screenshotButtonBaseline(features)) return "You are playing Pokémon Emerald. Make as much progress as you can. You receive screenshots and can use `observe` to view the screen or `press` to press buttons: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. Choose your actions from what you see.";
+  if (screenshotButtonBaseline(features)) return withCommentary("You are playing Pokémon Emerald. Make as much progress as you can. You receive screenshots and can use `observe` to view the screen or `press` to press buttons: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT. Choose your actions from what you see.", features);
   const jit = features["just-in-time-prompt-v1"] && scene !== "unknown";
   const show = (...scenes: PromptScene[]): boolean => !jit || scenes.some(value => value === scene);
   let prompt = features["contextual-interface-docs-v1"] ? DOCUMENTED_PLAY_SYSTEM_PROMPT : PLAY_SYSTEM_PROMPT;
@@ -307,7 +310,7 @@ export function playSystemPrompt(features: FeatureSet, target: string | null, sc
   if(features["menu-option-tool-v1"])prompt += `\n\n${MENU_OPTION_SECTION}`;
   if(features["player-map-visibility-v2"])prompt += "\n\nMap visibility: Fully lit maps show the whole current map, including terrain, static exits and connections beyond the camera. In dark maps, ? is unseen terrain; previously seen terrain is remembered without refreshing hidden tiles. People require current screen and illumination evidence. Navigation uses known terrain. Unknown visibility remains unavailable. Trainer-sight checks require currently revealed terrain and currently visible trainers.";
   const contextual = features["destination-first-navigation-v1"] && show("overworld") && features["bounded-navigation-v1"] ? destinationFirstPrompt(prompt.replace(NAVIGATE_TO_USAGE, ""), features["semantic-navigation-v2"]) : prompt;
-  return features["rom-identity-v1"] ? `${contextual}\n\n${ROM_IDENTITY_SECTION}` : contextual;
+  return withCommentary(features["rom-identity-v1"] ? `${contextual}\n\n${ROM_IDENTITY_SECTION}` : contextual, features);
 }
 
 // The objective record repeats state facts; it hides those whose switch is off.

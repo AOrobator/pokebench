@@ -16,7 +16,7 @@ export const GATEWAY_COMPAT: OpenAICompletionsCompat = {
   thinkingFormat: "qwen-chat-template",
 };
 
-export type GatewayModel = Model<"openai-completions">;
+export type GatewayModel = Model<"openai-completions"> | Model<"openai-codex-responses">;
 
 export interface GatewayLane {
   readonly id: string;

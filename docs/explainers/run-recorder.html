@@ -103,7 +103,7 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <body>
 <main>
 <h1>Run recorder</h1>
-<p><code>pokebench_env.recorder</code> saves a run's moving picture and sound to files, with no screen involved. Start it with <code>launch.sh --record</code>.</p>
+<p><code>pokebench_env.recorder</code> saves a run's moving picture and sound to files, with no screen involved. Every boot-start run through the shared game launcher starts it automatically, under <code>runs/&lt;run id&gt;/recording/</code>. Checkpoint starts keep their existing behavior; they can still use the recorder manually.</p>
 
 <h2>Why it exists</h2>
 <div class="card"><p>A run keeps one picture per turn, about 38 seconds apart. The full-rate picture and the sound go only to live watchers, so nothing else can make a video of a run afterwards.</p></div>
@@ -120,6 +120,8 @@ main hr{border:0;border-top:4px double #9fb2c8}
 <figcaption>Picture and sound are timed by game frame, not the wall clock, so a pause in the run costs neither anything.</figcaption>
 </figure>
 
+<h2>Run ownership</h2>
+<div class="card"><p>The recorder starts detached, before the first agent action, and watches its own game server PID. When that server exits, it seals its files and exits. It never follows a later run that reuses the port. Its supervisor and encoders can restart without restarting gameplay. Existing recordings and past runs remain unchanged.</p><p>The launcher checks that ffmpeg is installed before starting a boot run. Once play begins, recorder failures are logged and do not stop the game. Check <code>recording.jsonl</code>, <code>recorder.log</code> and <code>ffmpeg.log</code> for capture status.</p></div>
 <h2>If something fails</h2>
 <div class="card"><p>The recorder only reads, so its failure cannot reach the run. An encoder that dies is restarted into a new part, and every failure goes to <code>recording.jsonl</code>.</p></div>
 

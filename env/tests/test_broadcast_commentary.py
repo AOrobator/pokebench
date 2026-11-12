@@ -1022,3 +1022,193 @@ def test_scrub_blanks_a_path_or_url_through_the_end_of_its_line(text: str) -> No
     ):
         assert gone not in out
     assert out.endswith("…\nNext line.")
+
+
+# ------------------------------------------------- Piece 13: dense lines sized to each turn
+
+from pokebench_env.broadcast_commentary import (  # noqa: E402
+    BATCH_SYSTEM,
+    DENSE_SYSTEM,
+    turn_rooms,
+    word_budget,
+)
+
+
+def test_word_budget_fits_a_line_in_the_time_until_the_next_turn() -> None:
+    assert word_budget(4.3) == 10
+    assert word_budget(11.0) == 19
+    assert word_budget(1.5) == 1
+    assert word_budget(0.5) == 0
+
+
+def test_each_turn_gets_the_time_until_the_next_one_and_the_last_a_default() -> None:
+    assert turn_rooms(steps(1, 2, 4)) == {1: 10.0, 2: 20.0, 4: 10.0}
+    assert turn_rooms([]) == {}
+
+
+def test_the_dense_prompt_gives_each_turn_its_seconds_and_word_budget() -> None:
+    plain = batch_prompt(steps(1), [])
+    assert '"seconds"' not in plain
+    assert '"max_words"' not in plain
+    dense = batch_prompt(steps(1), [], {1: 4.3})
+    assert '"seconds": 4.3' in dense
+    assert '"max_words": 10' in dense
+
+
+def test_dense_lines_use_the_dense_prompt_and_rooms_from_every_turn() -> None:
+    prompts: list[str] = []
+
+    def ask(prompt: str) -> ClaudeReply:
+        prompts.append(prompt)
+        return reply(answer({2: "Heading up the stairs now."}))
+
+    done = write_claude_lines(
+        steps(1, 2, 5),
+        [Line(1, 10.0, "On my way.", "t000001.wav")],
+        set(),
+        ask,
+        lambda _l: None,
+        lambda _b: None,
+        lambda _m: None,
+        [],
+        dense=True,
+    )
+    assert [line.turn for line in done.lines] == [1, 2]
+    assert '"seconds": 30.0' in prompts[0]
+    assert '"max_words": 19' in prompts[0]
+
+
+def test_dense_writer_switches_only_the_system_prompt() -> None:
+    plain, dense = claude_argv("claude", "m"), claude_argv("claude", "m", dense=True)
+    assert plain[plain.index("--system-prompt") + 1] == BATCH_SYSTEM
+    assert dense[dense.index("--system-prompt") + 1] == DENSE_SYSTEM
+    assert [a for a in plain if a != BATCH_SYSTEM] == [a for a in dense if a != DENSE_SYSTEM]
+    assert "every turn" in DENSE_SYSTEM
+    assert "max_words" in DENSE_SYSTEM
+
+
+def test_dense_is_a_claude_writer_option() -> None:
+    assert options_problem(Options(run="r", writer="claude", claude_model="m", dense=True)) is None
+    assert options_problem(Options(run="r", endpoint=LOCAL, dense=True)) is not None
+
+
+from pokebench_env.broadcast_commentary import resume_mode_problem  # noqa: E402
+
+
+def test_batches_record_whether_they_were_dense() -> None:
+    batches: list[Batch] = []
+    write_claude_lines(
+        steps(1),
+        [],
+        set(),
+        lambda _p: reply(answer({1: "On my way."})),
+        lambda _l: None,
+        batches.append,
+        lambda _m: None,
+        [],
+        dense=True,
+    )
+    assert [b.dense for b in batches] == [True]
+
+
+def test_a_resume_in_the_other_mode_is_refused() -> None:
+    plain = json.dumps({"ok": True, "covered": [1]})
+    dense = json.dumps({"ok": True, "covered": [2], "dense": True})
+    assert resume_mode_problem("", dense=True) is None
+    assert resume_mode_problem(plain, dense=False) is None
+    assert resume_mode_problem(dense, dense=True) is None
+    assert resume_mode_problem("not json\n[1]\n" + plain, dense=True) is not None
+    assert resume_mode_problem(dense, dense=False) is not None
+
+
+# ------------------------------------------------- Piece 14: name pronunciations when voicing
+
+from pokebench_env.broadcast_commentary import load_lexicon, to_phonemes  # noqa: E402
+
+
+def fake_phonemize(text: str) -> str:
+    return f"<{text.strip()}>" if text.strip() else ""
+
+
+def test_the_lexicon_reads_name_and_phonemes_and_skips_comments_and_bad_rows() -> None:
+    text = "\n".join(
+        [
+            "# name\tphonemes\trespelling\tsource",
+            "Manectric\tmənˈɛktɹɪk\tmuh-NEK-trik\thttps://example.org/m",
+            "Ever Grande\tˈɛvə ɡɹˈand\tEV-er GRAND\tunsourced",
+            "broken row",
+            "\tnothing\tx\ty",
+        ]
+    )
+    assert load_lexicon(text) == {"Manectric": "mənˈɛktɹɪk", "Ever Grande": "ˈɛvə ɡɹˈand"}
+
+
+def test_listed_names_take_their_phonemes_and_the_rest_goes_to_espeak() -> None:
+    lexicon = {"Manectric": "MAN", "Ever Grande": "EG", "Pokémon": "POK"}
+    assert (
+        to_phonemes("Manectric fainted, so Pokémon rest at Ever Grande.", lexicon, fake_phonemize)
+        == "MAN <fainted, so> POK <rest at> EG<.>"
+    )
+
+
+def test_a_possessive_keeps_its_s_and_unlisted_or_partial_words_are_untouched() -> None:
+    lexicon = {"Rayquaza": "RQ", "Abra": "AB"}
+    assert to_phonemes("Rayquaza's turn.", lexicon, fake_phonemize) == "RQz <turn.>"
+    assert to_phonemes("Abracadabra and Kadabra.", lexicon, fake_phonemize) == (
+        "<Abracadabra and Kadabra.>"
+    )
+    assert to_phonemes("No names here.", {}, fake_phonemize) == "<No names here.>"
+
+
+def test_lexicon_is_a_voicing_option() -> None:
+    assert Options(run="r", voice_only=True).lexicon is None
+    assert options_problem(Options(run="r", voice_only=True, lexicon=Path("/l.tsv"))) is None
+    assert (
+        options_problem(
+            Options(
+                run="r", lines_only=True, writer="claude", claude_model="m", lexicon=Path("/l.tsv")
+            )
+        )
+        is not None
+    )
+
+
+@pytest.mark.parametrize(
+    ("line", "spoken"),
+    [
+        ("Ralts's move", "ɹˈaltsɪz <move>"),
+        ("Torchic's move", "tˈɔːtʃɪks <move>"),
+        ("Machop's move", "mətʃˈɑːps <move>"),
+        ("Rayquaza's move", "ɹeɪkwˈeɪzəz <move>"),
+        ("Rayquaza’s move", "ɹeɪkwˈeɪzəz <move>"),
+        ("'Rayquaza' appears.", "<'> ɹeɪkwˈeɪzə<' appears.>"),
+        ("“Machop” appears.", "<“> mətʃˈɑːp<” appears.>"),
+    ],
+)
+def test_possessives_follow_the_last_sound_and_quotes_do_not_hide_names(
+    line: str, spoken: str
+) -> None:
+    lexicon = {
+        "Ralts": "ɹˈalts",
+        "Torchic": "tˈɔːtʃɪk",
+        "Machop": "mətʃˈɑːp",
+        "Rayquaza": "ɹeɪkwˈeɪzə",
+    }
+    assert to_phonemes(line, lexicon, fake_phonemize) == spoken
+
+
+@pytest.mark.parametrize(
+    ("line", "spoken"),
+    [
+        (
+            "I am going to heal my Pokemon at the nurse.",
+            "<I am going to heal my> PK <at the nurse.>",
+        ),
+        ("I landed right below the Pokemon Center.", "<I landed right below the> PKC<.>"),
+        ("Throw a Poke Ball and a POKé BALL.", "<Throw a> PB <and a> PB<.>"),
+        ("Pokemons are not names.", "<Pokemons are not names.>"),
+    ],
+)
+def test_names_match_without_their_accents_or_case(line: str, spoken: str) -> None:
+    lexicon = {"Pokémon": "PK", "Pokémon Center": "PKC", "Poké Ball": "PB"}
+    assert to_phonemes(line, lexicon, fake_phonemize) == spoken

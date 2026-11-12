@@ -398,6 +398,8 @@ export const SWITCHABLE_FEATURES = [
   "foe-trainer-items-v1",
   "league-stock-up-v1",
   "menu-option-null-id-v1",
+  "direct-codex-provider-v1",
+  "decision-commentary-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -917,6 +919,8 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("foe-trainer-items-v1", "observation", "FOE TRAINER ITEMS LEFT", RAM, "Custom-lane knowledge switch (the operator 2026-11-11: the Rayquaza lane and the Opus Rayquaza lane only; a run with it ON shows as heavily assisted). The items a trainer still carries are hidden in the game, so this is game knowledge. In the same battles as foe-item-recap-v1, one line after the battle details: \"Foe trainer items left (from game memory): FULL RESTORE (any turn); FULL RESTORE (only once 2 or fewer of its POKéMON can fight). Unless it switches POKéMON, the game's trainer AI uses an item instead of a move, and the item takes effect before any move that turn: FULL RESTORE when its POKéMON in battle is below 1/4 of its max HP.\" The rule is pret battle_ai_switch_items.c ShouldUseItem: item i after the first waits until the trainer has itemsNo - i + 1 or fewer POKéMON able to fight; FULL RESTORE below 1/4 HP; potions below 1/4 HP or when missing more HP than they restore; status cures when the POKéMON has that condition; X items and DIRE HIT on its first turn out; GUARD SPEC. on its first turn out when no MIST is up on its side. Every Elite Four member carries 2 FULL RESTOREs and Champion WALLACE 4 (trainers.h). Off: no line, and with foe-item-recap-v1 also off no foe_trainer_items key."),
   on("league-stock-up-v1", "guidance", "LEAGUE STOCK-UP", null, "Custom-lane knowledge switch (the operator 2026-11-11: the Rayquaza lane and the Opus Rayquaza lane only). Run 67d7 walked into the Elite Four with ₽130,696 and no healing items, lost to GLACIA, and the whiteout halved its money. On the first field result after each arrival in EVER GRANDE CITY POKEMON LEAGUE 1F, one paragraph: past the north door the ELITE FOUR and the CHAMPION are fought back to back with no POKéMON CENTER between them, so the BAG is the only healing; each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION 4; a loss sends you back to this lobby (its OnTransition sets the respawn), halves your money and restarts the ELITE FOUR from the first room; becoming CHAMPION is the end goal, so money kept back has no later use; the lobby mart's healing prices (pret EverGrandeCity_PokemonLeague_1F mart and items.h: HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600, REVIVE ₽1,500); your money and BAG healing and status items. It names no amount to buy: that is the model's call. Off: no paragraph."),
   on("menu-option-null-id-v1", "observation", "START MENU SELECTION", null, "A correctness fix, meant ON. The START menu has no menu id, and select_menu_option tells the model to copy null, but the agent's argument validation converts menu_id null to 0 before the tool runs, so every START-menu selection was refused as not ready. On, a menu with no id accepts menu_id null or 0; a menu with a real id still needs that exact id. The prompt text is unchanged. Off: the id must match exactly, so START-menu selections are refused."),
+  on("direct-codex-provider-v1", "observation", "DIRECT CODEX PROVIDER", null, "Use the native Codex Responses provider inside the existing game loop and archive full request/response bytes. Off: keep the existing Chat Completions provider path; direct-provider configuration is rejected."),
+  on("decision-commentary-v1", "observation", "DECISION COMMENTARY", null, "Ask for one or two short sentences explaining the observed evidence, intent and chosen action before each tool call. Saved as model commentary, separate from reasoning. Off: leave the gameplay prompt unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1430,6 +1434,8 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("foe-trainer-items-v1"),
     ...when("league-stock-up-v1"),
     ...when("menu-option-null-id-v1"),
+    ...when("direct-codex-provider-v1"),
+    ...when("decision-commentary-v1"),
   ];
 }
 

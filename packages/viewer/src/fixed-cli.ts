@@ -387,7 +387,7 @@ export interface FixedHostDeps {
 }
 
 // Variables a trial gets from its lane, never from the runner's own environment.
-const LANE_VARIABLES = new Set(["POKEBENCH_RUNS_ROOT", "POKEBENCH_ENDPOINT_FILE", "POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_RUN_ID", "POKEBENCH_EXPERIMENT", "POKEBENCH_GAME_SERVER_URL", "POKEBENCH_CHECKPOINT_FRONTIER"]);
+const LANE_VARIABLES = new Set(["POKEBENCH_RUNS_ROOT", "POKEBENCH_ENDPOINT_FILE", "POKEBENCH_CODEX_PROVIDER_FILE", "POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_RUN_ID", "POKEBENCH_EXPERIMENT", "POKEBENCH_GAME_SERVER_URL", "POKEBENCH_CHECKPOINT_FRONTIER"]);
 
 export interface FixedLaunchSpec { readonly command: string; readonly argv: readonly string[]; readonly cwd: string; readonly env: Record<string, string> }
 

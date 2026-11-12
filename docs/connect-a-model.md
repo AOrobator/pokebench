@@ -111,6 +111,14 @@ export POKEBENCH_RUN_ID="<run id>"
 
 The Codex session takes each turn with the `pending`, `begin` and `respond` phases against the same `--control` file; `begin` and `respond` also take `--capture-key`, and `respond` takes `--reply` (a JSON file). Before the first turn, enable reasoning summaries and prove capture with a rehearsal, as `.claude/skills/pokebench-run-coordination/SKILL.md` requires for every attached agent. `docs/explainers/codex-capture.html` explains the mechanism.
 
+## 5. Direct Codex provider (ordinary play)
+
+The opt-in `direct-codex-provider-v1` preset switch keeps the ordinary PokeBench agent loop and calls pi's native Codex Responses provider. Set `POKEBENCH_CODEX_PROVIDER_FILE` to an absolute JSON file containing `auth_file` (the installed Codex login), `models_file` (its model catalog) and `max_tokens` (the reply/context reservation). `POKEBENCH_MODEL` must name an image-capable model in that catalog. This selection takes precedence over the old endpoint variables and is rejected while the switch is OFF.
+
+The connection requests detailed reasoning summaries and SSE transport. It creates no Codex player session. The existing recorder retains observations, actions, tool results and exposed summaries; `provider-transcript/` retains exact request bodies, complete raw response bytes including opaque encrypted reasoning, and attempt/game-turn/hash receipts. Authentication headers are never recorded. Subscription Responses does not accept a reply-token limit; `max_tokens` reserves context space here, while the provider controls its response limit.
+
+The login file is reread before each model call. Expired credentials fail explicitly; this path does not refresh or rewrite shared credentials. Check credential lifetime before long runs. Restored-history and state-only modes remain unsupported. No existing provider changes when this connection is not selected.
+
 ## Checking a setup
 
 `just smoke-llm` runs a short live loop on whatever these variables name. `GET <endpoint>/models` should list `POKEBENCH_MODEL`; if it does not, the player's error lists the ids the endpoint does serve.

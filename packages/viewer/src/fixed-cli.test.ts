@@ -36,6 +36,10 @@ describe("production host pieces", () => {
     expect(spec.env).toEqual({ PATH: "/bin", POKEBENCH_ROM: "/rom.gba", POKEBENCH_RUNS_ROOT: "/repo/runs", POKEBENCH_RUN_ID: "r1" });
   });
 
+  it("does not inherit a direct provider from the coordinator into another model lane",()=>{
+    const spec=fixedLaunchSpec({root:"/r",runsRoot:"/r/runs",node:"/n",env:{POKEBENCH_CODEX_PROVIDER_FILE:"/wrong/provider.json"}},"c".repeat(40),{POKEBENCH_GATEWAY_URL:"http://127.0.0.1:9999/v1"});
+    expect(spec.env).not.toHaveProperty("POKEBENCH_CODEX_PROVIDER_FILE");
+  });
   it("sets the capture switch on boot starts only, and only from the lane's own setting", () => {
     const env = (start: FixedStart) => trialEnv(
       definition({ phases: [{ id: "p", perArm: 1, maxWallMs: 900_000, primary: true, start }] }),

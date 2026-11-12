@@ -1,4 +1,6 @@
+import hashlib
 import json
+import re
 
 import pytest
 
@@ -360,6 +362,7 @@ GOOD = one("X", ["r"], {"kind": "pinned", "usd": 1})
         ({**GOOD, "cost": {"kind": "pinned", "usd": 1, "estimated": 1}}, "X estimated"),
         ({**GOOD, "label_offset": [1, 2]}, "X label_offset: expected"),
         ({**GOOD, "label_offset": [1, "2", "end"]}, "X label_offset: expected"),
+        ({**GOOD, "dark_color": 5}, "X dark_color: expected text"),
     ],
 )
 def test_series_reject_bad_shapes(series, message):
@@ -381,12 +384,105 @@ def test_pages_plot_every_line_and_mark_assisted_runs():
 
 
 def test_card_hugs_the_chart_at_whole_pixel_heights():
-    css = rc.CSS
+    css = rc.css(rc.LIGHT)
     assert ".card{width:fit-content;" in css
     # whole-pixel line heights keep the card's height whole, so the PNG has no page strip
     assert "h1{font-size:30px;line-height:36px;" in css
     assert "p{margin:0;color:#44525e;font-size:15px;line-height:22px}" in css
     assert ".note{margin-top:8px;font-size:13.5px;line-height:20px}" in css
+
+
+# sha256 of main's (e1dbd1906) light pages for chart_data(SERIES); the light output must not move.
+MAIN_LIGHT = {
+    rc.TIME_HTML: "166dca40389cf496df8a1dafad763b6f80c356acbc74118686593c5b4f89c8b5",
+    rc.MONEY_HTML: "7477ee9e66e3395f4bcda969d086ad0fe44db56962f77407f5a8e945dcb508cd",
+}
+
+LIGHT_ONLY = ("#f7f3e8", "#fff", "#24323d", "#44525e", "#5a6670", "#ece8dc", "#c9c3b0")
+
+
+def pages_for(series):
+    data = chart_data(series)
+    return rc.build_pages(data, rc.build_points(data, PRICES, RUNS))
+
+
+def test_light_pages_are_byte_identical_to_main():
+    pages = pages_for(SERIES)
+    for rel, digest in MAIN_LIGHT.items():
+        assert hashlib.sha256(pages[rel].encode()).hexdigest() == digest
+
+
+def test_build_pages_writes_light_and_dark_pages():
+    assert set(pages_for(SERIES)) == {
+        rc.TIME_HTML,
+        rc.MONEY_HTML,
+        rc.TIME_HTML_DARK,
+        rc.MONEY_HTML_DARK,
+    }
+    assert rc.TIME_HTML_DARK == "docs/images/charts/badges-over-time-dark.html"
+    assert rc.MONEY_HTML_DARK == "docs/images/charts/badges-for-the-money-dark.html"
+
+
+def test_dark_pages_use_the_dark_palette_and_no_light_only_colour():
+    pages = pages_for(SERIES)
+    for rel in (rc.TIME_HTML_DARK, rc.MONEY_HTML_DARK):
+        body = pages[rel].lower()
+        for colour in LIGHT_ONLY:
+            assert not re.search(re.escape(colour) + r"(?![0-9a-f])", body), (rel, colour)
+        for colour in ("#0f1720", "#17212b", "#e6ecef", "#c3ccd2", "#2c5f55", "#5ab89c"):
+            assert colour in body, (rel, colour)
+    assert "#9aa6ae" in pages[rc.TIME_HTML_DARK] and "#26323d" in pages[rc.TIME_HTML_DARK]
+    assert "#4a5866" in pages[rc.TIME_HTML_DARK] and "#4a5866" in pages[rc.MONEY_HTML_DARK]
+
+
+def test_palettes_hold_the_approved_values():
+    assert rc.LIGHT == rc.Palette(
+        page="#f7f3e8",
+        frame="#2c5f55",
+        rim="#5ab89c",
+        interior="#fff",
+        text="#24323d",
+        secondary="#44525e",
+        axis="#5a6670",
+        grid="#ece8dc",
+        eighth="#c9c3b0",
+    )
+    assert rc.DARK == rc.Palette(
+        page="#0f1720",
+        frame="#2c5f55",
+        rim="#5ab89c",
+        interior="#17212b",
+        text="#e6ecef",
+        secondary="#c3ccd2",
+        axis="#9aa6ae",
+        grid="#26323d",
+        eighth="#4a5866",
+    )
+
+
+def test_hollow_points_take_the_card_interior_colour():
+    for palette in (rc.LIGHT, rc.DARK):
+        assert palette.hollow == palette.interior
+    pages = pages_for(SERIES)
+    for rel, palette in ((rc.TIME_HTML, rc.LIGHT), (rc.TIME_HTML_DARK, rc.DARK)):
+        hollow = re.findall(r'<circle [^>]*fill="([^"]+)" stroke="#123456"', pages[rel])
+        assert palette.hollow in hollow, rel
+
+
+def test_dark_color_is_used_in_dark_and_falls_back_to_color():
+    series = [
+        {**SERIES[0], "dark_color": "#abcdef"},
+        SERIES[1],
+        SERIES[2],
+    ]
+    assert rc.parse_series({"series": series})[0].dark_color == "#abcdef"
+    assert rc.parse_series({"series": series})[1].dark_color is None
+    pages = pages_for(series)
+    for rel in (rc.TIME_HTML_DARK, rc.MONEY_HTML_DARK):
+        assert 'fill="#abcdef"' in pages[rel]
+        assert 'fill="#123456"' in pages[rel]  # Codex and Pinned keep color
+    for rel in (rc.TIME_HTML, rc.MONEY_HTML):
+        assert "#abcdef" not in pages[rel]
 
 
 def test_pages_need_points_for_every_series():
@@ -429,6 +525,7 @@ def test_command_writes_points_then_pages_and_checks_drift():
     assert rc.run(["check-points"], s, RUNS, said.append) == 0
     assert rc.run(["html"], s, RUNS, said.append) == 0
     assert rc.TIME_HTML in s.files and rc.MONEY_HTML in s.files
+    assert rc.TIME_HTML_DARK in s.files and rc.MONEY_HTML_DARK in s.files
     s.files[rc.POINTS] = "{}"
     assert rc.run(["check-points"], s, RUNS, said.append) == 1
     assert "differs" in said[-1]

@@ -8,7 +8,7 @@ import {fixedTreeDir, fixedTreeLiveJs} from "./fixed-tree.js";
 
 // Runs under the fixed harness read these from their lane; a plain run carries them in from its own
 // environment, and gets a fresh runs root, run id and game-server port.
-export const PRESERVED_PLAIN_VARIABLES = ["POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_ENDPOINT_FILE", "POKEBENCH_CHECKPOINT_FRONTIER"] as const;
+export const PRESERVED_PLAIN_VARIABLES = ["POKEBENCH_PLAY_PRESET", "POKEBENCH_GATEWAY_URL", "POKEBENCH_MODEL", "POKEBENCH_ENDPOINT_FILE", "POKEBENCH_CODEX_PROVIDER_FILE", "POKEBENCH_CHECKPOINT_FRONTIER"] as const;
 
 export interface FrozenPlayDeps {
   readonly host: Pick<FixedHost, "verifyBuild">;

@@ -1,6 +1,6 @@
 // Where the player's model is served: an OpenAI-compatible gateway, or a local endpoint file
 // ({base_url, api_key, vision}) that a model server writes. There is no built-in endpoint.
-export type ModelEndpoint = { readonly kind: "gateway"; readonly url: string } | { readonly kind: "file"; readonly path: string };
+export type ModelEndpoint = { readonly kind: "gateway"; readonly url: string } | { readonly kind: "file"; readonly path: string } | { readonly kind: "codex"; readonly path: string };
 
 export interface PokebenchConfig {
   readonly endpoint: ModelEndpoint;
@@ -55,6 +55,8 @@ function idList(env: Env, key: string, fallback: readonly string[]): readonly st
 }
 
 function endpoint(env: Env): ModelEndpoint {
+  const codex = read(env, "POKEBENCH_CODEX_PROVIDER_FILE");
+  if (codex !== undefined) return { kind: "codex", path: codex };
   const gateway = read(env, "POKEBENCH_GATEWAY_URL");
   const url = gateway === undefined ? undefined : checkedUrl("POKEBENCH_GATEWAY_URL", gateway);
   const file = read(env, "POKEBENCH_ENDPOINT_FILE");

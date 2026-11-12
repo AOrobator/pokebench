@@ -18,9 +18,15 @@ Claude Opus 5.5 beat the game in one run from power-on, in 4,124 turns and 17 ho
 
 Times are wall-clock hours from the start of the run. The Qwen runs start from a main-menu save with fast text; the rest start from power-on.
 
-![Badges over time: each model's best run, by hours from the start of the run, through the Elite Four and Champion, against the human world record](docs/images/badges-over-time.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/badges-over-time-dark.png">
+  <img alt="Badges over time: each model's best run, by hours from the start of the run, through the Elite Four and Champion, against the human world record" src="docs/images/badges-over-time.png">
+</picture>
 
-![Badges for the money: how far each model's best run got against its API cost to that point](docs/images/badges-for-the-money.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/badges-for-the-money-dark.png">
+  <img alt="Badges for the money: how far each model's best run got against its API cost to that point" src="docs/images/badges-for-the-money.png">
+</picture>
 
 Each chart shows every model's best run, read from its own recording. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded. Rayquaza lane runs are heavily assisted and drawn dotted or hollow. Frontier models are priced at API list price; local models are estimates at the cheapest OpenRouter provider for each model's recorded tokens, as of 11/11.
 

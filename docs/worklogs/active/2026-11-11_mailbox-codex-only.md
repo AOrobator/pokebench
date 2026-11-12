@@ -44,7 +44,15 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 - [-] Grok lane skipped: Grok is out until 2026-11-17 (project coordinator note, 2026-11-12 02:04Z).
 - [~] CPU START granted 9:05 PM ET. `just test` and `just lint` stop at the node legs: the worktree has no node_modules (`tsc: command not found`; `pnpm install` not run, no installs allowed). Python legs at the fix head: env pytest 3461 passed, coverage lines 84.28 / branches 78.26 / functions 79.55 (floor 69); claude-gateway 39 passed, gate 46.25/42.86/23.60 (floor 22); explainer-twins-check up to date; env ruff check, ruff format --check, mypy clean. `just no-io-proof` fails only on its vitest half for the same missing node_modules. Node legs (pnpm build/coverage/lint, vitest no-io-proof) still to run; the branch changes no TypeScript.
 - [x] Codex review r3 (job review-claude-mailbox-codex-only-r3, dd13d0687..b2a1c1adf): VERDICT: LGTM; 15 passed and scratchpad rehearsals of the live-claim skip and the git-failure refusal.
-- [ ] Node legs of `just test` / `just lint`: relay (9:06 PM ET) says either pnpm install and rerun, or record which legs ran and why that suffices; coordinator said do not run pnpm install. Waiting on the operator.
+- [x] Gate evidence, Python-only (option 2 from the relay, chosen by the project coordinator 2026-11-12 02:08Z; The operator already told the TypeScript checks did not run).
+  - Ran, in the 9:05 PM ET CPU window, at b2a1c1adf (later commits are worklog-only):
+    - `just test` env leg: `cd env && uv run pytest -q --cov --cov-branch`: 3461 passed; `coverage_gate --min 69`: lines 84.28, branches 78.26, functions 79.55, PASS.
+    - `just test` gateway leg: claude-gateway pytest under the no-I/O guard: 39 passed; `coverage_gate --min 22`: 46.25 / 42.86 / 23.60, PASS.
+    - `just lint` Python legs: `just explainer-twins-check` up to date; env `ruff check .`, `ruff format --check .`, `mypy`: clean.
+    - `just no-io-proof`: pytest half ran; vitest half failed with "vitest: [] of 0", because vitest is not installed.
+    - Focused: `env/tests/env/test_agent_mail_addressing.py` 15 passed (and by Codex independently).
+  - Did not run: `just build` (pnpm -r build / tsc), `pnpm -r coverage` (agent + viewer vitest with coverage floors), `pnpm -r lint` (tsc --noEmit, eslint), the vitest half of `just no-io-proof`, the claude-gateway ruff/mypy lint legs.
+  - Why: the worktree has no node_modules (`tsc: command not found`); installing needs `pnpm install`, which was not authorized ("no installs"). The branch changes no TypeScript, JavaScript or packages/ file (`git diff --stat 306a6e8d8..HEAD -- '*.ts' '*.tsx' '*.js' '*.mjs' packages/` is empty), and none of the skipped legs read `env/pokebench_env/agent_mail.py`, the justfile recipe added, or the skill/CLAUDE.md prose. If the operator asks for the full TypeScript gate, ask about the install first.
 - [ ] Landing on the operator's own approval in the project thread.
 
 ## Closing the Loop

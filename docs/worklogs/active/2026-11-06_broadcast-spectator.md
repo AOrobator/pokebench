@@ -152,6 +152,7 @@ The operator 2026-11-11: "could we do some special spelling or prompting so that
   - Round 1, GPT on main..03d783d85 (sha c3ed8e60): BLOCKING, both real: the possessive always added /z/ (Ralts's needs /ɪz/, Torchic's and Machop's /s/); a name after an opening quote was skipped, and a curly ’s was not taken with the name. Fix: the suffix follows the name's last sound; an opening quote is a word boundary; straight and curly 's both taken. 146 tests, module 99%, lint clean.
   - Round 2: GPT LGTM (mutation-checked); fallback (Sonnet) LGTM. Claude CLI on main..9fd4f8b01 (sha ed73acb0): BLOCKING, real: the writers spell it "Pokemon" (63 voiced lines across runs, 0 with the accent), and matching was accent- and case-exact, so the main complaint stayed. My A/B used accented lines and missed it. Fix: names match ignoring accents and case (length-preserving fold, NFC first); 150 tests, module 99%, lint clean. The A/B is redone on real unaccented lines.
   - Round 3 on 9fd4f8b01..b3c436a28 (sha 475d4aee): GPT LGTM (all 57 entries match upper, lower, folded and NFD spellings); Claude CLI LGTM (limits noted: "slaking" the verb would take the name's sound; a folded-key collision would go unreported, none in the table). Grok out until 11/17.
+- [x] Landed 35dec88e2 (ff-only) on local main, not pushed; post-main `just test`: 3,053 agent, 1,310 viewer, 3,492 env, 39 gateway
 - [x] Gates on b3c436a28 (main 476c0416d): lint, `just test` (3,053 agent, 1,310 viewer, 3,492 env, 39 gateway), verify-vendor
 
 ## Closing the Loop

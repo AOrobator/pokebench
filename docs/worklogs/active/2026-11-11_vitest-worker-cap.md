@@ -29,3 +29,7 @@ Single-run measurement with /usr/bin/time -l and top whole-host CPU every 3 seco
 
 ## Integration compatibility
 Main advanced dc5436a3a -> 2c1fdf7f3 with only an unrelated direct-provider worklog evidence update. Merged on branch as 7ec41be3f; source/config/test/dependency contracts unchanged, so full gate evidence retained at implementation pin593cf19ea. No main hold requested. Final executable feature delta against new main remains exactly two maxWorkers literals. Freeze after this evidence commit for review.
+
+Packet preparation correction: main moved to d3ae55add between the branch merge and packet creation; the first packet accidentally compared to that unmerged new base and showed an unrelated evidence reversal. Canceled the incomplete Claude invocation (no verdict counted), preserved /tmp/vitest-cap-aborted-* artifacts, and resynced main before resealing. No source changes; gate evidence remains valid.
+
+COMMIT: branch-only integration sync7a8292fbe retained all source evidence. Evidence commit initially rejected by freshness hook because the merge had just created a newer commit; updated this log and retried with hooks enabled. Canceled the prematurely launched review; no verdict counted for either aborted packet.

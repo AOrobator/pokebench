@@ -14,6 +14,11 @@ on:
       - "docs/images/**"
       - "packages/viewer/static/fonts/**"
       - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".node-version"
+      - "CONTRIBUTING.md"
+      - "packages/agent/test-support/no-io.ts"
       - ".github/workflows/site.yml"
   workflow_dispatch:
 

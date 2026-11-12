@@ -1195,3 +1195,20 @@ def test_possessives_follow_the_last_sound_and_quotes_do_not_hide_names(
         "Rayquaza": "ɹeɪkwˈeɪzə",
     }
     assert to_phonemes(line, lexicon, fake_phonemize) == spoken
+
+
+@pytest.mark.parametrize(
+    ("line", "spoken"),
+    [
+        (
+            "I am going to heal my Pokemon at the nurse.",
+            "<I am going to heal my> PK <at the nurse.>",
+        ),
+        ("I landed right below the Pokemon Center.", "<I landed right below the> PKC<.>"),
+        ("Throw a Poke Ball and a POKé BALL.", "<Throw a> PB <and a> PB<.>"),
+        ("Pokemons are not names.", "<Pokemons are not names.>"),
+    ],
+)
+def test_names_match_without_their_accents_or_case(line: str, spoken: str) -> None:
+    lexicon = {"Pokémon": "PK", "Pokémon Center": "PKC", "Poké Ball": "PB"}
+    assert to_phonemes(line, lexicon, fake_phonemize) == spoken

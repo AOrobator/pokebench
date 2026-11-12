@@ -150,6 +150,7 @@ The operator 2026-11-11: "could we do some special spelling or prompting so that
 - [ ] A/B for the operator (without, then with) before voicing all lines
 - [ ] Review: Codex
   - Round 1, GPT on main..03d783d85 (sha c3ed8e60): BLOCKING, both real: the possessive always added /z/ (Ralts's needs /ɪz/, Torchic's and Machop's /s/); a name after an opening quote was skipped, and a curly ’s was not taken with the name. Fix: the suffix follows the name's last sound; an opening quote is a word boundary; straight and curly 's both taken. 146 tests, module 99%, lint clean.
+  - Round 2: GPT LGTM (mutation-checked); fallback (Sonnet) LGTM. Claude CLI on main..9fd4f8b01 (sha ed73acb0): BLOCKING, real: the writers spell it "Pokemon" (63 voiced lines across runs, 0 with the accent), and matching was accent- and case-exact, so the main complaint stayed. My A/B used accented lines and missed it. Fix: names match ignoring accents and case; the A/B is redone on real unaccented lines.
 
 ## Closing the Loop
 

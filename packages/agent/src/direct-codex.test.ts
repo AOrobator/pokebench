@@ -57,6 +57,17 @@ describe("direct Codex provider",()=>{
   await reader.read();await reader.cancel();
   expect(writes.join("")).toBe(chunks.join(""));expect(close).toHaveBeenCalledWith({complete:true,status:200});
  });
+ it("serializes a pending prefetch with terminal cancellation before draining delayed tails",async()=>{
+  let upstream:ReadableStreamDefaultController<Uint8Array>|undefined;
+  const raw=new ReadableStream<Uint8Array>({start(controller){upstream=controller;}}),writes:string[]=[],close=vi.fn();
+  const tick=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
+  const push=(text:string):void=>{if(!upstream)throw Error("Missing source");upstream.enqueue(new TextEncoder().encode(text));};
+  const f=providerTranscriptFetch(()=>Promise.resolve(new Response(raw)),{url:"https://fixture/responses",turn:()=>1,open:()=>({write:bytes=>writes.push(new TextDecoder().decode(bytes)),close})});
+  const response=await f("https://fixture/responses",{method:"POST",body:"{}"});if(!response.body)throw Error("Missing body");
+  const reader=response.body.getReader();push("terminal");await reader.read();await tick();
+  const cancelled=reader.cancel();push("tail-one");await tick();push("tail-two");if(!upstream)throw Error("Missing source");upstream.close();await cancelled;
+  expect(writes.join("")).toBe("terminaltail-onetail-two");expect(close).toHaveBeenCalledWith({complete:true,status:200});
+ });
  it("fails before sending when request capture fails, and reports interrupted response capture",async()=>{
   const base=vi.fn(()=>Promise.resolve(new Response("bytes")));
   const broken=providerTranscriptFetch(base,{url:"https://fixture/responses",turn:()=>1,open:()=>{throw Error("archive failed");}});

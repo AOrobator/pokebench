@@ -40,18 +40,24 @@ export function providerTranscriptFetch(base:typeof fetch,ports:TranscriptPorts)
   const url=input instanceof Request?input.url:String(input),method=init?.method??(input instanceof Request?input.method:"GET");
   if(url!==ports.url||method!=="POST")return base(input,init);
   if(typeof init?.body!=="string")throw Error("Direct provider capture requires the exact serialized request body");
-  const sink=ports.open({turn:ports.turn(),request:init.body});let status:number|null=null,closed=false;
+  const sink=ports.open({turn:ports.turn(),request:init.body});let status:number|null=null,closed=false,cancelled=false;let pendingPull:Promise<void>|null=null;
   const close=(complete:boolean):void=>{if(!closed){closed=true;sink.close({complete,status});}};
   try{
    const response=await base(input,init);status=response.status;
    if(!response.body){close(true);return response;}
    const reader=response.body.getReader();
    const body=new ReadableStream<Uint8Array>({
-    async pull(controller){try{const next=await reader.read();if(next.done){close(true);controller.close();}else{sink.write(next.value);controller.enqueue(next.value);}}catch(error){try{await reader.cancel(error);}catch{/* Preserve the original capture failure. */}close(false);controller.error(error);}},
+    pull(controller){
+     const task=(async()=>{try{const next=await reader.read();if(next.done){close(true);if(!cancelled)controller.close();}else{sink.write(next.value);if(!cancelled)controller.enqueue(next.value);}}catch(error){try{await reader.cancel(error);}catch{/* Preserve the original capture failure. */}close(false);if(!cancelled)controller.error(error);}})();
+     pendingPull=task;return task.finally(()=>{if(pendingPull===task)pendingPull=null;});
+    },
     async cancel(reason){
      // pi stops at response.completed and cancels its parser. Preserve the remaining
      // upstream bytes through EOF; only an actual request abort cancels the source.
+     cancelled=true;
      try{
+      if(pendingPull!==null)await pendingPull;
+      if(closed)return;
       if(init.signal?.aborted){await reader.cancel(reason);close(false);return;}
       for(;;){const next=await reader.read();if(next.done){close(true);return;}sink.write(next.value);}
      }catch(error){close(false);throw error;}

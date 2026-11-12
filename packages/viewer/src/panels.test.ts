@@ -242,6 +242,25 @@ describe("splits", () => {
 });
 
 describe("thinkingDialog", () => {
+  it("keeps commentary beside reasoning and retains its source turn across tool-only turns",()=>{
+    const log=bare();
+    log.add(100,assistant({turn:1,thinking:"Summary <one>",text:"Commentary <two>"}));
+    const both=thinkingDialog(view(log),BASE_MS+100).body;
+    expect(both).toContain("REASONING SUMMARY");expect(both).toContain("Summary &lt;one&gt;");
+    expect(both).toContain("MODEL COMMENTARY");expect(both).toContain("Commentary &lt;two&gt;");
+    log.add(200,assistant({turn:2,thinking:"",text:""}));
+    expect(thinkingDialog(view(log),BASE_MS+200).body).toContain("No commentary or reasoning returned for turn 2.");
+    expect(thinkingDialog(view(log),BASE_MS+200).body).toContain("Last available text · turn 1");
+    log.add(300,{type:"turn_start",turn:3,context:{messages:1,images:0,est_tokens:1}});
+    const waiting=thinkingDialog(view(log),BASE_MS+400).body;
+    expect(waiting).toContain("Waiting for model text");expect(waiting).toContain("Last available text · turn 1");
+    expect(waiting).toContain("Commentary &lt;two&gt;");
+    log.add(500,{type:"assistant_delta",turn:3,thinking:"",text:"Fresh"});
+    const streaming=thinkingDialog(view(log),BASE_MS+600).body;
+    expect(streaming).toContain("Fresh");expect(streaming).not.toContain("Commentary &lt;two&gt;");
+    expect(thinkingDialog(foldUntil(log.events,BASE_MS+50),BASE_MS+50).body).not.toContain("Commentary &lt;two&gt;");
+  });
+
   it("times the thinking in progress", () => {
     const log = bare();
     log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });

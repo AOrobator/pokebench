@@ -265,6 +265,34 @@ def wav_bytes(voiced: Voiced) -> bytes:
     return out.getvalue()
 
 
+def load_lexicon(text: str) -> dict[str, str]:
+    """Spoken names: `name<TAB>phonemes<TAB>respelling<TAB>source` rows; `#` lines are comments."""
+    lexicon: dict[str, str] = {}
+    for raw in text.splitlines():
+        if raw.startswith("#"):
+            continue
+        cells = raw.split("\t")
+        if len(cells) >= 2 and cells[0].strip() and cells[1].strip():
+            lexicon[cells[0].strip()] = cells[1].strip()
+    return lexicon
+
+
+def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], str]) -> str:
+    """The line's phonemes: listed names from the lexicon, everything else from espeak."""
+    if not lexicon:
+        return phonemize(text)
+    names = "|".join(re.escape(name) for name in sorted(lexicon, key=len, reverse=True))
+    pattern = re.compile(rf"(?<![\w'])({names})('s)?(?!\w)")
+    parts: list[str] = []
+    last = 0
+    for match in pattern.finditer(text):
+        parts.append(phonemize(text[last : match.start()]))
+        parts.append(lexicon[match[1]] + ("z" if match[2] else ""))
+        last = match.end()
+    parts.append(phonemize(text[last:]))
+    return " ".join(part for part in parts if part)
+
+
 def voice_lines(
     lines: Sequence[Line],
     synth: Callable[[str], Voiced],
@@ -865,6 +893,7 @@ class Options:
     follow: bool = False
     lines_only: bool = False
     voice_only: bool = False
+    lexicon: Path | None = None
     voice: str = VOICE
     lang: str = VOICE_LANG
     speed: float = VOICE_SPEED
@@ -883,6 +912,8 @@ def options_problem(options: Options) -> str | None:
         return "--speed must be above 0 and at most 4"
     if options.lines_only and options.voice_only:
         return "--lines-only and --voice-only exclude each other"
+    if options.lexicon is not None and options.lines_only:
+        return "--lexicon is for voicing; --lines-only makes no voice"
     if options.dense and options.writer != "claude":
         return "--dense needs --writer claude"
     if options.side_only and options.thinking_from is None:
@@ -941,6 +972,11 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
     parser.add_argument("--speed", type=float, default=VOICE_SPEED)
     parser.add_argument("--out", type=Path, help="default: <runs>/broadcast/<run>")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
+    parser.add_argument(
+        "--lexicon",
+        type=Path,
+        help="voicing: a TSV of names and their phonemes, e.g. pokebench_env/data/pokemon-lexicon.tsv",
+    )
     parser.add_argument(
         "--kokoro",
         type=Path,
@@ -1023,7 +1059,11 @@ def _log_lines(path: Path) -> Iterator[str]:  # pragma: no cover - the disk
 
 
 def _synth(  # pragma: no cover - the voice model
-    models: Path, voice: str = VOICE, lang: str = VOICE_LANG, speed: float = VOICE_SPEED
+    models: Path,
+    voice: str = VOICE,
+    lang: str = VOICE_LANG,
+    speed: float = VOICE_SPEED,
+    lexicon: dict[str, str] | None = None,
 ) -> Callable[[str], Voiced]:
     kokoro = importlib.import_module("kokoro_onnx").Kokoro(
         str(models / "kokoro-v1.0.onnx"), str(models / "voices-v1.0.bin")
@@ -1031,7 +1071,15 @@ def _synth(  # pragma: no cover - the voice model
     numpy = importlib.import_module("numpy")
 
     def speak(text: str) -> Voiced:
-        audio, rate = kokoro.create(text, voice=voice, speed=speed, lang=lang)
+        if lexicon:
+            phonemes = to_phonemes(
+                text, lexicon, lambda part: kokoro.tokenizer.phonemize(part, lang)
+            )
+            audio, rate = kokoro.create(
+                phonemes, voice=voice, speed=speed, lang=lang, is_phonemes=True
+            )
+        else:
+            audio, rate = kokoro.create(text, voice=voice, speed=speed, lang=lang)
         pcm = (numpy.clip(audio, -1, 1) * 32767).astype("<i2").tobytes()
         return Voiced(pcm=pcm, rate=int(rate))
 
@@ -1059,7 +1107,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         (folder / name).write_bytes(data)
 
     def synth() -> Callable[[str], Voiced]:
-        return _synth(args.kokoro, args.voice, args.lang, args.speed)
+        lexicon = load_lexicon(args.lexicon.read_text(encoding="utf-8")) if args.lexicon else None
+        return _synth(args.kokoro, args.voice, args.lang, args.speed, lexicon)
 
     log_path = args.runs / args.run / "events.jsonl"
     if args.side_only and args.thinking_from is not None:

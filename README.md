@@ -113,7 +113,7 @@ Each chart shows every model's best run, read from its own recording. Times are 
 | 80c8 | DeepSeek V4.1 Flash, hosted | boot | Stone Badge in 55m 13s (turn 223) |
 | ee2a | DeepSeek V4.1 Flash, hosted | Fortree checkpoint | Feather Badge at turn 86 |
 
-These runs, with their harness commits, presets, budgets and evidence, are in the [results ledger](docs/results.md). [Harness feature switches](docs/features.md) lists every switch, its default and whether it was on in run 67d7, and the [explainers index](docs/explainers/README.md) says what each switch does.
+These runs, with their harness commits, presets, budgets and evidence, are in the [results ledger](docs/results.md). [Harness feature switches](docs/features.md) lists every switch, its default and whether it was on in run 67d7, and the [explainers index](docs/explainers/README.md) links the explainer for each switch that has one.
 
 ## Verify the clear
 

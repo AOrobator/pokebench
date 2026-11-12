@@ -19,3 +19,7 @@ One sentence after the results table, beside the results ledger link, linking bo
 
 - [x] M1: README sentence, link targets checked (all three exist), `just explainer-twins-check` green (345 pages, 562 SVGs, 5 images).
 - [ ] M2: Codex review recorded; landing waits for the operator.
+
+## Review
+
+- 2026-11-11 19:50 ET: GPT (Codex job `review-gpt-readme-features-link-566b872b9`) round 1 BLOCKING, one P2: "says what each switch does" overclaims, since 53 of 413 switch rows in docs/features.md have no explainer. Links, the features.md description and style passed. Fixed by narrowing the sentence to "links the explainer for each switch that has one".

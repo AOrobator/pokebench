@@ -17,7 +17,7 @@ feature-worklog, talk-to-codex, execute-worklog (scope only; landing waits for C
 - `agent_mail.py`: pure helpers `strict_to`, `worktree_branches`, `unread_address`, `own_address`, `stale_boxes`; thin I/O `checked_out_branches`, `current_branch`, `listening`, `archive_boxes`. `main` takes `environ`, `branches` and `branch` as injected dependencies and checks addresses before opening the mailroom.
 - `tell-claude --to B` refuses (exit 2) unless B is checked out in a worktree or is the reserved `codex-coordinator` box. Switch `POKEBENCH_AGENT_MAIL_STRICT_TO` (default on; `0/off/false/no` restores the old behavior).
 - `claude-mailbox --for` with no value, or `--mine`, reads the branch checked out in the cwd; detached HEAD refuses.
-- `archive-boxes [--dry-run] [--into DATE]` (`just mail-archive`) moves `to/<box>/` whole into `archive/<UTC date>/<box>/`, skipping live branches, reserved boxes, boxes with a waiting listener and existing targets.
+- `archive-boxes [--dry-run] [--into DATE]` (`just mail-archive`) moves the files of `to/<box>/` (all but its lock file) into `archive/<UTC date>/<box>/`, skipping live branches, reserved boxes, boxes with a waiting listener and existing targets.
 - Landing board notices (`notify_moves`, `expire_holder`) still write to the joiner's branch box directly; unchanged.
 
 ## Invariants
@@ -37,7 +37,9 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 - [x] M1 docs: CLAUDE.md Git section, talk-to-codex, talk-to-claude, codex-coordinator, execute-worklog.
 - [x] M1 commit. COMMIT: `feat(agent-mail): mailbox is Codex<->Claude and landing board only` (220c60ce7). Tests: 12 passed (test_agent_mail_addressing.py).
 - [x] Archive run with this branch's code against the real mailroom (2026-11-11 ~21:05 ET). Before: 91 boxes in `to/`, 89 unread letters. Dry run: would move 86. Real run: moved 86 to `runs/agent-mail/archive/2026-11-12/` (83 unread, 298 logged letters intact). After: 5 boxes in `to/` (claude/ended-run-stream-error 3 unread, claude/twins-fake-host 1, codex/fortree-push-preview-plan 1, claude/readme-features-link 0, codex-coordinator 0); a second run moved 0.
-- [ ] Codex review via `just tell-codex`.
+- [x] Codex review r1 (job review-claude-mailbox-codex-only-r1, head f75ef4eb4): VERDICT: CHANGES. P2 archive rename strands a sender waiting on the box lock (FileNotFoundError); P2 the five main() tests trip the no-I/O guard via argparse gettext os.stat (5 fail, 7 pass under uv's CPython 3.11.16; my earlier 12-pass run used the main checkout's venv and did not reproduce it).
+- [x] r1 fixes: archive moves a box's files but leaves the folder and its lock file, so a waiting caller still finds the folder; the address checks moved into pure `preflight()`, tested without building a parser. 14 passed via `uv run --project env python -m pytest -q -p no:cacheprovider env/tests/env/test_agent_mail_addressing.py` and from env/. Scratchpad race rehearsal (temp dir, not a test): a sender queued behind the archive lock returned normally and its letter landed in the emptied box.
+- [ ] Codex review r2.
 - [ ] Full `just test` / `just lint` (needs a CPU window), cloud review lanes, landing on the operator's own approval.
 
 ## Closing the Loop
@@ -54,7 +56,7 @@ Real CLI against the real mailroom (read-only): `tell-claude --to claude/scrub-s
 
 ## Multi-Model Review Log
 
-Pending: Codex review.
+- r1 Codex/GPT: CHANGES (2×P2), fixed in the next commit. r2 pending.
 
 ## Boy Scout Log
 

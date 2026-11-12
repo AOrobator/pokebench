@@ -162,6 +162,31 @@ def own_address(requested: str | None, branch: Callable[[], str]) -> str | None:
     return mine
 
 
+def archivable(entries: Iterable[str]) -> list[str]:
+    """A box's files to archive: everything but the lock file that waiting callers hold."""
+    return sorted(e for e in entries if e != "lock")
+
+
+def preflight(
+    command: str,
+    *,
+    to: str | None,
+    address: str | None,
+    environ: Mapping[str, str],
+    branches: Callable[[], frozenset[str]],
+    branch: Callable[[], str],
+) -> tuple[str | None, str | None]:
+    """Check addresses before the mailroom opens: (refusal, mailbox address to read)."""
+    if command == "tell-claude" and to is not None and strict_to(environ):
+        return unread_address(to, branches()), address
+    if command == "claude-mailbox":
+        try:
+            return None, own_address(address, branch)
+        except ValueError as error:
+            return str(error), address
+    return None, address
+
+
 def stale_boxes(boxes: Iterable[str], branches: frozenset[str]) -> list[str]:
     """Mailboxes no session reads: not a checked-out branch and not reserved."""
     return sorted(b for b in boxes if b not in branches and b not in RESERVED_BOXES)
@@ -434,7 +459,12 @@ def archive_boxes(
     dry_run: bool,
     listening: Callable[["Mailroom"], bool],
 ) -> tuple[list[str], list[tuple[str, str]]]:
-    """Move unread-forever mailboxes to archive/<into>/, files intact. Returns moved and kept."""
+    """Move unread-forever mailboxes' files to archive/<into>/<box>/. Returns moved and kept.
+
+    The box folder and its lock file stay where they are: a sender or listener already waiting
+    on that lock still finds the folder when it gets the lock, so a late letter lands in the
+    emptied box instead of failing on a moved path.
+    """
     boxes = room.root / "to"
     if not boxes.is_dir():
         return [], []
@@ -447,6 +477,9 @@ def archive_boxes(
         target = destination / source.name
         box = Mailroom(source)
         with nullcontext() if dry_run else box.locked():
+            files = archivable(entry.name for entry in source.iterdir())
+            if not files:
+                continue
             if listening(box):
                 kept.append((name, "a listener is waiting on it"))
                 continue
@@ -454,8 +487,9 @@ def archive_boxes(
                 kept.append((name, f"{target} already exists"))
                 continue
             if not dry_run:
-                destination.mkdir(parents=True, exist_ok=True)
-                os.rename(source, target)
+                target.mkdir(parents=True)
+                for file in files:
+                    os.rename(source / file, target / file)
         moved.append(name)
     return moved, kept
 
@@ -982,17 +1016,17 @@ def main(
     archive.add_argument("--into", default=None, help="archive folder name (default: UTC date)")
     args = parser.parse_args(argv)
 
-    if args.command == "tell-claude" and args.to is not None and strict_to(environ):
-        problem = unread_address(args.to, branches())
-        if problem is not None:
-            print(problem, file=sys.stderr)
-            return 2
-    if args.command == "claude-mailbox":
-        try:
-            args.address = own_address(args.address, branch)
-        except ValueError as error:
-            print(error, file=sys.stderr)
-            return 2
+    refusal, args.address = preflight(
+        args.command,
+        to=getattr(args, "to", None),
+        address=getattr(args, "address", None),
+        environ=environ,
+        branches=branches,
+        branch=branch,
+    )
+    if refusal is not None:
+        print(refusal, file=sys.stderr)
+        return 2
 
     room = Mailroom.for_repo(Path.cwd())
     now = datetime.now(UTC)

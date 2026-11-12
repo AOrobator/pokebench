@@ -1,11 +1,11 @@
 import pytest
 
-from pokebench_env import agent_mail
 from pokebench_env.agent_mail import (
     CODEX_COORDINATOR,
     MINE,
-    main,
+    archivable,
     own_address,
+    preflight,
     stale_boxes,
     strict_to,
     unread_address,
@@ -70,81 +70,88 @@ def test_stale_boxes_skips_live_branches_and_reserved_boxes() -> None:
     assert stale_boxes(boxes, LIVE) == ["claude/scrub-sync", "master"]
 
 
-def test_tell_claude_refuses_an_unread_branch_before_touching_the_mailroom(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    def no_mailroom(cwd: object) -> None:
-        raise AssertionError("mailroom opened")
+def never_branches() -> frozenset[str]:
+    raise AssertionError("branches looked up")
 
-    monkeypatch.setattr(
-        agent_mail.Mailroom, "for_repo", classmethod(lambda cls, cwd: no_mailroom(cwd))
-    )
-    code = main(
-        ["tell-claude", "--to", "claude/gone", "hello"],
+
+def never_branch() -> str:
+    raise AssertionError("branch looked up")
+
+
+def test_preflight_refuses_tell_claude_to_an_unread_branch() -> None:
+    refusal, address = preflight(
+        "tell-claude",
+        to="claude/gone",
+        address=None,
         environ={},
         branches=lambda: LIVE,
-        branch=lambda: "main",
+        branch=never_branch,
     )
-    assert code == 2
-    assert "'claude/gone'" in capsys.readouterr().err
+    assert refusal is not None and "'claude/gone'" in refusal
+    assert address is None
 
 
-def test_tell_claude_with_the_switch_off_does_not_check_branches(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    class Opened(Exception):
-        pass
-
-    def opened(cls: object, cwd: object) -> None:
-        raise Opened
-
-    monkeypatch.setattr(agent_mail.Mailroom, "for_repo", classmethod(opened))
-
-    def no_lookup() -> frozenset[str]:
-        raise AssertionError("branches looked up")
-
-    with pytest.raises(Opened):
-        main(
-            ["tell-claude", "--to", "claude/gone", "hello"],
-            environ={"POKEBENCH_AGENT_MAIL_STRICT_TO": "0"},
-            branches=no_lookup,
-            branch=lambda: "main",
-        )
-
-
-@pytest.mark.parametrize("flag", [["--for"], ["--mine"]])
-def test_bare_for_on_a_detached_head_refuses(
-    flag: list[str], capsys: pytest.CaptureFixture[str]
-) -> None:
-    code = main(
-        ["claude-mailbox", *flag, "--timeout", "1"],
-        environ={},
-        branches=lambda: LIVE,
-        branch=lambda: "",
-    )
-    assert code == 2
-    assert "detached" in capsys.readouterr().err
-
-
-def test_bare_for_resolves_before_the_mailroom_opens(monkeypatch: pytest.MonkeyPatch) -> None:
-    class Opened(Exception):
-        pass
-
-    def opened(cls: object, cwd: object) -> None:
-        raise Opened
-
-    monkeypatch.setattr(agent_mail.Mailroom, "for_repo", classmethod(opened))
-    asked: list[str] = []
-
-    def mine() -> str:
-        asked.append("asked")
-        return "claude/mine"
-
-    with pytest.raises(Opened):
-        main(
-            ["claude-mailbox", "--for", "--timeout", "1"],
+def test_preflight_lets_tell_claude_reach_a_live_branch_and_the_relay() -> None:
+    for to in ("claude/ended-run-stream-error", None):
+        assert preflight(
+            "tell-claude",
+            to=to,
+            address=None,
             environ={},
             branches=lambda: LIVE,
-            branch=mine,
-        )
-    assert asked == ["asked"]
+            branch=never_branch,
+        ) == (None, None)
+
+
+def test_preflight_with_the_switch_off_does_not_check_branches() -> None:
+    assert preflight(
+        "tell-claude",
+        to="claude/gone",
+        address=None,
+        environ={"POKEBENCH_AGENT_MAIL_STRICT_TO": "0"},
+        branches=never_branches,
+        branch=never_branch,
+    ) == (None, None)
+
+
+def test_preflight_bare_for_reads_the_current_branch() -> None:
+    assert preflight(
+        "claude-mailbox",
+        to=None,
+        address=MINE,
+        environ={},
+        branches=never_branches,
+        branch=lambda: "claude/mine",
+    ) == (None, "claude/mine")
+
+
+def test_preflight_bare_for_on_a_detached_head_refuses() -> None:
+    refusal, _ = preflight(
+        "claude-mailbox",
+        to=None,
+        address=MINE,
+        environ={},
+        branches=never_branches,
+        branch=lambda: "",
+    )
+    assert refusal is not None and "detached" in refusal
+
+
+def test_preflight_leaves_other_commands_alone() -> None:
+    assert preflight(
+        "mailbox-done",
+        to=None,
+        address=CODEX_COORDINATOR,
+        environ={},
+        branches=never_branches,
+        branch=never_branch,
+    ) == (None, CODEX_COORDINATOR)
+
+
+def test_archivable_keeps_the_lock_file_in_place() -> None:
+    assert archivable(["pending.jsonl", "lock", "claude.pipe", "log.jsonl"]) == [
+        "claude.pipe",
+        "log.jsonl",
+        "pending.jsonl",
+    ]
+    assert archivable(["lock"]) == []

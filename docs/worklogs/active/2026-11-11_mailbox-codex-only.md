@@ -53,7 +53,8 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
     - Focused: `env/tests/env/test_agent_mail_addressing.py` 15 passed (and by Codex independently).
   - Did not run: `just build` (pnpm -r build / tsc), `pnpm -r coverage` (agent + viewer vitest with coverage floors), `pnpm -r lint` (tsc --noEmit, eslint), the vitest half of `just no-io-proof`, the claude-gateway ruff/mypy lint legs.
   - Why: the worktree has no node_modules (`tsc: command not found`); installing needs `pnpm install`, which was not authorized ("no installs"). The branch changes no TypeScript, JavaScript or packages/ file (`git diff --stat 306a6e8d8..HEAD -- '*.ts' '*.tsx' '*.js' '*.mjs' packages/` is empty), and none of the skipped legs read `env/pokebench_env/agent_mail.py`, the justfile recipe added, or the skill/CLAUDE.md prose. If the operator asks for the full TypeScript gate, ask about the install first.
-- [ ] Landing on the operator's own approval in the project thread.
+- [x] Landed: The operator's own words in the project thread at 9:08 PM ET (2026-11-12 02:08:55Z): "land it". Landing board joined (number 1, nobody waiting), `git merge --ff-only claude/mailbox-codex-only` moved local main 306a6e8d8 → ceb6a2e48. No push.
+- [x] Post-merge check on main: focused tests 15 passed from the main checkout's env; `just tell-claude --to claude/gone-branch` refused with exit 2; `just mail-archive --dry-run` would move 0 boxes.
 
 ## Closing the Loop
 

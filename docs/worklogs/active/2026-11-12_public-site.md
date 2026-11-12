@@ -102,6 +102,12 @@ Outcome: all explainers browsable inside the site frame, with an index and clien
 - [ ] Independent review
 - [ ] Freeze source; list exactly what remains before landing
 
+**Follow-up: traces and article** (coordinator, after M4 landed on main at cbc210b2b)
+- [x] Tests: site.json `article` {title, url} (https, host, no user/query/fragment, no quotes, spaces or angle brackets; non-ASCII kept as given); Home's READ THE ARTICLE button beside SEE RESULTS; the explainers intro line; a post link to an https URL with non-ASCII path characters (already accepted; kept as a guard).
+- [x] COMMIT: `test(site): cover the article link` (this commit). RED: site.json rejects `article`, so most suites fail.
+- [ ] Data: 6bbd and 7da5 trace links from release `run-traces-2026-11-12`; site.json `article`; post `2026-11-12-article-1-is-out.md` (operator text, not yet approved for public)
+- [ ] COMMIT: `feat(site): link the article and the last two run traces` (GREEN)
+
 **Landing (private main)**
 - [ ] `just land-join`; ff-only merge once number 1; post-main `just test` in a CPU window; evidence commit; `just land-done`
 

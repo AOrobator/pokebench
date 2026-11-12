@@ -620,4 +620,17 @@ describe("method and credits", () => {
     expect(x).toContain('data-q="alpha *tiles names the four tiles."');
     expect(x).not.toContain("\\*");
   });
+
+  it("links the article from Home beside the results button and from the explainers intro", () => {
+    const out = buildSite(fixture());
+    const home = text(out, "index.html");
+    expect(home).toContain('<a class="go" href="results.html">SEE RESULTS</a><a class="go" href="https://medium.com/@someone/pokébench-the-article-1a2b">READ THE ARTICLE</a>');
+    expect(text(out, "explainers.html")).toContain('The article walks through the harness: <a href="https://medium.com/@someone/pokébench-the-article-1a2b">The Article &amp; More</a>.');
+  });
+
+  it("accepts a post link to an https URL with non-ASCII path characters", () => {
+    const f = fixture();
+    f.posts = [{ name: "2026-11-12-x.md", text: "---\ndate: 2026-11-12\ntitle: T\n---\n\nRead [it](https://medium.com/@someone/pokébench-the-article-1a2b)." }];
+    expect(text(buildSite(f), "updates/2026-11-12-x.html")).toContain('<a href="https://medium.com/@someone/pokébench-the-article-1a2b">it</a>');
+  });
 });

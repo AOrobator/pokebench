@@ -340,3 +340,23 @@ describe("parseSiteData base_url", () => {
     }
   });
 });
+
+describe("parseSiteData article", () => {
+  it("reads the article's title and https URL, keeping non-ASCII characters as given", () => {
+    expect(parseSiteData(fixture().site).article).toEqual({ title: "The Article & More", url: "https://medium.com/@someone/pokébench-the-article-1a2b" });
+  });
+
+  it("rejects an article URL that is not https, has a query or fragment, a user, or a quote, space or angle bracket", () => {
+    for (const url of ["http://medium.com/a", "https://medium.com/a?x=1", "https://medium.com/a#b", "https://u:p@medium.com/a", "https://medium.com/a b", 'https://medium.com/a"b', "https://medium.com/<a>", "medium.com/a"]) {
+      const f = fixture();
+      f.site.article = { title: "T", url };
+      expect(() => parseSiteData(f.site)).toThrow(/article\.url/);
+    }
+  });
+
+  it("rejects unknown article fields", () => {
+    const f = fixture();
+    f.site.article = { title: "T", url: "https://medium.com/a", by: "x" };
+    expect(() => parseSiteData(f.site)).toThrow(/unknown field "by"/);
+  });
+});

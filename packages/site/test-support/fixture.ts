@@ -144,6 +144,7 @@ export function fixture(): FixtureInputs {
     site: {
       github_url: "https://github.com/example/pokebench",
       base_url: "https://example.github.io/pokebench/",
+      article: { title: "The Article & More", url: "https://medium.com/@someone/pokébench-the-article-1a2b" },
       data_date: "2026-11-11",
       cheapest_badges: 5,
       human: { name: "Speedy", note: "for reference" },

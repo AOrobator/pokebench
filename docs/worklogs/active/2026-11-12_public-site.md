@@ -65,7 +65,7 @@ Outcome: `just site` builds Home and the shared layout (header, side buttons, bo
 - [x] Implement: `input.ts` (typed, strict site.json), `milestones.ts`, `standings.ts` (order, best unhelped only when an assisted run leads, cheapest unassisted run with ≥ N badges), `format.ts`, `html.ts` (escaping template), `layout.ts` (header, side buttons for built sections only, relative links), `pages/home.ts`, `check.ts` (zero-network and every-local-reference-resolves, run on every build), `site.ts`, `cli.ts` (disk entrypoint, excluded from coverage). `packages/site/assets/site.css` ports the approved mockup; dark mode is `prefers-color-scheme` with dark window interiors, no script. pixelarticons subset + MIT licence in `assets/icons`; fonts copied from `packages/viewer/static/fonts` with their NOTICE. `just site` builds `site/dist` (gitignored).
 - [x] Cheap checks: site vitest 71/71, coverage 99.15 stmts / 98.03 branches / 100 functions / 100 lines; tsc and eslint clean.
 - [x] Gates (relay START 02:06 ET, RELEASE after): `just lint` exit 0; `just test` exit 0 (site 71, agent 3053, viewer 1313, env 3499, gateway 39; no-I/O guards OK; every floor met); `just verify-vendor` OK after initializing the worktree's submodule from the main checkout's clone (first run failed only because the worktree had no submodule checkout).
-- [x] COMMIT: `feat(site): generate Home from chart data` (this commit)
+- [x] COMMIT: `feat(site): generate Home from chart data` (554b35427)
 - [x] Browser proof: Home at 375/768/834/984/1024/1280 in light and dark, headless Chromium against the pages server (`runs/mockups/site-m1/`): 12/12 with no horizontal scroll, zero external requests, zero console errors or 4xx, fonts loaded, every checked text ≥ 4.5:1. Screenshots opened: light 1280 and dark 375.
 - [ ] Independent review (Claude, GPT/Codex, Grok lanes per execute-worklog)
 
@@ -129,7 +129,13 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 
 ## Multi-Model Review Log
 
-(empty)
+**M1 round 1** (frozen BASE b720e63a6, HEAD 554b35427, diff SHA-256 86b4da78…650cc; principles table zero FAIL).
+- Claude CLI (~/.claude-review, plan mode): VERDICT: LGTM. Non-blocking: checker misses root-absolute and exotic markup; assisted/help not cross-checked; one test name claims a (local) check it lacks; cheapest tile uses whole-run cost (disclosed).
+- Grok (Cursor cursor-grok-4.5-high) and Cursor GPT: unavailable, Cursor usage limit until 11/17 (stderr ActionRequiredError). Per the operator's standing rule (memory claude-review-lane, 2026-10-21/22): Claude + GPT via Codex CLI + one fresh fallback reviewer.
+- GPT (Codex CLI gpt-5.6-sol, read-only): VERDICT: BLOCKING. check.ts accepted single-quoted/unquoted remote src, poster, object data, meta refresh, and resolved root-absolute `/site.css` against the page folder. Follow-ups: unused `raw()`; quadratic join.
+- Fallback subagent (Sonnet, read-only, fresh): VERDICT: LGTM. Non-blocking: earned-order test does not separate from game order; a test name mislabelled; no duplicate-label or furthest-is-latest cross-checks; checker scope.
+- Triage: **Fix** the checker (it is the INV-3 guard; concrete inputs pass wrongly). **Follow-up** (not in this branch): test-name/earned-order test strengthening, assisted⇔help and duplicate-label cross-checks, `raw()` removal, quadratic join, root-relative already fixed here. **Rebut**: cheapest tile wording is the approved plan's rule and is disclosed in the sub-label.
+- Fix: check.ts parses any quoting, treats poster/data/action/formaction/background/xlink:href as URL attributes, flags a network URL inside any other attribute (meta refresh), scans `<style>` bodies, and rejects root-absolute paths. 5 new tests, all red before the fix (guard-bites proof). Site 76/76, 99.2/98.14/100/100; tsc, eslint clean; real `just site` still builds clean. COMMIT: `fix(site): make the network and link check fail closed` (this commit).
 
 ## Boy Scout Log
 

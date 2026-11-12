@@ -26,6 +26,24 @@ describe("problems: zero network (INV-3)", () => {
     expect(problems(new Map([["index.html", page('<div style="background:url(https://x/y.png)"></div>')]]))).toHaveLength(1);
   });
 
+  it("flags remote references however the attribute is quoted", () => {
+    const out = problems(new Map([["index.html", page("<img src='https://x/a.png'><img src=https://x/b.png>")]]));
+    expect(out).toEqual(['index.html: network request to "https://x/a.png"', 'index.html: network request to "https://x/b.png"']);
+  });
+
+  it("flags any attribute that would fetch from the network: poster, object data, meta refresh", () => {
+    const out = problems(new Map([["index.html", page(
+      '<video poster="https://x/p.png"></video><object data="//x/o.swf"></object>',
+      '<meta http-equiv="refresh" content="0; url=https://x/">',
+    )]]));
+    expect(out).toHaveLength(3);
+  });
+
+  it("flags remote url() and @import inside a <style> element", () => {
+    const out = problems(new Map([["index.html", page("", "<style>@import 'https://x/a.css'; .a { background: url(https://x/b.png) }</style>")]]));
+    expect(out).toHaveLength(2);
+  });
+
   it("ignores data: urls and in-page fragments", () => {
     expect(problems(new Map([["index.html", page('<a href="#top">top</a><img src="data:image/png;base64,AAA">')]]))).toEqual([]);
   });
@@ -52,6 +70,18 @@ describe("problems: every local reference resolves", () => {
   it("ignores a query string or fragment on a local link", () => {
     const outputs = new Map<string, string | Uint8Array>([["index.html", page('<a href="index.html#stats">x</a>')]]);
     expect(problems(outputs)).toEqual([]);
+  });
+
+  it("flags a root-absolute path, which breaks when the site is served from a subfolder", () => {
+    const outputs = new Map<string, string | Uint8Array>([["models/a.html", page('<link rel="stylesheet" href="/site.css">')], ["models/site.css", ""], ["site.css", ""]]);
+    expect(problems(outputs)).toEqual(['models/a.html: "/site.css" is root-absolute; use a relative path']);
+  });
+
+  it("checks local references in single-quoted and unquoted attributes too", () => {
+    expect(problems(new Map([["index.html", page("<img src='img/a.png'><img src=img/b.png>")]]))).toEqual([
+      'index.html: "img/a.png" is not a built file',
+      'index.html: "img/b.png" is not a built file',
+    ]);
   });
 
   it("flags a path that climbs out of the site", () => {

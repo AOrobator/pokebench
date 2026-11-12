@@ -1,4 +1,4 @@
-![PokéBench, harness engineering for long-horizon game agents](docs/images/pokebench-header.webp)
+![PokéBench, harness engineering for long-horizon agents: before, 973 presses of UP and 22 minutes facing a wall; after, 7.1 s median time to get upstairs](docs/images/pokebench-header.webp)
 
 # PokéBench
 

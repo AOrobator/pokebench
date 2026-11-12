@@ -35,8 +35,8 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 
 - [x] M1 code + no-I/O tests (12 pass), ruff + mypy clean on the two files.
 - [x] M1 docs: CLAUDE.md Git section, talk-to-codex, talk-to-claude, codex-coordinator, execute-worklog.
-- [ ] M1 commit
-- [ ] Archive dry run, then real run, counts recorded.
+- [x] M1 commit. COMMIT: `feat(agent-mail): mailbox is Codex<->Claude and landing board only` (220c60ce7). Tests: 12 passed (test_agent_mail_addressing.py).
+- [x] Archive run with this branch's code against the real mailroom (2026-11-11 ~21:05 ET). Before: 91 boxes in `to/`, 89 unread letters. Dry run: would move 86. Real run: moved 86 to `runs/agent-mail/archive/2026-11-12/` (83 unread, 298 logged letters intact). After: 5 boxes in `to/` (claude/ended-run-stream-error 3 unread, claude/twins-fake-host 1, codex/fortree-push-preview-plan 1, claude/readme-features-link 0, codex-coordinator 0); a second run moved 0.
 - [ ] Codex review via `just tell-codex`.
 - [ ] Full `just test` / `just lint` (needs a CPU window), cloud review lanes, landing on the operator's own approval.
 

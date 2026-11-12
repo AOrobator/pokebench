@@ -14,7 +14,7 @@ Terminator: RED/GREEN, focused checks, headless browser proof, full gates in rel
 - [x] Browser verification: Chromium + WebKit, 1280/1440/375; six screenshots inspected; native own line 43 points, rewind 40, restored 43; repeated navigation + two polling cycles, no JS errors. Scratch 18796 stopped.
 - [x] Relay CPU START 00:16 ET, RELEASE after proof. Full test/build: agent 3053, viewer 1312, env 3492, gateway 39; coverage + no-I/O proof passed. Full lint, pinned vendor, protected trainer guard and 3 visual checks pass (reuse successful build).
 - [x] Claude CLI and fresh GPT subagent /root/review_splits_replay (fork_turns=none), both VERDICT: LGTM. Grok waived by job. Frozen base 2a2b7dc0f, head 1347c5460, exact binary diff SHA256 c4feadfc31ddbdba25a42797dd994cf61eb51c254f058eaf3793ae75cf6e89f5. Clean pre/post identity verified.
-- [ ] Landing board and post-main test
+- [x] Landing: number 1 with exact Codex thread 00000000-0000-4000-8000-87bb39a7dc99; fast-forward local main 2a2b7dc0f → 8395757e3. No upstream movement; reviewed source byte-identical. Post-main just test/build/coverage/no-I/O proof passed under relay CPU START 00:27 ET, then RELEASE. Counts unchanged (3053/1312/3492/39).
 - [ ] Activation: held for the operator; never run viewer-main here
 
 ## Evidence
@@ -29,3 +29,9 @@ First Claude invocation was invalidated and stopped because the final temporary 
 Detailed synthesis, frozen diff, principles, reviewer and gate/mutation/browser logs: main checkout runs/reviews/splits-replay-line/pb-splits-*. Screenshots: main runs/mockups/splits-replay-line/shots/{chromium,webkit}-{1280,1440,375}.png. Six receipts record 43→40→43 own points; real served baseline ef7d had one own mark/no polyline. No run selections added/removed; only selected graph visibility corrected. Scratch current-projector warning is preview-only; recorded frame and graph work. No live-runtime proof claimed.
 
 COMMIT: `docs(worklog): record replay graph gates and reviews` (this evidence commit).
+
+## Landing receipt
+
+Source merge SHA: 8395757e3c3293072b135bdda5578ce6c5f4e53d. Reviewed application/test bytes match 1347c5460 exactly; only worklog evidence follows. Post-main log: main runs/reviews/splits-replay-line/pb-splits-post-main-test.log. Final evidence commit fast-forwards on the same board slot. Scratch server stopped and owned copied recordings removed. Shared 8790 listener PID 38947 remains on cached 0ac4ac689 build; viewer-main was never run, and no live af33 control actions occurred. Therefore source is landed and verified, activation is held and not claimed live.
+
+COMMIT: `docs(worklog): record replay graph landing and post-main checks` (this evidence-only commit).

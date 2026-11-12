@@ -30,7 +30,7 @@ export function parseCodexProviderConfig(value:unknown):CodexProviderConfig{
 export function directCodexOptions(payload:unknown):Record<string,unknown>{
  const raw=object(payload),rest={...raw};
  delete rest["chat_template_kwargs"];
- return {...rest,store:false,stream:true,reasoning:{...object(raw["reasoning"]??{}),summary:"detailed"}};
+ return {...rest,store:false,stream:true,...(raw["reasoning"]===undefined?{}:{reasoning:{...object(raw["reasoning"]),summary:"detailed"}})};
 }
 export interface TranscriptSink {write(bytes:Uint8Array):void;close(result:{readonly complete:boolean;readonly status:number|null}):void}
 export interface TranscriptPorts {readonly url:string;readonly turn:()=>number;readonly open:(meta:{readonly turn:number;readonly request:string})=>TranscriptSink}
@@ -47,8 +47,15 @@ export function providerTranscriptFetch(base:typeof fetch,ports:TranscriptPorts)
    if(!response.body){close(true);return response;}
    const reader=response.body.getReader();
    const body=new ReadableStream<Uint8Array>({
-    async pull(controller){try{const next=await reader.read();if(next.done){close(true);controller.close();}else{sink.write(next.value);controller.enqueue(next.value);}}catch(error){close(false);controller.error(error);}},
-    async cancel(reason){try{await reader.cancel(reason);}finally{close(false);}},
+    async pull(controller){try{const next=await reader.read();if(next.done){close(true);controller.close();}else{sink.write(next.value);controller.enqueue(next.value);}}catch(error){try{await reader.cancel(error);}catch{/* Preserve the original capture failure. */}close(false);controller.error(error);}},
+    async cancel(reason){
+     // pi stops at response.completed and cancels its parser. Preserve the remaining
+     // upstream bytes through EOF; only an actual request abort cancels the source.
+     try{
+      if(init.signal?.aborted){await reader.cancel(reason);close(false);return;}
+      for(;;){const next=await reader.read();if(next.done){close(true);return;}sink.write(next.value);}
+     }catch(error){close(false);throw error;}
+    },
    });
    return new Response(body,{status:response.status,statusText:response.statusText,headers:response.headers});
   }catch(error){close(false);throw error;}

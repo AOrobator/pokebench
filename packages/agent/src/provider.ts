@@ -17,7 +17,10 @@ export function gatewayLoopConfig(
   extras: SamplingExtras = {},
   effort: string | null = null,
 ): AgentLoopConfig {
-  if (model.api === "openai-codex-responses") return { model, maxTokens:model.maxTokens, convertToLlm:messages=>messages, getApiKey:()=>apiKey, transport:"sse", ...(thinking==="off"?{}:{reasoning:thinking}), onPayload:directCodexOptions };
+  if (model.api === "openai-codex-responses") {
+  if (thinking === "off") throw new Error("Direct Codex provider requires an explicit reasoning level");
+  return { model, maxTokens:model.maxTokens, convertToLlm:messages=>messages, getApiKey:()=>apiKey, transport:"sse", reasoning:thinking, onPayload:directCodexOptions };
+  }
   const vllm = isVllm(model.provider);
   const base: AgentLoopConfig = {
     model,

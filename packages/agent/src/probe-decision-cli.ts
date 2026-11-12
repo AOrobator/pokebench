@@ -119,6 +119,7 @@ export async function readRun(path: string): Promise<RecordedRun> {
 // The lane a probe samples, with its key: the local endpoint file when one is configured (fixed-run GPU lanes), else the gateway.
 export interface ProbeLane { readonly models: GatewayModel[]; readonly apiKey: string | undefined }
 export async function probeLane(config: Pick<PokebenchConfig, "endpoint" | "visionModels">, local = discoverLocal, gateway = discoverModels): Promise<ProbeLane> {
+  if (config.endpoint.kind === "codex") throw new Error("Direct Codex provider currently supports ordinary play, not decision probes");
   if (config.endpoint.kind === "gateway") return { models: await gateway({ gatewayUrl: config.endpoint.url, visionModels: config.visionModels }), apiKey: undefined };
   const endpoint = readEndpoint(config.endpoint.path);
   return { models: await local(endpoint), apiKey: endpoint.apiKey };

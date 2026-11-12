@@ -192,6 +192,7 @@ async function live(directEnabled=false): Promise<Live> {
   const port = configured.port === "" ? allocateGamePort() : Number(configured.port);
   const wanted = requireModel(config);
   const { endpoint } = config;
+  if(directEnabled&&endpoint.kind!=="codex")throw Error("direct-codex-provider-v1 requires POKEBENCH_CODEX_PROVIDER_FILE");
   let lane: { readonly models: GatewayModel[]; readonly baseUrl: string; readonly apiKey: string | undefined };
   if (endpoint.kind === "codex") {
     const direct=readDirectCodexProvider(endpoint.path,wanted,directEnabled);

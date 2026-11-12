@@ -1,6 +1,6 @@
 import {describe,it,expect,vi} from "vitest";
 import {playLoopBase} from "./provider.js";
-import {ALL_ON} from "./features.js";
+import {ALL_ON,SWITCHABLE_FEATURES} from "./features.js";
 import {flagFeatures} from "./play-preset.js";
 import {loadConfig} from "./config.js";
 import {directCodexModel,codexAccessToken,directCodexOptions,providerTranscriptFetch} from "./direct-codex.js";
@@ -13,8 +13,10 @@ describe("direct Codex provider",()=>{
   expect(()=>directCodexModel(cache,"missing",1000,true)).toThrow("not listed");
  });
  it("wires the native provider in the production loop factory and leaves legacy flags off",async()=>{
+  expect(SWITCHABLE_FEATURES.indexOf("direct-codex-provider-v1")).toBe(389);
   const model=directCodexModel(cache,"fixture-model",1000,true);
   const loop=playLoopBase(model,"medium","fixture-auth",1000,ALL_ON);
+  expect(()=>playLoopBase(model,"off","fixture-auth",1000,ALL_ON)).toThrow("explicit reasoning level");
   expect(loop.transport).toBe("sse");expect(loop.reasoning).toBe("medium");
   expect(await loop.onPayload?.({reasoning:{effort:"medium"},input:[]},model)).toMatchObject({reasoning:{summary:"detailed",effort:"medium"}});
   expect(flagFeatures({loopGuard:true,activeUi:true,interfaceDocs:true,objectives:false})["direct-codex-provider-v1"]).toBe(false);
@@ -45,6 +47,15 @@ describe("direct Codex provider",()=>{
   expect(await response.text()).toBe(raw);expect(writes.join("")).toBe(raw);
   expect(opened).toEqual([{turn:7,request:'{"input":["exact observation"]}'}]);
   expect(finished).toEqual([{complete:true,status:200}]);expect(base).toHaveBeenCalledTimes(1);
+ });
+ it("drains trailing raw bytes when the native parser cancels at response.completed",async()=>{
+  const chunks=['data: {"type":"response.completed"}\n\n','trailing record one\n','trailing record two\n'];
+  let n=0;const writes:string[]=[],close=vi.fn();
+  const body=new ReadableStream<Uint8Array>({pull(controller){const next=chunks[n++];if(next===undefined)controller.close();else controller.enqueue(new TextEncoder().encode(next));}});
+  const f=providerTranscriptFetch(()=>Promise.resolve(new Response(body)),{url:"https://fixture/responses",turn:()=>1,open:()=>({write:bytes=>writes.push(new TextDecoder().decode(bytes)),close})});
+  const response=await f("https://fixture/responses",{method:"POST",body:"{}"});if(!response.body)throw Error("Missing body");const reader=response.body.getReader();
+  await reader.read();await reader.cancel();
+  expect(writes.join("")).toBe(chunks.join(""));expect(close).toHaveBeenCalledWith({complete:true,status:200});
  });
  it("fails before sending when request capture fails, and reports interrupted response capture",async()=>{
   const base=vi.fn(()=>Promise.resolve(new Response("bytes")));

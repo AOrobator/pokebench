@@ -1,3 +1,4 @@
+import {currentView,emptyCurrent,foldCurrent} from "./current-state.js";
 import { configuration } from "./run-config.js";
 import { runDetails } from "./workbench-view.js";
 import { parseWorkbench } from "./workbench-data.js";
@@ -242,7 +243,7 @@ describe("splits", () => {
 });
 
 describe("thinkingDialog", () => {
-  it("keeps commentary beside reasoning and retains its source turn across tool-only turns",()=>{
+  it("keeps commentary beside reasoning and retains its source turn while waiting for the next reply",()=>{
     const log=bare();
     log.add(100,assistant({turn:1,thinking:"Summary <one>",text:"Commentary <two>"}));
     const both=thinkingDialog(view(log),BASE_MS+100).body;
@@ -250,11 +251,12 @@ describe("thinkingDialog", () => {
     expect(both).toContain("MODEL COMMENTARY");expect(both).toContain("Commentary &lt;two&gt;");
     log.add(200,assistant({turn:2,thinking:"",text:""}));
     expect(thinkingDialog(view(log),BASE_MS+200).body).toContain("No commentary or reasoning returned for turn 2.");
-    expect(thinkingDialog(view(log),BASE_MS+200).body).toContain("Last available text · turn 1");
+    expect(thinkingDialog(view(log),BASE_MS+200).body).not.toContain("Commentary &lt;two&gt;");
+    log.add(250,assistant({turn:2,thinking:"",text:"Commentary <three>"}));
     log.add(300,{type:"turn_start",turn:3,context:{messages:1,images:0,est_tokens:1}});
     const waiting=thinkingDialog(view(log),BASE_MS+400).body;
-    expect(waiting).toContain("Waiting for model text");expect(waiting).toContain("Last available text · turn 1");
-    expect(waiting).toContain("Commentary &lt;two&gt;");
+    expect(thinkingDialog(view(log),BASE_MS+400).head).toContain("AGENT is thinking");expect(waiting).toContain("Last available text · turn 2");
+    expect(waiting).toContain("Commentary &lt;three&gt;");
     log.add(500,{type:"assistant_delta",turn:3,thinking:"",text:"Fresh"});
     const streaming=thinkingDialog(view(log),BASE_MS+600).body;
     expect(streaming).toContain("Fresh");expect(streaming).not.toContain("Commentary &lt;two&gt;");
@@ -266,7 +268,7 @@ describe("thinkingDialog", () => {
     log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
     const dialog = thinkingDialog(view(log), BASE_MS + 4200);
     expect(dialog.head).toBe("AGENT is thinking… 3.2s");
-    expect(dialog.body).toBe('<span class="cursor"></span>');
+    expect(dialog.body).toContain('Waiting for model text · turn 1');
   });
 
   it("streams the thinking and reply text as deltas arrive", () => {
@@ -276,7 +278,8 @@ describe("thinkingDialog", () => {
     log.add(1800, { type: "assistant_delta", turn: 1, thinking: " the screen.", text: "Go" });
     const dialog = thinkingDialog(view(log), BASE_MS + 2000);
     expect(dialog.head).toBe("AGENT is thinking… 1.0s");
-    expect(dialog.body).toBe('Look &lt;at&gt; the screen.<span class="reply">Go</span><span class="cursor"></span>');
+    expect(dialog.body).toContain('Look &lt;at&gt; the screen.');
+    expect(dialog.body).toContain('<span class="reply">Go</span>');
   });
 
   it("starts each turn's stream empty", () => {
@@ -284,19 +287,20 @@ describe("thinkingDialog", () => {
     log.add(1000, { type: "turn_start", turn: 1, context: { messages: 1, images: 0, est_tokens: 1 } });
     log.add(1500, { type: "assistant_delta", turn: 1, thinking: "old", text: "" });
     log.add(1600, { type: "turn_start", turn: 2, context: { messages: 1, images: 0, est_tokens: 1 } });
-    expect(thinkingDialog(view(log), BASE_MS + 2000).body).toBe('<span class="cursor"></span>');
+    expect(thinkingDialog(view(log), BASE_MS + 2000).body).toContain('Waiting for model text · turn 2');
+    expect(thinkingDialog(view(log), BASE_MS + 2000).body).not.toContain('old');
   });
 
   it("shows the last full thinking block once the reply lands", () => {
     const dialog = thinkingDialog(view(fullRun()), END);
-    expect(dialog.head).toBe("AGENT thought for 4.0s · turn 2");
-    expect(dialog.body).toBe("Again.");
+    expect(dialog.head).toBe("AGENT replied in 4.0s · turn 2");
+    expect(dialog.body).toContain("Again.");
   });
 
   it("shows the reply when there was no thinking", () => {
     const log = bare();
     log.add(1, assistant({ thinking: "", text: "DONE <x>" }));
-    expect(thinkingDialog(view(log), BASE_MS).body).toBe('<span class="nodata">no thinking recorded</span> DONE &lt;x&gt;');
+    expect(thinkingDialog(view(log), BASE_MS).body).toContain('<span class="reply">DONE &lt;x&gt;</span>');
   });
 
   it("says the run ended when it ended before any reply", () => {
@@ -1480,4 +1484,20 @@ it("links the Dive and native screen correctness card",async()=>{
  const card=must(doc.querySelector(`[data-feature="${id}"]`));
  expect(card.querySelector("a")?.getAttribute("href")).toBe(`/explainers/${id}.html`);
  expect(card.textContent).toContain("NOT RECORDED");
+});
+
+it("links the decision commentary feature card to its explainer",()=>{
+ const id="decision-commentary-v1",v=new RunView();v.apply(new Log().add(0,{...START,harness_features:[id]}));
+ const doc=new Window().document;doc.body.innerHTML=harnessConfig(v,FEATURES);
+ expect(FEATURE_EXPLAINERS[id]).toBe(`${id}.html`);
+ expect(doc.querySelector(`[data-feature="${id}"] a[href="/explainers/${id}.html"]`)?.textContent).toContain("READ EXPLAINER");
+});
+
+it("retains preceding commentary in the production current snapshot while a new turn waits",()=>{
+ const log=bare();log.add(10,assistant({turn:1,thinking:"summary",text:"An observed decision"}));
+ log.add(20,{type:"turn_start",turn:2,context:{messages:1,images:0,est_tokens:1}});
+ const checkpoint=log.events.reduce((s,e)=>foldCurrent(s,e),emptyCurrent());
+ const body=thinkingDialog(currentView(checkpoint),BASE_MS+30).body;
+ expect(body).toContain("Last available text · turn 1");expect(body).toContain("An observed decision");
+ expect(body).toContain("REASONING SUMMARY");
 });

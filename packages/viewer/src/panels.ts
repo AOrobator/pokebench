@@ -184,25 +184,33 @@ export function splits(view: RunView, baseline: Baseline | null, nowMs: number, 
   return { summary, table: `${compact ? "" : labels}<table class="splits"><thead><tr><th>Milestone</th><th>Current</th>${compact ? "" : "<th>Baseline<br>time / Δ</th><th>Frontier<br>time / Δ</th>"}</tr></thead><tbody>${rows.join("")}</tbody></table>` };
 }
 
+function modelText(thought: { thinking: string; reply: string }): string {
+  const reasoning = thought.thinking.trim() === "" ? "" : `<span class="nodata">REASONING SUMMARY</span>\n${esc(thought.thinking)}`;
+  const commentary = thought.reply.trim() === "" ? "" : `<span class="nodata">MODEL COMMENTARY</span>\n<span class="reply">${esc(thought.reply)}</span>`;
+  return [reasoning, commentary].filter(Boolean).join("\n\n");
+}
+
 export function thinkingDialog(view: RunView, nowMs: number): { head: string; body: string } {
   if (view.start === null) return { head: "NO RUN", body: NO_DATA };
   if (view.start.harness_features.includes("probe")) {
     const last = view.events.findLast((event) => event.type === "tool_result");
     return { head: `MANUAL PROBE · step ${String(view.turn)}`, body: last?.type === "tool_result" ? esc(last.text) : NO_DATA };
   }
+  const previous = view.lastThought;
+  const attributed = (thought: { turn: number; thinking: string; reply: string }): string => `<span class="nodata">Last available text · turn ${String(thought.turn)}</span>\n${modelText(thought)}`;
+  const retained = previous === null || modelText(previous) === "" ? "" : attributed(previous);
   if (view.isThinking && view.turnStartMs !== null) {
-    const { thinking, text } = view.streaming;
-    const reply = text === "" ? "" : `<span class="reply">${esc(text)}</span>`;
+    const current = modelText({ thinking: view.streaming.thinking, reply: view.streaming.text });
     return {
       head: `AGENT is thinking… ${((nowMs - view.turnStartMs) / 1000).toFixed(1)}s`,
-      body: `${esc(thinking)}${reply}<span class="cursor"></span>`,
+      body: current === "" ? `${retained || `<span class="nodata">Waiting for model text · turn ${String(view.turn)}</span>`}<span class="cursor"></span>` : `${attributed({turn:view.turn,thinking:view.streaming.thinking,reply:view.streaming.text})}<span class="cursor"></span>`,
     };
   }
   const thought = view.lastThought;
   if (thought === null) return { head: view.end === null ? "AGENT is waiting…" : `RUN ENDED · ${view.end.reason}`, body: NO_DATA };
-  const head = `AGENT thought for ${(thought.latencyMs / 1000).toFixed(1)}s · turn ${String(thought.turn)}`;
-  if (thought.thinking !== "") return { head, body: esc(thought.thinking) };
-  return { head, body: `<span class="nodata">no thinking recorded</span> ${esc(thought.reply)}` };
+  const head = `AGENT replied in ${(thought.latencyMs / 1000).toFixed(1)}s · turn ${String(thought.turn)}`;
+  const current = modelText(thought);
+  return { head, body: current === "" ? `<span class="nodata">No commentary or reasoning returned for turn ${String(thought.turn)}.</span>` : attributed(thought) };
 }
 
 function chip(button: string): string {
@@ -705,6 +713,7 @@ export const FEATURE_EXPLAINERS:Readonly<Record<string,string>>=Object.freeze({
  "foe-trainer-items-v1":"foe-items-league-stock.html",
  "league-stock-up-v1":"foe-items-league-stock.html",
  "direct-codex-provider-v1":"direct-codex-provider-v1.html",
+ "decision-commentary-v1":"decision-commentary-v1.html",
  "menu-option-null-id-v1":"menu-option-null-id-v1.html",
  "fail-open-input-v1":"fail-open-input-v1.html",
  "whiteout-healed-v1":"whiteout-healed-v1.html",

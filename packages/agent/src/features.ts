@@ -399,6 +399,7 @@ export const SWITCHABLE_FEATURES = [
   "league-stock-up-v1",
   "menu-option-null-id-v1",
   "direct-codex-provider-v1",
+  "decision-commentary-v1",
 ] as const;
 export type SwitchableFeature = (typeof SWITCHABLE_FEATURES)[number];
 
@@ -919,6 +920,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   on("league-stock-up-v1", "guidance", "LEAGUE STOCK-UP", null, "Custom-lane knowledge switch (the operator 2026-11-11: the Rayquaza lane and the Opus Rayquaza lane only). Run 67d7 walked into the Elite Four with ₽130,696 and no healing items, lost to GLACIA, and the whiteout halved its money. On the first field result after each arrival in EVER GRANDE CITY POKEMON LEAGUE 1F, one paragraph: past the north door the ELITE FOUR and the CHAMPION are fought back to back with no POKéMON CENTER between them, so the BAG is the only healing; each ELITE FOUR member carries 2 FULL RESTOREs and the CHAMPION 4; a loss sends you back to this lobby (its OnTransition sets the respawn), halves your money and restarts the ELITE FOUR from the first room; becoming CHAMPION is the end goal, so money kept back has no later use; the lobby mart's healing prices (pret EverGrandeCity_PokemonLeague_1F mart and items.h: HYPER POTION ₽1,200, MAX POTION ₽2,500, FULL RESTORE ₽3,000, FULL HEAL ₽600, REVIVE ₽1,500); your money and BAG healing and status items. It names no amount to buy: that is the model's call. Off: no paragraph."),
   on("menu-option-null-id-v1", "observation", "START MENU SELECTION", null, "A correctness fix, meant ON. The START menu has no menu id, and select_menu_option tells the model to copy null, but the agent's argument validation converts menu_id null to 0 before the tool runs, so every START-menu selection was refused as not ready. On, a menu with no id accepts menu_id null or 0; a menu with a real id still needs that exact id. The prompt text is unchanged. Off: the id must match exactly, so START-menu selections are refused."),
   on("direct-codex-provider-v1", "observation", "DIRECT CODEX PROVIDER", null, "Use the native Codex Responses provider inside the existing game loop and archive full request/response bytes. Off: keep the existing Chat Completions provider path; direct-provider configuration is rejected."),
+  on("decision-commentary-v1", "observation", "DECISION COMMENTARY", null, "Ask for one or two short sentences explaining the observed evidence, intent and chosen action before each tool call. Saved as model commentary, separate from reasoning. Off: leave the gameplay prompt unchanged."),
 ];
 
 export const ALL_ON: FeatureSet = Object.fromEntries(SWITCHABLE_FEATURES.map((id) => [id, true])) as Record<SwitchableFeature, boolean>;
@@ -1433,6 +1435,7 @@ export function playHarnessFeatures(features: FeatureSet, target: string | null)
     ...when("league-stock-up-v1"),
     ...when("menu-option-null-id-v1"),
     ...when("direct-codex-provider-v1"),
+    ...when("decision-commentary-v1"),
   ];
 }
 

@@ -18,7 +18,7 @@ in the reference run 67d7.
 Status sections record what was true when each page was written: the tests, live proofs and
 reviews at that time. Older pages can describe workflows the project has since retired.
 
-346 explainers: 134 what the model sees, 118 guidance and tools, 78 guards and loop breakers, 5 measurement, 11 harness, viewer and tooling.
+347 explainers: 135 what the model sees, 118 guidance and tools, 78 guards and loop breakers, 5 measurement, 11 harness, viewer and tooling.
 
 ## What the model sees
 
@@ -52,6 +52,7 @@ Readouts built from game memory and placed beside the screenshot: maps, people, 
 - [Complete Claude turn delivery](md/gateway-current-turn-v1.md) · [HTML](gateway-current-turn-v1.html) — The gateway saves screenshot handles from the same selected messages it renders into the Claude prompt, preserving their order.
 - [Conversation ledger](md/instruction-ledger-v2.md) · [HTML](instruction-ledger-v2.html) — Every observe, press and navigate_to result on the free overworld gets one block right under the readout's Story line.
 - [Cutscene journal](md/cutscene-journal-v1.md) · [HTML](cutscene-journal-v1.html) — Preserve what happened between the model’s game observations.
+- [Decision commentary](md/decision-commentary-v1.md) · [HTML](decision-commentary-v1.html) — Brief explanations of the agent’s choices, recorded beside its actions.
 - [Dewford readout fixes](md/dewford-readout-fixes.md) · [HTML](dewford-readout-fixes.html) — Three switches, each default OFF, fix readouts that misled bundle run 2026-10-27T17-35-16_qwen36-gpu0_a702 after it received Mr. Stone's letter (turn 630):
 - [Direct Codex provider](md/direct-codex-provider-v1.md) · [HTML](direct-codex-provider-v1.html) — The existing PokeBench loop sends its normal observations and tools directly through pi’s Codex Responses provider.
 - [Displayed place names](md/displayed-place-names-v1.md) · [HTML](displayed-place-names-v1.html) — Signs and the Littleroot buildings they name used to be labelled from the game's source code: the script symbol LittlerootTown_EventScript_MaysHouseSign became Mays House Sign, and the map constant became LITTLEROOT…

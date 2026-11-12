@@ -167,6 +167,17 @@ def archivable(entries: Iterable[str]) -> list[str]:
     return sorted(e for e in entries if e != "lock")
 
 
+def held_claims(entries: Iterable[str], alive: Callable[[int], bool]) -> list[str]:
+    """Claim files of forwarders still alive: their letters are printed but not yet acknowledged."""
+    held = []
+    for entry in entries:
+        pid = entry.removeprefix("delivering-").removesuffix(".jsonl")
+        if entry.startswith("delivering-") and entry.endswith(".jsonl") and pid.isdigit():
+            if alive(int(pid)):
+                held.append(entry)
+    return sorted(held)
+
+
 def preflight(
     command: str,
     *,
@@ -479,6 +490,9 @@ def archive_boxes(
         with nullcontext() if dry_run else box.locked():
             files = archivable(entry.name for entry in source.iterdir())
             if not files:
+                continue
+            if held_claims(files, alive):
+                kept.append((name, "a live forwarder holds unacknowledged letters"))
                 continue
             if listening(box):
                 kept.append((name, "a listener is waiting on it"))
@@ -1016,14 +1030,17 @@ def main(
     archive.add_argument("--into", default=None, help="archive folder name (default: UTC date)")
     args = parser.parse_args(argv)
 
-    refusal, args.address = preflight(
-        args.command,
-        to=getattr(args, "to", None),
-        address=getattr(args, "address", None),
-        environ=environ,
-        branches=branches,
-        branch=branch,
-    )
+    try:
+        refusal, args.address = preflight(
+            args.command,
+            to=getattr(args, "to", None),
+            address=getattr(args, "address", None),
+            environ=environ,
+            branches=branches,
+            branch=branch,
+        )
+    except subprocess.CalledProcessError:
+        refusal = "Not sent: git could not list this repository's branches; run from the repo."
     if refusal is not None:
         print(refusal, file=sys.stderr)
         return 2

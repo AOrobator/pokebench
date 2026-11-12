@@ -22,8 +22,8 @@ feature-worklog, talk-to-codex, execute-worklog (scope only; landing waits for C
 
 ## Invariants
 
-- INV-1: no letter is sent to a box no session can read while the switch is on. Test: `test_tell_claude_refuses_an_unread_branch_before_touching_the_mailroom`.
-- INV-2: switch off is the previous behavior (no branch lookup). Test: `test_tell_claude_with_the_switch_off_does_not_check_branches`.
+- INV-1: no letter is sent to a box no session can read while the switch is on. Test: `test_preflight_refuses_tell_claude_to_an_unread_branch`.
+- INV-2: switch off is the previous behavior (no branch lookup). Test: `test_preflight_with_the_switch_off_does_not_check_branches`.
 - INV-3: archive never deletes and never moves a live branch's, reserved or listened box. Tests: `test_stale_boxes_*`; real dry run before real run.
 - INV-4: relay (no `--for`) and landing board unchanged. Test: `test_own_address_keeps_the_relay_and_named_boxes`.
 
@@ -40,9 +40,9 @@ Argv-list subprocesses only (`git worktree list --porcelain`, `git branch --show
 - [x] Codex review r1 (job review-claude-mailbox-codex-only-r1, head f75ef4eb4): VERDICT: CHANGES. P2 archive rename strands a sender waiting on the box lock (FileNotFoundError); P2 the five main() tests trip the no-I/O guard via argparse gettext os.stat (5 fail, 7 pass under uv's CPython 3.11.16; my earlier 12-pass run used the main checkout's venv and did not reproduce it).
 - [x] r1 fixes: archive moves a box's files but leaves the folder and its lock file, so a waiting caller still finds the folder; the address checks moved into pure `preflight()`, tested without building a parser. 14 passed via `uv run --project env python -m pytest -q -p no:cacheprovider env/tests/env/test_agent_mail_addressing.py` and from env/. Scratchpad race rehearsal (temp dir, not a test): a sender queued behind the archive lock returned normally and its letter landed in the emptied box.
 - [x] Codex review r2 (job review-claude-mailbox-codex-only-r2, frozen base 306a6e8d8, head dd13d0687): VERDICT: LGTM. Codex reran both uv commands (14 passed) and a temp-mailroom rehearsal.
-- [ ] Claude review lane (fresh subagent on 306a6e8d8..1108da7ac, diff + worklog only).
+- [x] Claude review lane (fresh subagent on 306a6e8d8..1108da7ac, diff + worklog only): VERDICT: LGTM, no P1/P2. P3 fixes in the next commit: worklog test names, archive skips a box whose `delivering-<pid>.jsonl` belongs to a live forwarder (`held_claims`), a git failure in the strict check refuses with a message instead of a traceback. P3 untested I/O helpers noted; env floor still holds. 15 focused tests pass from the branch env.
 - [-] Grok lane skipped: Grok is out until 2026-11-17 (project coordinator note, 2026-11-12 02:04Z).
-- [ ] Full `just test` / `just lint` after a CPU START from the relay (requested 2026-11-11 ~9:05 PM ET).
+- [~] CPU START granted 9:05 PM ET. `just test` and `just lint` stop at the node legs: the worktree has no node_modules (`tsc: command not found`; `pnpm install` not run, no installs allowed). Python legs at the fix head: env pytest 3461 passed, coverage lines 84.28 / branches 78.26 / functions 79.55 (floor 69); claude-gateway 39 passed, gate 46.25/42.86/23.60 (floor 22); explainer-twins-check up to date; env ruff check, ruff format --check, mypy clean. `just no-io-proof` fails only on its vitest half for the same missing node_modules. Node legs (pnpm build/coverage/lint, vitest no-io-proof) still to run; the branch changes no TypeScript.
 - [ ] Landing on the operator's own approval in the project thread.
 
 ## Closing the Loop

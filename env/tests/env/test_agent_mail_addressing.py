@@ -4,6 +4,7 @@ from pokebench_env.agent_mail import (
     CODEX_COORDINATOR,
     MINE,
     archivable,
+    held_claims,
     own_address,
     preflight,
     stale_boxes,
@@ -155,3 +156,9 @@ def test_archivable_keeps_the_lock_file_in_place() -> None:
         "pending.jsonl",
     ]
     assert archivable(["lock"]) == []
+
+
+def test_held_claims_finds_live_forwarders_only() -> None:
+    entries = ["delivering-11.jsonl", "delivering-22.jsonl", "delivering-x.jsonl", "log.jsonl"]
+    assert held_claims(entries, lambda pid: pid == 22) == ["delivering-22.jsonl"]
+    assert held_claims(entries, lambda pid: False) == []

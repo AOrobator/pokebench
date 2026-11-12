@@ -32,10 +32,6 @@ Every run is recorded, and the viewer replays it with the game screen, the model
 
 ![The viewer replaying the end of Opus's single-run clear](docs/images/viewer-run.webp)
 
-The frontier page puts the best run overall beside the best unhelped one, and plots every recorded run against the story checkpoints.
-
-![The story frontier, with the heavily assisted Opus clear beside the best unhelped run](docs/images/viewer-frontier.webp)
-
 The splits page races one run against the frontier, badge by badge, with the story graph and where both runs are on the map.
 
 ![The splits page racing Opus's clear against the frontier, grouped by badge](docs/images/viewer-splits.webp)

@@ -20,8 +20,9 @@ Ten prose-only README.md files: `docs/`, `docs/designs/`, `docs/findings/`, `doc
 
 **M1**
 - [x] Ten READMEs written; links and privacy checked
-- [ ] Independent review (Codex)
-- [ ] Land; scrub-sync into the public copy
+- [x] Independent review: GPT round 3 `VERDICT: LGTM` (rounds 1-2 BLOCKING on accuracy, fixed)
+- [x] Landed fast-forward at 8cd134dca as number 1 on the board (rebased onto 4125c5a77, patch-id 952492d871a4 unchanged). Prose only, so no application gates per the bounded landing workflow
+- [ ] Scrub-sync into the public copy
 
 ## Session Log
 

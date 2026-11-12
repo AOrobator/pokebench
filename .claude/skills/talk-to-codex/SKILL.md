@@ -9,6 +9,16 @@ Claude threads and Codex sessions both work in `~/dev/pokebench` and land on loc
 
 Operator decision 2026-10-21: agents talk to each other directly. There is no git lock; the board only works if every lander uses it.
 
+## What the mailbox is for
+
+Operator decision 2026-11-12: the mailbox carries Codex↔Claude letters and landing-board notices only.
+
+- A cloud project thread reaches its Mac work through that thread's own Remote Control session. The operator's messages in the thread arrive there as the operator's own words, so approvals reach the session that needs them. Never route a thread's request through a branch mailbox.
+- A Claude session on the Mac reaches another Claude session with SendMessage to its session name (ListAgents lists them), not by mail.
+- `just tell-claude --to <branch>` refuses, with exit code 2, a branch no worktree has checked out: no session would ever read it. `POKEBENCH_AGENT_MAIL_STRICT_TO=0` turns the check off.
+- One owner per request. The coordinator's Mac relay session acts only on asks addressed to the relay. When a thread's own Mac session owns a request, the relay does not also act on it; on 2026-11-11 a README screenshot ask was built twice because both did.
+- Mailboxes of branches no worktree has checked out are archived, never deleted, with `just mail-archive --dry-run`, then `just mail-archive` (to `runs/agent-mail/archive/<UTC date>/`).
+
 ## Shared CPU windows
 
 The Claude relay (the “Claude and Codex coordination” thread, reached via `just tell-claude`) grants heavy-CPU START/RELEASE windows. Do not start a full suite (`just test`, `just coverage`, `just lint`), full build or gate chain until it grants a window. Targeted single-file tests are always fine; do not disguise a full suite as many focused jobs. Pass the cheap checks in `execute-worklog` before requesting full gates, and inspect recipe prerequisites for hidden builds. Send RELEASE on completion, failure or cancellation; hold no window while fixing or awaiting review. A required post-merge check has priority over new branch gates. An explicitly granted quiet measurement window blocks heavy jobs until released. CPU coordination does not reserve the landing board or authorize gameplay/refreshes.
@@ -19,7 +29,7 @@ A gameplay clearance from the relay grants a resource window (endpoints, ports, 
 
 0. Get ready first: merge current `main` into your branch, pass the gates and get the review verdicts that `.claude/skills/execute-worklog/SKILL.md` requires. Number 1 has only 30 minutes, so never join to do this work.
 1. `just land-join --who "claude: <thread title>" --branch <your branch>`.
-2. Number 1 means you are landing now. Anything else means wait: run `just claude-mailbox --for <your branch> --timeout 540` with `run_in_background` and stop. That is your own mailbox: board notices for your branch go there and nowhere else. The board mails you "your turn to land <branch>" when the slot reaches you. Each time the mailbox returns, also run `just land-board`, since another listener may have taken your letter; handle other letters as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
+2. Number 1 means you are landing now. Anything else means wait: from your worktree, run `just claude-mailbox --for --timeout 540` (a bare `--for`, or `--mine`, reads the branch checked out there) with `run_in_background` and stop. That is your own mailbox: board notices for your branch go there and nowhere else. The board mails you "your turn to land <branch>" when the slot reaches you. Each time the mailbox returns, also run `just land-board`, since another listener may have taken your letter; handle other letters as "Being the mailbox listener" says and start it again. While waiting, `just land-board` shows the queue.
 3. Land as `.claude/skills/execute-worklog/SKILL.md` says, including the evidence commit. If `main` moved since your review, apply the upstream-impact/evidence-reuse rules in `execute-worklog`. Unchanged feature/unaffected contracts retain receipts; release the slot if correction, review or a prelanding full gate is needed, then prepare off-board and rejoin.
 4. `just land-done --branch <your branch>`. That tells the next entry it is up: a Codex session the same way as `just tell-codex` (the Codex coordinator when it is listening, else `codex queue`), a Claude thread through its mailbox. If `codex queue` fails, `land-done` exits non-zero and prints the `just tell-codex` command to send by hand. Send it.
 
@@ -67,7 +77,7 @@ The coordinator runs in the cloud and cannot listen on this Mac. The listener is
 
 Letters with no addressee (`just tell-claude` without `--to`) go to the shared relay mailbox. One thread listens there and relays; every thread waiting to land listens on its own mailbox with `--for <branch>`.
 
-1. Run `just claude-mailbox --timeout 540` with `run_in_background` (the relay; add `--for <branch>` for your own mailbox). It returns when mail arrives, or straight away if mail is already waiting. The timeout stays under the background-command limit, so the listener is never killed mid-wait; a killed or interrupted listener leaves its letters pending.
+1. Run `just claude-mailbox --timeout 540` with `run_in_background` (the relay; add a bare `--for` in your worktree for your own branch's mailbox). It returns when mail arrives, or straight away if mail is already waiting. The timeout stays under the background-command limit, so the listener is never killed mid-wait; a killed or interrupted listener leaves its letters pending.
 2. Read the letters it printed. Act on any about your own work. Relay every other letter to the coordinator with `send_message` (`session_id` `@parent`, `visibility` `sent_to_shared_agent`), quoting it whole.
 3. Start `just claude-mailbox --timeout 540` again right away. Exit code 3 means the timeout passed with no mail; restart it the same way.
 
@@ -88,7 +98,8 @@ Without crashes, only one listener receives each letter. If two threads listen, 
 | `just codex-mailbox [--timeout S]` / `just codex-mailbox-done --claim N` | The Codex coordinator's listener and acknowledgement (Codex side only) |
 | `just codex-wake-watch <coordinator thread id>` | Start once, detached: LLM-free watcher that wakes the idle Codex coordinator when mail arrives |
 | `just codex-sessions [--limit N]` | Recent Codex session names |
-| `just tell-claude [--from W] [--to BRANCH] "<message>"` | Leave a letter for Claude: one thread's branch, or the relay |
-| `just claude-mailbox [--for BRANCH] [--timeout S]` | Wait for letters to your branch, or to the relay; run in the background |
+| `just tell-claude [--from W] [--to BRANCH] "<message>"` | Leave a letter for Claude: a checked-out branch (refused otherwise), or the relay |
+| `just claude-mailbox [--for [BRANCH] \| --mine] [--timeout S]` | Wait for letters to a branch (bare `--for`/`--mine`: the one checked out here), or to the relay; run in the background |
+| `just mail-archive [--dry-run]` | Archive mailboxes of branches no worktree has checked out |
 
 The Codex side of this is `.claude/skills/talk-to-claude/SKILL.md`.

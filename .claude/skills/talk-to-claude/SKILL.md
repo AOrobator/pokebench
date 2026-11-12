@@ -30,7 +30,7 @@ Never merge into main while another branch is number 1 on `just land-board`. Nev
 
 ## Telling Claude something
 
-`just tell-claude --from "codex: <session name>" "<message>"` reaches the Claude relay, which passes it on. To reach the Claude thread working on a particular branch, add `--to <its branch>`.
+`just tell-claude --from "codex: <session name>" "<message>"` reaches the Claude relay, which passes it on. To reach the Claude thread working on a particular branch, add `--to <its branch>`. That branch must be checked out in a worktree; otherwise the command refuses with exit code 2, because no Claude session would read it. The mailbox is for Codex↔Claude letters and the landing board only (operator decision 2026-11-12): cloud project threads reach their Mac work through their own Remote Control sessions, not by mail.
 
 - "Delivered" means a listening Claude was woken and will read it next.
 - "Saved for the next mailbox" means no Claude is listening right now. It will be read when one starts. If it is urgent, also tell the user.

@@ -18,12 +18,12 @@ import shlex
 import subprocess
 import sys
 import time
-from collections.abc import Callable, Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 from zoneinfo import ZoneInfo
 
 NEW_YORK = ZoneInfo("America/New_York")
@@ -100,6 +100,107 @@ def repo_root(cwd: Path) -> Path:
         text=True,
     ).stdout.strip()
     return Path(common).resolve().parent
+
+
+# Off restores the old behavior: `tell-claude --to` opens a box for any name, read or not.
+STRICT_TO_SWITCH = "POKEBENCH_AGENT_MAIL_STRICT_TO"
+# Mailboxes that are not branches but are read: the Codex coordinator's forwarding box.
+RESERVED_BOXES = frozenset({CODEX_COORDINATOR})
+# `claude-mailbox --for` with no value: the branch checked out where it runs.
+MINE = ""
+
+
+def strict_to(environ: Mapping[str, str]) -> bool:
+    return environ.get(STRICT_TO_SWITCH, "1").strip().lower() not in {"0", "off", "false", "no"}
+
+
+def worktree_branches(porcelain: str) -> frozenset[str]:
+    """Branches checked out in any worktree, from `git worktree list --porcelain`."""
+    prefix = "branch refs/heads/"
+    return frozenset(
+        line.removeprefix(prefix) for line in porcelain.splitlines() if line.startswith(prefix)
+    )
+
+
+def checked_out_branches(cwd: Path) -> frozenset[str]:
+    listing = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return worktree_branches(listing)
+
+
+def current_branch(cwd: Path) -> str:
+    return subprocess.run(
+        ["git", "branch", "--show-current"], cwd=cwd, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def unread_address(address: str, branches: frozenset[str]) -> str | None:
+    """Why no one would read a letter to `address`, or None when a session can."""
+    if address in RESERVED_BOXES or address in branches:
+        return None
+    return (
+        f"Not sent: no worktree has branch {address!r} checked out, so no Claude session would "
+        "read this letter. This mailbox is only for Codex and Claude and the landing board. A "
+        "cloud thread reaches its Mac session through that thread's own Remote Control session. "
+        "A Claude session on this Mac reaches another with SendMessage to its session name "
+        "(ListAgents lists them). To reach the Claude relay, leave out --to."
+    )
+
+
+def own_address(requested: str | None, branch: Callable[[], str]) -> str | None:
+    """The mailbox a listener reads: the relay (None), a named box, or its own branch."""
+    if requested != MINE:
+        return requested
+    mine = branch()
+    if not mine:
+        raise ValueError("--for with no branch needs a checked-out branch here (HEAD is detached)")
+    return mine
+
+
+def archivable(entries: Iterable[str]) -> list[str]:
+    """A box's files to archive: everything but the lock file that waiting callers hold."""
+    return sorted(e for e in entries if e != "lock")
+
+
+def held_claims(entries: Iterable[str], alive: Callable[[int], bool]) -> list[str]:
+    """Claim files of forwarders still alive: their letters are printed but not yet acknowledged."""
+    held = []
+    for entry in entries:
+        pid = entry.removeprefix("delivering-").removesuffix(".jsonl")
+        if entry.startswith("delivering-") and entry.endswith(".jsonl") and pid.isdigit():
+            if alive(int(pid)):
+                held.append(entry)
+    return sorted(held)
+
+
+def preflight(
+    command: str,
+    *,
+    to: str | None,
+    address: str | None,
+    environ: Mapping[str, str],
+    branches: Callable[[], frozenset[str]],
+    branch: Callable[[], str],
+) -> tuple[str | None, str | None]:
+    """Check addresses before the mailroom opens: (refusal, mailbox address to read)."""
+    if command == "tell-claude" and to is not None and strict_to(environ):
+        return unread_address(to, branches()), address
+    if command == "claude-mailbox":
+        try:
+            return None, own_address(address, branch)
+        except ValueError as error:
+            return str(error), address
+    return None, address
+
+
+def stale_boxes(boxes: Iterable[str], branches: frozenset[str]) -> list[str]:
+    """Mailboxes no session reads: not a checked-out branch and not reserved."""
+    return sorted(b for b in boxes if b not in branches and b not in RESERVED_BOXES)
 
 
 @dataclass(frozen=True)
@@ -347,6 +448,64 @@ def wait_for_mail(
         # Close only: an interrupted listener must leave its letters pending for the next one.
         for fd in held:
             os.close(fd)
+
+
+def listening(room: Mailroom) -> bool:
+    """A listener holds this box's pipe open for reading."""
+    try:
+        ping = os.open(room.pipe, os.O_WRONLY | os.O_NONBLOCK)
+    except OSError as error:
+        if error.errno in (errno.ENXIO, errno.ENOENT):
+            return False
+        raise
+    os.close(ping)
+    return True
+
+
+def archive_boxes(
+    room: Mailroom,
+    *,
+    branches: frozenset[str],
+    into: str,
+    dry_run: bool,
+    listening: Callable[["Mailroom"], bool],
+) -> tuple[list[str], list[tuple[str, str]]]:
+    """Move unread-forever mailboxes' files to archive/<into>/<box>/. Returns moved and kept.
+
+    The box folder and its lock file stay where they are: a sender or listener already waiting
+    on that lock still finds the folder when it gets the lock, so a late letter lands in the
+    emptied box instead of failing on a moved path.
+    """
+    boxes = room.root / "to"
+    if not boxes.is_dir():
+        return [], []
+    names = {unquote(path.name): path for path in boxes.iterdir() if path.is_dir()}
+    destination = room.root / "archive" / into
+    moved: list[str] = []
+    kept: list[tuple[str, str]] = []
+    for name in stale_boxes(names, branches):
+        source = names[name]
+        target = destination / source.name
+        box = Mailroom(source)
+        with nullcontext() if dry_run else box.locked():
+            files = archivable(entry.name for entry in source.iterdir())
+            if not files:
+                continue
+            if held_claims(files, alive):
+                kept.append((name, "a live forwarder holds unacknowledged letters"))
+                continue
+            if listening(box):
+                kept.append((name, "a listener is waiting on it"))
+                continue
+            if target.exists():
+                kept.append((name, f"{target} already exists"))
+                continue
+            if not dry_run:
+                target.mkdir(parents=True)
+                for file in files:
+                    os.rename(source / file, target / file)
+        moved.append(name)
+    return moved, kept
 
 
 def has_mail(room: Mailroom) -> bool:
@@ -795,7 +954,14 @@ def report(notices: list[Notice]) -> int:
     return code
 
 
-def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    run: Run = run_command,
+    environ: Mapping[str, str] = os.environ,
+    branches: Callable[[], frozenset[str]] = lambda: checked_out_branches(Path.cwd()),
+    branch: Callable[[], str] = lambda: current_branch(Path.cwd()),
+) -> int:
     parser = argparse.ArgumentParser(prog="agent-mail", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     tell = commands.add_parser("tell-claude", help="leave a letter for the listening Claude")
@@ -808,7 +974,17 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     tell.add_argument("words", nargs="*")
     box = commands.add_parser("claude-mailbox", help="wait for letters (run in the background)")
     box.add_argument("--timeout", type=float, default=None)
-    box.add_argument("--for", dest="address", default=None, help="your branch's own mailbox")
+    box.add_argument(
+        "--for",
+        dest="address",
+        nargs="?",
+        const=MINE,
+        default=None,
+        help="a branch's own mailbox; with no value, the branch checked out here",
+    )
+    box.add_argument(
+        "--mine", dest="address", action="store_const", const=MINE, help="same as bare --for"
+    )
     box.add_argument(
         "--hold",
         action="store_true",
@@ -847,7 +1023,27 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
     )
     move.add_argument("--branch", required=True)
     move.add_argument("--before", required=True)
+    archive = commands.add_parser(
+        "archive-boxes", help="move mailboxes of branches no worktree has checked out to archive/"
+    )
+    archive.add_argument("--dry-run", action="store_true")
+    archive.add_argument("--into", default=None, help="archive folder name (default: UTC date)")
     args = parser.parse_args(argv)
+
+    try:
+        refusal, args.address = preflight(
+            args.command,
+            to=getattr(args, "to", None),
+            address=getattr(args, "address", None),
+            environ=environ,
+            branches=branches,
+            branch=branch,
+        )
+    except subprocess.CalledProcessError:
+        refusal = "Not sent: git could not list this repository's branches; run from the repo."
+    if refusal is not None:
+        print(refusal, file=sys.stderr)
+        return 2
 
     room = Mailroom.for_repo(Path.cwd())
     now = datetime.now(UTC)
@@ -910,6 +1106,18 @@ def main(argv: Sequence[str] | None = None, *, run: Run = run_command) -> int:
             else "No Codex coordinator is listening; sent with codex queue (read at turn end)."
         )
         return code
+    if args.command == "archive-boxes":
+        into = args.into or now.date().isoformat()
+        moved, held_back = archive_boxes(
+            room, branches=branches(), into=into, dry_run=args.dry_run, listening=listening
+        )
+        verb = "Would move" if args.dry_run else "Moved"
+        print(f"{verb} {len(moved)} mailboxes to {room.root / 'archive' / into}:")
+        for name in moved:
+            print(f"  {name}")
+        for name, why in held_back:
+            print(f"Kept {name}: {why}")
+        return 0
     if args.command == "codex-sessions":
         for session in codex_sessions(session_index(), limit=args.limit):
             print(format_session(session))

@@ -131,6 +131,13 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
   - Round 4, GPT on 5f41f6d91..6d512bcac, the ducking revert (sha 0cdcabae): LGTM; render files byte-identical to a6bec58b5, 151 tests. Not landed, per the brief.
   - Landing round on the whole packet main..971cded0d (sha 0acb16cb, main c213b0c51 merged in; boundary and principles in runs/reviews/broadcast-claude-lines/landing-*): Claude CLI (~/.claude-review, plan mode) LGTM; fallback subagent (Sonnet) LGTM; GPT LGTM per round above. Cursor/Grok out of usage until 11/17, so Claude + GPT + fallback per the operator's standing rule. Follow-ups, not in this branch: `--out` could point inside runs/<run> (refuse it in options_problem); `cost_rows` trusts request = turn with no text check and can go backwards if a request number repeats (clamp, or join like thinking); a run's own event thinking is shown unscrubbed (as before); the scrub has no token pattern and misses relative and UNC paths.
 
+### Piece 13: dense lines sized to each turn
+The operator 2026-11-11: "the video seems to go a long time in between thinking out loud when there are more agent traces to be read". 67d7 measured: turns every 11.0 s median (p10 4.3, p90 29.9); 1,222 lines over 4,124 turns, 9.7% of the run spoken. Kokoro bm_lewis at 0.95 speaks 2.77 words/s median (seconds = 0.77 + 0.306 x words). `--dense` (claude writer only; default unchanged): a second system prompt that voices every turn with thinking or a meaningful action and skips only true repeats, and each turn in the batch carries `seconds` (time until the next turn, 10 s for the last) and `max_words` = floor((seconds - 1.0) / 0.31), capped at MAX_WORDS. Rooms come from every turn, so a resume asks with the same budgets. The render needs no change: a line waits for the last one and is dropped if it would start more than 3 s late.
+- [x] RED
+- [ ] GREEN
+- [ ] Trial on the Sky Pillar window: lines per turn, coverage, cost; numbers to the coordinator before the full rewrite
+- [ ] Review: Codex
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

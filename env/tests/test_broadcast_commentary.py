@@ -1022,3 +1022,71 @@ def test_scrub_blanks_a_path_or_url_through_the_end_of_its_line(text: str) -> No
     ):
         assert gone not in out
     assert out.endswith("…\nNext line.")
+
+
+# ------------------------------------------------- Piece 13: dense lines sized to each turn
+
+from pokebench_env.broadcast_commentary import (  # noqa: E402
+    BATCH_SYSTEM,
+    DENSE_SYSTEM,
+    turn_rooms,
+    word_budget,
+)
+
+
+def test_word_budget_fits_a_line_in_the_time_until_the_next_turn() -> None:
+    assert word_budget(4.3) == 10
+    assert word_budget(11.0) == 19
+    assert word_budget(1.5) == 1
+    assert word_budget(0.5) == 0
+
+
+def test_each_turn_gets_the_time_until_the_next_one_and_the_last_a_default() -> None:
+    assert turn_rooms(steps(1, 2, 4)) == {1: 10.0, 2: 20.0, 4: 10.0}
+    assert turn_rooms([]) == {}
+
+
+def test_the_dense_prompt_gives_each_turn_its_seconds_and_word_budget() -> None:
+    plain = batch_prompt(steps(1), [])
+    assert '"seconds"' not in plain
+    assert '"max_words"' not in plain
+    dense = batch_prompt(steps(1), [], {1: 4.3})
+    assert '"seconds": 4.3' in dense
+    assert '"max_words": 10' in dense
+
+
+def test_dense_lines_use_the_dense_prompt_and_rooms_from_every_turn() -> None:
+    prompts: list[str] = []
+
+    def ask(prompt: str) -> ClaudeReply:
+        prompts.append(prompt)
+        return reply(answer({2: "Heading up the stairs now."}))
+
+    done = write_claude_lines(
+        steps(1, 2, 5),
+        [Line(1, 10.0, "On my way.", "t000001.wav")],
+        set(),
+        ask,
+        lambda _l: None,
+        lambda _b: None,
+        lambda _m: None,
+        [],
+        dense=True,
+    )
+    assert [line.turn for line in done.lines] == [1, 2]
+    assert '"seconds": 30.0' in prompts[0]
+    assert '"max_words": 19' in prompts[0]
+
+
+def test_dense_writer_switches_only_the_system_prompt() -> None:
+    plain, dense = claude_argv("claude", "m"), claude_argv("claude", "m", dense=True)
+    assert plain[plain.index("--system-prompt") + 1] == BATCH_SYSTEM
+    assert dense[dense.index("--system-prompt") + 1] == DENSE_SYSTEM
+    assert [a for a in plain if a != BATCH_SYSTEM] == [a for a in dense if a != DENSE_SYSTEM]
+    assert "every turn" in DENSE_SYSTEM
+    assert "max_words" in DENSE_SYSTEM
+
+
+def test_dense_is_a_claude_writer_option() -> None:
+    assert options_problem(Options(run="r", writer="claude", claude_model="m", dense=True)) is None
+    assert options_problem(Options(run="r", endpoint=LOCAL, dense=True)) is not None

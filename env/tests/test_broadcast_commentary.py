@@ -1171,3 +1171,27 @@ def test_lexicon_is_a_voicing_option() -> None:
         )
         is not None
     )
+
+
+@pytest.mark.parametrize(
+    ("line", "spoken"),
+    [
+        ("Ralts's move", "ɹˈaltsɪz <move>"),
+        ("Torchic's move", "tˈɔːtʃɪks <move>"),
+        ("Machop's move", "mətʃˈɑːps <move>"),
+        ("Rayquaza's move", "ɹeɪkwˈeɪzəz <move>"),
+        ("Rayquaza’s move", "ɹeɪkwˈeɪzəz <move>"),
+        ("'Rayquaza' appears.", "<'> ɹeɪkwˈeɪzə<' appears.>"),
+        ("“Machop” appears.", "<“> mətʃˈɑːp<” appears.>"),
+    ],
+)
+def test_possessives_follow_the_last_sound_and_quotes_do_not_hide_names(
+    line: str, spoken: str
+) -> None:
+    lexicon = {
+        "Ralts": "ɹˈalts",
+        "Torchic": "tˈɔːtʃɪk",
+        "Machop": "mətʃˈɑːp",
+        "Rayquaza": "ɹeɪkwˈeɪzə",
+    }
+    assert to_phonemes(line, lexicon, fake_phonemize) == spoken

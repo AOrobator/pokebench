@@ -35,6 +35,8 @@ PRICES = f"{CHARTS}/prices.json"
 POINTS = f"{CHARTS}/chart-points.json"
 TIME_HTML = f"{CHARTS}/badges-over-time.html"
 MONEY_HTML = f"{CHARTS}/badges-for-the-money.html"
+TIME_HTML_DARK = f"{CHARTS}/badges-over-time-dark.html"
+MONEY_HTML_DARK = f"{CHARTS}/badges-for-the-money-dark.html"
 
 BADGES = (
     "STONE_BADGE",
@@ -360,6 +362,7 @@ def codex_cost(readings: Sequence[CodexReading], until_t: str, price: Price) -> 
 class Series:
     label: str
     color: str
+    dark_color: str | None
     assisted: bool
     runs: tuple[str, ...]
     cost_kind: str  # "events" | "codex" | "pinned"
@@ -397,9 +400,11 @@ def parse_one_series(i: int, value: object) -> Series:
         raise ChartError(f"{label}: unknown cost kind {kind!r}")
     price = cost.get("price")
     usd = cost.get("usd")
+    dark = s.get("dark_color")
     return Series(
         label,
         as_text(s.get("color"), f"{label} color"),
+        None if dark is None else as_text(dark, f"{label} dark_color"),
         flag(s.get("assisted", False), f"{label} assisted"),
         runs,
         str(kind),
@@ -488,21 +493,66 @@ def endlabel(n: int) -> str:
 # browser window; render with a viewport of at least 1400 px. The card hugs .in so the outer band is
 # even on every side, and whole-pixel line heights keep its height whole, so the element screenshot
 # takes no strip of page background.
-CSS = (
-    "body{margin:0;background:#f7f3e8;font-family:-apple-system,BlinkMacSystemFont,"
-    '"Helvetica Neue",Arial,sans-serif;color:#24323d}\n'
-    ".card{width:fit-content;margin:18px;border:4px solid #2c5f55;border-radius:30px;padding:6px;"
-    "background:#2c5f55}\n"
-    ".in{background:#fff;border:5px solid #5ab89c;border-radius:24px;padding:28px 34px 22px;"
-    "width:1240px}\nh1{font-size:30px;line-height:36px;margin:4px 0 6px}"
-    "p{margin:0;color:#44525e;font-size:15px;line-height:22px}"
-    ".note{margin-top:8px;font-size:13.5px;line-height:20px}"
+@dataclass(frozen=True)
+class Palette:
+    """Every colour a chart page draws, other than the per-series line colours."""
+
+    page: str
+    frame: str  # the card's outer band
+    rim: str  # the card's inner border
+    interior: str
+    text: str
+    secondary: str
+    axis: str
+    grid: str
+    eighth: str  # the 8-badge line between the gyms and the League
+
+    @property
+    def hollow(self) -> str:
+        """Hollow (heavily assisted) end points are filled with the card so they read as empty."""
+        return self.interior
+
+
+LIGHT = Palette(
+    page="#f7f3e8",
+    frame="#2c5f55",
+    rim="#5ab89c",
+    interior="#fff",
+    text="#24323d",
+    secondary="#44525e",
+    axis="#5a6670",
+    grid="#ece8dc",
+    eighth="#c9c3b0",
+)
+DARK = Palette(
+    page="#0f1720",
+    frame="#2c5f55",
+    rim="#5ab89c",
+    interior="#17212b",
+    text="#e6ecef",
+    secondary="#c3ccd2",
+    axis="#9aa6ae",
+    grid="#26323d",
+    eighth="#4a5866",
 )
 
 
-def page(title: str, sub: str, svg: str, notes: Sequence[str]) -> str:
+def css(p: Palette) -> str:
     return (
-        f'<!doctype html><meta charset="utf-8"><style>{CSS}</style>'
+        f"body{{margin:0;background:{p.page};font-family:-apple-system,BlinkMacSystemFont,"
+        f'"Helvetica Neue",Arial,sans-serif;color:{p.text}}}\n'
+        f".card{{width:fit-content;margin:18px;border:4px solid {p.frame};border-radius:30px;"
+        f"padding:6px;background:{p.frame}}}\n"
+        f".in{{background:{p.interior};border:5px solid {p.rim};border-radius:24px;"
+        "padding:28px 34px 22px;width:1240px}\nh1{font-size:30px;line-height:36px;margin:4px 0 6px}"
+        f"p{{margin:0;color:{p.secondary};font-size:15px;line-height:22px}}"
+        ".note{margin-top:8px;font-size:13.5px;line-height:20px}"
+    )
+
+
+def page(title: str, sub: str, svg: str, notes: Sequence[str], p: Palette) -> str:
+    return (
+        f'<!doctype html><meta charset="utf-8"><style>{css(p)}</style>'
         f'<div class="card" id="c"><div class="in"><h1>{title}</h1><p>{sub}</p>{svg}'
         + "".join(f'<p class="note">{html.escape(n)}</p>' for n in notes)
         + "</div></div>"
@@ -518,20 +568,20 @@ def hline(x1: float, x2: float, y: float, stroke: str) -> str:
     return f'<line x1="{x1}" x2="{x2}" y1="{y}" y2="{y}" stroke="{stroke}"/>'
 
 
-def vline(x: float, y1: float, y2: float) -> str:
-    return f'<line x1="{x}" x2="{x}" y1="{y1}" y2="{y2}" stroke="#ece8dc"/>'
+def vline(x: float, y1: float, y2: float, stroke: str) -> str:
+    return f'<line x1="{x}" x2="{x}" y1="{y1}" y2="{y2}" stroke="{stroke}"/>'
 
 
-def progress_label(x: float, y: float) -> str:
+def progress_label(x: float, y: float, p: Palette) -> str:
     return (
         f'<text transform="translate({x} {y}) rotate(-90)" text-anchor="middle" '
-        'fill="#44525e" font-size="14">Progress</text>'
+        f'fill="{p.secondary}" font-size="14">Progress</text>'
     )
 
 
-def end_point(x: float, y: float, r: str, ln: Line, width: str) -> str:
+def end_point(x: float, y: float, r: str, ln: Line, width: str, p: Palette) -> str:
     """The run's end marker: hollow for heavily assisted runs."""
-    fill = "#fff" if ln.assisted else ln.color
+    fill = p.hollow if ln.assisted else ln.color
     return (
         f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="{fill}" '
         f'stroke="{ln.color}" stroke-width="{width}"/>'
@@ -554,8 +604,9 @@ class Line:
 
 
 def lines_from(
-    chart_data: Mapping[str, object], points: Mapping[str, object]
+    chart_data: Mapping[str, object], points: Mapping[str, object], dark: bool = False
 ) -> tuple[Line, list[Line]]:
+    """The human line and each series' line; in dark, a series' dark_color replaces its color."""
     by_label: dict[str, dict[str, object]] = {}
     for raw in as_list(points.get("series"), "chart-points series"):
         entry = as_map(raw, "chart-points series entry")
@@ -570,7 +621,7 @@ def lines_from(
         out.append(
             Line(
                 s.label,
-                s.color,
+                s.dark_color if dark and s.dark_color is not None else s.color,
                 s.assisted,
                 pts,
                 num(p["cost_usd"], s.label),
@@ -587,13 +638,13 @@ def lines_from(
     return hline_, out
 
 
-def finish(notes: Mapping[str, object], o: Sequence[str]) -> str:
+def finish(notes: Mapping[str, object], o: Sequence[str], p: Palette) -> str:
     """Wrap the SVG lines in the page with its title, subtitle and notes."""
     extra = [str(n) for n in as_list(notes.get("notes"), "page notes")]
-    return page(str(notes["title"]), str(notes["subtitle"]), "\n".join(o), extra)
+    return page(str(notes["title"]), str(notes["subtitle"]), "\n".join(o), extra, p)
 
 
-def time_chart(human: Line, lines: Sequence[Line], notes: Mapping[str, object]) -> str:
+def time_chart(human: Line, lines: Sequence[Line], notes: Mapping[str, object], p: Palette) -> str:
     W, H = 1240, 760
     L, T, PW, PH = 110, 24, 700, 680
 
@@ -606,20 +657,20 @@ def time_chart(human: Line, lines: Sequence[Line], notes: Mapping[str, object]) 
     o = [f'<svg width="{W}" height="{H + 50}" viewBox="0 0 {W} {H + 50}" font-size="13">']
     for n in range(TOP + 1):
         o += [
-            hline(L, L + PW, Y(n), "#c9c3b0" if n == 8 else "#ece8dc"),
+            hline(L, L + PW, Y(n), p.eighth if n == 8 else p.grid),
             text(
                 L - 10,
                 Y(n) + 4,
                 LV[n],
                 text_anchor="end",
-                fill="#5a6670",
+                fill=p.axis,
                 font_weight="700" if n > 8 else "400",
             ),
         ]
     for h in range(0, 25, 4):
         o += [
-            vline(X(h * 3600), T, T + PH),
-            text(X(h * 3600), T + PH + 20, f"{h}h", text_anchor="middle", fill="#5a6670"),
+            vline(X(h * 3600), T, T + PH, p.grid),
+            text(X(h * 3600), T + PH + 20, f"{h}h", text_anchor="middle", fill=p.axis),
         ]
     o.append(
         text(
@@ -627,11 +678,11 @@ def time_chart(human: Line, lines: Sequence[Line], notes: Mapping[str, object]) 
             T + PH + 46,
             "Hours from the start of the run",
             text_anchor="middle",
-            fill="#44525e",
+            fill=p.secondary,
             font_size="14",
         )
     )
-    o.append(progress_label(18, T + PH / 2))
+    o.append(progress_label(18, T + PH / 2, p))
     rows = [human, *lines]
     for ln in rows:
         d = f"M{X(0)},{Y(0)}"
@@ -642,21 +693,21 @@ def time_chart(human: Line, lines: Sequence[Line], notes: Mapping[str, object]) 
         for n, v in [q for q in ln.points[:-1] if q[0] <= 8]:
             o.append(f'<circle cx="{X(v):.1f}" cy="{Y(n):.1f}" r="2.6" fill="{ln.color}"/>')
         n, v = ln.end
-        o.append(end_point(X(v), Y(n), "6.5", ln, "2.6"))
+        o.append(end_point(X(v), Y(n), "6.5", ln, "2.6", p))
     ly: float = T + 6
     for ln in sorted(rows, key=lambda r: (-r.end[0], r.end[1])):
         o.append(
             text(L + PW + 24, ly + 4, ln.label, fill=ln.color, font_weight="700", font_size="13.5")
         )
-        o.append(text(W - 8, ly + 4, hms(ln.end[1]), text_anchor="end", fill="#44525e"))
+        o.append(text(W - 8, ly + 4, hms(ln.end[1]), text_anchor="end", fill=p.secondary))
         ly += 17
-        o.append(text(L + PW + 24, ly + 4, endlabel(ln.end[0]), fill="#5a6670", font_size="12"))
+        o.append(text(L + PW + 24, ly + 4, endlabel(ln.end[0]), fill=p.axis, font_size="12"))
         ly += 27
     o.append("</svg>")
-    return finish(notes, o)
+    return finish(notes, o, p)
 
 
-def money_chart(lines: Sequence[Line], notes: Mapping[str, object]) -> str:
+def money_chart(lines: Sequence[Line], notes: Mapping[str, object], p: Palette) -> str:
     W, H = 1240, 700
     L, T, PW, PH = 120, 30, 1050, 620
     lo, hi = 0.5, 3000
@@ -670,18 +721,18 @@ def money_chart(lines: Sequence[Line], notes: Mapping[str, object]) -> str:
     o = [f'<svg width="{W}" height="{H + 40}" viewBox="0 0 {W} {H + 40}" font-size="13">']
     for v, tick in [(1, "$1"), (10, "$10"), (100, "$100"), (1000, "$1,000")]:
         o += [
-            vline(X(v), T, T + PH),
-            text(X(v), T + PH + 22, tick, text_anchor="middle", fill="#5a6670"),
+            vline(X(v), T, T + PH, p.grid),
+            text(X(v), T + PH + 22, tick, text_anchor="middle", fill=p.axis),
         ]
     for n in range(TOP + 1):
         o += [
-            hline(L, L + PW, Yb(n), "#c9c3b0" if n == 8 else "#ece8dc"),
+            hline(L, L + PW, Yb(n), p.eighth if n == 8 else p.grid),
             text(
                 L - 12,
                 Yb(n) + 4,
                 LV[n],
                 text_anchor="end",
-                fill="#5a6670",
+                fill=p.axis,
                 font_weight="700" if n > 8 else "400",
             ),
         ]
@@ -691,16 +742,16 @@ def money_chart(lines: Sequence[Line], notes: Mapping[str, object]) -> str:
             T + PH + 50,
             "API cost to the furthest milestone (log scale)",
             text_anchor="middle",
-            fill="#44525e",
+            fill=p.secondary,
             font_size="14",
         )
     )
-    o.append(progress_label(22, T + PH / 2))
+    o.append(progress_label(22, T + PH / 2, p))
     for ln in lines:
         if ln.usd is None:
             continue
         x, y = X(ln.usd), Yb(ln.end[0])
-        o.append(end_point(x, y, "9", ln, "3"))
+        o.append(end_point(x, y, "9", ln, "3", p))
         dx, dy, an = ln.label_offset or (14, 0, "start")
         o.append(
             text(
@@ -718,21 +769,28 @@ def money_chart(lines: Sequence[Line], notes: Mapping[str, object]) -> str:
                 x + dx,
                 y + dy + 22,
                 f"${ln.usd:,.2f}" + (" (estimated)" if ln.estimated else ""),
-                fill="#5a6670",
+                fill=p.axis,
                 text_anchor=an,
             )
         )
     o.append("</svg>")
-    return finish(notes, o)
+    return finish(notes, o, p)
+
+
+THEMES = ((False, LIGHT, TIME_HTML, MONEY_HTML), (True, DARK, TIME_HTML_DARK, MONEY_HTML_DARK))
 
 
 def build_pages(chart_data: Mapping[str, object], points: Mapping[str, object]) -> dict[str, str]:
-    human, lines = lines_from(chart_data, points)
+    """Both chart pages in each theme: the light names as before, plus their -dark twins."""
     pages = as_map(chart_data.get("pages"), "chart-data pages")
-    return {
-        TIME_HTML: time_chart(human, lines, as_map(pages.get("badges_over_time"), "time page")),
-        MONEY_HTML: money_chart(lines, as_map(pages.get("badges_for_the_money"), "money page")),
-    }
+    time_notes = as_map(pages.get("badges_over_time"), "time page")
+    money_notes = as_map(pages.get("badges_for_the_money"), "money page")
+    out: dict[str, str] = {}
+    for dark, palette, time_rel, money_rel in THEMES:
+        human, lines = lines_from(chart_data, points, dark)
+        out[time_rel] = time_chart(human, lines, time_notes, palette)
+        out[money_rel] = money_chart(lines, money_notes, palette)
+    return out
 
 
 # ---------------------------------------------------------------- disk boundary

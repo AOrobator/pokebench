@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const root = resolve(process.argv[2] ?? ".");
-const pages = ["badges-over-time", "badges-for-the-money"];
+const pages = ["badges-over-time", "badges-for-the-money", "badges-over-time-dark", "badges-for-the-money-dark"];
 
 const browser = await chromium.launch();
 try {

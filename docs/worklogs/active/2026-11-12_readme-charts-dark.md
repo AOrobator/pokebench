@@ -19,6 +19,6 @@ The operator: "yes we need a dark mode option for the script". Branch `claude/re
 
 ## Milestones
 - [x] M1 RED: failing tests for palette, dark pages, dark_color fallback/validation, light byte identity, hollow fill. 8 failed, 45 passed (the light byte-identity test passes on main, pinning its hashes). COMMIT: `test(env): cover README chart dark pages` (this commit).
-- [ ] M2 GREEN: palette + dark_color + four pages; PNG script renders four; chart-data dark colours; README `<picture>`; four PNGs regenerated and inspected.
-- [ ] Focused checks: pytest file, ruff + mypy on changed Python, eslint on the .mjs.
+- [x] M2 GREEN: palette + dark_color + four pages; PNG script renders four; chart-data dark colours; README `<picture>`; four PNGs regenerated and inspected. 53 passed. Real `just readme-charts html` light pages `cmp`-identical to main's output; light PNGs re-rendered unchanged (git sees no change); dark PNGs opened and checked. COMMIT: `feat(env): dark README charts` (this commit).
+- [x] Focused checks: pytest file 53 passed (readme_charts.py 99% lines, the one miss is the pre-existing `usd is None` skip), ruff check + format clean, mypy clean, eslint on scripts/readme-charts-png.mjs clean. Full `just test`/`just lint` await the caller's CPU window.
 - [ ] Review / landing: held for the caller (no merge, push or land here).

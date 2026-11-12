@@ -1,5 +1,5 @@
 {
-  "_about": "What the README charts plot. Run `just readme-charts` after editing; see env/pokebench_env/readme_charts.py.",
+  "_about": "What the README charts plot. Run `just readme-charts` after editing; see env/pokebench_env/readme_charts.py. A series's optional dark_color replaces its color in the -dark charts.",
   "human": {
     "label": "Human: keepingiticy (world record)",
     "color": "#d83a3a",
@@ -46,6 +46,7 @@
     {
       "label": "Claude Opus 5.5, Rayquaza lane*",
       "color": "#16405e",
+      "dark_color": "#9ec5e8",
       "assisted": true,
       "runs": [
         "2026-11-10T15-37-43_opus-rayquaza-boot_67d7"
@@ -64,6 +65,7 @@
     {
       "label": "DeepSeek V4.1 Flash",
       "color": "#2a72d8",
+      "dark_color": "#4f8ff0",
       "assisted": false,
       "runs": [
         "2026-11-04T16-25-02_deepseek-deepseek-v4.1-flash_5f0f"
@@ -94,6 +96,7 @@
     {
       "label": "GPT-6.1 Sol",
       "color": "#8a8f98",
+      "dark_color": "#a9aeb6",
       "assisted": false,
       "runs": [
         "2026-11-07T01-55-08_gpt-6.1-sol_3300"
@@ -142,6 +145,7 @@
     {
       "label": "GLM-5.3 Flash",
       "color": "#9a6a3a",
+      "dark_color": "#c79a63",
       "assisted": false,
       "runs": [
         "2026-10-24T19-37-24_glm53-mac_6bbd"

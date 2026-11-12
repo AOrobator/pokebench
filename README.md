@@ -100,9 +100,15 @@ just run-agent
 
 ## Results
 
-![Badges over time: each model's best run, by hours from the start of the run, through the Elite Four and Champion, against the human world record](docs/images/badges-over-time.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/badges-over-time-dark.png">
+  <img alt="Badges over time: each model's best run, by hours from the start of the run, through the Elite Four and Champion, against the human world record" src="docs/images/badges-over-time.png">
+</picture>
 
-![Badges for the money: how far each model's best run got against its API cost to that point](docs/images/badges-for-the-money.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/badges-for-the-money-dark.png">
+  <img alt="Badges for the money: how far each model's best run got against its API cost to that point" src="docs/images/badges-for-the-money.png">
+</picture>
 
 Each chart shows every model's best run, read from its own recording. Times are wall clock from the start of the run. Unassisted Opus is one chain of four linked legs, stitched at the checkpoints each leg loaded. Rayquaza lane runs are heavily assisted and drawn dotted or hollow. Frontier models are priced at API list price; local models are estimates at the cheapest OpenRouter provider for each model as of 11/8.
 

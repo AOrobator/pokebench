@@ -1,3 +1,4 @@
+import {readRecentEventsAsync} from "./runs.js";
 import { glob, open, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { createGatewayThinking } from "./gateway-thinking.js";
@@ -16,6 +17,9 @@ export function gatewayThinkingDisk(runsRoot: string) {
  const cached = new Map<string, { signature: string; text: string }>();
  return createGatewayThinking({
   now: Date.now,
+  async assistant(run, turn) {
+   try { return (await readRecentEventsAsync(runsRoot, run, 64, MAX_BYTES)).findLast(event => event.type === "assistant" && event.turn === turn) ?? null; } catch { return null; }
+  },
   async sources() {
    const sources: { key: string; text: string }[] = [];
    for await (const path of glob(["*/bridge/calls.jsonl", "launch-receipts/*/bridge/calls.jsonl", "probes/*/bridge/calls.jsonl"], { cwd: runsRoot })) {

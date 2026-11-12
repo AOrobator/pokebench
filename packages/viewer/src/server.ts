@@ -350,7 +350,7 @@ function segments(rawUrl: string): string[] | null {
 // A recorded log can be hundreds of MB: it is read, validated and sent a bounded chunk at a time,
 // yielding to the event loop between chunks and waiting for the socket to drain, so opening one
 // run never stalls every other request.
-function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0): void {
+function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, pollMs: number, skew: Skew | null, chunkBytes: number, head?: readonly RunEvent[], offset = 0, enrich: (event: RunEvent) => Promise<RunEvent> = event => Promise.resolve(event)): void {
   res.writeHead(200, { ...SECURITY_HEADERS, "content-type": "text/event-stream; charset=utf-8", connection: "keep-alive" });
   let closed = false, timer: NodeJS.Timeout | null = null;
   const reader = new LogReader(path, chunkBytes, offset);
@@ -371,7 +371,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   const initial = headChunks();
   let initialDone = head === undefined;
   // Parses the next bounded piece of the log into the queue; true when there was nothing new.
-  const fill = (): boolean => {
+  const fill = async (): Promise<boolean> => {
     if (!initialDone) {
       const chunk = initial.next();
       if (!chunk.done) { pending.push(chunk.value); return false; }
@@ -380,7 +380,7 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
     const { results, lines } = reader.next(STREAM_STEP_LINES);
     for (const result of results) {
       if (result.ok) {
-        pending.push(message("ev", recovered(result.event)));
+        pending.push(message("ev", await enrich(recovered(result.event))));
         endRead ||= result.event.type === "run_end";
       } else if (skew === null) {
         pending.push(message("problem", { line: location(result.line), problem: result.problem }));
@@ -393,10 +393,10 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
   };
   // One step: refill an empty queue (adding caught_up once the file is read, and done after run_end),
   // then write until the socket is full. Every message, control ones included, waits its turn.
-  const step = (): "more" | "drain" | "wait" | "end" => {
+  const step = async (): Promise<"more" | "drain" | "wait" | "end"> => {
     if (empty()) {
       if (closing) { res.end(); return "end"; }
-      if (fill() && empty()) {
+      if (await fill() && empty()) {
         if (!caughtUp) { caughtUp = true; pending.push(message("caught_up", {})); }
         if (endRead) { closing = true; pending.push(message("done", {})); }
         if (empty()) return "wait";
@@ -408,19 +408,19 @@ function streamEvents(req: IncomingMessage, res: ServerResponse, path: string, p
     return full ? "drain" : "more";
   };
   // One step per turn of the event loop; a failing read closes this stream, never the viewer.
-  const run = (): void => {
+  const run = async (): Promise<void> => {
     if (closed) return;
-    let next: ReturnType<typeof step>;
-    try { next = step(); } catch (error) { res.destroy(error instanceof Error ? error : new Error(String(error))); return; }
-    if (next === "more") setImmediate(run);
-    else if (next === "drain") res.once("drain", () => { setImmediate(run); });
-    else if (next === "wait") timer = setTimeout(() => { timer = null; run(); }, pollMs);
+    let next: Awaited<ReturnType<typeof step>>;
+    try { next = await step(); } catch (error) { res.destroy(error instanceof Error ? error : new Error(String(error))); return; }
+    if (next === "more") setImmediate(() => { void run(); });
+    else if (next === "drain") res.once("drain", () => { setImmediate(() => { void run(); }); });
+    else if (next === "wait") timer = setTimeout(() => { timer = null; void run(); }, pollMs);
   };
   req.on("close", () => {
     closed = true;
     if (timer !== null) clearTimeout(timer);
   });
-  run();
+  void run();
 }
 
 async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fetch): Promise<void> {
@@ -439,7 +439,7 @@ async function liveScreen(res: ServerResponse, port: number, fetchFn: typeof fet
   }
 }
 
-async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader, current: CurrentApi | null, broadcast: BroadcastStore): Promise<void> {
+async function route(req: IncomingMessage, res: ServerResponse, options: ViewerOptions, port: number, origins: ReadonlyMap<string, string>, readBaseline: BaselineReader, readWorkbench: (cards?: { selected: string | null }) => Promise<WorkbenchData>, frontier: FrontierCache, readUpdates: (since: string | null) => Promise<WorkbenchUpdate>, catalog: RunCatalog, strictCatalog: RunCatalog, readBag: BagHistoryReader, current: CurrentApi | null, broadcast: BroadcastStore, thinking: ReturnType<typeof gatewayThinkingDisk>): Promise<void> {
   const origin = origins.get(req.headers.host ?? "");
   if (origin === undefined) {
     sendJson(res, 403, { error: "the viewer only answers 127.0.0.1 and its published origins" });
@@ -650,7 +650,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
     }
     if(parts.length===4 && leaf==="budget") {sendJson(res,200,{max_turns:readTurnBudgetReceipt(dir,id)});return;}
     if(parts.length===4 && leaf==="start") {sendJson(res,200,readStart(options.runsRoot,id));return;}
-    if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed), options.streamChunkBytes); return; }
+    if (parts.length === 4 && leaf === "head") { await sendEventArray(res, await Promise.all((await readRecentEventsAsync(options.runsRoot, id, undefined, undefined, undefined, undefined, () => res.destroyed)).map(thinking.event)), options.streamChunkBytes); return; }
     if (parts.length === 4 && leaf === "events") {
       const path = eventsPath(options.runsRoot, id);
       if (!existsSync(path)) throw new RunsError(`run ${id} has no events.jsonl`);
@@ -667,7 +667,8 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
         }
       }
       if (res.destroyed) return;
-      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset);
+      if (head !== undefined) head = await Promise.all(head.map(thinking.event));
+      streamEvents(req, res, path, options.pollMs ?? 250, skew, options.streamChunkBytes ?? STREAM_CHUNK_BYTES, head, cursor.offset, thinking.event);
       return;
     }
     if (parts.length === 4 && leaf === "trace-history") {
@@ -677,7 +678,7 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ViewerO
       }
       const page = await readTraceHistory(options.runsRoot, id, Number(value));
       const recovered = recoveredAttacher(dir);
-      sendJson(res, 200, { ...page, events: page.events.map(recovered) });
+      sendJson(res, 200, { ...page, events: await Promise.all(page.events.map(recovered).map(thinking.event)) });
       return;
     }
     if (parts.length === 4 && leaf === "comparisons") {
@@ -772,8 +773,9 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
   const readUpdates = async (since: string | null): Promise<WorkbenchUpdate> => updates(await readWorkbench(), since);
   // A failing request (a client that disconnects mid-body, a file error) must
   // never take the viewer and its queue down.
+  const thinking = gatewayThinkingDisk(options.runsRoot);
   const currentPool = options.current === undefined ? null : createCurrentPool({...options.current, runsRoot:options.runsRoot});
-  const currentApi = currentPool === null ? null : createCurrentApi(currentPool,{enrich:gatewayThinkingDisk(options.runsRoot).answer});
+  const currentApi = currentPool === null ? null : createCurrentApi(currentPool,{enrich:thinking.answer});
   const loopDelay = monitorEventLoopDelay({ resolution: 10 });
   loopDelay.enable();
   const dispatchTimings = new Map<string, Timing>();
@@ -786,7 +788,7 @@ export async function startViewer(given: ViewerOptions): Promise<Viewer> {
       return;
     }
     const started = performance.now();
-    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag, currentApi, broadcast).catch((error: unknown) => {
+    route(req, res, options, port, origins, readBaseline, readWorkbench, frontier, readUpdates, catalog, strictCatalog, readBag, currentApi, broadcast, thinking).catch((error: unknown) => {
       if (res.headersSent || res.destroyed) res.destroy();
       else sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
     });

@@ -3,10 +3,10 @@ import { expect, it } from "vitest";
 import { Log, assistant } from "../test-support/events.js";
 import { createGatewayThinking } from "./gateway-thinking.js";
 const row = (overrides = {}) => ({ at: "2026-10-11T22:00:03.000-04:00", request: 945, attempt: 1, run_id: new Log().add(0, assistant()).run, mode: "session", model: "m", session_id: "session", outcome: "ok", record: "call-945-1.jsonl", ...overrides });
-const transcript = (thinking = "native gateway thinking", reply = "heal first") => JSON.stringify({ type: "assistant", session_id: "session", message: { role: "assistant", content: [{ type: "thinking", thinking }, { type: "text", text: JSON.stringify({ name: "press", arguments: { buttons: ["START"] }, text: reply }) }] } });
+const transcript = (thinking = "native gateway thinking", reply = "heal first") => JSON.stringify({ type: "assistant", session_id: "session", message: { role: "assistant", content: [{ type: "thinking", thinking }, { type: "text", text: JSON.stringify({ name: "press", arguments: { buttons: ["START"] }, text: reply }) }] } }) + "\n" + JSON.stringify({type:"result",session_id:"session",is_error:false,result:JSON.stringify({name:"press",arguments:{buttons:["START"]},text:reply})});
 function fixture(rows = [row()], text: string | null = transcript()) {
  let reads = 0;
- const reader = createGatewayThinking({ sources: () => Promise.resolve([{ key: "bridge", text: rows.map(r => JSON.stringify(r)).join("\n") }]), transcript: () => { reads++; return Promise.resolve(text); }, now: () => 0 });
+ const reader = createGatewayThinking({ sources: () => Promise.resolve([{ key: "bridge", text: rows.map(r => JSON.stringify(r)).join("\n") }]), transcript: () => { reads++; return Promise.resolve(text); }, assistant: () => Promise.resolve(new Log().add(3001, assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_945",name:"press",args:{}}]}))), now: () => 0 });
  const event = new Log().add(3001, assistant({ thinking: "", text: "heal first", tool_calls: [{ id: "call_945", name: "press", args: { buttons: ["START"] } }] }));
  return { reader, event, reads: () => reads };
 }
@@ -21,7 +21,7 @@ it("keeps native thinking and unrelated events without reading transcripts", asy
  expect(await f.reader.event(native)).toBe(native); expect(f.reads()).toBe(0);
 });
 it.each([
- { run_id: "other" }, { mode: "stateless" }, { outcome: "error" }, { session_id: null }, { record: "../../secret" }, { request: 946 }, { at: "2026-10-11T22:01:03.000-04:00" },
+ { run_id: "other" }, { mode: "stateless" }, { outcome: "error" }, { session_id: null }, { record: "../../secret" }, { request: 946 },
 ])("refuses a mismatched gateway binding %j", async mismatch => {
  const f = fixture([row(mismatch)]); expect(await f.reader.event(f.event)).toBe(f.event);
 });
@@ -54,15 +54,21 @@ it("does not borrow a future or earlier turn's thinking for CURRENT", async () =
 it("keeps CURRENT available if gateway discovery or transcript reads fail", async () => {
  const f = fixture();
  for (const ports of [
-  { sources: () => Promise.reject(new Error("absent")), transcript: () => Promise.resolve(transcript()), now: () => 0 },
-  { sources: () => Promise.resolve([{ key: "bridge", text: JSON.stringify(row()) }]), transcript: () => Promise.reject(new Error("absent")), now: () => 0 },
+  { sources: () => Promise.reject(new Error("absent")), transcript: () => Promise.resolve(transcript()), assistant: () => Promise.resolve(new Log().add(3001, assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_945",name:"press",args:{}}]}))), now: () => 0 },
+  { sources: () => Promise.resolve([{ key: "bridge", text: JSON.stringify(row()) }]), transcript: () => Promise.reject(new Error("absent")), assistant: () => Promise.resolve(new Log().add(3001, assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_945",name:"press",args:{}}]}))), now: () => 0 },
  ]) expect(await createGatewayThinking(ports).event(f.event)).toBe(f.event);
 });
 it("retries a late transcript and discovers appended calls after the cache interval", async () => {
  let now=0, rows="broken\n", body:string|null=null, discoveries=0;
- const reader=createGatewayThinking({now:()=>now,sources:()=>{discoveries++;return Promise.resolve([{key:"bridge",text:rows}]);},transcript:()=>Promise.resolve(body)}),event=fixture().event;
+ const reader=createGatewayThinking({assistant:()=>Promise.resolve(null),now:()=>now,sources:()=>{discoveries++;return Promise.resolve([{key:"bridge",text:rows}]);},transcript:()=>Promise.resolve(body)}),event=fixture().event;
  expect(await reader.event(event)).toBe(event);
  rows=JSON.stringify(row());now=5001;
  expect(await reader.event(event)).toBe(event);
  body=transcript();expect(await reader.event(event)).toMatchObject({thinking:"native gateway thinking"});expect(discoveries).toBe(2);
+});
+it("maps continuation turns by recorded call ID, and keeps the last successful attempt",async()=>{
+ const f=fixture([row(),row({attempt:2,record:"call-945-2.jsonl"})]);
+ expect(await f.reader.event({...f.event,turn:97})).toMatchObject({turn:97,thinking:"native gateway thinking"});
+ const wrong=new Log().add(3001,assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_97",name:"press",args:{}}]}));
+ expect(await f.reader.event(wrong)).toBe(wrong);
 });

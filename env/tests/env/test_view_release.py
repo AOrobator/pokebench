@@ -576,9 +576,25 @@ def test_disk_output_discards_only_its_own_staging_and_rejects_stray_folders() -
 def test_gateway_trace_is_available_to_viewer_without_rewriting_events() -> None:
     files = Build().files()
     record = (
-        json.dumps({"type": "assistant", "session_id": "private-session", "message": {"role": "assistant", "content": [{"type": "thinking", "thinking": "heal first"}]}})
+        json.dumps(
+            {
+                "type": "assistant",
+                "session_id": "private-session",
+                "message": {
+                    "role": "assistant",
+                    "content": [{"type": "thinking", "thinking": "heal first"}],
+                },
+            }
+        )
         + "\n"
-        + json.dumps({"type": "result", "session_id": "private-session", "is_error": False, "result": '{"name":"press","text":"heal"}'})
+        + json.dumps(
+            {
+                "type": "result",
+                "session_id": "private-session",
+                "is_error": False,
+                "result": '{"name":"press","text":"heal"}',
+            }
+        )
         + "\n"
     ).encode()
     files["agent-trace-67d7.tar"] = tar({"calls/call-945-1.jsonl": record})
@@ -591,3 +607,25 @@ def test_gateway_trace_is_available_to_viewer_without_rewriting_events() -> None
     assert row["run_id"] == RUN
     assert row["mode"] == "session"
     assert run["events.jsonl"] == Build().events()
+
+
+@pytest.mark.parametrize("failure", ["digest", "link", "duplicate", "json"])
+def test_bad_gateway_trace_publishes_nothing(failure: str) -> None:
+    files = Build().files()
+    info = tarfile.TarInfo("calls/call-1-1.jsonl")
+    info.type = tarfile.SYMTYPE
+    info.linkname = "elsewhere"
+    if failure == "link":
+        archive = tar({}, extra=[info])
+    elif failure == "duplicate":
+        archive = tar({"calls/call-1.jsonl": b"{}\n", "calls/call-1-1.jsonl": b"{}\n"})
+    else:
+        archive = tar({"calls/call-1-1.jsonl": b"broken\n" if failure == "json" else b"{}\n"})
+    files["agent-trace-67d7.tar"] = archive
+    files = resum(files)
+    if failure == "digest":
+        files["agent-trace-67d7.tar"] = tar({"calls/call-2-1.jsonl": b"{}\n"})
+    out = MemoryOutput()
+    with pytest.raises(vrl.ReleaseError):
+        unpack(files, output=out)
+    assert out.published == {} and out.partial is None

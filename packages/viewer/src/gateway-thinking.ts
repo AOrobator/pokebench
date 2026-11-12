@@ -5,15 +5,18 @@ import type { CurrentAnswer, CurrentSnapshot } from "./current-public.js";
 export interface GatewayThinkingPorts {
  sources(): Promise<readonly { key: string; text: string }[]>;
  transcript(key: string, record: string): Promise<string | null>;
+ assistant(run: string, turn: number): Promise<RunEvent | null>;
  now(): number;
 }
-const Call = Type.Object({ at: Type.String(), request: Type.Integer({ minimum: 1 }), attempt: Type.Integer({ minimum: 1 }), run_id: Type.String(), mode: Type.Literal("session"), session_id: Type.String({ minLength: 1 }), outcome: Type.Literal("ok"), record: Type.String({ pattern: "^call-[0-9]+-[0-9]+\\.jsonl$" }) });
+const Call = Type.Object({ request: Type.Integer({ minimum: 1 }), attempt: Type.Integer({ minimum: 1 }), run_id: Type.String(), mode: Type.Literal("session"), session_id: Type.String({ minLength: 1 }), outcome: Type.Literal("ok"), record: Type.String({ pattern: "^call-[0-9]+-[0-9]+\\.jsonl$" }) });
 const Message = Type.Object({ type: Type.Literal("assistant"), session_id: Type.String(), parent_tool_use_id: Type.Optional(Type.Null()), message: Type.Object({ role: Type.Literal("assistant"), content: Type.Array(Type.Union([Type.Object({ type: Type.Literal("thinking"), thinking: Type.String() }), Type.Object({ type: Type.Literal("text"), text: Type.String() })])) }) });
-const Reply = Type.Object({ text: Type.String() });
+const Reply = Type.Object({ name: Type.String(), text: Type.Optional(Type.String()) });
+const Result = Type.Object({type: Type.Literal("result"),session_id: Type.String(),is_error: Type.Literal(false),result: Type.String()});
 function parse(text: string): unknown { try { return JSON.parse(text); } catch { return null; } }
-interface Entry { key: string; record: string; session: string; request: number; at: number }
+interface Entry { key: string; record: string; session: string; request: number; attempt: number }
 export function createGatewayThinking(ports: GatewayThinkingPorts) {
  let expires = -Infinity, pending: Promise<ReadonlyMap<string, Entry[]>> | undefined;
+ const assistants = new Map<string, RunEvent>();
  const transcripts = new Map<string, Promise<{ thinking: string; reply: string } | null>>();
  const index = (): Promise<ReadonlyMap<string, Entry[]>> => {
   if (pending !== undefined && ports.now() < expires) return pending;
@@ -22,9 +25,9 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
    const runs = new Map<string, Entry[]>();
    for (const source of sources) for (const line of source.text.split("\n")) {
     const row = parse(line);
-    if (!Value.Check(Call, row) || row.record !== `call-${String(row.request)}-${String(row.attempt)}.jsonl` || !Number.isFinite(Date.parse(row.at))) continue;
+    if (!Value.Check(Call, row) || row.record !== `call-${String(row.request)}-${String(row.attempt)}.jsonl`) continue;
     const entries = runs.get(row.run_id) ?? [];
-    entries.push({ key: source.key, record: row.record, session: row.session_id, request: row.request, at: Date.parse(row.at) }); runs.set(row.run_id, entries);
+    entries.push({ key: source.key, record: row.record, session: row.session_id, request: row.request, attempt: row.attempt }); runs.set(row.run_id, entries);
    }
    return runs;
   }).catch(() => new Map());
@@ -38,10 +41,14 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
    const thinking: string[] = [], replies: string[] = [];
    for (const line of text.split("\n")) {
     const message = parse(line);
+    if (Value.Check(Result, message) && message.session_id === entry.session) {
+     const reply = parse(message.result.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1"));
+     if (Value.Check(Reply, reply)) replies.push(reply.text ?? "");
+    }
     if (!Value.Check(Message, message) || message.session_id !== entry.session) continue;
     for (const part of message.message.content) {
      if (part.type === "thinking") thinking.push(part.thinking);
-     else { const reply = parse(part.text); if (Value.Check(Reply, reply)) replies.push(reply.text); }
+
     }
    }
    return thinking.join("").trim() !== "" && replies.length === 1 ? { thinking: thinking.join(""), reply: replies[0] ?? "" } : null;
@@ -52,11 +59,10 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
   void result.then(value => { if (value === null && transcripts.get(key) === result) transcripts.delete(key); });
   return result;
  };
- async function lookup(run: string, at: number, reply: string, request?: number): Promise<string | null> {
-  const entries = (await index()).get(run) ?? [];
-  const eligible = entries.filter(e => request === undefined ? e.at <= at : e.request === request && Math.abs(e.at - at) <= 2000);
-  const latest = request === undefined ? Math.max(...eligible.map(e => e.at)) : null;
-  const matches = eligible.filter(e => latest === null || e.at === latest);
+ async function lookup(run: string, reply: string, request: number): Promise<string | null> {
+  const entries = ((await index()).get(run) ?? []).filter(e => e.request === request);
+  const lastAttempt = Math.max(...entries.map(e => e.attempt));
+  const matches = entries.filter(e => e.attempt === lastAttempt);
   if (matches.length !== 1) return null;
   const entry = matches[0]; if (entry === undefined) return null;
   const content = await read(entry);
@@ -66,13 +72,19 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
   if (event.type !== "assistant" || event.thinking.trim() !== "" || event.tool_calls.length !== 1) return event;
   const id = event.tool_calls[0]?.id ?? "";
   if (!/^call_[1-9][0-9]*$/.test(id)) return event;
-  const thinking = await lookup(event.run, Date.parse(event.t), event.text, Number(id.slice(5)));
+  const thinking = await lookup(event.run, event.text, Number(id.slice(5)));
   return thinking === null ? event : { ...event, thinking };
  }
  async function snapshot(snapshot: CurrentSnapshot): Promise<CurrentSnapshot> {
   const thought = snapshot.display.thought;
   if (thought == null || thought.thinking.trim() !== "") return snapshot;
-  const thinking = await lookup(snapshot.id, snapshot.at, thought.reply);
+  const key = `${snapshot.id}\0${String(thought.turn)}\0${thought.reply}`;
+  const source = assistants.get(key) ?? await ports.assistant(snapshot.id, thought.turn).catch(() => null);
+  if (source?.type !== "assistant" || source.run !== snapshot.id || source.turn !== thought.turn || source.text !== thought.reply || Date.parse(source.t) > snapshot.at) return snapshot;
+  if (assistants.size >= 128) assistants.delete(assistants.keys().next().value ?? "");
+  assistants.set(key, source);
+  const recovered = await event(source);
+  const thinking = recovered.type === "assistant" && recovered.thinking.trim() !== "" ? recovered.thinking : null;
   return thinking === null ? snapshot : { ...snapshot, display: { ...snapshot.display, thought: { ...thought, thinking } } };
  }
  async function answer(answer: CurrentAnswer): Promise<CurrentAnswer> {

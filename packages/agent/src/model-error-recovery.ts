@@ -136,6 +136,8 @@ export class LaneReadiness {
 }
 
 export interface RecoveryOptions {
+  /** Native hosted transports own connection retries and have no /models health route. */
+  readonly readinessProbe?: (signal?:AbortSignal)=>Promise<boolean>;
   readonly baseUrl: string;
   readonly apiKey?: string;
   readonly probeTimeoutMs?: number;
@@ -160,7 +162,7 @@ export class ModelErrorRecovery {
   constructor(options: RecoveryOptions) {
     this.options = options;
     this.readiness = new LaneReadiness({
-      probe: modelsProbe(options.baseUrl, options.fetchFn ?? fetch, options.apiKey, options.probeTimeoutMs ?? 5000),
+      probe: options.readinessProbe ?? modelsProbe(options.baseUrl, options.fetchFn ?? fetch, options.apiKey, options.probeTimeoutMs ?? 5000),
       sleep: options.sleep ?? abortableSleep,
       onWait: (phase, waitedMs) => {
         if (phase === "start") options.record("lane readiness wait started; no request is sent until GET /models answers");

@@ -6,7 +6,7 @@ Generated from `packages/agent/src/features.ts` by `just explainer-twins`; do no
 - **Run 67d7**: whether the switch was on in that run's `run_start` event (its recorded feature settings). Blank: the switch did not exist yet.
 - Measurement features only record; the model never sees them.
 
-413 features.
+414 features.
 
 | Group | Switch | What it does | Default | Run 67d7 | Explainer |
 |---|---|---|---|---|---|
@@ -41,6 +41,7 @@ Generated from `packages/agent/src/features.ts` by `just explainer-twins`; do no
 | observation | `current-map-display-name-v1` | Bundle treatment (frontier report H7: in 47c3 at seq 4776 the model read "Current map: LITTLEROOT TOWN MAYS HOUSE 2F (map 1/3)" while the header and Location line called the same map PROF. BIRCH'S HOUSE 2F, and… | off | off | [current-map-display-name-v1](explainers/md/current-map-display-name-v1.md) |
 | observation | `cutscene-journal-v1` | Captures visible field objects and displayed text at the emulator frame boundary, then delivers their chronological appearance, tile movement and departure with the next game-tool result. | off | off | [cutscene-journal-v1](explainers/md/cutscene-journal-v1.md) |
 | observation | `deep-south-warp-label-v1` | The map-element table named metatile behavior 0x6E deep_water_exit, but in the game it is MB_DEEP_SOUTH_WARP, a non-animated door with no Surf flag (pokeemerald MetatileBehavior_IsNonAnimDoor): the PETALBURG WOODS… | off | on | [deep-south-warp-label-v1](explainers/md/deep-south-warp-label-v1.md) |
+| observation | `direct-codex-provider-v1` | Use the native Codex Responses provider inside the existing game loop and archive full request/response bytes. | off |  | [direct-codex-provider-v1](explainers/md/direct-codex-provider-v1.md) |
 | observation | `displayed-place-names-v1` | Names signs, and the Littleroot buildings the game names on its signs, by the text the game prints for this save instead of by source symbols. | off | on | [displayed-place-names-v1](explainers/md/displayed-place-names-v1.md) |
 | observation | `effectiveness-heard-v1` | Run 2026-10-20T20-26-22_qwen36-gpu1_97a0 pressed B for 100+ turns from turn 779 on COMBUSKEN's DOUBLE KICK prompts. | off | on | [effectiveness-heard-v1](explainers/md/effectiveness-heard-v1.md) |
 | observation | `elevation-aware-map-v1` | Bundle treatment (the operator 2026-10-23, GLM run 0d5d turns 1094-1106 on ROUTE110: the player stood at elevation 3 on bridge tiles under the Seaside Cycling Road, the road above at elevation 4 was drawn ".", Next… | off | off | [elevation-aware-map-v1](explainers/md/elevation-aware-map-v1.md) |

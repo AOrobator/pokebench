@@ -4,6 +4,7 @@ import type { GatewayModel } from "./gateway.js";
 import type { FeatureSet } from "./features.js";
 import { samplingExtras, type SamplingExtras } from "./presence-penalty.js";
 import { sentEffort, withReasoningEffort } from "./reasoning-effort.js";
+import {directCodexOptions} from "./direct-codex.js";
 import { isVllm, vllmToolPayload } from "./tool-schema-dialect.js";
 
 // The gateway is unauthenticated, but pi refuses to stream without a key.
@@ -16,6 +17,7 @@ export function gatewayLoopConfig(
   extras: SamplingExtras = {},
   effort: string | null = null,
 ): AgentLoopConfig {
+  if (model.api === "openai-codex-responses") return { model, maxTokens:model.maxTokens, convertToLlm:messages=>messages, getApiKey:()=>apiKey, transport:"sse", ...(thinking==="off"?{}:{reasoning:thinking}), onPayload:directCodexOptions };
   const vllm = isVllm(model.provider);
   const base: AgentLoopConfig = {
     model,

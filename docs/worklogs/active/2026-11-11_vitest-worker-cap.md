@@ -8,7 +8,7 @@ Production path set: packages/agent/vitest.config.ts and packages/viewer/vitest.
 ## M1
 - [x] Inspect pinned Vitest API and existing recipes/configuration.
 - [x] Apply eight-worker caps; real config-loader RED before edit in both packages (`undefined !== 8`); GREEN and cheap checks below.
-- [ ] Quiet CPU window: just lint, measured just test (includes build), just verify-vendor.
+- [x] Quiet CPU window: just lint, measured just test (includes build), just verify-vendor.
 - [ ] Freeze packet; principles self-review; Claude and GPT review; synthesis.
 - [ ] Land through board; post-main just test; record evidence and release.
 
@@ -21,3 +21,11 @@ Initial inspections complete; no application behavior changes. Review/gates/land
 RED receipts: /tmp/vitest-cap-{agent,viewer}-red.log. Temporary config-loader check is outside the ordinary no-I/O suites and does not add an I/O test. No RED commit needed for a disposable verification probe rather than a new repository test.
 
 GREEN: both config-loader probes pass at maxWorkers=8 and exact before/after preserved selection/setup/coverage equality. Both package tsc --noEmit and per-package eslint vitest.config.ts pass; agent milestones 32/32 and viewer custom-lane 4/4 pass. Vendor pin verified clean. Initial root pnpm exec eslint did not resolve a binary; corrected to package-local invocation, passed. Full CPU window requested; Grok standing waiver confirmed by relay.
+
+## Full gates and measurement
+COMMIT: `Cap agent and viewer Vitest suites at eight workers` (593cf19ea). `just test` PASS: agent 251 files/3051 tests; viewer 123 files/1307 tests; env 3466; gateway 39; no-I/O guard proof PASS. Coverage floors untouched and pass (agent statements 64.81/branches 61.09/functions 64.27/lines 70.35; viewer 42.73/45.05/47.78/43.48). `just build` passed as test prerequisite; `just lint` and `just verify-vendor` PASS. Receipts /tmp/vitest-cap-after.{stdout,stderr,top}.log and .json, /tmp/vitest-cap-lint.{stdout,stderr}.log. Coverage emitted an existing gateway warning: replay module never imported; gate still passed.
+
+Single-run measurement with /usr/bin/time -l and top whole-host CPU every 3 seconds: baseline 76.46 s real, 409 user+53 sys=462 CPU-s, peak 100%, mean31.9%, median16.8%, 4/24 samples >80%. After 102.79 s real, 357.87 user+26.50 sys=384.37 CPU-s, peak49.01%, mean25.47%, median18.70%, 0/33 >80%; peak RSS 3,041,689,600 bytes. Wall +34.4%; CPU-s -16.8%; peak -50.99 percentage points. Not a repeated study or proof of three concurrent suites. Relay confirms another lint started in final ~2 s of measured run (after Vitest phases), so total timing/mean are slightly contaminated; the Vitest-phase peak is unaffected. CPU reservation released after lint.
+
+## Integration compatibility
+Main advanced dc5436a3a -> 2c1fdf7f3 with only an unrelated direct-provider worklog evidence update. Merged on branch as 7ec41be3f; source/config/test/dependency contracts unchanged, so full gate evidence retained at implementation pin593cf19ea. No main hold requested. Final executable feature delta against new main remains exactly two maxWorkers literals. Freeze after this evidence commit for review.

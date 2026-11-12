@@ -138,6 +138,7 @@ The operator 2026-11-11: "the video seems to go a long time in between thinking 
 - [x] Trial on the Sky Pillar window (turns 3420-3461): 40 lines in 42 turns (was 13), one per 11.6 s (was 35.6), 38% of the window spoken (was 13%), 0 dropped in a schedule simulation, max lag 0.7 s; 2 calls, $0.06. Full rewrite approved via the coordinator at ~$6; it runs to runs/broadcast/67d7-dense/. Turns 476-500 were refused by Sonnet's safeguards (reasoning_extraction) 3 times and stopped the job; a resume passed them.
 - [x] Review: Codex (resume-mode fix: 135 tests, module 99%, lint clean)
   - Round 2 on e0d6d4591..dbb41ec59: Claude CLI LGTM; GPT/Codex LGTM. Grok out until 11/17; fallback LGTM on round 1.
+- [x] Landed 930b41982 (ff-only) on local main, not pushed; post-main `just test`: 3,053 agent, 1,310 viewer, 3,474 env, 39 gateway
 - [x] Gates on dbb41ec59 (main 237d98e75): lint, `just test` (3,053 agent, 1,310 viewer, 3,474 env, 39 gateway), verify-vendor
   - GPT/Codex on main..e0d6d4591 (sha 302bf54c): LGTM. Fallback (Sonnet): LGTM. Claude CLI: BLOCKING, real: a resume ignored the writer mode, so --dense on a folder already written plain did nothing, and a mode switch mid-run mixed lines. Fix: batches record `dense`; a resume in the other mode is refused. Its PB6/PB8 wording notes accepted (per-turn max_words is advice; rooms are within the --start/--end window). The full rewrite writes to a new empty folder, so it is unaffected.
 

@@ -11,10 +11,41 @@ def test_boot_factory_attaches_existing_supervised_recorder_with_owner_and_run_p
         calls.append((argv, out))
         return "recorder"
 
-    result = launch_boot_recording(ServerSpec(8087, True, None), Path("/venv/python"), Path("/runs/boot with spaces"), 1234, start)
+    result = launch_boot_recording(
+        ServerSpec(8087, True, None),
+        Path("/venv/python"),
+        Path("/runs/boot with spaces"),
+        1234,
+        start,
+    )
     assert result == "recorder"
-    assert calls == [(["/venv/python", "-m", "pokebench_env.recorder", "--port", "8087", "--out", "/runs/boot with spaces/recording", "--supervise", "--owner-pid", "1234"], Path("/runs/boot with spaces/recording"))]
-    assert launch_boot_recording(ServerSpec(8088, True, Path("/saves/start.ss0")), Path("/venv/python"), Path("/runs/save"), 1234, start) is None
+    assert calls == [
+        (
+            [
+                "/venv/python",
+                "-m",
+                "pokebench_env.recorder",
+                "--port",
+                "8087",
+                "--out",
+                "/runs/boot with spaces/recording",
+                "--supervise",
+                "--owner-pid",
+                "1234",
+            ],
+            Path("/runs/boot with spaces/recording"),
+        )
+    ]
+    assert (
+        launch_boot_recording(
+            ServerSpec(8088, True, Path("/saves/start.ss0")),
+            Path("/venv/python"),
+            Path("/runs/save"),
+            1234,
+            start,
+        )
+        is None
+    )
     assert len(calls) == 1
 
 
@@ -39,6 +70,11 @@ def test_explicit_recorder_stop_ends_owner_monitor_without_signalling_anything()
     waits = iter([False, True])
     checked: list[int] = []
     stopped: list[bool] = []
-    follow_owner(1234, lambda pid: checked.append(pid) is None, lambda: next(waits), lambda: stopped.append(True))
+    follow_owner(
+        1234,
+        lambda pid: checked.append(pid) is None,
+        lambda: next(waits),
+        lambda: stopped.append(True),
+    )
     assert checked == [1234]
     assert stopped == []

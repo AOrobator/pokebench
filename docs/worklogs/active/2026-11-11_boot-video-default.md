@@ -40,3 +40,7 @@ None.
 
 ## Archive Milestone (user-gated)
 - [ ] Operator approval to archive.
+
+- Focused43 tests PASS, changed-file Ruff/Mypy PASS, full test/build/lint/vendor PASS on237d98e75+candidate:3053 agent/1310 viewer/3469 env/39 gateway, floors/no-I/O guards unchanged. Two real guard mutations (boot-only-2, owner-exit-2) failed with specific assertions and restored; initial boot-only mutation targeted unrelated server argv branch, unexpectedly green and excluded, receipt retained.
+- Real-ROM launchers both PASS: native-proof.json (exec) and native-nonexec-proof.json (normal launch) show automatic240x160 H.264 and48kHz FLAC, 3.08/3.18s videos readable by ffprobe, owner-exit supervisor_done and clean server exit. Actual2s video frame shows Emerald copyright, inspected pixels. First cold-start rehearsal used22.5s health bound and timed out before server startup, retained; second uses production-like120s bound and succeeds. A very short standard smoke also attached recorder and stopped cleanly but ended before receiving a video frame, so it is not counted as video proof; both longer launcher proofs above produced files. Past runs are not retroactively recorded.
+- Existing recorder explainer updated, twins regenerated, pages-check PASS and1280/1440/375 browser screenshots inspected with no page overflow/errors. Its existing wide diagram scrolls within the figure on phone. No new feature switch: observation-independent measurement only, explicitly requested automatic for every boot.

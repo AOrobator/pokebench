@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Mapping
@@ -74,11 +75,57 @@ def spawn(
     return popen(server_command(python, spec), cwd=server_dir, env=env)
 
 
+def launch_boot_recording(
+    spec: ServerSpec,
+    python: Path,
+    run_dir: Path,
+    owner_pid: int,
+    start: Callable[[list[str], Path], P],
+) -> P | None:
+    """One read-only recorder for each boot, independent of gameplay decisions."""
+    if spec.load_state is not None:
+        return None
+    out = run_dir / "recording"
+    return start(
+        [
+            str(python),
+            "-m",
+            "pokebench_env.recorder",
+            "--port",
+            str(spec.port),
+            "--out",
+            str(out),
+            "--supervise",
+            "--owner-pid",
+            str(owner_pid),
+        ],
+        out,
+    )
+
+
+def _start_recorder(
+    argv: list[str], out: Path
+) -> "subprocess.Popen[bytes]":  # pragma: no cover - processes
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError("boot video recording requires ffmpeg on PATH")
+    out.mkdir(parents=True, exist_ok=True)
+    with (out / "recorder.log").open("ab") as log:
+        process = subprocess.Popen(  # noqa: S603 - argv list, owned recorder module
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+    (out / "recorder.pid").write_text(str(process.pid) + "\n")
+    return process
+
+
 def launch(
     spec: ServerSpec, run_dir: Path, run_id: str
 ) -> "subprocess.Popen[bytes]":  # pragma: no cover - real process
     server_dir = prepare(os.environ, run_dir)
-    return spawn(
+    process: subprocess.Popen[bytes] = spawn(
         spec,
         Path(sys.executable),
         VENDOR_DIR,
@@ -88,6 +135,13 @@ def launch(
         os.environ,
         subprocess.Popen,
     )
+    try:
+        launch_boot_recording(spec, Path(sys.executable), run_dir, process.pid, _start_recorder)
+    except BaseException:
+        process.terminate()
+        process.wait()
+        raise
+    return process
 
 
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint (`just serve`)
@@ -116,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         # server. Without exec it holds this wrapper, which outlives the server it started.
         server_dir = prepare(os.environ, run_dir)
         env = server_env(os.environ, vendor_dir=VENDOR_DIR, run_id=run_id, pycache_dir=PYCACHE_DIR)
+        launch_boot_recording(spec, Path(sys.executable), run_dir, os.getpid(), _start_recorder)
         os.chdir(server_dir)
         # An argv list with no shell. Exec is the point: this pid becomes the server.
         os.execvpe(  # noqa: S606

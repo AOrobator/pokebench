@@ -480,8 +480,43 @@ def journal(path: Path) -> Log:  # pragma: no cover - the disk
     return log
 
 
+def follow_owner(
+    pid: int | None,
+    alive: Callable[[int], bool],
+    wait: Callable[[], bool],
+    stop: Callable[[], None],
+) -> None:
+    """Stop only this recorder when its game server exits; never follow a reused port."""
+    if pid is None:
+        return
+    while not wait():
+        if not alive(pid):
+            stop()
+            return
+
+
+def _alive(pid: int) -> bool:  # pragma: no cover - process lookup
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def _watch_owner(
+    pid: int | None, stopping: threading.Event, stop: Callable[[], None]
+) -> None:  # pragma: no cover - thread
+    if pid is None:
+        return
+    threading.Thread(
+        target=follow_owner,
+        args=(pid, _alive, lambda: stopping.wait(0.1), stop),
+        daemon=True,
+    ).start()
+
+
 def run_supervised(
-    port: int, out: Path, wait: float, log: Log
+    port: int, out: Path, wait: float, log: Log, owner_pid: int | None = None
 ) -> int:  # pragma: no cover - processes
     live: list[subprocess.Popen[bytes]] = []
     stopping = threading.Event()
@@ -492,13 +527,15 @@ def run_supervised(
             child.terminate()
 
     signal.signal(signal.SIGTERM, stop)
+    _watch_owner(owner_pid, stopping, stop)
 
     def run_child(first: bool) -> int:
         if stopping.is_set():
             return 0
         patience = wait if first else 30.0
         argv = [sys.executable, "-m", "pokebench_env.recorder", "--port", str(port)]
-        child = subprocess.Popen([*argv, "--out", str(out), "--wait", str(patience)])  # noqa: S603
+        owner = [] if owner_pid is None else ["--owner-pid", str(owner_pid)]
+        child = subprocess.Popen([*argv, "--out", str(out), "--wait", str(patience), *owner])  # noqa: S603
         live[:] = [child]
         code = child.wait()
         return 0 if stopping.is_set() else code
@@ -512,6 +549,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--wait", type=float, default=900, help="seconds to wait for the server")
+    parser.add_argument("--owner-pid", type=int, help="stop recording when this game server exits")
     parser.add_argument("--supervise", action="store_true", help="restart the recorder if it dies")
     parser.add_argument("--index", action="store_true", help="write segments.json and stop")
     args = parser.parse_args(argv)
@@ -523,10 +561,11 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
         return 0
     log = journal(args.out / "recording.jsonl")
     if args.supervise:
-        return run_supervised(args.port, args.out, args.wait, log)
+        return run_supervised(args.port, args.out, args.wait, log, args.owner_pid)
     errors = (args.out / "ffmpeg.log").open("ab")
     stopping = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stopping.set())
+    _watch_owner(args.owner_pid, stopping, stopping.set)
     anchor = Anchor()
     part = next_part(path.name for path in args.out.iterdir())
     written = [0]

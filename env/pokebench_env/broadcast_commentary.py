@@ -283,14 +283,22 @@ def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], s
         return phonemize(text)
     names = "|".join(re.escape(name) for name in sorted(lexicon, key=len, reverse=True))
     pattern = re.compile(rf"(?<![\w'])({names})('s)?(?!\w)")
-    parts: list[str] = []
+    spoken = ""
     last = 0
+
+    def add(piece: str, spaced: bool) -> None:
+        nonlocal spoken
+        if piece:
+            spoken += (" " if spoken and spaced else "") + piece
+
     for match in pattern.finditer(text):
-        parts.append(phonemize(text[last : match.start()]))
-        parts.append(lexicon[match[1]] + ("z" if match[2] else ""))
+        between = text[last : match.start()]
+        add(phonemize(between), not between[:1] or between[:1].isspace())
+        add(lexicon[match[1]] + ("z" if match[2] else ""), True)
         last = match.end()
-    parts.append(phonemize(text[last:]))
-    return " ".join(part for part in parts if part)
+    rest = text[last:]
+    add(phonemize(rest), not rest[:1] or rest[:1].isspace())
+    return spoken
 
 
 def voice_lines(

@@ -294,6 +294,12 @@ codex-mailbox *args:
 codex-wake-watch thread:
     uv run --project env python -m pokebench_env.agent_mail mailbox-watch --for codex-coordinator --wake-codex "$1"
 
+# Archives (never deletes) mailboxes of branches no worktree has checked out: no one reads them.
+# Moves runs/agent-mail/to/<box>/ to runs/agent-mail/archive/<UTC date>/<box>/. Try --dry-run first.
+[positional-arguments]
+mail-archive *args:
+    uv run --project env python -m pokebench_env.agent_mail archive-boxes "$@"
+
 [positional-arguments]
 codex-mailbox-done *args:
     uv run --project env python -m pokebench_env.agent_mail mailbox-done --for codex-coordinator "$@"

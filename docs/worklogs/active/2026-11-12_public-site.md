@@ -71,8 +71,8 @@ Outcome: `just site` builds Home and the shared layout (header, side buttons, bo
 
 **M2 — Results, Models and Runs**
 Outcome: the leaderboard with the badges-over-time chart above it, a page per model, and a run page per entry in `site/data/runs.json` with the release assets and the verify command. Path set: `packages/site/src/pages/{results,models,run}.ts`, `site/data/runs.json`. Non-goals: updates, explainers. Terminator as M1. Split if per-run pages need data not in the chart files (for example per-turn costs), which would mean a new export step.
-- [ ] Write tests: one row per model's best run; "(assisted)" and "(local)" inline; human record row; stars plus the crown after eight badges with the right `aria-label`; per-model page links; runs.json validation; verify command text
-- [ ] COMMIT: `test(site): cover results, models and runs` (RED)
+- [x] Write tests: one row per model's best run; "(assisted)" and "(local)" inline; human record row; stars plus the crown after eight badges with the right `aria-label`; per-model page links; runs.json validation; verify command text. Also: site.json `models` (kind, effort, context; every series slug has exactly one model and every model a series; name and local agree), runs.json strict parsing (offset timestamps, 9-char commits, "n of m" links, unique short ids, safe tag/asset names, release shape), every plotted run has exactly one runs.json entry and vice versa, run pages only for released runs, splits table with faster/slower/even/not reached, newest-first runs list, INV-1 on run turns, escaping release text, sizes and short time spans.
+- [x] COMMIT: `test(site): cover results, models and runs` (this commit). RED: 78 of 126 fail (new modules missing, menu and pages not built).
 - [ ] Implement
 - [ ] Cheap checks; gates; counts
 - [ ] COMMIT: `feat(site): results, model and run pages` (GREEN)

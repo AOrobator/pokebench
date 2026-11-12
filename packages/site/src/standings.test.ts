@@ -27,7 +27,7 @@ describe("standings", () => {
     const lane = at(s.entries, 0);
     expect(lane).toMatchObject({ model: "Model A", slug: "model-a", assisted: true, local: false, help: "two hints", costUsd: 70, estimated: false });
     const b = find(s.entries, (e) => e.chartLabel === "Model B");
-    expect(b).toMatchObject({ local: true, estimated: true, runs: ["r-b1"] });
+    expect(b).toMatchObject({ local: true, estimated: true, runs: ["run-b001"] });
   });
 
   it("reads the human record from the last split", () => {

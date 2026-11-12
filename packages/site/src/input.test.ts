@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { at, rec } from "../test-support/at.js";
 import { fixture } from "../test-support/fixture.js";
-import { InputError, parseChartData, parsePoints, parseSiteData } from "./input.js";
+import { InputError, parseChartData, parsePoints, parseRuns, parseSiteData } from "./input.js";
 
 describe("parseChartData", () => {
   it("reads the human splits and each series's assisted and estimated flags", () => {
@@ -129,5 +129,156 @@ describe("parseSiteData", () => {
     const f = fixture();
     (f.site.human as Record<string, unknown>).name = "";
     expect(() => parseSiteData(f.site)).toThrow(/human\.name/);
+  });
+});
+
+describe("parseSiteData models", () => {
+  it("reads each model's name, kind, reasoning effort and context window", () => {
+    const s = parseSiteData(fixture().site);
+    expect(s.models).toEqual([
+      { slug: "model-a", name: "Model A", kind: "cloud", effort: "medium", context: 262144 },
+      { slug: "model-b", name: "Model B", kind: "local", effort: "medium", context: 65536 },
+      { slug: "model-c", name: "Model C", kind: "cloud", effort: "off", context: 32768 },
+    ]);
+  });
+
+  it("rejects a kind other than cloud or local", () => {
+    const f = fixture();
+    rec(f.site.models, 0).kind = "remote";
+    expect(() => parseSiteData(f.site)).toThrow(/models\[0\]\.kind/);
+  });
+
+  it("rejects a context window that is not a positive whole number", () => {
+    const f = fixture();
+    rec(f.site.models, 0).context = 0;
+    expect(() => parseSiteData(f.site)).toThrow(/models\[0\]\.context/);
+  });
+
+  it("rejects an unknown model field", () => {
+    const f = fixture();
+    rec(f.site.models, 0).sku = "x";
+    expect(() => parseSiteData(f.site)).toThrow(/unknown field "sku"/);
+  });
+
+  it("rejects a series slug with no model entry", () => {
+    const f = fixture();
+    (f.site.models as unknown[]).splice(2, 1);
+    expect(() => parseSiteData(f.site)).toThrow(/model-c/);
+  });
+
+  it("rejects a model no series uses", () => {
+    const f = fixture();
+    (f.site.models as unknown[]).push({ slug: "model-z", name: "Model Z", kind: "cloud", effort: "high", context: 1 });
+    expect(() => parseSiteData(f.site)).toThrow(/model-z/);
+  });
+
+  it("rejects two model entries with one slug", () => {
+    const f = fixture();
+    (f.site.models as unknown[]).push({ ...rec(f.site.models, 0) });
+    expect(() => parseSiteData(f.site)).toThrow(/model-a/);
+  });
+
+  it("rejects a series whose model name or local flag disagrees with its model entry", () => {
+    const f = fixture();
+    rec(f.site.series, 2).model = "Model Bee";
+    expect(() => parseSiteData(f.site)).toThrow(/Model Bee/);
+    const g = fixture();
+    rec(g.site.series, 2).local = false;
+    expect(() => parseSiteData(g.site)).toThrow(/series\[2\]\.local/);
+  });
+});
+
+describe("parseRuns", () => {
+  const release = (f: ReturnType<typeof fixture>): Record<string, unknown> => rec(f.runs.runs, 2).release as Record<string, unknown>;
+
+  it("reads each run, its short id, its date and the optional link and release", () => {
+    const runs = parseRuns(fixture().runs);
+    expect(runs.map((r) => r.short)).toEqual(["aa01", "aa02", "ab07", "b001", "c001"]);
+    const a = at(runs, 0);
+    expect(a).toMatchObject({ id: "run-aa01", date: "2026-11-01", start: "a new game at power-on", turns: 800, preset: "a-4h", code: "aaaaaaaa1", linked: "1 of 2" });
+    expect(a.release).toBeUndefined();
+    expect(at(runs, 3).linked).toBeUndefined();
+    const r = at(runs, 2).release;
+    expect(r?.tag).toBe("model-a-lane-ab07");
+    expect(r?.assets.map((x) => [x.name, x.bytes, x.openWith])).toEqual([["events-ab07.tar.xz", 11811008, "tar -xf"], ["SHA256SUMS", 783, "shasum -a 256 -c"]]);
+    expect(r?.team[0]).toEqual({ species: "RAYQUAZA", level: 74, hp: "251/251", moves: "Fly, Outrage", item: "none", caught: "Sky Pillar, level 70" });
+    expect(r?.check[0]?.steps).toHaveLength(2);
+    expect(r?.notes[0]?.title).toBe("INDEPENDENT REPLAY");
+    expect(r?.facts.map((x) => x.label)).toEqual(["HELP", "CODE VERSION"]);
+  });
+
+  it("rejects unknown fields at every level", () => {
+    const top = fixture();
+    top.runs.extra = 1;
+    expect(() => parseRuns(top.runs)).toThrow(/unknown field "extra"/);
+    const run = fixture();
+    rec(run.runs.runs, 0).tokens = 5;
+    expect(() => parseRuns(run.runs)).toThrow(/unknown field "tokens"/);
+    const rel = fixture();
+    release(rel).path = "/x";
+    expect(() => parseRuns(rel.runs)).toThrow(/unknown field "path"/);
+    const asset = fixture();
+    rec(release(asset).assets, 0).sha = "x";
+    expect(() => parseRuns(asset.runs)).toThrow(/unknown field "sha"/);
+    const team = fixture();
+    rec(release(team).team, 0).ivs = "x";
+    expect(() => parseRuns(team.runs)).toThrow(/unknown field "ivs"/);
+  });
+
+  it("rejects a start time without a UTC offset", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).started = "2026-11-01T02:00:00";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.started/);
+  });
+
+  it("rejects a code version that is not a 9-character commit", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).code = "main";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.code/);
+  });
+
+  it("rejects a turn count that is not a positive whole number", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).turns = 1.5;
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.turns/);
+  });
+
+  it("rejects a link that is not \"n of m\"", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).linked = "first";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.linked/);
+  });
+
+  it("rejects two runs with one short id or one id", () => {
+    const f = fixture();
+    rec(f.runs.runs, 1).id = "other-aa01";
+    expect(() => parseRuns(f.runs)).toThrow(/aa01/);
+    const g = fixture();
+    rec(g.runs.runs, 1).id = "run-aa01";
+    expect(() => parseRuns(g.runs)).toThrow(/aa01/);
+  });
+
+  it("rejects an asset or tag name that could leave the release URL", () => {
+    const f = fixture();
+    rec(release(f).assets, 0).name = "../x";
+    expect(() => parseRuns(f.runs)).toThrow(/assets\[0\]\.name/);
+    const g = fixture();
+    release(g).tag = "a/b";
+    expect(() => parseRuns(g.runs)).toThrow(/release\.tag/);
+  });
+
+  it("rejects an asset size or team level that is not a whole number", () => {
+    const f = fixture();
+    rec(release(f).assets, 0).bytes = 1.5;
+    expect(() => parseRuns(f.runs)).toThrow(/assets\[0\]\.bytes/);
+    const g = fixture();
+    rec(release(g).team, 0).level = "74";
+    expect(() => parseRuns(g.runs)).toThrow(/team\[0\]\.level/);
+  });
+
+  it("rejects a run id too short to have a short id", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).id = "ab";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.id/);
   });
 });

@@ -141,7 +141,10 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 - Claude CLI: VERDICT: LGTM (non-blocking: `>` inside a quoted attribute, script bodies/image-set/SVG not scanned, some tests assert counts only, srcset comma splitting).
 - GPT (Codex CLI gpt-5.6-sol): VERDICT: BLOCKING on two parser holes: `<img alt=">" src="https://…">` hides `src`; a quoted CSS `url("…)…")` is not read.
 - Fallback subagent: pending at time of writing.
-- Round cap reached (2 rounds). Prepared the narrow fix for exactly the two listed inputs, pending the operator's choice: quote-aware TAG pattern and quoted/unquoted `url()` forms; 2 new tests red before, green after. Site 78/78, 99.2/98.18/100/100; tsc, eslint clean; `just site` still builds clean. COMMIT: `fix(site): read quoted values that contain > or )` (this commit).
+- Round cap reached (2 rounds). Prepared the narrow fix for exactly the two listed inputs, pending the operator's choice: quote-aware TAG pattern and quoted/unquoted `url()` forms; 2 new tests red before, green after. Site 78/78, 99.2/98.18/100/100; tsc, eslint clean; `just site` still builds clean. COMMIT: `fix(site): read quoted values that contain > or )` (5a3ed2fc1).
+- Fallback subagent round 2: VERDICT: LGTM (round-1 holes closed, no false positives on emitted markup; its gap 2 is the `>` case fixed in 5a3ed2fc1).
+- The operator, 2026-11-12 02:38 ET: "ok" to option A (GPT re-checks the fix, then land) and to menu option D.
+- Menu treatment D (the operator): label and icon share a 1 px outline in the option grey; the icon had only a drop shadow, the label an outline plus a 2 px drop. `just site` OK; browser check 12/12 again. COMMIT: `style(site): one outline for menu labels and icons` (this commit). GPT round 3 reviews 335aa66a5..this commit.
 
 ## Boy Scout Log
 

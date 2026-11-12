@@ -47,7 +47,7 @@ Correction acceptance: current-projector + detached replay selection requests th
 - [x] Real-data candidate browser proof: actual8790 current-projector APIs, candidate compiled app.js routed only inside headless browser. All6 Chromium/WebKit1280/1440/375: mode replay,52full splits,seq9910,own43points; rewind40/restored43; delayed real enrichment and >=3 polls, named row0px/focus retained, zero errors/control writes. Six screenshots inspected.
 - [x] Full gates under relay CPU START, then RELEASE: test/build agent3053/viewer1313/env3499/gateway39, coverage/no-I/O, full lint, vendor and trainer guard/3 visual baselines all pass.
 - [x] Claude CLI + fresh GPT /root/review_splits_correction fork_turns=none, both VERDICT: LGTM; Grok job waiver. Frozen base cf630a007, head2e7bbd081, binary diff SHA256 41d5ecc989c6e02aa7936220f007dbfbc75d8206c0349018aa945a5e59da1140; clean pre/post independently verified.
-- [ ] Board-coordinated correction landing and post-main test
+- [x] Board-coordinated correction landing: exact thread 00000000-0000-4000-8000-87bb39a7dc99, #1, ff-only cf630a007 → f7c38168a. No upstream movement; landed source/test bytes exactly match reviewed2e7bbd081. Post-main just test/build/coverage/no-I/O passed under relay START1:07AM, then RELEASE (3053 agent,1313 viewer,3499 env,39 gateway).
 - [ ] Activation held for separate the operator words
 
 Correction review synthesis: both lanes green, zero blockers/accepted fixes/scope growth. PB1-PB13 and all9 test-quality checks passed. Three mutations fail at expected demand/live/stale-selection assertions, then restore passes. New app seam test injects existing private handoff state and calls real public polling/merge; real-browser proof covers actual initialization/render. Optional completed-replay cards cache/failure fallback and test style comments remain follow-ups, no source expansion. One manual proof run hit in-flight route teardown after two successful widths; manual harness cleanup was corrected, then all6 passed without changing application source.
@@ -55,3 +55,9 @@ Correction review synthesis: both lanes green, zero blockers/accepted fixes/scop
 Correction receipts: main runs/reviews/splits-replay-line/correction/pb-splits2-* (frozen packet, principles, synthesis, Claude/GPT verdicts, gates, mutations and browser script/log). Images and structured receipt: main runs/mockups/splits-replay-line/correction. Compiled app module SHA256 a37f0372183f622888ce25b73885f65483ec7966a474681a8fd4f850d1a04fae. Real baseline app1split/no line versus candidate52splits/43point line, same selected recording and unchanged frontier133points. The clock still spans the loaded tail; that independent pre-existing duration is not the split-source cause and remains out of scope.
 
 COMMIT: `docs(worklog): record real-data replay correction review` (evidence only).
+
+## Correction landing receipt
+
+Correction source/review-evidence merge f7c38168a78f0286fec627ef609950d79fcd136d; source commit2e7bbd0819ca2299d1e0d1babd0f42fd860517d7. Post-main gate log main runs/reviews/splits-replay-line/correction/pb-splits2-post-main-test.log. This evidence-only commit changes only this worklog and fast-forwards in the same board slot before land-done. Shared8790 remains listener PID569 at pre-correction cf630a007; no viewer-main was run by this chat. Relay said it will ask the operator for any further activation. No run-control writes or af33 actions. Candidate proof on actual real-data APIs is complete; unmodified served-runtime adoption remains held and unproven until a separately authorized refresh.
+
+COMMIT: `docs(worklog): record replay correction landing and post-main checks` (evidence only).

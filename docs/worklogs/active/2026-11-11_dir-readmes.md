@@ -31,6 +31,10 @@ Ten prose-only README.md files: `docs/`, `docs/designs/`, `docs/findings/`, `doc
 
 `VERDICT: BLOCKING`, three P2 accuracy fixes, all accepted: experiments/README now says `target` also ends the run unless `stopAt` is set; viewer README says HTTP(S) origins (cli.ts accepts both); docs/README drops the one-explainer-per-switch claim (413 features, 345 explainers including tooling pages).
 
+### Round 2 — GPT
+
+`VERDICT: BLOCKING`, one P2: `stopAt` does not override `target`; parsePlayPreset rejects a non-null target that differs from stopAt. Fixed: stopAt supplies the stop milestone when target is null; when both are set they must match.
+
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive

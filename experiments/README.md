@@ -14,11 +14,11 @@ Run configurations: play presets for single runs, fixed-N experiment definitions
 
 A play preset (version 2, parsed by `packages/agent/src/play-preset.ts`) has:
 
-- `id` and `target`: a native milestone goal, or `null`. Unless `stopAt` is set, the target is also the milestone that ends the run;
+- `id` and `target`: a native milestone goal (written into the model's goal), or `null`. A non-null target is also the milestone that ends the run;
 - `limits`: `maxTurns`, `maxWallMs`, `failureLimit` and optionally `replyFailuresEndRun`;
 - `sampling`: `thinkingLevel` and `maxTokens`;
 - `features`: the feature switches, each `true` or `false`;
-- optionally `stopAt` (a milestone that ends the run, overriding `target`) and `start` (a `save_state` path plus its SHA-1; without it the run starts from boot).
+- optionally `stopAt`: the milestone that ends the run when `target` is `null` (when both are set they must match, or the preset is rejected); and `start` (a `save_state` path plus its SHA-1; without it the run starts from boot).
 
 The limits, `stopAt` (or `target` when `stopAt` is absent) and any run-ending switches are the run's configured stop conditions.
 

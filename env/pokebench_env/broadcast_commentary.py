@@ -97,6 +97,26 @@ BATCH_SYSTEM = (
     '"<text, or empty>"} for turns in this batch.'
 )
 
+DENSE_SYSTEM = (
+    "You voice a game-playing AI as it plays Pokemon Emerald for a live audience. You get a batch "
+    "of consecutive turns. For each: `at` (time into the run), `thinking` (its private thinking, "
+    "often empty), `said` (its own short note on the turn), `did` (the action it took), `seconds` "
+    "(time until its next turn) and `max_words`. Write what the AI says aloud: first person as the "
+    "AI playing (I), present or near future, plain spoken English. Give a line on every turn that "
+    "has thinking or a meaningful action, so the audience follows along turn by turn; leave a turn "
+    "empty only when it repeats the turn before it, such as advancing the same dialogue again, or "
+    "when its max_words is under 3. A line has at most max_words words so it ends before the next "
+    "turn. Use only what the turn data says: add no fact, reason, plan or outcome of your own. "
+    "Never name a button or say press; no coordinates, map numbers, tool names, damage numbers or "
+    "abbreviations like KO or HP. Do not repeat the earlier lines or the line before. Reply with "
+    'only a JSON array of objects {"turn": <number>, "line": "<text, or empty>"} for turns in '
+    "this batch."
+)
+# Kokoro bm_lewis at speed 0.95 on 67d7's 1,222 lines: seconds = 0.77 + 0.306 x words.
+LINE_LEAD_S = 1.0
+WORD_S = 0.31
+LAST_ROOM_S = 10.0
+
 WANTED = ("run_start", "run_end", "turn_start", "assistant")
 STEP_KINDS = ("run_start", "turn_start", "assistant", "tool_call")
 
@@ -556,18 +576,40 @@ def clock(seconds: float) -> str:
     return f"{whole // 3600}:{whole // 60 % 60:02d}:{whole % 60:02d}"
 
 
-def batch_prompt(steps: Sequence[Step], earlier: Sequence[str]) -> str:
+def word_budget(seconds: float) -> int:
+    """Words a line can have and still end before the next turn begins."""
+    return max(0, min(MAX_WORDS, int((seconds - LINE_LEAD_S) / WORD_S)))
+
+
+def turn_rooms(steps: Sequence[Step]) -> dict[int, float]:
+    """Seconds from each turn to the next; the run's last turn gets a default."""
+    ordered = sorted(steps, key=lambda step: step.t)
+    rooms = {a.turn: round(b.t - a.t, 2) for a, b in zip(ordered, ordered[1:], strict=False)}
+    if ordered:
+        rooms[ordered[-1].turn] = LAST_ROOM_S
+    return rooms
+
+
+def _turn_entry(step: Step, rooms: dict[int, float] | None) -> Json:
+    entry: Json = {
+        "turn": step.turn,
+        "at": clock(step.t),
+        "thinking": step.thinking,
+        "said": step.text,
+        "did": list(step.tools),
+    }
+    if rooms is not None:
+        room = rooms.get(step.turn, LAST_ROOM_S)
+        entry["seconds"] = room
+        entry["max_words"] = word_budget(room)
+    return entry
+
+
+def batch_prompt(
+    steps: Sequence[Step], earlier: Sequence[str], rooms: dict[int, float] | None = None
+) -> str:
     said = "\n".join(f"- {line}" for line in earlier) or "(none)"
-    turns = [
-        {
-            "turn": step.turn,
-            "at": clock(step.t),
-            "thinking": step.thinking,
-            "said": step.text,
-            "did": list(step.tools),
-        }
-        for step in steps
-    ]
+    turns = [_turn_entry(step, rooms) for step in steps]
     return (
         f"Earlier lines, already spoken:\n{said}\n\nTurns:\n"
         f"{json.dumps(turns, ensure_ascii=False)}\n\n"
@@ -622,6 +664,7 @@ class Batch:
     cost_usd: float
     ok: bool
     covered: list[int]
+    dense: bool = False
 
 
 @dataclass(frozen=True)
@@ -651,6 +694,20 @@ def covered_turns(log: str) -> set[int]:
     return covered
 
 
+def resume_mode_problem(log: str, dense: bool) -> str | None:
+    """Why a folder's earlier batches cannot be resumed in this mode, or None."""
+    for raw in log.splitlines():
+        try:
+            record = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(record, dict) and record.get("ok") is True:
+            if (record.get("dense") is True) != dense:
+                written = "with" if record.get("dense") is True else "without"
+                return f"this folder's lines were written {written} --dense: use a new --out"
+    return None
+
+
 def write_claude_lines(
     steps: Sequence[Step],
     existing: Sequence[Line],
@@ -661,7 +718,9 @@ def write_claude_lines(
     log: Callable[[str], None],
     names: Sequence[str],
     size: int = BATCH,
+    dense: bool = False,
 ) -> Done:
+    rooms = turn_rooms(steps) if dense else None
     lines = sorted(existing, key=lambda line: line.t)
     done = {line.turn for line in lines} | covered
     todo = [step for step in steps if step.turn not in done]
@@ -672,7 +731,7 @@ def write_claude_lines(
             batch = todo[index : index + size]
             first = batch[0]
             earlier = [line.text for line in lines if line.t < first.t][-CONTEXT_LINES:]
-            prompt = batch_prompt(batch, earlier)
+            prompt = batch_prompt(batch, earlier, rooms)
             wanted = {step.turn for step in batch}
             got: dict[int, str] | None = None
             spent = 0.0
@@ -722,6 +781,7 @@ def write_claude_lines(
                     cost_usd=round(spent, 6),
                     ok=got is not None,
                     covered=sorted(wanted),
+                    dense=dense,
                 )
             )
     finally:
@@ -729,7 +789,7 @@ def write_claude_lines(
     return Done(lines, calls, round(cost, 6), retries, refused, failed)
 
 
-def claude_argv(claude: str, model: str) -> list[str]:
+def claude_argv(claude: str, model: str, dense: bool = False) -> list[str]:
     return [
         claude,
         "-p",
@@ -738,7 +798,7 @@ def claude_argv(claude: str, model: str) -> list[str]:
         "--output-format",
         "json",
         "--system-prompt",
-        BATCH_SYSTEM,
+        DENSE_SYSTEM if dense else BATCH_SYSTEM,
         "--tools",
         "",
         "--no-session-persistence",
@@ -801,6 +861,7 @@ class Options:
     claude_config_dir: str | None = None
     thinking_from: Path | None = None
     side_only: bool = False
+    dense: bool = False
     follow: bool = False
     lines_only: bool = False
     voice_only: bool = False
@@ -822,6 +883,8 @@ def options_problem(options: Options) -> str | None:
         return "--speed must be above 0 and at most 4"
     if options.lines_only and options.voice_only:
         return "--lines-only and --voice-only exclude each other"
+    if options.dense and options.writer != "claude":
+        return "--dense needs --writer claude"
     if options.side_only and options.thinking_from is None:
         return "--side-only needs --thinking-from"
     if options.side_only and (options.start != 0.0 or options.end != float("inf")):
@@ -859,6 +922,11 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
         "--thinking-from",
         type=Path,
         help="claude writer: a session gateway's --bridge folder holding the run's thinking",
+    )
+    parser.add_argument(
+        "--dense",
+        action="store_true",
+        help="claude writer: a line on nearly every turn, sized to the time until the next",
     )
     parser.add_argument(
         "--side-only",
@@ -1037,13 +1105,17 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
     complete = True
     if not args.voice_only and args.writer == "claude":
         batches = folder / "claude-batches.jsonl"
-        covered = covered_turns(batches.read_text(encoding="utf-8")) if batches.exists() else set()
+        log = batches.read_text(encoding="utf-8") if batches.exists() else ""
+        mode = resume_mode_problem(log, args.dense)
+        if mode is not None:
+            parser.error(mode)
+        covered = covered_turns(log)
 
         def record(batch: Batch) -> None:
             with batches.open("a", encoding="utf-8") as out:
                 out.write(json.dumps(asdict(batch)) + "\n")
 
-        argv_ = claude_argv(args.claude, claude_model)
+        argv_ = claude_argv(args.claude, claude_model, args.dense)
         env = claude_env(dict(os.environ), args.claude_config_dir)
         steps = read_steps(_log_lines(log_path), args.start, args.end)
         if args.thinking_from is not None:
@@ -1067,6 +1139,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - entrypoint
                 record,
                 functools.partial(print, flush=True),
                 private_names(),
+                dense=args.dense,
             )
         lines = done.lines
         complete = done.complete

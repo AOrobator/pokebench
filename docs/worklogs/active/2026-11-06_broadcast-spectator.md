@@ -131,6 +131,17 @@ Coordinator brief 2026-11-11 for the operator: (1) `broadcast-render` plays the 
   - Round 4, GPT on 5f41f6d91..6d512bcac, the ducking revert (sha 0cdcabae): LGTM; render files byte-identical to a6bec58b5, 151 tests. Not landed, per the brief.
   - Landing round on the whole packet main..971cded0d (sha 0acb16cb, main c213b0c51 merged in; boundary and principles in runs/reviews/broadcast-claude-lines/landing-*): Claude CLI (~/.claude-review, plan mode) LGTM; fallback subagent (Sonnet) LGTM; GPT LGTM per round above. Cursor/Grok out of usage until 11/17, so Claude + GPT + fallback per the operator's standing rule. Follow-ups, not in this branch: `--out` could point inside runs/<run> (refuse it in options_problem); `cost_rows` trusts request = turn with no text check and can go backwards if a request number repeats (clamp, or join like thinking); a run's own event thinking is shown unscrubbed (as before); the scrub has no token pattern and misses relative and UNC paths.
 
+### Piece 13: dense lines sized to each turn
+The operator 2026-11-11: "the video seems to go a long time in between thinking out loud when there are more agent traces to be read". 67d7 measured: turns every 11.0 s median (p10 4.3, p90 29.9); 1,222 lines over 4,124 turns, 9.7% of the run spoken. Kokoro bm_lewis at 0.95 speaks 2.77 words/s median (seconds = 0.77 + 0.306 x words). `--dense` (claude writer only; default unchanged): a second system prompt that voices every turn with thinking or a meaningful action and skips only true repeats, and each turn in the batch carries `seconds` (time until the next turn, 10 s for the last) and `max_words` = floor((seconds - 1.0) / 0.31), capped at MAX_WORDS. Rooms come from every turn, so a resume asks with the same budgets. The render needs no change: a line waits for the last one and is dropped if it would start more than 3 s late.
+- [x] RED
+- [x] GREEN: 133 focused tests under the no-I/O guard (LANG=en_US.UTF-8), module 99%, ruff/format/mypy clean
+- [x] Trial on the Sky Pillar window (turns 3420-3461): 40 lines in 42 turns (was 13), one per 11.6 s (was 35.6), 38% of the window spoken (was 13%), 0 dropped in a schedule simulation, max lag 0.7 s; 2 calls, $0.06. Full rewrite approved via the coordinator at ~$6; it runs to runs/broadcast/67d7-dense/. Turns 476-500 were refused by Sonnet's safeguards (reasoning_extraction) 3 times and stopped the job; a resume passed them.
+- [x] Review: Codex (resume-mode fix: 135 tests, module 99%, lint clean)
+  - Round 2 on e0d6d4591..dbb41ec59: Claude CLI LGTM; GPT/Codex LGTM. Grok out until 11/17; fallback LGTM on round 1.
+- [x] Landed 930b41982 (ff-only) on local main, not pushed; post-main `just test`: 3,053 agent, 1,310 viewer, 3,474 env, 39 gateway
+- [x] Gates on dbb41ec59 (main 237d98e75): lint, `just test` (3,053 agent, 1,310 viewer, 3,474 env, 39 gateway), verify-vendor
+  - GPT/Codex on main..e0d6d4591 (sha 302bf54c): LGTM. Fallback (Sonnet): LGTM. Claude CLI: BLOCKING, real: a resume ignored the writer mode, so --dense on a folder already written plain did nothing, and a mode switch mid-run mixed lines. Fix: batches record `dense`; a resume in the other mode is refused. Its PB6/PB8 wording notes accepted (per-turn max_words is advice; rooms are within the --start/--end window). The full rewrite writes to a new empty folder, so it is unaffected.
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

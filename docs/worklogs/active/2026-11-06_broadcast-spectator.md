@@ -142,6 +142,14 @@ The operator 2026-11-11: "the video seems to go a long time in between thinking 
 - [x] Gates on dbb41ec59 (main 237d98e75): lint, `just test` (3,053 agent, 1,310 viewer, 3,474 env, 39 gateway), verify-vendor
   - GPT/Codex on main..e0d6d4591 (sha 302bf54c): LGTM. Fallback (Sonnet): LGTM. Claude CLI: BLOCKING, real: a resume ignored the writer mode, so --dense on a folder already written plain did nothing, and a mode switch mid-run mixed lines. Fix: batches record `dense`; a resume in the other mode is refused. Its PB6/PB8 wording notes accepted (per-turn max_words is advice; rooms are within the --start/--end window). The full rewrite writes to a new empty folder, so it is unaffected.
 
+### Piece 14: name pronunciations when voicing
+The operator 2026-11-11: "could we do some special spelling or prompting so that pokemon names are proper nouns in the game are pronounced correctly?". espeak (en-gb) says Pokémon as "POCK-ay-mən", Manectric as "MAINK-trick", Kyogre and Sootopolis with the wrong stress. `--lexicon <tsv>` (voicing only; default unchanged): listed names are spoken from the file's phonemes (Kokoro's espeak-style IPA) and the rest of the line goes through espeak, then `create(..., is_phonemes=True)`. Captions and commentary text stay as written. The table lives in env/pokebench_env/data/pokemon-lexicon.tsv with a source per row (Bulbapedia, Wiktionary, or marked unsourced).
+- [x] RED
+- [ ] GREEN
+- [ ] Lexicon sourced and checked against espeak
+- [ ] A/B for the operator (without, then with) before voicing all lines
+- [ ] Review: Codex
+
 ## Closing the Loop
 
 Per piece: tests, real headless browser screenshots at 1920x1080, then landing and the post-main `just test`. Serving on 8790 waits for the operator's OK.

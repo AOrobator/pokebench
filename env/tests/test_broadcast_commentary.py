@@ -1119,3 +1119,55 @@ def test_a_resume_in_the_other_mode_is_refused() -> None:
     assert resume_mode_problem(dense, dense=True) is None
     assert resume_mode_problem("not json\n[1]\n" + plain, dense=True) is not None
     assert resume_mode_problem(dense, dense=False) is not None
+
+
+# ------------------------------------------------- Piece 14: name pronunciations when voicing
+
+from pokebench_env.broadcast_commentary import load_lexicon, to_phonemes  # noqa: E402
+
+
+def fake_phonemize(text: str) -> str:
+    return f"<{text.strip()}>" if text.strip() else ""
+
+
+def test_the_lexicon_reads_name_and_phonemes_and_skips_comments_and_bad_rows() -> None:
+    text = "\n".join(
+        [
+            "# name\tphonemes\trespelling\tsource",
+            "Manectric\tmənˈɛktɹɪk\tmuh-NEK-trik\thttps://example.org/m",
+            "Ever Grande\tˈɛvə ɡɹˈand\tEV-er GRAND\tunsourced",
+            "broken row",
+            "\tnothing\tx\ty",
+        ]
+    )
+    assert load_lexicon(text) == {"Manectric": "mənˈɛktɹɪk", "Ever Grande": "ˈɛvə ɡɹˈand"}
+
+
+def test_listed_names_take_their_phonemes_and_the_rest_goes_to_espeak() -> None:
+    lexicon = {"Manectric": "MAN", "Ever Grande": "EG", "Pokémon": "POK"}
+    assert (
+        to_phonemes("Manectric fainted, so Pokémon rest at Ever Grande.", lexicon, fake_phonemize)
+        == "MAN <fainted, so> POK <rest at> EG <.>"
+    )
+
+
+def test_a_possessive_keeps_its_s_and_unlisted_or_partial_words_are_untouched() -> None:
+    lexicon = {"Rayquaza": "RQ", "Abra": "AB"}
+    assert to_phonemes("Rayquaza's turn.", lexicon, fake_phonemize) == "RQz <turn.>"
+    assert to_phonemes("Abracadabra and Kadabra.", lexicon, fake_phonemize) == (
+        "<Abracadabra and Kadabra.>"
+    )
+    assert to_phonemes("No names here.", {}, fake_phonemize) == "<No names here.>"
+
+
+def test_lexicon_is_a_voicing_option() -> None:
+    assert Options(run="r", voice_only=True).lexicon is None
+    assert options_problem(Options(run="r", voice_only=True, lexicon=Path("/l.tsv"))) is None
+    assert (
+        options_problem(
+            Options(
+                run="r", lines_only=True, writer="claude", claude_model="m", lexicon=Path("/l.tsv")
+            )
+        )
+        is not None
+    )

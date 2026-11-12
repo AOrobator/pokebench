@@ -37,6 +37,7 @@ describe("runIndex", () => {
   it("rejects a series with no runs", () => {
     const f = fixture();
     rec(f.points.series, 3).runs = [];
+    rec(f.chartData.series, 3).runs = [];
     (f.runs.runs as unknown[]).splice(4, 1);
     expect(() => index(f)).toThrow(/plots no runs/);
   });

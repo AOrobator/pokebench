@@ -191,6 +191,14 @@ describe("parseSiteData models", () => {
 describe("parseRuns", () => {
   const release = (f: ReturnType<typeof fixture>): Record<string, unknown> => rec(f.runs.runs, 2).release as Record<string, unknown>;
 
+  it("rejects a start time that is not a real date and time", () => {
+    for (const bad of ["2026-99-99T99:99+99:99", "2026-02-30T10:00:00-05:00", "2026-11-12T24:00:00+00:00", "2026-11-12T10:60:00+00:00", "2026-11-12T10:00:00+15:00"]) {
+      const f = fixture();
+      rec((f.runs as { runs: unknown }).runs, 0).started = bad;
+      expect(() => parseRuns(f.runs), bad).toThrow(/started/);
+    }
+  });
+
   it("reads each run, its short id, its date and the optional link and release", () => {
     const runs = parseRuns(fixture().runs);
     expect(runs.map((r) => r.short)).toEqual(["aa01", "aa02", "ab07", "b001", "c001"]);

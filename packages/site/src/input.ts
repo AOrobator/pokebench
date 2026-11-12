@@ -4,6 +4,7 @@ export class InputError extends Error {}
 
 export interface ChartSeries {
   readonly label: string;
+  readonly runs: readonly string[];
   readonly assisted: boolean;
   readonly estimated: boolean;
 }
@@ -171,6 +172,7 @@ export function parseChartData(v: unknown): ChartData {
     const cost = obj(s.cost, `${what}.cost`);
     return {
       label: text(s.label, `${what}.label`),
+      runs: list(s.runs, `${what}.runs`).map((r, j) => text(r, `${what}.runs[${String(j)}]`)),
       assisted: bool(s.assisted, `${what}.assisted`),
       estimated: "estimated" in cost ? bool(cost.estimated, `${what}.cost.estimated`) : false,
     };
@@ -268,7 +270,21 @@ export function parseSiteData(v: unknown): SiteData {
   };
 }
 
-const STARTED = /^(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?[+-]\d{2}:\d{2}$/;
+const STARTED = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?[+-](\d{2}):(\d{2})$/;
+
+// The shape alone allows 2026-99-99T99:99; also require a real calendar date, a real time and an offset
+// within ±14:00, so sorting by Date.parse always has a number.
+function realStart(value: string): boolean {
+  const m = STARTED.exec(value);
+  if (m === null) return false;
+  // The seconds group is optional, so a group can be undefined at run time despite its type.
+  const [y, mo, d, h, mi, sec, oh, om] = (m.slice(1) as (string | undefined)[]).map((x) => Number(x ?? "0"));
+  const day = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
+  const dateOk = day.getUTCFullYear() === y && day.getUTCMonth() === Number(mo) - 1 && day.getUTCDate() === d;
+  const timeOk = Number(h) < 24 && Number(mi) < 60 && Number(sec) < 60;
+  const offsetOk = Number(oh) * 60 + Number(om) <= 14 * 60 && Number(om) < 60;
+  return dateOk && timeOk && offsetOk && Number.isFinite(Date.parse(value));
+}
 const COMMIT = /^[0-9a-f]{9}$/;
 const LINKED = /^[1-9]\d* of [1-9]\d*$/;
 // Release tags and asset names go into download URLs, so they stay plain names.
@@ -368,7 +384,8 @@ export function parseRuns(v: unknown): readonly RunInfo[] {
     const short = id.slice(-4);
     if (seen.has(short)) throw new InputError(`${what}.id: short id "${short}" is used twice`);
     seen.add(short);
-    const started = matching(r.started, `${what}.started`, STARTED, "an ISO time with a UTC offset");
+    const started = text(r.started, `${what}.started`);
+    if (!realStart(started)) throw new InputError(`${what}.started: expected a real ISO date and time with a UTC offset`);
     return {
       id,
       short,

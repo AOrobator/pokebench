@@ -52,6 +52,9 @@ export function standings(chart: ChartData, points: Points, site: SiteData): Sta
     if (meta === undefined) throw new InputError(`no site.json series entry for "${c.label}"`);
     const p = points.series.find((x) => x.label === c.label);
     if (p === undefined) throw new InputError(`no chart points for "${c.label}"`);
+    if (p.runs.join("\n") !== c.runs.join("\n")) {
+      throw new InputError(`"${c.label}": chart-data.json runs [${c.runs.join(", ")}] differ from chart-points.json runs [${p.runs.join(", ")}]`);
+    }
     return {
       ...meta,
       assisted: c.assisted,

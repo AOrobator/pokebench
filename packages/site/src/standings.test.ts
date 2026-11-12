@@ -82,6 +82,12 @@ describe("standings", () => {
     expect(() => build(f)).toThrow(/"Ghost" is not a chart series/);
   });
 
+  it("fails when the chart data and the chart points list different runs for a series", () => {
+    const f = fixture();
+    rec(f.chartData.series, 0).runs = ["run-ghost"];
+    expect(() => build(f)).toThrow(/"Model A": chart-data\.json runs \[run-ghost\] differ from chart-points\.json runs \[run-aa01, run-aa02\]/);
+  });
+
   it("fails when the charts have no series", () => {
     const f = fixture();
     f.chartData.series = [];

@@ -277,12 +277,24 @@ def load_lexicon(text: str) -> dict[str, str]:
     return lexicon
 
 
+SIBILANT_END = ("s", "z", "ʃ", "ʒ")
+VOICELESS_END = ("p", "t", "k", "f", "θ")
+
+
+def possessive(phonemes: str) -> str:
+    """The 's sound after a name: /ɪz/ after a hiss, /s/ after a voiceless stop, else /z/."""
+    last = phonemes.rstrip("ːˈˌ ")
+    if last.endswith(SIBILANT_END):
+        return "ɪz"
+    return "s" if last.endswith(VOICELESS_END) else "z"
+
+
 def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], str]) -> str:
     """The line's phonemes: listed names from the lexicon, everything else from espeak."""
     if not lexicon:
         return phonemize(text)
     names = "|".join(re.escape(name) for name in sorted(lexicon, key=len, reverse=True))
-    pattern = re.compile(rf"(?<![\w'])({names})('s)?(?!\w)")
+    pattern = re.compile(rf"(?<!\w)({names})(['’]s)?(?!\w)")
     spoken = ""
     last = 0
 
@@ -294,7 +306,8 @@ def to_phonemes(text: str, lexicon: dict[str, str], phonemize: Callable[[str], s
     for match in pattern.finditer(text):
         between = text[last : match.start()]
         add(phonemize(between), not between[:1] or between[:1].isspace())
-        add(lexicon[match[1]] + ("z" if match[2] else ""), True)
+        name = lexicon[match[1]]
+        add(name + (possessive(name) if match[2] else ""), True)
         last = match.end()
     rest = text[last:]
     add(phonemize(rest), not rest[:1] or rest[:1].isspace())

@@ -149,7 +149,7 @@ The operator 2026-11-11: "could we do some special spelling or prompting so that
 - [x] Lexicon sourced and checked against espeak: 175 names researched (pokemon-lexicon-research.tsv: respelling, US IPA, whether espeak already says it right, source). Bulbapedia refused fetches (403), so species come from Serebii's official pronunciation tables, others from Wiktionary/Wikipedia; 35 unsourced, mostly places. 60 names espeak gets wrong; 57 go in pokemon-lexicon.tsv as espeak-style en-gb phonemes (stress before the vowel, every symbol in Kokoro's vocab). Mauville, Fallarbor and Liza stay with espeak: unsourced and uncertain.
 - [ ] A/B for the operator (without, then with) before voicing all lines
 - [ ] Review: Codex
-  - Round 1, GPT on main..03d783d85 (sha c3ed8e60): BLOCKING, both real: the possessive always added /z/ (Ralts's needs /ɪz/, Torchic's and Machop's /s/); a name after an opening quote was skipped, and a curly ’s was not taken with the name.
+  - Round 1, GPT on main..03d783d85 (sha c3ed8e60): BLOCKING, both real: the possessive always added /z/ (Ralts's needs /ɪz/, Torchic's and Machop's /s/); a name after an opening quote was skipped, and a curly ’s was not taken with the name. Fix: the suffix follows the name's last sound; an opening quote is a word boundary; straight and curly 's both taken. 146 tests, module 99%, lint clean.
 
 ## Closing the Loop
 

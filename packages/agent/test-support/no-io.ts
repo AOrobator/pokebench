@@ -13,7 +13,7 @@ import { afterEach, beforeAll, beforeEach } from "vitest";
 
 // Throws on disk, process, DNS, socket, fetch and worker use from repo code, and fails the test even if
 // the code swallows the throw. Vitest's own module loading has no repo frame and stays allowed.
-const REPO_FRAME = /\/packages\/(agent|viewer)\/(?!node_modules\/)/;
+const REPO_FRAME = /\/packages\/(agent|viewer|site)\/(?!node_modules\/)/;
 const violations: string[] = [];
 
 function repoCaller(): boolean {

@@ -1,0 +1,18 @@
+{
+  "github_url": "https://github.com/AOrobator/pokebench",
+  "data_date": "2026-11-11",
+  "cheapest_badges": 5,
+  "human": { "name": "keepingiticy", "note": "English version, for reference" },
+  "series": [
+    { "chart_label": "Claude Opus 5.5", "model": "Claude Opus 5.5", "slug": "claude-opus-5-5", "local": false, "note": "four linked runs, each started from the last one's save" },
+    { "chart_label": "Claude Opus 5.5, Rayquaza lane*", "model": "Claude Opus 5.5", "slug": "claude-opus-5-5", "local": false, "help": "four one-time hints and a Mach Bike dash tool" },
+    { "chart_label": "DeepSeek V4.1 Flash", "model": "DeepSeek V4.1 Flash", "slug": "deepseek-v4-1-flash", "local": false },
+    { "chart_label": "GPT-6 Astra", "model": "GPT-6 Astra", "slug": "gpt-6-astra", "local": false },
+    { "chart_label": "GPT-6.1 Sol", "model": "GPT-6.1 Sol", "slug": "gpt-6-1-sol", "local": false },
+    { "chart_label": "Qwen3.6 35B-A3B", "model": "Qwen3.6 35B-A3B", "slug": "qwen3-6-35b-a3b", "local": true, "note": "started from the title-screen save" },
+    { "chart_label": "Qwen3.6 35B-A3B, Rayquaza lane*", "model": "Qwen3.6 35B-A3B", "slug": "qwen3-6-35b-a3b", "local": true, "help": "a step-by-step guide to the next goal" },
+    { "chart_label": "GLM-5.3 Flash", "model": "GLM-5.3 Flash", "slug": "glm-5-3-flash", "local": true, "note": "started from the title-screen save" },
+    { "chart_label": "Qwen3.8 27B", "model": "Qwen3.8 27B", "slug": "qwen3-8-27b", "local": true, "note": "started from the title-screen save" },
+    { "chart_label": "Qwen3.8 27B, Rayquaza lane*", "model": "Qwen3.8 27B", "slug": "qwen3-8-27b", "local": true, "help": "a step-by-step guide to the next goal" }
+  ]
+}

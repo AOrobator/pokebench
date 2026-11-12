@@ -1,6 +1,6 @@
 # Public PokéBench site
 
-Status: **PLAN — awaiting operator approval.** No implementation edit before the operator approves this body (start gate).
+Status: **APPROVED by the operator 2026-11-12 ("the worklog is approved"). M1 in progress.**
 
 ## Problem Statement
 
@@ -60,8 +60,8 @@ Source readiness: M1–M4. Landing and activation are separate stages at the end
 
 **M1 — Generator core, layout and Home**
 Outcome: `just site` builds Home and the shared layout (header, side buttons, both themes, footer) from the chart data, matching the approved mockup. Path set: `packages/site/` (new), root `package.json` workspace entry, `justfile` recipes `site` and `site-serve`, `.gitignore` for `site/dist`. Consumers: the browser and the `just pages` preview. Non-goals: other pages, CI, RSS. Terminator: RED/GREEN, ≥95% lines/branches/functions in `packages/site`, Home proof at six widths in light and dark. Split if the layout needs a template engine dependency.
-- [ ] Write tests: typed input validation (rejects unknown fields and bad numbers), leaderboard ordering and best-unhelped rule (INV-2), Home stat windows from data (INV-1), zero-network scan (INV-3), theme assets present for both themes
-- [ ] COMMIT: `test(site): cover generator core and Home` (RED)
+- [x] Write tests: typed input validation (rejects unknown fields and bad numbers), leaderboard ordering and best-unhelped rule (INV-2), Home stat windows from data (INV-1), zero-network scan (INV-3), theme assets present for both themes. Also: every local reference resolves to a built file; site.json series join the chart series both ways.
+- [x] COMMIT: `test(site): cover generator core and Home` (this commit). RED: 6 test files fail to import their modules.
 - [ ] Implement
 - [ ] Cheap checks; gates in a CPU window; record counts and coverage
 - [ ] COMMIT: `feat(site): generate Home from chart data` (GREEN)
@@ -118,6 +118,7 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 
 ## Session Log
 
+- 2026-11-12 02:00 ET: M1 RED. New `packages/site` package (vitest, 95% floors, cli.ts excluded as the disk entrypoint), `site/data/site.json` (series → model, local, help, note). The no-I/O guard's repo-frame pattern now also matches `packages/site`, so the guard covers the new package (a widening of what it guards, no new allowance). Dark-mode windows default to dark interiors (recommended; The operator did not choose otherwise).
 - 2026-11-12 01:55 ET: The operator picked medal option E (new crown, matching smaller stars).
 - 2026-11-12 01:40 ET: plan written on `claude/public-site` from the approved mockup. No implementation.
 

@@ -44,8 +44,14 @@ Correction acceptance: current-projector + detached replay selection requests th
 
 - [x] Real-data reproduction and diagnosis: /tmp/pb-splits-real-state2.json; shown last seq 9910, 55 folded milestones, app workbench only 1 split. screenshot runs/reviews/splits-replay-line/served-repro2-1280.png.
 - [x] Correction RED bab4ebcb5: no cards fetch in detached replay (/tmp/pb-splits2-red.log). GREEN: one-line replay enrichment demand; 11 focused tests, changed-file ESLint and viewer tsc pass. Demand, non-replay suppression and stale-selection guard mutations each fail; restored test passes. COMMIT: `fix(viewer): request full cards for recorded replay` (this commit).
-- [ ] Real-data candidate browser proof
-- [ ] Full gates after relay CPU START
-- [ ] Claude + fresh GPT review (Grok standing job waiver)
+- [x] Real-data candidate browser proof: actual8790 current-projector APIs, candidate compiled app.js routed only inside headless browser. All6 Chromium/WebKit1280/1440/375: mode replay,52full splits,seq9910,own43points; rewind40/restored43; delayed real enrichment and >=3 polls, named row0px/focus retained, zero errors/control writes. Six screenshots inspected.
+- [x] Full gates under relay CPU START, then RELEASE: test/build agent3053/viewer1313/env3499/gateway39, coverage/no-I/O, full lint, vendor and trainer guard/3 visual baselines all pass.
+- [x] Claude CLI + fresh GPT /root/review_splits_correction fork_turns=none, both VERDICT: LGTM; Grok job waiver. Frozen base cf630a007, head2e7bbd081, binary diff SHA256 41d5ecc989c6e02aa7936220f007dbfbc75d8206c0349018aa945a5e59da1140; clean pre/post independently verified.
 - [ ] Board-coordinated correction landing and post-main test
 - [ ] Activation held for separate the operator words
+
+Correction review synthesis: both lanes green, zero blockers/accepted fixes/scope growth. PB1-PB13 and all9 test-quality checks passed. Three mutations fail at expected demand/live/stale-selection assertions, then restore passes. New app seam test injects existing private handoff state and calls real public polling/merge; real-browser proof covers actual initialization/render. Optional completed-replay cards cache/failure fallback and test style comments remain follow-ups, no source expansion. One manual proof run hit in-flight route teardown after two successful widths; manual harness cleanup was corrected, then all6 passed without changing application source.
+
+Correction receipts: main runs/reviews/splits-replay-line/correction/pb-splits2-* (frozen packet, principles, synthesis, Claude/GPT verdicts, gates, mutations and browser script/log). Images and structured receipt: main runs/mockups/splits-replay-line/correction. Compiled app module SHA256 a37f0372183f622888ce25b73885f65483ec7966a474681a8fd4f850d1a04fae. Real baseline app1split/no line versus candidate52splits/43point line, same selected recording and unchanged frontier133points. The clock still spans the loaded tail; that independent pre-existing duration is not the split-source cause and remains out of scope.
+
+COMMIT: `docs(worklog): record real-data replay correction review` (evidence only).

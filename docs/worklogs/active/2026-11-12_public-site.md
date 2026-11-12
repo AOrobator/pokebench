@@ -139,6 +139,13 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 
 - The turn diagram exists only as a PNG in the private notes (no HTML source). The dark version was rebuilt as HTML from the same content, reusing the game frame cropped from the original.
 
+## Activation
+
+- [x] the operator, 2026-11-12 04:10 ET: "ok go" (post wording approved; go for the public sync). Scrubbed export ae5f302c9 merged into the public copy as 83bfd2597 (curated README kept; upstream citation fix a88438275 fast-forwarded first and mirrored into final/README.public.md). New image docs/images/harness-loop-dark.webp viewed and approved. `just site` builds 962 files from the public copy; built output: 0 hits on the 45 blocklist rules, no paths, hosts or keys. Lint 0 and test 0 in the public copy (site 224, agent 3055, viewer 1313, env 3505, gateway 39; no-I/O OK) under relay START 04:20 ET. Guard push scan clean (518 objects, gitleaks); push handed to the operator.
+- [x] the operator, 2026-11-12 04:25 ET: "ok" to the Pages workflow. `.github/workflows/site.yml`: on push to main touching the site inputs, or by hand; installs only the site package, runs its tests, builds, deploys site/dist with actions pinned by commit SHA; contents read, pages write and id-token on the deploy job only. Its commands were dry-run in a fresh clone of the public copy (224 tests, 962 files). COMMIT: `ci(site): build and deploy the site to GitHub Pages` (ff7cb56b1). Review: Claude LGTM; GPT BLOCKING: path filters missed inputs that change output or the build (CONTRIBUTING.md, package.json, .node-version, pnpm-workspace.yaml, the no-I/O guard). Added. COMMIT: `ci(site): trigger on every input the site build reads` (this commit).
+- [ ] the operator pushes; The operator turns on Pages (Settings → Pages → Source: GitHub Actions).
+- [ ] Live proof on https://aorobator.github.io/pokebench/.
+
 ## Multi-Model Review Log
 
 **M1 round 1** (frozen BASE b720e63a6, HEAD 554b35427, diff SHA-256 86b4da78…650cc; principles table zero FAIL).

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { rec } from "../test-support/at.js";
 import { fixture } from "../test-support/fixture.js";
 import { buildSite, SiteError } from "./site.js";
 
@@ -40,7 +41,7 @@ describe("buildSite", () => {
   it("changes exactly the number that changed in the data (INV-1)", () => {
     const a = fixture();
     const b = fixture();
-    (b.points.series as Record<string, unknown>[])[2]!.cost_usd = 3.75;
+    rec(b.points.series, 2).cost_usd = 3.75;
     const before = text(buildSite(a), "index.html");
     const after = text(buildSite(b), "index.html");
     expect(before).toContain("$2.50");
@@ -50,12 +51,20 @@ describe("buildSite", () => {
 
   it("drops BEST WITHOUT HELP when an unassisted run leads, and names the leader BEST RUN", () => {
     const f = fixture();
-    (f.chartData.series as Record<string, unknown>[])[1]!.assisted = false;
-    delete (f.site.series as Record<string, unknown>[])[1]!.help;
+    rec(f.chartData.series, 1).assisted = false;
+    delete rec(f.site.series, 1).help;
     const home = text(buildSite(f), "index.html");
     expect(home).toContain("BEST RUN");
     expect(home).not.toContain("BEST WITHOUT HELP");
     expect(home).not.toContain("(assisted)");
+  });
+
+  it("does not call the cheapest run an estimate when its cost was measured", () => {
+    const f = fixture();
+    delete (rec(f.chartData.series, 2).cost as Record<string, unknown>).estimated;
+    const home = text(buildSite(f), "index.html");
+    expect(home).toContain("$2.50");
+    expect(home).not.toContain("estimate");
   });
 
   it("leaves out the cheapest window when no unassisted run reached the threshold", () => {

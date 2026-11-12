@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { at, rec } from "../test-support/at.js";
 import { fixture } from "../test-support/fixture.js";
 import { InputError, parseChartData, parsePoints, parseSiteData } from "./input.js";
 
@@ -17,7 +18,7 @@ describe("parseChartData", () => {
 
   it("rejects a series whose assisted flag is not a boolean", () => {
     const f = fixture();
-    (f.chartData.series as Record<string, unknown>[])[0]!.assisted = "no";
+    rec(f.chartData.series, 0).assisted = "no";
     expect(() => parseChartData(f.chartData)).toThrow(/series\[0\]\.assisted/);
   });
 
@@ -36,7 +37,7 @@ describe("parsePoints", () => {
   it("reads milestones, the furthest milestone and cost", () => {
     const p = parsePoints(fixture().points);
     expect(p.pricesAsOf).toBe("2026-11-11");
-    const b = p.series[2]!;
+    const b = at(p.series, 2);
     expect(b.label).toBe("Model B");
     expect(b.milestones.get("KNUCKLE_BADGE")).toBe(15);
     expect(b.furthest).toBe("BALANCE_BADGE");
@@ -45,25 +46,31 @@ describe("parsePoints", () => {
 
   it("rejects an unknown milestone name", () => {
     const f = fixture();
-    (f.points.series as Record<string, unknown>[])[0]!.furthest = "MYSTERY_BADGE";
+    rec(f.points.series, 0).furthest = "MYSTERY_BADGE";
     expect(() => parsePoints(f.points)).toThrow(/furthest/);
   });
 
   it("rejects a furthest milestone the run never reached", () => {
     const f = fixture();
-    (f.points.series as Record<string, unknown>[])[2]!.furthest = "RAIN_BADGE";
+    rec(f.points.series, 2).furthest = "RAIN_BADGE";
     expect(() => parsePoints(f.points)).toThrow(/not among its milestones/);
   });
 
   it("rejects a negative or non-finite cost", () => {
     const f = fixture();
-    (f.points.series as Record<string, unknown>[])[0]!.cost_usd = -1;
+    rec(f.points.series, 0).cost_usd = -1;
+    expect(() => parsePoints(f.points)).toThrow(/cost_usd/);
+  });
+
+  it("rejects a cost that is not finite", () => {
+    const f = fixture();
+    rec(f.points.series, 0).cost_usd = Number.POSITIVE_INFINITY;
     expect(() => parsePoints(f.points)).toThrow(/cost_usd/);
   });
 
   it("rejects a milestone time that is not a number", () => {
     const f = fixture();
-    ((f.points.series as Record<string, unknown>[])[0]!.milestones as Record<string, unknown>).STONE_BADGE = null;
+    (rec(f.points.series, 0).milestones as Record<string, unknown>).STONE_BADGE = null;
     expect(() => parsePoints(f.points)).toThrow(/STONE_BADGE/);
   });
 });
@@ -80,7 +87,7 @@ describe("parseSiteData", () => {
 
   it("rejects an unknown field, so a typo cannot silently drop data", () => {
     const f = fixture();
-    (f.site.series as Record<string, unknown>[])[0]!.loacl = true;
+    rec(f.site.series, 0).loacl = true;
     expect(() => parseSiteData(f.site)).toThrow(/unknown field "loacl"/);
   });
 
@@ -92,7 +99,7 @@ describe("parseSiteData", () => {
 
   it("rejects a slug that is not lowercase letters, digits and hyphens", () => {
     const f = fixture();
-    (f.site.series as Record<string, unknown>[])[0]!.slug = "Model A";
+    rec(f.site.series, 0).slug = "Model A";
     expect(() => parseSiteData(f.site)).toThrow(/slug/);
   });
 
@@ -105,6 +112,16 @@ describe("parseSiteData", () => {
   it("rejects a badge threshold outside 1 to 8", () => {
     const f = fixture();
     f.site.cheapest_badges = 9;
+    expect(() => parseSiteData(f.site)).toThrow(/cheapest_badges/);
+  });
+
+  it("rejects a badge threshold that is not a whole number", () => {
+    const f = fixture();
+    f.site.cheapest_badges = 0;
+    expect(() => parseSiteData(f.site)).toThrow(/cheapest_badges/);
+    f.site.cheapest_badges = 2.5;
+    expect(() => parseSiteData(f.site)).toThrow(/cheapest_badges/);
+    f.site.cheapest_badges = "5";
     expect(() => parseSiteData(f.site)).toThrow(/cheapest_badges/);
   });
 

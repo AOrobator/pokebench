@@ -1,0 +1,147 @@
+/* PokéBench site. Window frames and text colours follow pret/pokeemerald: graphics/text_window/1.png
+   (standard frame), graphics/text_window/message_box.png (dialogue box) and text_pal1.pal (text colour pairs).
+   The header and option buttons follow graphics/pokenav/header.png and options/options.pal. Icons are
+   pixelarticons (MIT). Dark mode follows the reader's colour scheme; no script. */
+@font-face { font-family: 'Press Start 2P'; font-weight: 400; font-display: swap; src: url(fonts/press-start-2p.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 100 900; font-display: swap; src: url(fonts/inter.woff2) format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 100 800; font-display: swap; src: url(fonts/jetbrains-mono.woff2) format('woff2'); }
+
+:root {
+  color-scheme: light dark;
+  --nav-green: #20de94; --nav-green-2: #6aeeb4; --nav-green-3: #b4ffd5;
+  --opt-out: #52524a; --opt-hi: #ffee62;
+  --tan: #b4ac7b; --tan-hi: #ded5a4; --tan-lo: #837b4a;
+  --msg-line: #39414a;
+  --f1-out: #293131; --f1-a: #4a4a6a; --f1-c: #8b8bcd; --f1-d: #7373ac; --f1-in: #ded5de;
+  --mb-out: #4870a0; --mb-teal: #00c8b8; --mb-mint: #00f898; --mb-in: #e0e8e0;
+  --tx: #626262; --tx-sh: #d5d5cd;
+  --tx-red: #e60808; --tx-red-sh: #ffbd73;
+  --tx-blue: #3152cd; --tx-blue-sh: #a4c5f6;
+  --page: #f4fbf8; --dots: #c8eee0; --ink: #283038; --muted: #52524a; --link: #185a91;
+  --win-bg: #fff; --win-rim: var(--f1-in); --dlg-rim: var(--mb-in); --sub: #5a6068; --code-bg: #eef3f8;
+  --hd-shade: #c5c5cd; --hd-fade: #eeeee6;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { min-height: 100vh; padding-bottom: 24px; background-color: var(--page); background-image: radial-gradient(var(--dots) 1.5px, transparent 1.6px); background-size: 12px 12px; color: var(--ink); font: 15px/1.6 Inter, system-ui, sans-serif; overflow-x: hidden; }
+a { color: var(--link); }
+code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .88em; }
+code { background: var(--code-bg); border-radius: 3px; padding: 1px 4px; overflow-wrap: anywhere; }
+h1, h2, h3, h4 { font-family: 'Press Start 2P', monospace; font-weight: 400; }
+
+/* header: POKéBENCH · section · page */
+.navhead { display: flex; align-items: center; gap: 12px; padding: 10px 16px 22px;
+  background: linear-gradient(to bottom, var(--nav-green) 0 calc(100% - 18px), var(--nav-green-3) calc(100% - 18px) calc(100% - 14px), var(--nav-green) calc(100% - 14px) calc(100% - 12px), var(--nav-green-2) calc(100% - 12px) calc(100% - 8px), var(--nav-green) calc(100% - 8px) calc(100% - 6px), #bd9400 calc(100% - 6px) calc(100% - 4px), var(--hd-shade) calc(100% - 4px) calc(100% - 2px), var(--hd-fade) calc(100% - 2px)); }
+.navhead .mark { display: block; filter: drop-shadow(2px 2px 0 #148a5c); }
+.navhead .mark .ic { width: 36px; height: 36px; --ic-color: #fff; }
+.crumbs { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; font: 12px/1.6 'Press Start 2P', monospace; color: #fff; text-shadow: 2px 2px 0 #148a5c; }
+.crumbs b { font-weight: 400; }
+.crumbs .sep { opacity: .7; }
+
+.navbody { display: grid; grid-template-columns: 214px minmax(0, 1fr); gap: 16px; max-width: 1260px; margin: 0 auto; padding: 14px 16px 18px 0; }
+
+/* side menu: PokéNav option buttons. Each entry has its own options.pal body (highlight / body / shadow). */
+.menu { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+.menu a { --b-hi: #f6c531; --b: #e69400; --b-lo: #a86a00;
+  display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px 0 12px; margin-right: 16px; text-decoration: none;
+  font: 9px/1 'Press Start 2P', monospace; color: #fff; text-shadow: 2px 2px 0 var(--opt-out), -1px 0 0 var(--opt-out), 0 -1px 0 var(--opt-out), 1px 0 0 var(--opt-out);
+  background: linear-gradient(to bottom, var(--b-hi) 0 5px, var(--b) 5px calc(100% - 5px), var(--b-lo) calc(100% - 5px));
+  border: 2px solid var(--opt-out); border-left: 0; border-radius: 0 3px 3px 0; transition: margin .12s; }
+.menu a.m-results    { --b-hi: #20c56a; --b: #4a8b39; --b-lo: #33612a; }
+.menu a.m-models     { --b-hi: #c5b4ff; --b: #6a52de; --b-lo: #5241a4; }
+.menu a.m-runs       { --b-hi: #ff945a; --b: #ff4120; --b-lo: #b40000; }
+.menu a.m-updates    { --b-hi: #62c5f6; --b: #3a8fcc; --b-lo: #28648f; }
+.menu a.m-explainers { --b-hi: #ffaca4; --b: #f66a6a; --b-lo: #cd4a41; }
+.menu a.m-method     { --b-hi: #00c8b8; --b: #0e8f86; --b-lo: #08635d; }
+.menu a.ext          { --b-hi: var(--tan-hi); --b: var(--tan); --b-lo: var(--tan-lo); margin-top: 6px; }
+.menu a.ext::after { content: '↗'; margin-left: auto; font: 13px Inter, system-ui, sans-serif; }
+.menu a:hover { margin-right: 8px; }
+.menu a[aria-current=page] { margin-right: 0; padding-left: 20px; box-shadow: 0 0 0 3px #fff, 0 0 10px 4px var(--opt-hi);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--b-hi), #ffffff 45%) 0 5px, var(--b) 5px calc(100% - 5px), var(--b-lo) calc(100% - 5px)); }
+.menu a .icw { display: block; flex: none; line-height: 0; filter: drop-shadow(1px 1px 0 var(--opt-out)); }
+.menu a .ic { --ic-color: #fff; }
+
+.ic { display: block; flex: none; width: 24px; height: 24px; background: var(--ic-color, var(--msg-line)); -webkit-mask: var(--i) center / 100% 100% no-repeat; mask: var(--i) center / 100% 100% no-repeat; }
+.ic-home { --i: url(icons/home.svg); } .ic-trophy { --i: url(icons/trophy.svg); } .ic-robot { --i: url(icons/robot.svg); }
+.ic-flag { --i: url(icons/flag.svg); } .ic-mail { --i: url(icons/mail.svg); } .ic-book-open { --i: url(icons/book-open.svg); }
+.ic-search { --i: url(icons/search.svg); } .ic-github { --i: url(icons/github.svg); } .ic-gamepad { --i: url(icons/gamepad.svg); }
+
+.scrn { min-width: 0; container-type: inline-size; }
+
+/* Emerald text colours (text_pal1.pal pairs) */
+.t-red { color: var(--tx-red); text-shadow: 1px 1px 0 var(--tx-red-sh); }
+.t-blue { color: var(--tx-blue); text-shadow: 1px 1px 0 var(--tx-blue-sh); }
+
+/* dialogue box (message_box.png): teal and mint rim, slate outline */
+.dialog { position: relative; background: var(--win-bg); border: 2px solid var(--mb-out); border-radius: 10px;
+  box-shadow: inset 0 0 0 3px var(--mb-teal), inset 0 0 0 5px var(--mb-mint), inset 0 0 0 7px var(--dlg-rim), 0 3px 0 rgba(40,48,56,.25);
+  padding: 20px 24px 22px; color: var(--tx); margin-bottom: 14px; }
+.dialog p { margin: 0 0 10px; font: 10px/2.1 'Press Start 2P', monospace; color: var(--tx); text-shadow: 1px 1px 0 var(--tx-sh); }
+.dialog p:last-child { margin-bottom: 0; }
+.dialog p.t-red { color: var(--tx-red); text-shadow: 1px 1px 0 var(--tx-red-sh); font-size: 9px; }
+.dialog .headline { margin: 0 0 12px; font-size: 16px; line-height: 1.75; color: var(--tx); text-shadow: 2px 2px 0 var(--tx-sh); }
+.dialog .facts { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.dialog .facts .t-blue { color: var(--tx-blue); text-shadow: 1px 1px 0 var(--tx-blue-sh); }
+
+/* standard window (text_window/1.png): slate outline, lavender bevel */
+.win { background: var(--win-bg); border: 2px solid var(--f1-out); border-radius: 6px;
+  box-shadow: inset 0 0 0 2px var(--f1-a), inset 0 0 0 4px var(--f1-c), inset 0 0 0 5px var(--f1-d), inset 0 0 0 7px var(--win-rim);
+  padding: 14px 16px; color: var(--tx); min-width: 0; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 6px; }
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.stat .lbl { font: 7px/1.7 'Press Start 2P', monospace; color: var(--tx-red); text-shadow: 1px 1px 0 var(--tx-red-sh); }
+.stat .val { font: 400 12px/1.6 'Press Start 2P', monospace; color: var(--tx); text-shadow: 2px 2px 0 var(--tx-sh); overflow-wrap: anywhere; }
+.stat .sub { font-size: 13px; color: var(--sub); line-height: 1.45; }
+
+/* charts: bare images with a caption */
+figure.chart { margin: 14px 0 0; }
+figure.chart img { display: block; width: 100%; height: auto; }
+figure.chart figcaption { font-size: 13px; color: var(--sub); margin-top: 6px; }
+.note { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+
+footer { max-width: 1260px; margin: 0 auto; padding: 0 16px; }
+.foot { margin: 14px 0 0; color: var(--muted); font: 7px/1.8 'Press Start 2P', monospace; text-align: center; }
+.credits { margin: 4px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
+.credits a { color: inherit; }
+
+@container (max-width: 900px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 640px) {
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  .dialog { padding: 16px 16px 18px; }
+  .dialog .headline { font-size: 11px; }
+  .dialog p { font-size: 8px; }
+}
+
+/* phones, tablets in portrait and unfolded foldables (<= 1000 CSS px): the narrow icon column */
+@media (max-width: 1000px) {
+  .navhead { padding: 8px 10px 20px; gap: 8px; }
+  .navhead .mark .ic { width: 24px; height: 24px; }
+  .crumbs { font-size: 9px; gap: 2px 8px; }
+  .navbody { grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 10px 10px 14px 0; }
+  .menu { gap: 6px; }
+  .menu a { flex-direction: column; justify-content: center; gap: 6px; height: 58px; padding: 0 2px 0 4px; margin-right: 6px; font-size: 5.5px; letter-spacing: -.6px; text-shadow: 1px 1px 0 var(--opt-out); }
+  .menu a span { max-width: 100%; overflow: hidden; text-overflow: clip; }
+  .menu a:hover { margin-right: 6px; }
+  .menu a[aria-current=page] { margin-right: 0; padding-left: 4px; box-shadow: 0 0 0 2px #fff, 0 0 6px 3px var(--opt-hi); }
+  .menu a.ext::after { display: none; }
+}
+@media (max-width: 480px) {
+  .crumbs { font-size: 8px; }
+  .navbody { grid-template-columns: 58px minmax(0, 1fr); gap: 8px; }
+  .menu a { font-size: 5px; height: 54px; }
+}
+
+/* dark: the backdrop is near-black navy with dim dots; the green header and the option buttons keep the game's
+   colours; game windows keep their frames and rims with a dark interior. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0f1622; --dots: #1f2c3d; --ink: #e3e8ef; --muted: #a9b6c6; --link: #8cc4ff;
+    --win-bg: #182231; --win-rim: #2a3647; --dlg-rim: #22303f; --sub: #c3cdd9; --code-bg: #243041;
+    --tx: #e3e8ef; --tx-sh: #000; --tx-red: #ff8a7a; --tx-red-sh: #3a0e0a; --tx-blue: #9dbbff; --tx-blue-sh: #0d1a3a;
+    --hd-shade: #070b12; --hd-fade: #0f1622;
+  }
+  .dialog { box-shadow: inset 0 0 0 3px var(--mb-teal), inset 0 0 0 5px var(--mb-mint), inset 0 0 0 7px var(--dlg-rim), 0 3px 0 rgba(0,0,0,.4); }
+}

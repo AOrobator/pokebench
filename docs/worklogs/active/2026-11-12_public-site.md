@@ -61,11 +61,12 @@ Source readiness: M1–M4. Landing and activation are separate stages at the end
 **M1 — Generator core, layout and Home**
 Outcome: `just site` builds Home and the shared layout (header, side buttons, both themes, footer) from the chart data, matching the approved mockup. Path set: `packages/site/` (new), root `package.json` workspace entry, `justfile` recipes `site` and `site-serve`, `.gitignore` for `site/dist`. Consumers: the browser and the `just pages` preview. Non-goals: other pages, CI, RSS. Terminator: RED/GREEN, ≥95% lines/branches/functions in `packages/site`, Home proof at six widths in light and dark. Split if the layout needs a template engine dependency.
 - [x] Write tests: typed input validation (rejects unknown fields and bad numbers), leaderboard ordering and best-unhelped rule (INV-2), Home stat windows from data (INV-1), zero-network scan (INV-3), theme assets present for both themes. Also: every local reference resolves to a built file; site.json series join the chart series both ways.
-- [x] COMMIT: `test(site): cover generator core and Home` (this commit). RED: 6 test files fail to import their modules.
-- [ ] Implement
-- [ ] Cheap checks; gates in a CPU window; record counts and coverage
-- [ ] COMMIT: `feat(site): generate Home from chart data` (GREEN)
-- [ ] Browser proof: Home at 375/768/834/984/1024/1280, light and dark; screenshots opened
+- [x] COMMIT: `test(site): cover generator core and Home` (54a027d2f). RED: 6 test files fail to import their modules.
+- [x] Implement: `input.ts` (typed, strict site.json), `milestones.ts`, `standings.ts` (order, best unhelped only when an assisted run leads, cheapest unassisted run with ≥ N badges), `format.ts`, `html.ts` (escaping template), `layout.ts` (header, side buttons for built sections only, relative links), `pages/home.ts`, `check.ts` (zero-network and every-local-reference-resolves, run on every build), `site.ts`, `cli.ts` (disk entrypoint, excluded from coverage). `packages/site/assets/site.css` ports the approved mockup; dark mode is `prefers-color-scheme` with dark window interiors, no script. pixelarticons subset + MIT licence in `assets/icons`; fonts copied from `packages/viewer/static/fonts` with their NOTICE. `just site` builds `site/dist` (gitignored).
+- [x] Cheap checks: site vitest 71/71, coverage 99.15 stmts / 98.03 branches / 100 functions / 100 lines; tsc and eslint clean.
+- [x] Gates (relay START 02:06 ET, RELEASE after): `just lint` exit 0; `just test` exit 0 (site 71, agent 3053, viewer 1313, env 3499, gateway 39; no-I/O guards OK; every floor met); `just verify-vendor` OK after initializing the worktree's submodule from the main checkout's clone (first run failed only because the worktree had no submodule checkout).
+- [x] COMMIT: `feat(site): generate Home from chart data` (this commit)
+- [x] Browser proof: Home at 375/768/834/984/1024/1280 in light and dark, headless Chromium against the pages server (`runs/mockups/site-m1/`): 12/12 with no horizontal scroll, zero external requests, zero console errors or 4xx, fonts loaded, every checked text ≥ 4.5:1. Screenshots opened: light 1280 and dark 375.
 - [ ] Independent review (Claude, GPT/Codex, Grok lanes per execute-worklog)
 
 **M2 — Results, Models and Runs**

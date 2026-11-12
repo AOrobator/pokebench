@@ -65,6 +65,12 @@ describe("problems: zero network (INV-3)", () => {
     ]);
   });
 
+  it("keeps reading a <style> body past text that only starts like its end tag", () => {
+    expect(problems(new Map([["index.html", page("", "<style>/* </stylesheet> */ body { background: url(https://x/p.png) }</style>")]]))).toEqual([
+      'index.html: network request to "https://x/p.png"',
+    ]);
+  });
+
   it("still reports a network URL in truncated markup instead of crashing", () => {
     expect(problems(new Map([["a.html", '<img src="https://x/a.png"']]))).toEqual(['a.html: network request to "https://x/a.png"']);
     // An unclosed quote swallows the rest; the URL inside the value is still flagged (fails closed).

@@ -22,6 +22,7 @@ interface Tag {
 }
 
 const SPACE = /[\t\n\f\r ]/;
+const STYLE_END = /<\/style(?=[\t\n\f\r />]|$)/i;
 
 // Reads one start tag the way the HTML tokenizer does (attribute name, optional = value, value
 // double-quoted, single-quoted or unquoted up to whitespace or >), so quotes inside an unquoted
@@ -70,8 +71,9 @@ function attrRefs(page: string): Ref[] {
       }
     }
     if (tag.name === "style") {
-      const close = page.toLowerCase().indexOf("</style", tag.end);
-      refs.push(...cssRefs(page.slice(tag.end, close < 0 ? page.length : close)));
+      // Only "</style" followed by whitespace, "/" or ">" ends the element, as in the HTML tokenizer.
+      const close = STYLE_END.exec(page.slice(tag.end));
+      refs.push(...cssRefs(page.slice(tag.end, close === null ? page.length : tag.end + close.index)));
     }
     at = tag.end - 1;
   }

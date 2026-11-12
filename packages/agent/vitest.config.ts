@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    maxWorkers: 8,
     include: ["src/**/*.test.ts"],
     setupFiles: ["test-support/no-io.ts"],
     coverage: {

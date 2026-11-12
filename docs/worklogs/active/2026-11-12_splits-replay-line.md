@@ -8,9 +8,9 @@ Terminator: RED/GREEN, focused checks, headless browser proof, full gates in rel
 
 ## Progress
 - [x] Read rules and active worklog; isolated branch codex/splits-replay-line at main 2a2b7dc0f.
-- [x] Headless Chromium reproduction on ended Qwen 3bb0: frontier polyline present, own earlier line missing, race says no shared milestones. Recent event head omits historical splits.
+- [x] Headless Chromium reproduction on ended Astra ef7d: replay scrub enabled, frontier polyline has 133 points, own line absent and own point count 1. Qwen 3bb0 stayed in loading and was not a valid repro; corrected initial interpretation.
 - [x] RED regression: two failing pure tests (graphSplits absent), /tmp/pb-splits-red.log. COMMIT: `test(viewer): cover sparse replay story graph` (this commit).
-- [ ] GREEN correction and cheap checks
+- [x] GREEN correction and cheap checks: 34 tests pass, changed-file ESLint and viewer tsc --noEmit pass. Native recorded splits use the displayed event sequence bound; screenshot-derived points retain displayed-evidence gating. COMMIT: `fix(viewer): retain earlier story splits in replay graph` (this commit).
 - [ ] Browser verification desktop/phone
 - [ ] Full gates (CPU START required)
 - [ ] Claude + GPT review; Grok waived by job
@@ -18,4 +18,4 @@ Terminator: RED/GREEN, focused checks, headless browser proof, full gates in rel
 - [ ] Activation: held for the operator; never run viewer-main here
 
 ## Evidence
-Before screenshot: /tmp/pb-splits-before.png. Browser entirely headless; read-only 8790, no run control actions.
+Before screenshot: /tmp/pb-splits-before.png (ef7d, inspected). Browser entirely headless; read-only 8790, no run control actions.

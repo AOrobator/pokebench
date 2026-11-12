@@ -1,4 +1,5 @@
 import { FRONTIER_MILESTONES } from "./frontier.js";
+import type { WorkbenchRun } from "./workbench-data.js";
 import type { RunView } from "./model.js";
 
 export interface BestSplits { readonly run: string; readonly milestones: readonly { readonly name: string; readonly offsetMs: number; readonly derived?: boolean }[] }
@@ -31,4 +32,12 @@ export function nextSplit(view: RunView, names: ReadonlySet<string>): string | u
 // Replay stays on the folded events: recorded splits hold the whole run, and rewinding must hide later ones.
 export function tableSplits(mode: string, recorded: BestSplits | null | undefined): BestSplits | null | undefined {
   return mode === "replay" ? undefined : recorded;
+}
+
+// A replay head is paged: its last event bounds progress, but its milestones omit earlier history.
+export function graphSplits(mode: string, recording: WorkbenchRun, view: RunView): WorkbenchRun["splits"] {
+  if (mode !== "replay") return recording.splits;
+  const through = view.events.at(-1)?.seq ?? -1;
+  const shown = new Set(view.milestones.map(mark => mark.name));
+  return recording.splits.filter(split => split.screenshotEvidence === undefined ? split.seq <= through : shown.has(split.name));
 }

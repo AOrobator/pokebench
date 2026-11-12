@@ -17,7 +17,7 @@ import { OLDER_PAGES, TRACE_CHIPS, TraceBuilder, olderStep, olderTail, sideGroup
 import { ABORT_HOLD_MS, availableActions, controlBar, overlay, overlayKind, runSeconds, sideStats, stateLabel, type ControlAction } from "./controls.js";
 import { customLane, KNOWLEDGE_SWITCHES } from "./custom-lane.js";
 import { racePlot } from "./frontier.js";
-import { reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
+import { graphSplits, reachedSplits, tableSplits, type BestSplits } from "./run-splits.js";
 import { readPlace, returnToPlace, type Place } from "./steady-scroll.js";
 import { openLegs, parseRaceMap, raceFilters, raceHeadline, raceList, raceLoading, raceMap, raceOf, raceRail, raceSide, raceStart, raceSwings, runLabel, type Race, type RaceFilter, type RaceMapSection } from "./splits-race.js";
 import { NextRunPanel } from "./nextpanel.js";
@@ -1205,7 +1205,7 @@ export class App {
     const holder = this.ui("race-plot"), width = holder.clientWidth > 0 && holder.clientWidth < 420 ? 340 : 640;
     if (frontier === null || recording === undefined || recording.config === null) { draw("race-plot", `<p class="race-sub">${loading || frontier !== null ? "Loading the story graph…" : side.save ? "No earlier run from this save to plot." : "No frontier run to plot."}</p>`); return; }
     // Rewinding hides later splits from the graph as it does from the list.
-    const shown = new Set(race.rows.map(row => row.name)), splits = this.mode === "replay" ? recording.splits.filter(split => shown.has(split.name)) : recording.splits;
+    const splits = graphSplits(this.mode, recording, view);
     const key = [run, splits.map(split => `${split.name}:${String(split.elapsedMs)}`).join(), recording.status, frontierKey(frontier), width].join("|");
     if (this.racePlotMemo?.key !== key) this.racePlotMemo = { key, html: racePlot(frontier, { ...recording, splits }, width) };
     draw("race-plot", this.racePlotMemo.html);

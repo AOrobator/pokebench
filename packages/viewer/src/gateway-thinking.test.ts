@@ -8,6 +8,7 @@ function fixture(rows = [row()], text: string | null = transcript()) {
  let reads = 0;
  const reader = createGatewayThinking({ sources: () => Promise.resolve([{ key: "bridge", text: rows.map(r => JSON.stringify(r)).join("\n") }]), transcript: () => { reads++; return Promise.resolve(text); }, assistant: () => Promise.resolve(new Log().add(3001, assistant({thinking:"",text:"heal first",tool_calls:[{id:"call_945",name:"press",args:{}}]}))), now: () => 0 });
  const event = new Log().add(3001, assistant({ thinking: "", text: "heal first", tool_calls: [{ id: "call_945", name: "press", args: { buttons: ["START"] } }] }));
+ if(event.type!=="assistant")throw new Error("fixture must be an assistant");
  return { reader, event, reads: () => reads };
 }
 it("fills empty thinking from the exact session call without changing the recording", async () => {
@@ -79,6 +80,6 @@ it.each([
  ['{"name":"press","text":7}','7'],
  ['{"name":"press","text":{"é":[true,null,7]}}','{"\\u00e9": [true, null, 7]}'],
 ])("reads gateway-valid wrapped JSON and normalized notes: %s",async(result,reply)=>{
- const record=transcript().split('\n')[0]+'\n'+JSON.stringify({type:'result',session_id:'session',is_error:false,result});
+ const record=(transcript().split('\n')[0]??'')+'\n'+JSON.stringify({type:'result',session_id:'session',is_error:false,result});
  const f=fixture([row()],record);expect(await f.reader.event({...f.event,text:reply})).toMatchObject({thinking:'native gateway thinking'});
 });

@@ -10,14 +10,38 @@ export interface GatewayThinkingPorts {
 }
 const Call = Type.Object({ request: Type.Integer({ minimum: 1 }), attempt: Type.Integer({ minimum: 1 }), run_id: Type.String(), mode: Type.Literal("session"), session_id: Type.String({ minLength: 1 }), outcome: Type.Literal("ok"), record: Type.String({ pattern: "^call-[0-9]+-[0-9]+\\.jsonl$" }) });
 const Message = Type.Object({ type: Type.Literal("assistant"), session_id: Type.String(), parent_tool_use_id: Type.Optional(Type.Null()), message: Type.Object({ role: Type.Literal("assistant"), content: Type.Array(Type.Union([Type.Object({ type: Type.Literal("thinking"), thinking: Type.String() }), Type.Object({ type: Type.Literal("text"), text: Type.String() })])) }) });
-const Reply = Type.Object({ name: Type.String(), text: Type.Optional(Type.String()) });
+const Reply = Type.Object({ name: Type.String(), text: Type.Optional(Type.Unknown()) });
 const Result = Type.Object({type: Type.Literal("result"),session_id: Type.String(),is_error: Type.Literal(false),result: Type.String()});
 function parse(text: string): unknown { try { return JSON.parse(text); } catch { return null; } }
+// Mirrors the gateway's whole/fenced JSON, then embedded-object candidate order.
+function* replyCandidates(text: string): Generator {
+ const stripped = text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1");
+ try { yield JSON.parse(stripped) as unknown; return; } catch { /* Embedded tool JSON follows. */ }
+ for (let start = stripped.indexOf("{"); start >= 0; start = stripped.indexOf("{", start + 1)) {
+  let depth = 0, quoted = false, escaped = false;
+  for (let end = start; end < stripped.length; end++) {
+   const char = stripped[end];
+   if (quoted) { if (escaped) escaped = false; else if (char === "\\") escaped = true; else if (char === '"') quoted = false; continue; }
+   if (char === '"') quoted = true;
+   else if (char === "{") depth++;
+   else if (char === "}" && --depth === 0) { const value = parse(stripped.slice(start, end + 1)); if (value !== null) yield value; break; }
+  }
+ }
+}
+function replyNote(text: string): { value: unknown } | null {
+ for (const candidate of replyCandidates(text)) if (Value.Check(Reply, candidate)) return { value: candidate.text ?? (Object.hasOwn(candidate, "text") ? null : "") };
+ return null;
+}
+function sameReply(note: unknown, recorded: string): boolean {
+ if (typeof note === "string") return note === recorded;
+ // The gateway json.dumps-normalizes non-string notes, including ASCII escapes and spaces.
+ try { return JSON.stringify(note) === JSON.stringify(JSON.parse(recorded) as unknown); } catch { return false; }
+}
 interface Entry { key: string; record: string; session: string; request: number; attempt: number }
 export function createGatewayThinking(ports: GatewayThinkingPorts) {
  let expires = -Infinity, pending: Promise<ReadonlyMap<string, Entry[]>> | undefined;
  const assistants = new Map<string, RunEvent>();
- const transcripts = new Map<string, Promise<{ thinking: string; reply: string } | null>>();
+ const transcripts = new Map<string, Promise<{ thinking: string; reply: unknown } | null>>();
  const index = (): Promise<ReadonlyMap<string, Entry[]>> => {
   if (pending !== undefined && ports.now() < expires) return pending;
   expires = ports.now() + 5000;
@@ -38,12 +62,12 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
   const known = transcripts.get(key); if (known !== undefined) return known;
   const result = ports.transcript(entry.key, entry.record).then(text => {
    if (text === null) return null;
-   const thinking: string[] = [], replies: string[] = [];
+   const thinking: string[] = [], replies: { value: unknown }[] = [];
    for (const line of text.split("\n")) {
     const message = parse(line);
     if (Value.Check(Result, message) && message.session_id === entry.session) {
-     const reply = parse(message.result.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, "$1"));
-     if (Value.Check(Reply, reply)) replies.push(reply.text ?? "");
+     const reply = replyNote(message.result);
+     if (reply !== null) replies.push(reply);
     }
     if (!Value.Check(Message, message) || message.session_id !== entry.session) continue;
     for (const part of message.message.content) {
@@ -51,7 +75,7 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
 
     }
    }
-   return thinking.join("").trim() !== "" && replies.length === 1 ? { thinking: thinking.join(""), reply: replies[0] ?? "" } : null;
+   return thinking.join("").trim() !== "" && replies.length === 1 ? { thinking: thinking.join(""), reply: replies[0]?.value } : null;
   }).catch(() => null);
   if (transcripts.size >= 128) transcripts.delete(transcripts.keys().next().value ?? "");
   transcripts.set(key, result);
@@ -66,7 +90,7 @@ export function createGatewayThinking(ports: GatewayThinkingPorts) {
   if (matches.length !== 1) return null;
   const entry = matches[0]; if (entry === undefined) return null;
   const content = await read(entry);
-  return content?.reply === reply ? content.thinking : null;
+  return content !== null && sameReply(content.reply, reply) ? content.thinking : null;
  }
  async function event(event: RunEvent): Promise<RunEvent> {
   if (event.type !== "assistant" || event.thinking.trim() !== "" || event.tool_calls.length !== 1) return event;

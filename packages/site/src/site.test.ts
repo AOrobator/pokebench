@@ -337,3 +337,22 @@ describe("runs.html and run pages", () => {
     expect(() => buildSite(f)).toThrow(/run-aa01/);
   });
 });
+
+describe("a released run that is one of several linked runs", () => {
+  it("leaves out series totals, names its final team plainly and skips empty notes", () => {
+    const f = fixture();
+    const release = rec(f.runs.runs, 2).release as Record<string, unknown>;
+    delete rec(f.runs.runs, 2).release;
+    release.notes = [];
+    rec(f.runs.runs, 0).release = release;
+    const out = buildSite(f);
+    expect(out.has("runs/ab07.html")).toBe(false);
+    const p = text(out, "runs/aa01.html");
+    expect(p).toContain("800 TURNS");
+    expect(p).not.toContain("AT API PRICES");
+    expect(p).toContain("FINAL TEAM");
+    expect(p).not.toContain("HALL OF FAME TEAM");
+    expect(p).not.toContain("INDEPENDENT REPLAY");
+    expect(text(out, "results.html")).toContain('<a href="runs/aa01.html" class="mono">aa01</a> → <span class="mono">aa02</span>');
+  });
+});

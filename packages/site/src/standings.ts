@@ -10,6 +10,7 @@ export interface Entry {
   readonly help?: string;
   readonly note?: string;
   readonly runs: readonly string[];
+  readonly milestones: ReadonlyMap<Milestone, number>;
   readonly level: number;
   readonly furthest: Milestone;
   readonly seconds: number;
@@ -55,6 +56,7 @@ export function standings(chart: ChartData, points: Points, site: SiteData): Sta
       ...meta,
       assisted: c.assisted,
       runs: p.runs,
+      milestones: p.milestones,
       level: levelOf(p.milestones, p.furthest, p.furthestSeconds),
       furthest: p.furthest,
       seconds: p.furthestSeconds,

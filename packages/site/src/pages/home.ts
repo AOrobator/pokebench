@@ -40,5 +40,6 @@ export function home(st: Standings): Html {
 <figure class="chart">
   <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges-over-time-dark.png"><img src="img/badges-over-time.png" alt="Badges over time: each model's best run against the human world record" width="2676" height="2214"></picture>
   <figcaption>Every model's best run against the human world record. Dotted lines are heavily assisted runs.</figcaption>
-</figure>`;
+</figure>
+<div class="btns"><a class="go" href="results.html">SEE EVERY RESULT</a></div>`;
 }

@@ -20,6 +20,8 @@ async function assets(): Promise<Map<string, Uint8Array>> {
     ["fonts/NOTICE.md", "packages/viewer/static/fonts/NOTICE.md"],
     ["img/badges-over-time.png", "docs/images/badges-over-time.png"],
     ["img/badges-over-time-dark.png", "docs/images/badges-over-time-dark.png"],
+    ["img/badges-for-the-money.png", "docs/images/badges-for-the-money.png"],
+    ["img/badges-for-the-money-dark.png", "docs/images/badges-for-the-money-dark.png"],
   ];
   for (const name of await readdir(join(root, "packages/site/assets/icons"))) files.push([`icons/${name}`, `packages/site/assets/icons/${name}`]);
   const map = new Map<string, Uint8Array>();
@@ -31,6 +33,7 @@ const built = buildSite({
   chartData: await json("docs/images/charts/chart-data.json"),
   points: await json("docs/images/charts/chart-points.json"),
   site: await json("site/data/site.json"),
+  runs: await json("site/data/runs.json"),
   assets: await assets(),
 });
 await rm(out, { recursive: true, force: true });

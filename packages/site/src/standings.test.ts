@@ -78,6 +78,7 @@ describe("standings", () => {
   it("fails when site.json names a series the charts do not have", () => {
     const f = fixture();
     (f.site.series as Record<string, unknown>[]).push({ chart_label: "Ghost", model: "Ghost", slug: "ghost", local: false });
+    (f.site.models as Record<string, unknown>[]).push({ slug: "ghost", name: "Ghost", kind: "cloud", effort: "medium", context: 1 });
     expect(() => build(f)).toThrow(/"Ghost" is not a chart series/);
   });
 
@@ -86,6 +87,7 @@ describe("standings", () => {
     f.chartData.series = [];
     f.points.series = [];
     f.site.series = [];
+    f.site.models = [];
     expect(() => build(f)).toThrow(/the charts have no series/);
   });
 

@@ -72,11 +72,11 @@ Outcome: `just site` builds Home and the shared layout (header, side buttons, bo
 **M2 — Results, Models and Runs**
 Outcome: the leaderboard with the badges-over-time chart above it, a page per model, and a run page per entry in `site/data/runs.json` with the release assets and the verify command. Path set: `packages/site/src/pages/{results,models,run}.ts`, `site/data/runs.json`. Non-goals: updates, explainers. Terminator as M1. Split if per-run pages need data not in the chart files (for example per-turn costs), which would mean a new export step.
 - [x] Write tests: one row per model's best run; "(assisted)" and "(local)" inline; human record row; stars plus the crown after eight badges with the right `aria-label`; per-model page links; runs.json validation; verify command text. Also: site.json `models` (kind, effort, context; every series slug has exactly one model and every model a series; name and local agree), runs.json strict parsing (offset timestamps, 9-char commits, "n of m" links, unique short ids, safe tag/asset names, release shape), every plotted run has exactly one runs.json entry and vice versa, run pages only for released runs, splits table with faster/slower/even/not reached, newest-first runs list, INV-1 on run turns, escaping release text, sizes and short time spans.
-- [x] COMMIT: `test(site): cover results, models and runs` (this commit). RED: 78 of 126 fail (new modules missing, menu and pages not built).
-- [ ] Implement
-- [ ] Cheap checks; gates; counts
-- [ ] COMMIT: `feat(site): results, model and run pages` (GREEN)
-- [ ] Browser proof at six widths, both themes; contrast check on medals (INV-5)
+- [x] COMMIT: `test(site): cover results, models and runs` (bbb135591). RED: 78 of 126 fail (new modules missing, menu and pages not built).
+- [x] Implement: `catalog.ts` (runs.json ⇄ chart series join), `medals.ts` (option E stars + crown), `format.ts` (progressLong, span, size, count, milestoneLabel), `pages/{common,results,models,runs}.ts`; site.json `models` (kind, effort, context); `site/data/runs.json` (13 runs, release for 67d7 from the approved mockup text; no model ids, paths, hosts or token counts); star/crown SVGs copied from the mockup; cards, tables, medals, pills and their dark-mode rules ported into site.css under `prefers-color-scheme`. Menu now home/results/models/runs; Home links to Results.
+- [ ] Cheap checks: site vitest 138/138, coverage 99.62 stmts / 98.49 branches / 100 functions / 100 lines; tsc and eslint clean; `just site` writes 35 files. Gates (`just test`, `just lint`) pending a CPU window.
+- [ ] COMMIT: `feat(site): results, model and run pages` (this commit)
+- [x] Browser proof (pre-gate): `runs/mockups/site-m2/`, sitecheck ALL OK (6 widths × light/dark) for results, models, models/claude-opus-5-5, runs, runs/67d7 and index; an all-text contrast sweep inside `main` (375 and 1280, both themes, 7 pages) found nothing under 4.5:1. Screenshots opened: results light 1280 and dark 375, runs/67d7 light 1280, Opus model dark 375, models light 1280.
 - [ ] Independent review
 
 **M3 — Updates and RSS**

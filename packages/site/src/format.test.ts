@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { count, hms, progress, progressLong, size, span, usd } from "./format.js";
+import { count, hms, milestoneLabel, progress, progressLong, size, span, usd } from "./format.js";
 
 describe("hms", () => {
   it("writes hours:minutes:seconds", () => {
@@ -84,5 +84,15 @@ describe("count", () => {
     expect(count(4124)).toBe("4,124");
     expect(count(262144)).toBe("262,144");
     expect(count(7)).toBe("7");
+  });
+});
+
+describe("milestoneLabel", () => {
+  it("names badges with their gym number and the league by who was beaten", () => {
+    expect(milestoneLabel("STONE_BADGE")).toBe("Stone Badge (gym 1)");
+    expect(milestoneLabel("RAIN_BADGE")).toBe("Rain Badge (gym 8)");
+    expect(milestoneLabel("ELITE_FOUR_DRAKE_DEFEATED")).toBe("Elite Four: Drake");
+    expect(milestoneLabel("WALLACE_DEFEATED")).toBe("Champion Wallace");
+    expect(milestoneLabel("GAME_CLEAR_CONFIRMED")).toBe("Hall of Fame");
   });
 });

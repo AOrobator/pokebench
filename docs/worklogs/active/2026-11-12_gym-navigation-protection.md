@@ -28,3 +28,15 @@ Saved raw frame 1108907: targets (12,17) and (13,16) both return safe=False with
 Read-only explainer screenshots inspected at 1280, 1440, 375. Existing diagrams scroll on phone; added text fits. No new viewer interactions or event types. Full checks and source review pending; no activation.
 
 Full-gate receipts: runs/gym-navigation-proof/gates.json; lint 101.14s, test 101.49s, vendor 0.11s. CPU release sent. No viewer refresh or active-run inputs.
+
+## Multi-Model Review Log
+
+Frozen BASE 3d64c8f89783a08ce61419e52d615ef047f1ca71; HEAD aa9e9b03c5bf3e9e275c84f29e596e1fad470993; binary diff SHA-256 d94a31f5fe517a46d0ec1fa31c44d541eea36e669f34c7d7af9df5a1bdbe40f2. Claude CLI and independent Codex GPT: VERDICT: LGTM. Grok Cursor 4.5 and 4.7 both blocked by account usage cap, no verdict. Standing fallback Sol and Astra: VERDICT: LGTM with reduced vendor diversity; they do not authorize self-merge. No code blockers. Requested extra serve-caller/bike-only fixture/mutation proof is a follow-up beyond the factory OFF/ON plus one-deletion proof required by the local skill; active-pad fixture proves overall refusal but does not isolate warp rejection from floor rejection.
+
+Receipts and synthesis: runs/gym-navigation-proof/. No self-merge: ask operator for an explicit exception to the missing cloud Grok lane. Everything stays committed on the owned branch, not live.
+
+## Integration compatibility
+
+Main advanced from 3d64c8f89783a08ce61419e52d615ef047f1ca71 to efe4dbd859f27a0f7c314630047169310c097418 (public site/feed only). No agent/env/preset, dependency, event/schema or gate owner changed. Main merged cleanly into owned branch; executable feature delta unchanged. Retain frozen gates/reviews; combined post-main just test remains required if landing is authorized. No shared viewer refresh or current-run intervention.
+
+Integration merge 599c9d7dd273612dfba7bc44c5f0794116bc5d8c. Evidence-only commit retry after same-second worklog freshness rejection; no hook bypass.

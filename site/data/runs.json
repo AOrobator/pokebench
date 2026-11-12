@@ -404,7 +404,20 @@
       "result": "Stone and Dynamo Badges (it skipped Knuckle), then got the Bicycle; ended on a model error after 28 h 6 min",
       "turns": 1041,
       "preset": "glm53-flash-4h-dryrun-cook-solo-bundle-a-1-dry-run-bundle",
-      "code": "817e1eed5"
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "run-traces-2026-11-12",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-24_glm-5.3-flash_standard_harness-817e1ee_6bbd_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-24_glm-5.3-flash_standard_harness-817e1ee_6bbd_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-01T01-37-02_hyperqwen-gpu0_7da5",
@@ -413,7 +426,20 @@
       "result": "Stone Badge, then the Match Call tutorial; stopped at its 24-hour limit",
       "turns": 1330,
       "preset": "hyperqwen-bundle-24h-cook-bundle",
-      "code": "25af31b00"
+      "code": "25af31b00",
+      "traces": {
+        "tag": "run-traces-2026-11-12",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-01_qwen3.8-27b_standard_harness-25af31b_7da5_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-01_qwen3.8-27b_standard_harness-25af31b_7da5_trace.tar.xz"
+          }
+        ]
+      }
     },
     {
       "id": "2026-11-07T00-28-59_rayquaza-lane-qwen_6056",

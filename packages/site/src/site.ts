@@ -64,7 +64,7 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     section: "home",
     crumbs: ["HOME"],
     depth: 0,
-    body: home(st, posts[0], listRuns(view.groups).find((l) => l.run.release !== undefined)?.run),
+    body: home(st, site.article, posts[0], listRuns(view.groups).find((l) => l.run.release !== undefined)?.run),
   }));
   out.set("results.html", page(shell, {
     title: "Results · PokéBench",
@@ -126,7 +126,7 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     section: "explainers",
     crumbs: ["EXPLAINERS"],
     depth: 0,
-    body: explainersIndex(site.githubUrl, explainers),
+    body: explainersIndex(site.githubUrl, explainers, site.article),
   }));
   for (const g of explainers) {
     for (const { explainer } of g.items) {

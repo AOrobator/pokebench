@@ -12,7 +12,7 @@ function indexLink(githubUrl: string, what: string): (url: string) => string {
   };
 }
 
-export function explainersIndex(githubUrl: string, groups: readonly ExplainerGroup[]): Html {
+export function explainersIndex(githubUrl: string, groups: readonly ExplainerGroup[], article: { readonly title: string; readonly url: string }): Html {
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const cards = groups.map((g) => {
     const o = { what: "explainers README", html: true, link: indexLink(githubUrl, "explainers README") };
@@ -22,7 +22,7 @@ export function explainersIndex(githubUrl: string, groups: readonly ExplainerGro
     });
     return html`<details class="card cat" open><summary><h2>${g.title.toUpperCase()} · ${String(g.items.length)}</h2></summary><p class="note">${g.about}</p><ul class="xlist">${items}</ul></details>`;
   });
-  return html`<div class="win intro"><p>Every behavior the harness adds is a switch, and every switch has an explainer: what changes for the model, why it was added, where the facts come from in the game, and what is still unproven. ${String(total)} explainers in ${String(groups.length)} groups.</p></div>
+  return html`<div class="win intro"><p>Every behavior the harness adds is a switch, and every switch has an explainer: what changes for the model, why it was added, where the facts come from in the game, and what is still unproven. ${String(total)} explainers in ${String(groups.length)} groups.</p><p>The article walks through the harness: <a href="${article.url}">${article.title}</a>.</p></div>
 <label class="search" hidden><span>FIND</span><input type="search" placeholder="e.g. navigation, battle, warp" aria-label="Filter explainers"></label>
 <p class="note" data-count></p>
 ${cards}

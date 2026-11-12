@@ -49,6 +49,8 @@ export interface SiteData {
   readonly githubUrl: string;
   // The published site's address, for the feed's absolute links.
   readonly baseUrl: string;
+  // The long-form article about the harness, linked from Home and the explainers.
+  readonly article: { readonly title: string; readonly url: string };
   readonly dataDate: string;
   readonly cheapestBadges: number;
   readonly human: { readonly name: string; readonly note: string };
@@ -218,9 +220,17 @@ function validBaseUrl(value: string): boolean {
   return u.protocol === "https:" && u.hostname !== "" && u.username === "" && u.password === "" && u.search === "" && u.hash === "" && u.pathname.endsWith("/") && u.href === value;
 }
 
+// An outbound article link: https with a host, no user, query or fragment, and nothing that could end the
+// attribute. The URL is kept as written (non-ASCII path characters included); the template escapes it.
+function validArticleUrl(value: string): boolean {
+  if (/[?#\s"'<>]/.test(value) || !URL.canParse(value)) return false;
+  const u = new URL(value);
+  return u.protocol === "https:" && value.startsWith("https://") && u.hostname !== "" && u.username === "" && u.password === "";
+}
+
 export function parseSiteData(v: unknown): SiteData {
   const doc = obj(v, "site.json");
-  only(doc, "site.json", ["github_url", "base_url", "data_date", "cheapest_badges", "human", "series", "models"]);
+  only(doc, "site.json", ["github_url", "base_url", "article", "data_date", "cheapest_badges", "human", "series", "models"]);
   const githubUrl = text(doc.github_url, "github_url");
   if (!githubUrl.startsWith("https://")) throw new InputError("github_url: expected an https URL");
   const cheapestBadges = doc.cheapest_badges;
@@ -272,9 +282,14 @@ export function parseSiteData(v: unknown): SiteData {
   for (const m of models) if (!series.some((s) => s.slug === m.slug)) throw new InputError(`models: no series uses "${m.slug}"`);
   const baseUrl = text(doc.base_url, "base_url");
   if (!validBaseUrl(baseUrl)) throw new InputError("base_url: expected an https URL with a host and a path ending in /, and no user, query or fragment");
+  const article = obj(doc.article, "article");
+  only(article, "article", ["title", "url"]);
+  const articleUrl = text(article.url, "article.url");
+  if (!validArticleUrl(articleUrl)) throw new InputError("article.url: expected an https URL with a host and no user, query, fragment, quotes, spaces or angle brackets");
   return {
     githubUrl,
     baseUrl,
+    article: { title: text(article.title, "article.title"), url: articleUrl },
     dataDate: text(doc.data_date, "data_date"),
     cheapestBadges,
     human: { name: text(human.name, "human.name"), note: text(human.note, "human.note") },

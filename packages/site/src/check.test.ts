@@ -48,6 +48,32 @@ describe("problems: zero network (INV-3)", () => {
     expect(problems(new Map([["index.html", page('<img alt=">" src="https://x/p.png">')]]))).toEqual(['index.html: network request to "https://x/p.png"']);
   });
 
+  it("treats an apostrophe inside an unquoted value as part of the value, as browsers do", () => {
+    expect(problems(new Map([["index.html", page(`<img alt=don't src="https://x/p.png"><img alt=a"b src=https://x/q.png>`)]]))).toEqual([
+      'index.html: network request to "https://x/p.png"',
+      'index.html: network request to "https://x/q.png"',
+    ]);
+  });
+
+  it("reads attribute names in any case, with or without spaces around =", () => {
+    expect(problems(new Map([["index.html", page('<IMG SRC = "https://x/a.png"><img/src="https://x/b.png">')]]))).toHaveLength(2);
+  });
+
+  it("reads a <style> element whose start tag has a quoted >", () => {
+    expect(problems(new Map([["index.html", page("", '<style media="a>b">.a { background: url(https://x/c.png) }</style>')]]))).toEqual([
+      'index.html: network request to "https://x/c.png"',
+    ]);
+  });
+
+  it("still reports a network URL in truncated markup instead of crashing", () => {
+    expect(problems(new Map([["a.html", '<img src="https://x/a.png"']]))).toEqual(['a.html: network request to "https://x/a.png"']);
+    // An unclosed quote swallows the rest; the URL inside the value is still flagged (fails closed).
+    expect(problems(new Map([["b.html", "<img alt='x src=https://x/b.png>"]]))).toEqual(['b.html: network request to "https://x/b.png"']);
+    expect(problems(new Map([["c.html", "<img src=https://x/c.png"]]))).toEqual(['c.html: network request to "https://x/c.png"']);
+    expect(problems(new Map([["d.html", "<style>.a { background: url(https://x/d.png) }"]]))).toEqual(['d.html: network request to "https://x/d.png"']);
+    expect(problems(new Map([["e.html", "<img src"]]))).toEqual([]);
+  });
+
   it("reads a quoted CSS url() that contains a closing parenthesis", () => {
     expect(problems(new Map([["site.css", '.x { background: url("https://x/a).png"); }']]))).toEqual(['site.css: network request to "https://x/a).png"']);
   });

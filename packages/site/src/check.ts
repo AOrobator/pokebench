@@ -6,10 +6,6 @@ export type Output = string | Uint8Array;
 
 const REMOTE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 const REMOTE_INSIDE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'<>;,)]+/i;
-// Quoted attribute values may contain ">", so the tag pattern steps over them.
-const TAG = /<([a-z][a-z0-9]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi;
-const ATTR = /([a-z][a-z0-9:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi;
-const STYLE_ELEMENT = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
 // Attributes whose value is a URL the browser fetches or navigates to.
 const URL_ATTRS: ReadonlySet<string> = new Set(["href", "src", "poster", "data", "action", "formaction", "background", "xlink:href"]);
 const SRCSET_ATTRS: ReadonlySet<string> = new Set(["srcset", "imagesrcset"]);
@@ -19,23 +15,66 @@ interface Ref {
   readonly fetched: boolean;
 }
 
+interface Tag {
+  readonly name: string;
+  readonly attrs: readonly (readonly [string, string])[];
+  readonly end: number;
+}
+
+const SPACE = /[\t\n\f\r ]/;
+
+// Reads one start tag the way the HTML tokenizer does (attribute name, optional = value, value
+// double-quoted, single-quoted or unquoted up to whitespace or >), so quotes inside an unquoted
+// value or > inside a quoted one never hide the attributes after them.
+function readTag(page: string, from: number): Tag {
+  let i = from + 1;
+  let name = "";
+  while (i < page.length && /[a-z0-9]/i.test(page.charAt(i))) name += page.charAt(i++);
+  const attrs: [string, string][] = [];
+  for (;;) {
+    while (i < page.length && (SPACE.test(page.charAt(i)) || page.charAt(i) === "/")) i++;
+    if (i >= page.length || page.charAt(i) === ">") return { name: name.toLowerCase(), attrs, end: i + 1 };
+    let attr = page.charAt(i++);
+    while (i < page.length && !SPACE.test(page.charAt(i)) && !"/>=".includes(page.charAt(i))) attr += page.charAt(i++);
+    while (i < page.length && SPACE.test(page.charAt(i))) i++;
+    let value = "";
+    if (page.charAt(i) === "=") {
+      i++;
+      while (i < page.length && SPACE.test(page.charAt(i))) i++;
+      const q = page.charAt(i);
+      if (q === '"' || q === "'") {
+        const close = page.indexOf(q, i + 1);
+        const stop = close < 0 ? page.length : close;
+        value = page.slice(i + 1, stop);
+        i = stop + 1;
+      } else {
+        while (i < page.length && !SPACE.test(page.charAt(i)) && page.charAt(i) !== ">") value += page.charAt(i++);
+      }
+    }
+    attrs.push([attr.toLowerCase(), value]);
+  }
+}
+
 function attrRefs(page: string): Ref[] {
   const refs: Ref[] = [];
-  for (const tag of page.matchAll(TAG)) {
-    const name = String(tag[1]).toLowerCase();
-    for (const a of String(tag[2]).matchAll(ATTR)) {
-      const attr = String(a[1]).toLowerCase();
-      const value = a[2] ?? a[3] ?? String(a[4]);
+  for (let at = page.indexOf("<"); at >= 0; at = page.indexOf("<", at + 1)) {
+    if (!/[a-z]/i.test(page.charAt(at + 1))) continue;
+    const tag = readTag(page, at);
+    for (const [attr, value] of tag.attrs) {
       if (attr === "style") refs.push(...cssRefs(value));
       else if (SRCSET_ATTRS.has(attr)) for (const c of value.split(",")) refs.push({ url: String(c.trim().split(/\s+/)[0]), fetched: true });
-      else if (URL_ATTRS.has(attr)) refs.push({ url: value.trim(), fetched: !(name === "a" && attr === "href") });
+      else if (URL_ATTRS.has(attr)) refs.push({ url: value.trim(), fetched: !(tag.name === "a" && attr === "href") });
       else {
         const inside = REMOTE_INSIDE.exec(value);
         if (inside !== null) refs.push({ url: inside[0], fetched: true });
       }
     }
+    if (tag.name === "style") {
+      const close = page.toLowerCase().indexOf("</style", tag.end);
+      refs.push(...cssRefs(page.slice(tag.end, close < 0 ? page.length : close)));
+    }
+    at = tag.end - 1;
   }
-  for (const m of page.matchAll(STYLE_ELEMENT)) refs.push(...cssRefs(String(m[1])));
   return refs;
 }
 

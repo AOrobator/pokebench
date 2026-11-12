@@ -245,6 +245,58 @@ def _raw_ram(stream: BinaryIO, output: Output, refs: Mapping[int, str]) -> int:
 # --- unpack ---
 
 
+def _agent_trace(stream: BinaryIO, name: str, output: Output, run_id: str) -> None:
+    rows: list[dict[str, object]] = []
+    seen: set[str] = set()
+    with vr._open_tar(stream, name) as tar:
+        for count, member in enumerate(tar, 1):
+            if count > vr.TRACE_MAX_MEMBERS or member.size > vr.TRACE_MEMBER_CAP:
+                raise ReleaseError("agent trace exceeds archive bounds")
+            if member.issym() or member.islnk():
+                raise ReleaseError("agent trace contains a link")
+            match = re.fullmatch(r"calls/call-([0-9]+)(?:-([0-9]+))?\.jsonl", member.name)
+            if match is None:
+                continue
+            if member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE):
+                raise ReleaseError("agent trace call is not a regular file")
+            request, attempt = int(match[1]), int(match[2] or "1")
+            record = f"call-{request}-{attempt}.jsonl"
+            if record in seen:
+                raise ReleaseError("agent trace contains a duplicate call")
+            seen.add(record)
+            body = tar.extractfile(member)
+            assert body is not None
+            result: dict[str, object] | None = None
+
+            def lines(source: BinaryIO, name: str) -> Iterator[bytes]:
+                nonlocal result
+                for _, line in vr._lines(source, vr.EVENT_LINE_CAP, name):
+                    try:
+                        value = json.loads(line)
+                    except ValueError:
+                        raise ReleaseError("agent trace call contains invalid JSON") from None
+                    if isinstance(value, dict) and value.get("type") == "result":
+                        result = value
+                    yield line
+
+            output.write(f"bridge/calls/{record}", lines(cast(BinaryIO, body), member.name))
+            if result is not None and result.get("is_error") is False:
+                session = result.get("session_id")
+                if isinstance(session, str) and session:
+                    rows.append(
+                        {
+                            "request": request,
+                            "attempt": attempt,
+                            "run_id": run_id,
+                            "mode": "session",
+                            "outcome": "ok",
+                            "session_id": session,
+                            "record": record,
+                        }
+                    )
+    output.write("bridge/calls.jsonl", (json.dumps(row).encode() + b"\n" for row in rows))
+
+
 def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
     names = files.names()
     sums, sum_problems = vr._read_sums(files, names)
@@ -259,6 +311,14 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
         if target not in sums:
             raise ReleaseError(f"{target}: not listed in SHA256SUMS")
         targets[kind] = target
+    traces = [name for name in names if vr.OPTIONAL_KINDS["agent trace"].fullmatch(name)]
+    if len(traces) > 1:
+        raise ReleaseError("multiple agent trace archives")
+    trace = traces[0] if traces else None
+    if trace is not None:
+        if trace not in sums:
+            raise ReleaseError("agent trace is not listed in SHA256SUMS")
+        targets["agent trace"] = trace
     with files.open("SHA256SUMS") as raw:
         marker = hashlib.sha256(raw.read(vr.SUMS_CAP + 1)).hexdigest()
 
@@ -268,15 +328,19 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
 
     run_id = _peek_run_id(files, targets["events"])
     mode = "raw-ram" if raw_ram else "base"
+    if trace is not None:
+        mode += "-thinking-v1"
     previous = output.existing(run_id)
     if previous is not None:
         previous_sums, _, previous_mode = previous.partition(" ")
         if previous_sums != marker:
             raise ReleaseError(f"runs/releases/{run_id} holds a different release; remove it first")
-        if raw_ram and previous_mode != "raw-ram":
+        if raw_ram and not previous_mode.startswith("raw-ram"):
             raise ReleaseError(
                 f"runs/releases/{run_id} was unpacked without --raw-ram; remove it and rerun"
             )
+        if trace is not None and not previous_mode.endswith("-thinking-v1"):
+            raise ReleaseError("release was unpacked without thinking; remove it and rerun")
         for target in targets.values():
             tee, raw, _ = _stream(files, target)
             with raw:
@@ -311,6 +375,11 @@ def unpack(files: ReleaseFiles, output: Output, *, raw_ram: bool) -> Unpacked:
             with raw:
                 snapshots = _raw_ram(ram, output, refs or {})
                 check(targets["raw-RAM log"], tee)
+        if trace is not None:
+            tee, raw, archive = _stream(files, trace)
+            with raw:
+                _agent_trace(archive, trace, output, run_id)
+                check(trace, tee)
         output.publish(run_id, f"{marker} {mode}")
     except BaseException:
         output.discard(run_id)

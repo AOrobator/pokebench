@@ -21,3 +21,7 @@ Cite "a Claude Code session transcript (outside the repo)" instead of the sessio
 - [x] M1: replace the citations, focused readme_charts tests green (46 passed). COMMIT: `docs(charts): cite a Claude Code session transcript, not its session ID` (45594130d)
   Outside the repo, same day: pass3/session_ids.py gap tightened (sha256/hash/digest/md5 end shape B), 0 matches on the public history; GUARD_PATTERN added to the blocklist; pass3 blob and message callbacks run session_ids.scrub; the updated pass3 leaves the public main hash unchanged; test_session_ids 4/4 OK.
 - [ ] M2: Codex review, land on local main (caller's step, not this branch's author).
+
+## Landing
+
+- 2026-11-11 19:23 ET: GPT review rounds 1-2 BLOCKING on the pass3/guard rule (combined `ID prefix` and `session_id` labels; case-sensitive verbs), both fixed with fixtures; public-history rescans 0 matches each time; round 3 `VERDICT: LGTM`. Branch gates on 59465b224: `just lint` green, `just test` green. Landed fast-forward at 59465b224 as number 1 on the board. Post-merge `just test` green (agent 3,042, viewer 1,286, env 3,446, gateway 39). Export with the new pass3: the last synced public commit is still an ancestor (no public-history change).

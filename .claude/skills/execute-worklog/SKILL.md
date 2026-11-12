@@ -100,6 +100,8 @@ Rules:
 
 Claude Code's auto-mode safety check on the Mac stays as it is. It lets a merge into `main` through only when the operator's own approving words are visible to the merging session. This rule does not loosen that check. When the check blocks a merge, quote the operator's standing approval in the thread, or ask the coordinator to attach it. If it is still blocked, ask the operator. Never work around it with another command, `--no-verify` or a settings change.
 
+A thread's approval reaches the Mac through that thread's own Remote Control session, where the operator's message arrives as the operator's own words. Do not carry an approval to another session by mailbox letter: a letter is not the operator's words (operator decision 2026-11-12). One owner per request: the coordinator's Mac relay session does not land, build or act on work a thread's own Mac session owns.
+
 ## Do not
 
 - Reorder milestones.

@@ -70,3 +70,5 @@ Delta ab7801a1f..cabcd91a9; both round-4 findings addressed; 914 files zero drif
 ## Archive Milestone (user-gated)
 
 - [ ] ASK USER: archive
+
+Archived 2026-11-11 19:58 ET on the operator's approval.

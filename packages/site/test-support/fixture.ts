@@ -56,7 +56,7 @@ export function fixture(): FixtureInputs {
     },
     runs: {
       runs: [
-        { id: "run-aa01", started: "2026-11-01T02:00:00-05:00", start: "a new game at power-on", result: "3 gym badges; stopped at its 4-hour limit", turns: 800, preset: "a-4h", code: "aaaaaaaa1", linked: "1 of 2" },
+        { id: "run-aa01", started: "2026-11-01T02:00:00-05:00", start: "a new game at power-on", result: "3 gym badges; stopped at its 4-hour limit", turns: 800, preset: "a-4h", code: "aaaaaaaa1", linked: "1 of 2", traces: { tag: "evidence-1", files: [{ label: "thinking", name: "aa01_thinking.jsonl.gz" }, { label: "trace", name: "aa01_trace.tar.xz" }] } },
         { id: "run-aa02", started: "2026-11-01T08:00:00.500-05:00", start: "run aa01's save", result: "Beat Sidney; stopped at its limit", turns: 1200, preset: "a-continuation", code: "aaaaaaaa1", linked: "2 of 2" },
         {
           id: "run-ab07", started: "2026-11-10T15:38:09-05:00", start: "a new game at power-on", result: "Hall of Fame; the run ended on its own", turns: 4124, preset: "a-lane", code: "bbbbbbbb2",
@@ -80,7 +80,7 @@ export function fixture(): FixtureInputs {
           },
         },
         { id: "run-b001", started: "2026-10-24T19:32:42-04:00", start: "the title-screen save", result: "5 gym badges; stopped by the operator", turns: 7248, preset: "b-24h", code: "ccccccccc" },
-        { id: "run-c001", started: "2026-10-25T10:51:18-04:00", start: "a new game at power-on", result: "5 gym badges; ended on a model error", turns: 2741, preset: "c-probe", code: "ddddddddd" },
+        { id: "run-c001", started: "2026-10-25T10:51:18-04:00", start: "a new game at power-on", result: "5 gym badges; ended on a model error", turns: 2741, preset: "c-probe", code: "ddddddddd", traces: { tag: "evidence-1", files: [{ label: "thinking", name: "c001_thinking.jsonl.gz" }, { label: "Codex transcript", name: "c001_codex-transcript.jsonl.gz" }] } },
       ],
     },
     assets: new Map<string, Uint8Array>([

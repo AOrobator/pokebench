@@ -207,7 +207,7 @@ describe("results.html", () => {
     const r = rows(results()).slice(1);
     expect(at(r, 3)).toContain('about $2.50<span class="sub">estimate</span>');
     expect(at(r, 2)).toContain(">$1,234.50</td>");
-    expect(at(r, 1)).toContain('<span class="mono">a-4h</span><span class="sub mono">code aaaaaaaa1</span>');
+    expect(at(r, 1)).toContain('<span class="mono">a-4h</span><a class="sub mono" href="https://github.com/example/pokebench/commit/aaaaaaaa1">code aaaaaaaa1</a>');
   });
 
   it("joins linked runs with arrows and links a short id only when that run has a released page", () => {
@@ -256,12 +256,14 @@ describe("models.html and model pages", () => {
     expect(lane).toContain('<a class="mono" href="../runs/ab07.html">ab07</a><span class="sub">2026-11-10</span>');
     expect(lane).toContain('Assisted<span class="sub">two hints</span>');
     expect(lane).toContain("4,124");
-    expect(lane).toContain('<span class="mono">a-lane</span><span class="sub mono">code bbbbbbbb2</span>');
+    expect(lane).toContain('<span class="mono">a-lane</span><a class="sub mono" href="https://github.com/example/pokebench/commit/bbbbbbbb2">code bbbbbbbb2</a>');
+    expect(lane).toContain('<td data-l="TRACES">—</td>');
     const first = find(runRows, (r) => r.includes("aa01"));
     expect(first).toContain('<span class="mono">aa01</span><span class="sub">2026-11-01 · linked run 1 of 2</span>');
     expect(first).toContain(">None</td>");
     expect(first).toContain("a new game at power-on");
     expect(first).toContain("3 gym badges; stopped at its 4-hour limit");
+    expect(first).toContain('<td data-l="TRACES"><a href="https://github.com/example/pokebench/releases/download/evidence-1/aa01_thinking.jsonl.gz">thinking</a> · <a href="https://github.com/example/pokebench/releases/download/evidence-1/aa01_trace.tar.xz">trace</a></td>');
   });
 
   it("compares milestone splits when a model has an assisted and an unassisted run", () => {
@@ -292,6 +294,16 @@ describe("runs.html and run pages", () => {
     expect(at(list, 4)).toContain("None");
     expect(at(list, 4)).toContain("7,248");
     expect(r).toContain('<a class="m-runs" href="runs.html" aria-current="page">');
+  });
+
+  it("links each run's released thinking, trace and Codex transcript files, and explains them", () => {
+    const r = text(buildSite(fixture()), "runs.html");
+    const list = rows(r);
+    expect(at(list, 3)).toContain('<a href="https://github.com/example/pokebench/releases/download/evidence-1/c001_thinking.jsonl.gz">thinking</a> · <a href="https://github.com/example/pokebench/releases/download/evidence-1/c001_codex-transcript.jsonl.gz">Codex transcript</a>');
+    expect(at(list, 4)).toContain('<td data-l="TRACES">—</td>');
+    expect(r).toContain("<th>TRACES</th>");
+    expect(r).toContain("one line per turn");
+    expect(r).toContain("encrypted");
   });
 
   it("puts the release on the run page: title, facts, downloads with sizes, verify command, team and how to check", () => {

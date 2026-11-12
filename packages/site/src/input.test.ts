@@ -281,4 +281,28 @@ describe("parseRuns", () => {
     rec(f.runs.runs, 0).id = "ab";
     expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.id/);
   });
+
+  it("reads optional trace files with their release tag", () => {
+    const runs = parseRuns(fixture().runs);
+    expect(at(runs, 0).traces).toEqual({ tag: "evidence-1", files: [{ label: "thinking", name: "aa01_thinking.jsonl.gz" }, { label: "trace", name: "aa01_trace.tar.xz" }] });
+    expect(at(runs, 1).traces).toBeUndefined();
+  });
+
+  it("rejects a trace label outside thinking, trace and Codex transcript", () => {
+    const f = fixture();
+    rec((rec(f.runs.runs, 0).traces as Record<string, unknown>).files, 0).label = "notes";
+    expect(() => parseRuns(f.runs)).toThrow(/traces\.files\[0\]\.label/);
+  });
+
+  it("rejects a trace tag or file name that could leave the release URL, and unknown trace fields", () => {
+    const f = fixture();
+    (rec(f.runs.runs, 0).traces as Record<string, unknown>).tag = "../x";
+    expect(() => parseRuns(f.runs)).toThrow(/traces\.tag/);
+    const g = fixture();
+    rec((rec(g.runs.runs, 0).traces as Record<string, unknown>).files, 1).name = "a/b";
+    expect(() => parseRuns(g.runs)).toThrow(/traces\.files\[1\]\.name/);
+    const h = fixture();
+    (rec(h.runs.runs, 0).traces as Record<string, unknown>).url = "x";
+    expect(() => parseRuns(h.runs)).toThrow(/unknown field "url"/);
+  });
 });

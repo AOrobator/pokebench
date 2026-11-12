@@ -146,7 +146,7 @@ The operator 2026-11-11: "the video seems to go a long time in between thinking 
 The operator 2026-11-11: "could we do some special spelling or prompting so that pokemon names are proper nouns in the game are pronounced correctly?". espeak (en-gb) says Pokémon as "POCK-ay-mən", Manectric as "MAINK-trick", Kyogre and Sootopolis with the wrong stress. `--lexicon <tsv>` (voicing only; default unchanged): listed names are spoken from the file's phonemes (Kokoro's espeak-style IPA) and the rest of the line goes through espeak, then `create(..., is_phonemes=True)`. Captions and commentary text stay as written. The table lives in env/pokebench_env/data/pokemon-lexicon.tsv with a source per row (Bulbapedia, Wiktionary, or marked unsourced).
 - [x] RED
 - [x] GREEN (code): 139 focused tests under the no-I/O guard, module 99%, ruff/format/mypy clean
-- [ ] Lexicon sourced and checked against espeak
+- [x] Lexicon sourced and checked against espeak: 175 names researched (pokemon-lexicon-research.tsv: respelling, US IPA, whether espeak already says it right, source). Bulbapedia refused fetches (403), so species come from Serebii's official pronunciation tables, others from Wiktionary/Wikipedia; 35 unsourced, mostly places. 60 names espeak gets wrong; 57 go in pokemon-lexicon.tsv as espeak-style en-gb phonemes (stress before the vowel, every symbol in Kokoro's vocab). Mauville, Fallarbor and Liza stay with espeak: unsourced and uncertain.
 - [ ] A/B for the operator (without, then with) before voicing all lines
 - [ ] Review: Codex
 

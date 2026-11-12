@@ -17,7 +17,7 @@ Reference pret/pokeemerald 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881, clean: fiel
 - [x] RED: six Python cases fail on missing active_warps wiring; preset regression fails because dedicated lane false.
 - [x] GREEN: 38 Python and 67 agent tests PASS; mypy (env config), ruff, changed-file eslint and agent tsc PASS.
 - [x] Gates: just lint PASS, just test (includes build/coverage/no-I/O proof) PASS, just verify-vendor PASS. Saved-RAM proof PASS.
-- [ ] Independent review and landing
+- [x] Independent reviews and landing under verified standing Grok waiver; source main 2b0a79fd4.
 
 No live-run changes; source landing is separate from activation.
 
@@ -25,7 +25,7 @@ No live-run changes; source landing is separate from activation.
 
 Saved raw frame 1108907: targets (12,17) and (13,16) both return safe=False with OFF, safe=True with ON, using validated archive and matching ROM. No emulator inputs or live calls. Factory regression covers dormant origin/target and active pad; OFF preserves refusal. Mutation 1 removes travel-to-strides forwarding: 2 intended failures, 4 PASS; restored. Receipt runs/gym-navigation-proof/mutation-1.log. Existing Lavaridge supervisor path records diagnostic would_warn and sends no map-cycle note when hold ON. Source producer, schemas, delivery, Activity History and replay consumers unchanged for the hold.
 
-Read-only explainer screenshots inspected at 1280, 1440, 375. Existing diagrams scroll on phone; added text fits. No new viewer interactions or event types. Full checks and source review pending; no activation.
+Read-only explainer screenshots inspected at 1280, 1440, 375. Existing diagrams scroll on phone; added text fits. No new viewer interactions or event types. Full checks and source reviews completed below; no activation.
 
 Full-gate receipts: runs/gym-navigation-proof/gates.json; lint 101.14s, test 101.49s, vendor 0.11s. CPU release sent. No viewer refresh or active-run inputs.
 
@@ -46,3 +46,11 @@ Integration merge 599c9d7dd273612dfba7bc44c5f0794116bc5d8c. Evidence-only commit
 The earlier Grok-blocked status above is superseded. Independently read original native project transcript 00000000-0000-4000-8000-1bb4e739f4f4.jsonl lines 4145/4964/6309, including server-copied the operator user citation [private message reference] at 2026-10-22T14:47:31Z: "land without grok. you're not a very good coordinator if you force me to go into chats". The preceding original cited user reply and its question context establish general Claude + GPT + distinct fallback approval during Grok outages. Current scheduler confirms the standing scope. This is verification of prior operator authorization, not a mailbox-created new waiver.
 
 Claude CLI, independent GPT, Sol fallback and distinct Astra fallback all returned VERDICT: LGTM on the frozen packet. Grok 4.5/4.7 usage-cap failures retained; reduced vendor diversity disclosed. No Grok verdict fabricated. Scope still excludes af33 intervention or any new run. Dedicated preset setting changes future launch configuration only; no live feature flips.
+
+## Landed and post-main checks
+
+As landing-board number 1, fast-forwarded main from efe4dbd859f27a0f7c314630047169310c097418 to 2b0a79fd4b10c03f8c3232f71b8f0f426691341f. Recomputed frozen review digest and verified executable/explainer delta unchanged before landing.
+
+Scheduler granted post-main CPU at 03:47 New York. `nice -n 10 just test` on that exact main passed in 92.80 seconds, including build, 3,055 agent / 1,313 viewer / 3,505 env / 39 gateway tests, site suite, all coverage floors and no-I/O guard proof. Receipt `runs/reviews/gym-navigation-protection-20261112/post-main-test.json`; full log alongside. CPU RELEASE delivered.
+
+Current af33 process PID 39761 retains its original frozen b87c506691 checkout; no run inputs, feature controls, restarts, gameplay launches, emulator writes or viewer-main refresh. Source/configuration are landed for future authorized launches; existing af33 settings are unchanged. No gameplay improvement claim or live activation proof is made. Existing Harness Config link/mapping was unchanged; updated explainer is served by pages at HTTP 200.

@@ -18,9 +18,9 @@ Pure injected tests for configuration, credential validity/expiry, provider payl
 
 ## Status
 - [x] Source and focused checks (44 focused tests; agent and viewer types; changed-source ESLint)
-- [ ] Gates, capture/speed receipts, independent reviews
-- [ ] Land locally via board
-- [ ] Clean pinned 24h boot launch and live/capture proof
+- [x] Gates, capture/speed receipts, independent reviews
+- [x] Land locally via board
+- [x] Clean pinned 24h boot launch and live/capture proof
 
 ## Session log
 2026-11-11: operator authorized implementation and conditional restart. Previous run 4489 ended operator_abort at turn4; complete native archive sealed.
@@ -37,3 +37,8 @@ Final f45b86249: full lint/build/test/coverage/no-I/O/vendor PASS. Claude round2
 Headless config-card → READ EXPLAINER proof at1280/1440/375: all links open correct page, no overflow/page errors; six screenshots inspected. Historical4489 correctly remains NOT RECORDED for the new switch. Owned scratch viewer8894 stopped.
 Upstream main4125c5a77 integrated with no conflict. Every frozen feature file remains byte-identical to reviewed f45. Upstream changes are agent-mail routing and viewer Claude-session transcript lookup; no provider/recorder/event-schema/dependency change. Existing native assistant thinking is not replaced. Retain source reviews/gates and require combined main test after landing.
 No game restarted yet. Source readiness complete; landing and clean pinned activation pending.
+
+## Landing and activation
+Landed FF as board #1 at dc5436a3a. Combined main just test passed (3051 agent,1288 viewer,3460 env,39 gateway; exact counts in canonical post-main-test.log; all floors/no-I/O passed). Clean detached runtime preparation passed at /private/tmp/pb-astra-direct-dc5436a3a. No shared viewer refresh performed.
+Restarted 2026-11-11T21-45-58_astra-direct-rayquaza_ef7d, actual run_start9:46:24 PM ET, clean dc5436a3a, boot, native openai-codex-responses, medium,258400 context,32768 reply/context reservation.24h wall cap is operator-sourced;20000 turns/failure3/other endings are from named Opus Rayquaza preset. Prepared ad-hoc preset differs only by declared direct-codex-provider-v1 ON; not an unchanged committed preset benchmark arm. No wrapper deadline or dollar stop. Agent70357 is parented by PID1; only extra process is detached lease metadata cleanup, which never signals gameplay.
+Live proof: seven complete/hash-verified raw request/response pairs, one provider request per game decision,3.857–10.908sec in first seven calls. Existing game observations/actions/results recorded; raw-RAM index/archives present. No readable summaries emitted in these early live calls; requested medium/detailed and raw outputs preserved. Synthetic installed-parser/normal-recorder proof qualifies capture path, not actual provider emission. Headless viewer selected exact run, RUNNING/live frame, no problems/page errors; screenshot inspected. Game has advanced past NEW GAME to Birch speech; this is a screen observation, not an independently awarded milestone. Full receipts canonical runs/launch-receipts/astra-direct-rayquaza-20261111/launch-proof.json.

@@ -212,7 +212,8 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // Parsed by the URL standard and required to print back unchanged, so every link built from it is absolute and valid.
 function validBaseUrl(value: string): boolean {
-  if (!URL.canParse(value)) return false;
+  // An empty ? or # parses as no query or fragment but still changes where joined links point.
+  if (/[?#]/.test(value) || !URL.canParse(value)) return false;
   const u = new URL(value);
   return u.protocol === "https:" && u.hostname !== "" && u.username === "" && u.password === "" && u.search === "" && u.hash === "" && u.pathname.endsWith("/") && u.href === value;
 }

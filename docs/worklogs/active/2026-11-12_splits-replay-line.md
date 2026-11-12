@@ -43,7 +43,7 @@ Relay reported activation by its own direct approval at served cf630a007, PID 56
 Correction acceptance: current-projector + detached replay selection requests the existing cards enrichment, uses the generation-matched full splits, retains them across current polling, and rejects stale responses. Live current snapshots still avoid unnecessary enrichment. Regression through public pollCardsIfNeeded/pollCards with injected no-I/O deps, plus actual served 8790 requests and branch module routing in a headless browser (never a second viewer against real runs).
 
 - [x] Real-data reproduction and diagnosis: /tmp/pb-splits-real-state2.json; shown last seq 9910, 55 folded milestones, app workbench only 1 split. screenshot runs/reviews/splits-replay-line/served-repro2-1280.png.
-- [ ] Correction RED/GREEN and cheap checks (RED observed: no cards fetch in detached replay; /tmp/pb-splits2-red.log). COMMIT: `test(viewer): cover current-projector replay enrichment` (this commit).
+- [x] Correction RED bab4ebcb5: no cards fetch in detached replay (/tmp/pb-splits2-red.log). GREEN: one-line replay enrichment demand; 11 focused tests, changed-file ESLint and viewer tsc pass. Demand, non-replay suppression and stale-selection guard mutations each fail; restored test passes. COMMIT: `fix(viewer): request full cards for recorded replay` (this commit).
 - [ ] Real-data candidate browser proof
 - [ ] Full gates after relay CPU START
 - [ ] Claude + fresh GPT review (Grok standing job waiver)

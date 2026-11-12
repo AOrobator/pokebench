@@ -742,6 +742,7 @@ export class App {
   // Current snapshots carry bounded card anchors and on-demand saved progress.
   // Legacy producers or an absent card may still need the older enrichment path.
   private needsWorkbenchEnrichment(): boolean {
+    if (this.mode === "replay") return true;
     const snapshot = this.current?.state.snapshot ?? null;
     return needsCardEnrichment({ projector: this.current !== null, runId: this.runId, projectorRuns: this.current?.state.runs.length ?? 0, snapshot: snapshot === null ? null : { metadata: snapshot.metadata !== undefined, card: snapshot.run.card != null } });
   }

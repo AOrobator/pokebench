@@ -17,7 +17,18 @@ it("enriches a detached ended replay from cards despite a populated current proj
   const state: CurrentBrowserState = { epoch: "epoch", cursor: "cursor", runs: [fixture.summary], selected: null, snapshot: null, stale: false, indexing: false, problem: null, progress: [], progressProblem: null, history: [], head: [], before: null, historyLoading: false, historyProblem: null, historyLimited: false, historyFull: false, historyOlder: false };
   const current: CurrentBrowser = { state, start: async () => {}, select: async () => {}, poll: async () => {}, history: async () => {}, progress: async () => {}, holdHistory: () => {}, display: () => null, close: () => {} };
   const calls: string[] = [];
-  const deps: AppDeps = { hash: `#replay=${id}`, now: () => 1000, fetchJson: async url => { calls.push(url); if (url.startsWith("/api/cards?run=")) return { version: 1, at: 1000, milestones: [], runs: [full], problems: [] }; return null; }, sendJson: async () => null, openStream: () => ({ addEventListener: () => {}, close: () => {} }) };
+  let switchSelection = false;
+  const deps: AppDeps = {
+    hash: `#replay=${id}`, now: () => 1000,
+    fetchJson: url => {
+      calls.push(url);
+      if (!url.startsWith("/api/cards?run=")) return Promise.resolve(null);
+      if (switchSelection) Object.assign(app, { runId: "other" });
+      return Promise.resolve({ version: 1, at: 1000, milestones: [], runs: [full], problems: [] });
+    },
+    sendJson: () => Promise.resolve(null),
+    openStream: () => ({ addEventListener: () => {}, close: () => {} }),
+  };
   document.body.innerHTML = '<select data-ui="run"></select>';
   const app = new CardsApp(document, deps);
   // Represent the existing recorded-replay handoff: current remains available for other live cards.
@@ -31,5 +42,14 @@ it("enriches a detached ended replay from cards despite a populated current proj
   // Another projector/cards poll must retain full recorded progress, rather than bounded summary progress.
   await app.pollCards();
   expect((Reflect.get(app, "workbench") as WorkbenchData).runs.map(row => [row.id, row.splits])).toEqual([[id, full.splits]]);
+  Object.assign(app, { mode: "live" }); state.selected = id; state.snapshot = fixture.snapshot;
+  calls.length = 0;
+  await app.pollCardsIfNeeded();
+  expect(calls.filter(url => url.startsWith("/api/cards"))).toEqual([]);
+  Object.assign(app, { mode: "replay" }); state.selected = null; state.snapshot = null;
+  const retained = Reflect.get(app, "workbench") as WorkbenchData;
+  switchSelection = true;
+  await app.pollCards();
+  expect(Reflect.get(app, "workbench") as WorkbenchData).toBe(retained);
   app.dispose();
 });

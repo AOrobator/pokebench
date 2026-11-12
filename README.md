@@ -4,6 +4,8 @@
 
 How far can a vision-language model get in Pokémon Emerald when the harness around it does the right work? PokéBench is a benchmark harness for finding out, with local and frontier models playing the real game from power-on.
 
+The website, [aorobator.github.io/pokebench](https://aorobator.github.io/pokebench/), has the full results, a page for every model and run, update posts with an [RSS feed](https://aorobator.github.io/pokebench/feed.xml), and all the feature explainers.
+
 ## Results
 
 Claude Opus 5.5 beat the game in one run from power-on, in 4,124 turns and 17 hours 16 minutes. It caught Rayquaza at Sky Pillar with the Master Ball, lost to Glacia on its first Elite Four attempt, restocked at the League mart and won the retry. That run used the Rayquaza lane: no game guide, but four one-time hints (the Mach Bike, the Master Ball's route, Sky Pillar and Rayquaza's League moveset) and a Mach Bike dash tool, so it counts as heavily assisted. The Qwen lane runs follow a just-in-time guide to the next milestone.

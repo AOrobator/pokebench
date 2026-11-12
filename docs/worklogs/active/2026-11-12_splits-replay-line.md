@@ -35,3 +35,17 @@ COMMIT: `docs(worklog): record replay graph gates and reviews` (this evidence co
 Source merge SHA: 8395757e3c3293072b135bdda5578ce6c5f4e53d. Reviewed application/test bytes match 1347c5460 exactly; only worklog evidence follows. Post-main log: main runs/reviews/splits-replay-line/pb-splits-post-main-test.log. Final evidence commit fast-forwards on the same board slot. Scratch server stopped and owned copied recordings removed. Shared 8790 listener PID 38947 remains on cached 0ac4ac689 build; viewer-main was never run, and no live af33 control actions occurred. Therefore source is landed and verified, activation is held and not claimed live.
 
 COMMIT: `docs(worklog): record replay graph landing and post-main checks` (this evidence-only commit).
+
+## Bounded correction after served verification
+
+Relay reported activation by its own direct approval at served cf630a007, PID 569; no refresh authorization passes to this chat. Real-data headless diagnosis confirms missing own line. Earlier scratch proof was insufficient because its root had no current projector. Actual app mode is replay, shown and full head both reach seq 9910, but app.workbench holds only the bounded current summary's last split while /api/cards?run=ef7d and /api/workbench have 52. Thus the seq bound is not the problem: cards enrichment is skipped when replay detaches current selection and snapshot becomes null. Correct only that missing replay enrichment demand in app.ts; retain existing generation/epoch ownership and full saved split merging. No replay clock/history, server, table, trainer-card or harness redesign.
+
+Correction acceptance: current-projector + detached replay selection requests the existing cards enrichment, uses the generation-matched full splits, retains them across current polling, and rejects stale responses. Live current snapshots still avoid unnecessary enrichment. Regression through public pollCardsIfNeeded/pollCards with injected no-I/O deps, plus actual served 8790 requests and branch module routing in a headless browser (never a second viewer against real runs).
+
+- [x] Real-data reproduction and diagnosis: /tmp/pb-splits-real-state2.json; shown last seq 9910, 55 folded milestones, app workbench only 1 split. screenshot runs/reviews/splits-replay-line/served-repro2-1280.png.
+- [ ] Correction RED/GREEN and cheap checks (RED observed: no cards fetch in detached replay; /tmp/pb-splits2-red.log). COMMIT: `test(viewer): cover current-projector replay enrichment` (this commit).
+- [ ] Real-data candidate browser proof
+- [ ] Full gates after relay CPU START
+- [ ] Claude + fresh GPT review (Grok standing job waiver)
+- [ ] Board-coordinated correction landing and post-main test
+- [ ] Activation held for separate the operator words

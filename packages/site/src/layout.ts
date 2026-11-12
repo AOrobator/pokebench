@@ -60,6 +60,7 @@ export function page(shell: Shell, spec: PageSpec): string {
 <meta name="description" content="${spec.description}">
 <link rel="icon" type="image/svg+xml" href="${root}icons/gamepad.svg">
 <link rel="stylesheet" href="${root}site.css">
+<link rel="alternate" type="application/rss+xml" title="PokéBench updates" href="${root}feed.xml">
 </head>
 <body>
 <header class="navhead"><a href="${root}index.html" class="mark" aria-label="PokéBench home"><i class="ic ic-gamepad" aria-hidden="true"></i></a><p class="crumbs"><b>POKéBENCH</b>${crumbs}</p></header>

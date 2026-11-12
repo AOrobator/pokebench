@@ -33,7 +33,7 @@ function headline(run: RunInfo, series: SeriesRuns): Html {
   // The series totals describe this run only when it is the whole series.
   if (series.all.length > 1) return turns;
   const e = series.entry;
-  return html`${turns}<span class="t-blue">${progress(e.level).toUpperCase()}</span><span class="t-blue">${hms(e.seconds)}</span><span class="t-blue">${usd(e.costUsd)} AT API PRICES</span>`;
+  return html`${turns}<span class="t-blue">${progress(e.level).toUpperCase()}</span><span class="t-blue">${hms(e.seconds)}</span><span class="t-blue">${e.estimated ? `ABOUT ${usd(e.costUsd)} AT API PRICES (ESTIMATE)` : `${usd(e.costUsd)} AT API PRICES`}</span>`;
 }
 
 function files(githubUrl: string, r: Release): Html {

@@ -5,6 +5,7 @@ export interface FixtureInputs {
   points: Record<string, unknown>;
   site: Record<string, unknown>;
   runs: Record<string, unknown>;
+  posts: { name: string; text: string }[];
   assets: Map<string, Uint8Array>;
 }
 
@@ -14,6 +15,25 @@ export const FIXTURE_CSS = [
   "@font-face { font-family: 'Press Start 2P'; src: url(fonts/press-start-2p.woff2) format('woff2'); }",
   ".ic-home { --i: url(icons/home.svg); }",
 ].join("\n");
+
+export const POST_CLEARS = [
+  "---",
+  "date: 2026-11-11",
+  "title: Model A clears the game & more",
+  "models: [model-a]",
+  "---",
+  "",
+  "Model A beat the game in **one run**, see [run ab07](runs/ab07.html) & the [code](https://github.com/example/pokebench).",
+  "It used `just verify-release` <b>too</b>.",
+  "",
+  "## What helped",
+  "",
+  "- two hints",
+  "- a **dash** tool",
+  "",
+].join("\n");
+
+export const POST_HELLO = ["---", "date: 2026-11-02", "title: Hello", "---", "", "The first post."].join("\n");
 
 export function fixture(): FixtureInputs {
   return {
@@ -39,6 +59,7 @@ export function fixture(): FixtureInputs {
     },
     site: {
       github_url: "https://github.com/example/pokebench",
+      base_url: "https://example.github.io/pokebench/",
       data_date: "2026-11-11",
       cheapest_badges: 5,
       human: { name: "Speedy", note: "for reference" },
@@ -83,6 +104,10 @@ export function fixture(): FixtureInputs {
         { id: "run-c001", started: "2026-10-25T10:51:18-04:00", start: "a new game at power-on", result: "5 gym badges; ended on a model error", turns: 2741, preset: "c-probe", code: "ddddddddd", traces: { tag: "evidence-1", files: [{ label: "thinking", name: "c001_thinking.jsonl.gz" }, { label: "Codex transcript", name: "c001_codex-transcript.jsonl.gz" }] } },
       ],
     },
+    posts: [
+      { name: "2026-11-02-hello.md", text: POST_HELLO },
+      { name: "2026-11-11-model-a-clears.md", text: POST_CLEARS },
+    ],
     assets: new Map<string, Uint8Array>([
       ["site.css", bytes(FIXTURE_CSS)],
       ["fonts/press-start-2p.woff2", bytes("font")],

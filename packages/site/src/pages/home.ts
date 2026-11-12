@@ -1,6 +1,10 @@
 import { hms, progress, usd } from "../format.js";
 import { html, type Html } from "../html.js";
+import type { RunInfo } from "../input.js";
+import type { Post } from "../posts.js";
 import type { Entry, Standings } from "../standings.js";
+import { runHref } from "./common.js";
+import { latestCard } from "./updates.js";
 
 // "Model (local, assisted)": local runs ran on our own GPUs; assisted runs had extra help.
 export function displayName(e: Entry): string {
@@ -23,7 +27,19 @@ function hero(best: Entry): Html {
 </section>`;
 }
 
-export function home(st: Standings): Html {
+function homeFoot(latest: Post | undefined, verify: RunInfo | undefined): Html {
+  const card = latest === undefined ? html`` : latestCard(latest);
+  const check = verify === undefined ? html`` : html`<a class="go" href="${runHref("", verify)}">VERIFY A RUN</a>`;
+  return html`<div class="split even home-foot">
+  ${card}
+  <div class="stack">
+    <div class="dialog small"><p>Every released run comes with its full event log, memory snapshots and save states. Bring your own copy of the game and check it yourself.</p></div>
+    <div class="btns"><a class="go" href="results.html">SEE RESULTS</a>${check}</div>
+  </div>
+</div>`;
+}
+
+export function home(st: Standings, latest?: Post, verify?: RunInfo): Html {
   const leader = stat(st.best.assisted ? "BEST WITH HELP" : "BEST RUN", progress(st.best.level), `${displayName(st.best)} · ${hms(st.best.seconds)}`);
   const unhelped = st.bestUnhelped === undefined ? [] : [stat("BEST WITHOUT HELP", progress(st.bestUnhelped.level), `${displayName(st.bestUnhelped)} · ${hms(st.bestUnhelped.seconds)}`)];
   const cheapest = st.cheapest === undefined
@@ -41,5 +57,5 @@ export function home(st: Standings): Html {
   <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges-over-time-dark.png"><img src="img/badges-over-time.png" alt="Badges over time: each model's best run against the human world record" width="2676" height="2214"></picture>
   <figcaption>Every model's best run against the human world record. Dotted lines are heavily assisted runs.</figcaption>
 </figure>
-<div class="btns"><a class="go" href="results.html">SEE EVERY RESULT</a></div>`;
+${homeFoot(latest, verify)}`;
 }

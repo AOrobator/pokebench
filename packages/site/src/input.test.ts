@@ -313,4 +313,30 @@ describe("parseRuns", () => {
     (rec(h.runs.runs, 0).traces as Record<string, unknown>).url = "x";
     expect(() => parseRuns(h.runs)).toThrow(/unknown field "url"/);
   });
+
+  it("rejects an id whose last four characters are not lowercase letters and digits", () => {
+    const f = fixture();
+    rec(f.runs.runs, 0).id = "run-AA-1";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.id/);
+    rec(f.runs.runs, 0).id = "run_a-01";
+    expect(() => parseRuns(f.runs)).toThrow(/runs\[0\]\.id/);
+  });
+});
+
+describe("parseSiteData base_url", () => {
+  it("reads the https base URL the feed links from", () => {
+    expect(parseSiteData(fixture().site).baseUrl).toBe("https://example.github.io/pokebench/");
+  });
+
+  it("rejects a base URL that is not https or does not end in a slash", () => {
+    const f = fixture();
+    f.site.base_url = "http://example.github.io/pokebench/";
+    expect(() => parseSiteData(f.site)).toThrow(/base_url/);
+    f.site.base_url = "https://example.github.io/pokebench";
+    expect(() => parseSiteData(f.site)).toThrow(/base_url/);
+    for (const bad of ["https://?x=/", "https:///pokebench/", "https://example.github.io/pokebench/?q=/", "https://example.github.io/pokebench/#a/", "https://user@example.github.io/", "https://exa mple.io/", "https://example.github.io/pokebench/?", "https://example.github.io/pokebench/#"]) {
+      f.site.base_url = bad;
+      expect(() => parseSiteData(f.site), bad).toThrow(/base_url/);
+    }
+  });
 });

@@ -13,7 +13,10 @@ describe("buildSite", () => {
   it("writes every page plus every asset, unchanged, and a run page only for released runs", () => {
     const f = fixture();
     const out = buildSite(f);
-    const pages = ["index.html", "results.html", "models.html", "models/model-a.html", "models/model-b.html", "models/model-c.html", "runs.html", "runs/ab07.html"];
+    const pages = [
+      "index.html", "results.html", "models.html", "models/model-a.html", "models/model-b.html", "models/model-c.html", "runs.html", "runs/ab07.html",
+      "updates.html", "updates/2026-11-11-model-a-clears.html", "updates/2026-11-02-hello.html", "feed.xml",
+    ];
     expect([...out.keys()].sort()).toEqual([...pages, ...f.assets.keys()].sort());
     expect(out.get("img/badges-over-time.png")).toBe(f.assets.get("img/badges-over-time.png"));
   });
@@ -95,7 +98,8 @@ describe("buildSite", () => {
     expect(home).toContain('<a class="m-results" href="results.html">');
     expect(home).toContain('<a class="m-models" href="models.html">');
     expect(home).toContain('<a class="m-runs" href="runs.html">');
-    expect(home).not.toContain("updates.html");
+    expect(home).toContain('<a class="m-updates" href="updates.html">');
+    expect(home).not.toContain("explainers.html");
     expect(home).toContain('href="https://github.com/example/pokebench"');
   });
 
@@ -357,6 +361,8 @@ describe("a released run that is one of several linked runs", () => {
     delete rec(f.runs.runs, 2).release;
     release.notes = [];
     rec(f.runs.runs, 0).release = release;
+    // The fixture post links run ab07's page, which this release move removes.
+    f.posts = f.posts.filter((p) => !p.text.includes("runs/ab07.html"));
     const out = buildSite(f);
     expect(out.has("runs/ab07.html")).toBe(false);
     const p = text(out, "runs/aa01.html");
@@ -366,5 +372,89 @@ describe("a released run that is one of several linked runs", () => {
     expect(p).not.toContain("HALL OF FAME TEAM");
     expect(p).not.toContain("INDEPENDENT REPLAY");
     expect(text(out, "results.html")).toContain('<a href="runs/aa01.html" class="mono">aa01</a> → <span class="mono">aa02</span>');
+  });
+});
+
+describe("updates", () => {
+  it("lists posts newest first with date, title, first paragraph and a READ link", () => {
+    const u = text(buildSite(fixture()), "updates.html");
+    const a = u.indexOf("Model A clears the game &amp; more");
+    const b = u.indexOf("Hello");
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeGreaterThan(a);
+    expect(u).toContain('<span class="date">2026-11-11</span>');
+    expect(u).toContain('Model A beat the game in <b>one run</b>, see <a href="runs/ab07.html">run ab07</a>');
+    expect(u).not.toContain("What helped");
+    expect(u).toContain('<a class="pbtn" href="updates/2026-11-11-model-a-clears.html">READ</a>');
+    expect(u).toContain('href="feed.xml"');
+    expect(u).toContain('<a class="m-updates" href="updates.html" aria-current="page">');
+  });
+
+  it("renders a post in full with linked model chips, relative links one folder up and escaped text", () => {
+    const p = text(buildSite(fixture()), "updates/2026-11-11-model-a-clears.html");
+    expect(p).toContain("<h1>Model A clears the game &amp; more</h1>");
+    expect(p).toContain('<a class="pbtn chip" href="../models/model-a.html">Model A</a>');
+    expect(p).toContain('<a href="../runs/ab07.html">run ab07</a>');
+    expect(p).toContain('<a href="https://github.com/example/pokebench">code</a>');
+    expect(p).toContain("&lt;b&gt;too&lt;/b&gt;");
+    expect(p).toContain("<h2>What helped</h2>");
+    expect(p).toContain("<ul><li>two hints</li><li>a <b>dash</b> tool</li></ul>");
+    expect(p).toContain('<a class="m-updates" href="../updates.html" aria-current="page">');
+    expect(text(buildSite(fixture()), "updates/2026-11-02-hello.html")).not.toContain("chip");
+  });
+
+  it("links the feed from every page head", () => {
+    const out = buildSite(fixture());
+    expect(text(out, "index.html")).toContain('<link rel="alternate" type="application/rss+xml" title="PokéBench updates" href="feed.xml">');
+    expect(text(out, "runs/ab07.html")).toContain('<link rel="alternate" type="application/rss+xml" title="PokéBench updates" href="../feed.xml">');
+    expect(text(out, "feed.xml")).toContain("<link>https://example.github.io/pokebench/updates/2026-11-11-model-a-clears.html</link>");
+  });
+
+  it("shows the latest update on Home beside the check-it-yourself box and buttons, under the chart", () => {
+    const home = text(buildSite(fixture()), "index.html");
+    const chart = home.indexOf("img/badges-over-time.png");
+    const card = home.indexOf("2026-11-11 · LATEST UPDATE");
+    expect(card).toBeGreaterThan(chart);
+    expect(home).toContain('<a class="pbtn" href="updates/2026-11-11-model-a-clears.html">READ THE UPDATE</a>');
+    expect(home).toContain('<a class="go" href="results.html">SEE RESULTS</a>');
+    expect(home).toContain('<a class="go" href="runs/ab07.html">VERIFY A RUN</a>');
+    expect(home).toContain("check it yourself");
+  });
+
+  it("leaves out the latest-update card and the verify button when there is no post and no released run", () => {
+    const f = fixture();
+    f.posts = [];
+    delete rec(f.runs.runs, 2).release;
+    const out = buildSite(f);
+    const home = text(out, "index.html");
+    expect(home).not.toContain("LATEST UPDATE");
+    expect(home).not.toContain("VERIFY A RUN");
+    expect(home).toContain("SEE RESULTS");
+    expect(text(out, "updates.html")).toContain("No updates yet.");
+    expect(text(out, "feed.xml")).not.toContain("<item>");
+  });
+
+  it("refuses a post that names a model site.json does not have", () => {
+    const f = fixture();
+    f.posts = [{ name: "2026-11-11-x.md", text: "---\ndate: 2026-11-11\ntitle: T\nmodels: [model-q]\n---\n\nBody." }];
+    expect(() => buildSite(f)).toThrow(/model-q/);
+  });
+
+  it("refuses a post whose relative link names a page the site does not build", () => {
+    const f = fixture();
+    f.posts = [{ name: "2026-11-11-x.md", text: "---\ndate: 2026-11-11\ntitle: T\n---\n\nSee [m](method.html)." }];
+    expect(() => buildSite(f)).toThrow(/method\.html/);
+  });
+});
+
+describe("run page cost", () => {
+  it("says estimate when the run's cost is estimated", () => {
+    const f = fixture();
+    const release = rec(f.runs.runs, 2).release;
+    delete rec(f.runs.runs, 2).release;
+    rec(f.runs.runs, 3).release = release;
+    f.posts = f.posts.filter((p) => !p.text.includes("runs/ab07.html"));
+    const p = text(buildSite(f), "runs/b001.html");
+    expect(p).toContain("ABOUT $2.50 AT API PRICES (ESTIMATE)");
   });
 });

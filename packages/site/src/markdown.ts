@@ -27,29 +27,73 @@ export function parseMarkdown(text: string, what: string): Block[] {
   return blocks;
 }
 
-const INLINE = /`([^`]+)`|\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)\s]+)\)/g;
+const INLINE = new RegExp(
+  [
+    "`(?<code>[^`]+)`",
+    "\\\\(?<esc>[\\\\`*_{}\\[\\]()#+\\-.!|<>~])",
+    "(?<br><br\\s*/?>)",
+    '<a id="(?<anchor>[a-z0-9_-]+)"></a>',
+    "&(?<ent>gt|lt|amp|quot|#39);",
+    "!\\[(?<alt>[^\\]]*)\\]\\((?<src>[^)\\s]+)\\)",
+    "\\[(?<label>(?:[^\\[\\]\\\\]|\\\\.)+)\\]\\((?<url>[^)\\s]+)\\)",
+    "\\*(?![\\s*])(?<em>(?:[^*]|\\*\\*[^*]+\\*\\*)+?)(?<!\\s)\\*(?!\\*)",
+    "\\*(?=\\*\\*)(?<em2>(?:[^*]|\\*\\*[^*]+\\*\\*)+?)(?<!\\s)\\*(?!\\*)",
+    "\\*\\*(?<bold>.+?)\\*\\*",
+    "(?<tag></?[a-zA-Z][^>]*>)",
+  ].join("|"),
+  "g",
+);
+const ENTITIES: Readonly<Record<string, string>> = { gt: ">", lt: "<", amp: "&", quot: '"', "#39": "'" };
 const HTTPS = /^https:\/\/[^\s"'<>]+$/;
 const RELATIVE = /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)*(?:#[a-z0-9_-]+)?$/i;
 
-function href(url: string, root: string, what: string): string {
-  if (HTTPS.test(url)) return url;
-  if (RELATIVE.test(url)) return root + url;
-  throw new InputError(`${what}: link "${url}" must be https or a relative path inside the site`);
+export interface InlineOptions {
+  // Names the source in errors.
+  readonly what: string;
+  // Explainer mode: <br>, <a id> anchors and the five entities are read, and any other raw HTML fails.
+  // Post mode (false): all of them stay text.
+  readonly html: boolean;
+  // Maps a link's URL to the href to write; throws InputError to refuse it.
+  readonly link: (url: string) => string;
+  // Maps an image's path to the src to write; without it, images are refused.
+  readonly image?: (src: string) => string;
 }
 
-export function renderInline(text: string, root: string, what: string): Html {
+export function inlineHtml(text: string, o: InlineOptions): Html {
   const parts: Html[] = [];
   let at = 0;
   for (const m of text.matchAll(INLINE)) {
     parts.push(html`${text.slice(at, m.index)}`);
-    const [, code, bold, label, url] = m;
-    if (code !== undefined) parts.push(html`<code>${code}</code>`);
-    else if (bold !== undefined) parts.push(html`<b>${renderInline(bold, root, what)}</b>`);
-    else parts.push(html`<a href="${href(String(url), root, what)}">${renderInline(String(label), root, what)}</a>`);
     at = m.index + m[0].length;
+    const g = m.groups ?? {};
+    if (g.code !== undefined) parts.push(html`<code>${g.code}</code>`);
+    else if (g.esc !== undefined) parts.push(html`${g.esc}`);
+    else if (g.label !== undefined) parts.push(html`<a href="${o.link(String(g.url))}">${inlineHtml(g.label, o)}</a>`);
+    else if (g.em !== undefined || g.em2 !== undefined) parts.push(html`<em>${inlineHtml(String(g.em ?? g.em2), o)}</em>`);
+    else if (g.bold !== undefined) parts.push(html`<b>${inlineHtml(g.bold, o)}</b>`);
+    else if (g.alt !== undefined) {
+      if (o.image === undefined) throw new InputError(`${o.what}: an image is not allowed here ("${m[0]}")`);
+      parts.push(html`<img src="${o.image(String(g.src))}" alt="${g.alt}" loading="lazy">`);
+    } else if (!o.html) parts.push(html`${m[0]}`);
+    else if (g.br !== undefined) parts.push(html`<br>`);
+    else if (g.anchor !== undefined) parts.push(html`<span id="${g.anchor}"></span>`);
+    else if (g.ent !== undefined) parts.push(html`${String(ENTITIES[g.ent])}`);
+    else throw new InputError(`${o.what}: raw HTML "${m[0]}" is not supported`);
   }
   parts.push(html`${text.slice(at)}`);
   return join(parts, "");
+}
+
+function postLink(root: string, what: string): (url: string) => string {
+  return (url) => {
+    if (HTTPS.test(url)) return url;
+    if (RELATIVE.test(url)) return root + url;
+    throw new InputError(`${what}: link "${url}" must be https or a relative path inside the site`);
+  };
+}
+
+export function renderInline(text: string, root: string, what: string): Html {
+  return inlineHtml(text, { what, html: false, link: postLink(root, what) });
 }
 
 export function renderBlocks(blocks: readonly Block[], root: string, what: string): Html {
@@ -62,5 +106,10 @@ export function renderBlocks(blocks: readonly Block[], root: string, what: strin
 
 // The words without the markup, for the feed's plain-text descriptions.
 export function plainText(text: string): string {
-  return text.replace(INLINE, (_all, code: string | undefined, bold: string | undefined, label: string | undefined) => code ?? plainText(bold ?? String(label)));
+  return text.replace(INLINE, (all: string, ...args: unknown[]) => {
+    const g = args.at(-1) as Readonly<Record<string, string | undefined>>;
+    const inner = g.bold ?? g.em ?? g.em2 ?? g.label;
+    if (inner !== undefined) return plainText(inner);
+    return g.code ?? g.esc ?? g.alt ?? all;
+  });
 }

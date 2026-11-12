@@ -444,8 +444,8 @@ describe("updates", () => {
 
   it("refuses a post whose relative link names a page the site does not build", () => {
     const f = fixture();
-    f.posts = [{ name: "2026-11-11-x.md", text: "---\ndate: 2026-11-11\ntitle: T\n---\n\nSee [m](method.html)." }];
-    expect(() => buildSite(f)).toThrow(/method\.html/);
+    f.posts = [{ name: "2026-11-11-x.md", text: "---\ndate: 2026-11-11\ntitle: T\n---\n\nSee [m](nowhere.html)." }];
+    expect(() => buildSite(f)).toThrow(/nowhere\.html/);
   });
 });
 
@@ -537,5 +537,25 @@ describe("method and credits", () => {
     const out = buildSite(fixture());
     expect(text(out, "index.html")).toContain('<a href="credits.html">Credits</a>');
     expect(text(out, "explainers/alpha-v1.html")).toContain('<a href="../credits.html">Credits</a>');
+  });
+
+  it("refuses a fonts notice without a table, or with a link that is not https", () => {
+    const f = fixture();
+    f.credits = { ...f.credits, fontsNotice: "# Fonts\n\nNo table." };
+    expect(() => buildSite(f)).toThrow(/expected a table/);
+    const g = fixture();
+    g.credits = { ...g.credits, fontsNotice: "| A |\n|---|\n| [x](http://a.example) |" };
+    expect(() => buildSite(g)).toThrow(/must be https/);
+    const h = fixture();
+    h.credits = { ...h.credits, fontsNotice: "| A |\n|---|\n| [OFL](https://openfontlicense.org) |" };
+    expect(text(buildSite(h), "credits.html")).toContain('<a href="https://openfontlicense.org">OFL</a>');
+  });
+
+  it("points links in index summaries at the explainer pages", () => {
+    const f = fixture();
+    f.explainers.readme = f.explainers.readme.replace("Says hello.", "Says hello, see [alpha](alpha-v1.md) and [x](https://example.com).");
+    const x = text(buildSite(f), "explainers.html");
+    expect(x).toContain('<a href="explainers/alpha-v1.html">alpha</a>');
+    expect(x).toContain('<a href="https://example.com">x</a>');
   });
 });

@@ -7,7 +7,11 @@ import { groupModels, type SiteView } from "./pages/common.js";
 import { home } from "./pages/home.js";
 import { modelPage, modelsIndex } from "./pages/models.js";
 import { results } from "./pages/results.js";
+import { joinExplainers, parseExplainer, parseExplainerIndex, type ExplainerFile } from "./explainers.js";
 import { feed, postPath } from "./feed.js";
+import { credits } from "./pages/credits.js";
+import { explainerPage, explainersIndex } from "./pages/explainers.js";
+import { method } from "./pages/method.js";
 import { plainText } from "./markdown.js";
 import { listRuns, runPage, runsIndex } from "./pages/runs.js";
 import { postPage, updatesIndex } from "./pages/updates.js";
@@ -23,6 +27,11 @@ export interface SiteInputs {
   readonly runs: unknown;
   // Update posts: each file's name and Markdown text.
   readonly posts: readonly PostFile[];
+  // docs/explainers: the README index and each md/<slug>.md. Figures arrive as assets under explainers/<slug>/.
+  readonly explainers: { readonly readme: string; readonly files: readonly ExplainerFile[] };
+  readonly credits: { readonly iconsLicence: string; readonly fontsNotice: string };
+  // Whether the repository has a CONTRIBUTING.md to link.
+  readonly contributing: boolean;
   // Files copied into the site unchanged, keyed by their path in the built site.
   readonly assets: ReadonlyMap<string, Uint8Array>;
 }
@@ -37,10 +46,10 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
   const posts = parsePosts(inputs.posts, new Set(site.models.map((m) => m.slug)));
   const view: SiteView = { st, cat, groups: groupModels(site.models, [...cat.bySeries.values()]), githubUrl: site.githubUrl };
   const shell: Shell = {
-    sections: ["home", "results", "models", "runs", "updates"],
+    sections: ["home", "results", "models", "runs", "updates", "explainers", "method"],
     githubUrl: site.githubUrl,
-    footer: html`<p class="foot">DATA FROM THE RESULTS, ${site.dataDate} · PRICES AS OF ${points.pricesAsOf}</p>
-<p class="credits">Icons: <a href="https://github.com/halfmage/pixelarticons">pixelarticons</a> © 2019 Gerrit Halfmann, MIT licence. Fonts: Press Start 2P, Inter and JetBrains Mono, SIL Open Font License 1.1.</p>`,
+    footer: (root) => html`<p class="foot">DATA FROM THE RESULTS, ${site.dataDate} · PRICES AS OF ${points.pricesAsOf}</p>
+<p class="credits">Icons: <a href="https://github.com/halfmage/pixelarticons">pixelarticons</a> © 2019 Gerrit Halfmann, MIT licence. Fonts: Press Start 2P, Inter and JetBrains Mono, SIL Open Font License 1.1. <a href="${root}credits.html">Credits</a></p>`,
   };
   const out = new Map<string, Output>();
   for (const [path, body] of inputs.assets) {
@@ -110,6 +119,43 @@ export function buildSite(inputs: SiteInputs): Map<string, Output> {
     }));
   }
   out.set("feed.xml", feed(site.baseUrl, posts));
+  const explainers = joinExplainers(parseExplainerIndex(inputs.explainers.readme), inputs.explainers.files.map(parseExplainer));
+  out.set("explainers.html", page(shell, {
+    title: "Explainers · PokéBench",
+    description: "Every switch in the PokéBench harness, explained: what changes for the model, why, and what is still unproven.",
+    section: "explainers",
+    crumbs: ["EXPLAINERS"],
+    depth: 0,
+    body: explainersIndex(site.githubUrl, explainers),
+  }));
+  for (const g of explainers) {
+    for (const { explainer } of g.items) {
+      out.set(`explainers/${explainer.slug}.html`, page(shell, {
+        title: `${plainText(explainer.title)} · PokéBench`,
+        description: `PokéBench explainer: ${plainText(explainer.title)}.`,
+        section: "explainers",
+        crumbs: ["EXPLAINERS", plainText(explainer.title)],
+        depth: 1,
+        body: explainerPage(site.githubUrl, explainer),
+      }));
+    }
+  }
+  out.set("method.html", page(shell, {
+    title: "Method · PokéBench",
+    description: "How PokéBench runs a model through Pokémon Emerald, one turn at a time, and what counts as help.",
+    section: "method",
+    crumbs: ["METHOD"],
+    depth: 0,
+    body: method(explainers.reduce((n, g) => n + g.items.length, 0), inputs.contributing ? `${site.githubUrl}/blob/main/CONTRIBUTING.md` : undefined),
+  }));
+  out.set("credits.html", page(shell, {
+    title: "Credits · PokéBench",
+    description: "The icons, fonts and licences PokéBench uses, and its game-art policy.",
+    section: "credits",
+    crumbs: ["CREDITS"],
+    depth: 0,
+    body: credits(inputs.credits.iconsLicence, inputs.credits.fontsNotice),
+  }));
   for (const g of view.groups) {
     for (const s of g.series) {
       for (const run of s.all) {

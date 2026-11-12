@@ -227,6 +227,41 @@ ol.steps { margin: 0; padding-left: 22px; } ol.steps li { margin-bottom: 8px; }
   table.tight td.num { white-space: normal; }
 }
 
+/* explainers: index and pages */
+.search { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.search[hidden] { display: none; }
+.search span { font: 8px 'Press Start 2P', monospace; color: var(--tx); }
+.search input { flex: 1; min-width: 0; font: 15px Inter, system-ui, sans-serif; padding: 9px 12px; border: 3px solid var(--msg-line); border-radius: 8px; background: var(--win-bg); color: var(--ink); }
+details.cat { margin-bottom: 12px; }
+details.cat summary { cursor: pointer; list-style: none; }
+details.cat summary::-webkit-details-marker { display: none; }
+details.cat summary h2 { display: inline; }
+details.cat summary h2::before { content: '▶ '; color: var(--post-date); }
+details.cat[open] summary h2::before { content: '▼ '; }
+.xlist { list-style: none; margin: 8px 0 0; padding: 0; columns: 2 320px; column-gap: 24px; }
+.xlist li { break-inside: avoid; padding: 6px 0; border-bottom: 2px dotted var(--rule); }
+.xlist li[hidden] { display: none; }
+.xlist .sub { display: block; font-size: 12.5px; color: var(--sub-2); }
+.doc { overflow-wrap: break-word; }
+.doc td code { overflow-wrap: anywhere; }
+.doc .kicker { font: 7px/1.9 'Press Start 2P', monospace; color: var(--post-date); }
+.doc .kicker code { font-size: 1.1em; }
+.doc h1 { font-size: 14px; line-height: 1.7; color: var(--card-head); margin: 4px 0 14px; }
+.doc h2 { font-size: 10px; margin: 22px 0 10px; }
+.doc h3 { font-size: 8px; margin: 18px 0 8px; }
+.doc pre { margin: 0 0 10px; padding: 10px 12px; background: var(--code-bg); border-radius: 4px; overflow-x: auto; font: 12px/1.45 'JetBrains Mono', ui-monospace, monospace; overflow-wrap: normal; }
+.doc pre code { background: none; padding: 0; font-size: 1em; overflow-wrap: normal; }
+.doc blockquote { margin: 0 0 10px; padding: 4px 0 4px 14px; border-left: 3px solid var(--rule); color: var(--sub-2); }
+.doc figure.fig { margin: 8px 0 10px; }
+.doc img { max-width: 100%; height: auto; background: #fff; border-radius: 4px; }
+.doc figure.fig img { display: block; }
+.doc ul, .doc ol { margin: 0 0 10px; padding-left: 22px; }
+.doc table { margin-bottom: 10px; }
+.doc details { margin: 10px 0; }
+.doc details summary { cursor: pointer; font-weight: 600; }
+.card.spaced { margin-top: 12px; }
+pre.licence { white-space: pre-wrap; font: 12.5px/1.6 'JetBrains Mono', ui-monospace, monospace; margin: 0; }
+
 /* phones, tablets in portrait and unfolded foldables (<= 1000 CSS px): the narrow icon column */
 @media (max-width: 1000px) {
   .navhead { padding: 8px 10px 20px; gap: 8px; }

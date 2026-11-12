@@ -1,6 +1,6 @@
 import { html, type Html } from "./html.js";
 
-export type Section = "home" | "results" | "models" | "runs" | "updates" | "explainers" | "method";
+export type Section = "home" | "results" | "models" | "runs" | "updates" | "explainers" | "method" | "credits";
 
 interface SectionInfo {
   readonly label: string;
@@ -16,6 +16,8 @@ export const SECTIONS: Readonly<Record<Section, SectionInfo>> = {
   updates: { label: "UPDATES", href: "updates.html", icon: "mail" },
   explainers: { label: "EXPLAINERS", href: "explainers.html", icon: "book-open" },
   method: { label: "METHOD", href: "method.html", icon: "search" },
+  // Linked from the footer, not the menu.
+  credits: { label: "CREDITS", href: "credits.html", icon: "book-open" },
 };
 
 export interface PageSpec {
@@ -32,7 +34,8 @@ export interface PageSpec {
 export interface Shell {
   readonly sections: readonly Section[];
   readonly githubUrl: string;
-  readonly footer: Html;
+  // Given the page's path back to the site root.
+  readonly footer: (root: string) => Html;
 }
 
 function menu(shell: Shell, current: Section, root: string): Html {
@@ -70,7 +73,7 @@ ${menu(shell, spec.section, root)}
 ${spec.body}
 </main>
 </div>
-<footer>${shell.footer}</footer>
+<footer>${shell.footer(root)}</footer>
 </body>
 </html>
 `.value;

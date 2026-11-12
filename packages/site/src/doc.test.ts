@@ -88,6 +88,6 @@ describe("parseDoc and renderDoc", () => {
 
   it("parses every construct the fixture explainer uses", () => {
     const kinds = parseDoc(EXPLAINER_ALPHA, "alpha-v1.md").map((b) => b.kind);
-    expect(kinds).toEqual(["p", "h", "quote", "p", "p", "h", "fig", "p", "h", "table", "pre", "quote", "ul", "ol", "details"]);
+    expect(kinds).toEqual(["p", "h", "quote", "p", "h", "fig", "p", "h", "table", "pre", "quote", "ul", "ol", "details"]);
   });
 });

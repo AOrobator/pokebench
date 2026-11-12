@@ -34,8 +34,8 @@ describe("explainerLink", () => {
   });
 
   it("sends repository paths to GitHub and refuses anything that leaves the repository or is not https", () => {
-    expect(link("../../packages/agent/src/features.ts")).toBe("https://github.com/example/pokebench/blob/main/packages/agent/src/features.ts");
-    expect(link("../features.md#list")).toBe("https://github.com/example/pokebench/blob/main/docs/features.md#list");
+    expect(link("../../../packages/agent/src/features.ts")).toBe("https://github.com/example/pokebench/blob/main/packages/agent/src/features.ts");
+    expect(link("../features.md#list")).toBe("https://github.com/example/pokebench/blob/main/docs/explainers/features.md#list");
     expect(() => link("../../../../etc/passwd")).toThrow(/x\.md/);
     expect(() => link("http://example.com")).toThrow(InputError);
     expect(() => link("javascript:alert(1)")).toThrow(InputError);
@@ -65,5 +65,13 @@ describe("joinExplainers", () => {
     expect(() => joinExplainers(parseExplainerIndex(EXPLAINER_README), [...files, parseExplainer({ name: "gamma-v1.md", text: "# G\n\nx" })])).toThrow(/gamma-v1/);
     expect(() => joinExplainers(parseExplainerIndex(EXPLAINER_README), files.slice(0, 1))).toThrow(/beta-v1/);
     expect(() => joinExplainers(parseExplainerIndex(`${EXPLAINER_README}\n## Again\n\nA.\n\n- [Beta](md/beta-v1.md) · [HTML](beta-v1.html) — Again.\n`), files)).toThrow(/beta-v1/);
+  });
+});
+
+describe("explainerLink edge cases", () => {
+  const link = explainerLink("https://github.com/example/pokebench", "x.md");
+  it("skips . segments and refuses odd fragments", () => {
+    expect(link("./alpha-v1/data.json")).toBe("https://github.com/example/pokebench/blob/main/docs/explainers/md/alpha-v1/data.json");
+    expect(() => link("../x.md#a b")).toThrow(InputError);
   });
 });

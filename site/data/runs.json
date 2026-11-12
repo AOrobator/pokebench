@@ -1,0 +1,467 @@
+{
+  "runs": [
+    {
+      "id": "2026-11-07T02-24-52_claude-opus-5-5_6302",
+      "started": "2026-11-07T02:25:38.854-05:00",
+      "start": "a new game at power-on",
+      "result": "Dynamo Badge at turn 675; stopped at its 4-hour limit",
+      "turns": 848,
+      "preset": "opus55-control-4h",
+      "code": "ee04b0c58",
+      "linked": "1 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg1_harness-ee04b0c_6302_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg1_harness-ee04b0c_6302_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-07T10-06-29_claude-opus-5-5_1121",
+      "started": "2026-11-07T10:06:55.873-05:00",
+      "start": "run 6302's save at Meteor Falls",
+      "result": "Heat, Balance and Feather Badges; stopped at its 5-hour limit",
+      "turns": 1133,
+      "preset": "opus55-6302-continuation",
+      "code": "ee04b0c58",
+      "linked": "2 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg2_harness-ee04b0c_1121_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg2_harness-ee04b0c_1121_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-07T16-42-59_claude-opus-5-5_69d8",
+      "started": "2026-11-07T16:43:22.879-05:00",
+      "start": "run 1121's save at the Magma Hideout",
+      "result": "Mind Badge at turn 503; stopped at its 4-hour limit",
+      "turns": 1038,
+      "preset": "opus55-1121-continuation",
+      "code": "ee04b0c58",
+      "linked": "3 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg3_harness-ee04b0c_69d8_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg3_harness-ee04b0c_69d8_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-07T21-23-08_claude-opus-5-5_d718",
+      "started": "2026-11-07T21:23:35.478-05:00",
+      "start": "run 69d8's save in the Cave of Origin",
+      "result": "Rain Badge at turn 283, then Sidney, Phoebe and Glacia; stopped at its 4 h 30 min limit",
+      "turns": 1214,
+      "preset": "opus55-69d8-continuation",
+      "code": "ee04b0c58",
+      "linked": "4 of 4",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg4_harness-ee04b0c_d718_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_claude-opus-5.5_attempt-b-leg4_harness-ee04b0c_d718_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-10T15-37-43_opus-rayquaza-boot_67d7",
+      "started": "2026-11-10T15:38:09.109-05:00",
+      "start": "a new game at power-on",
+      "result": "Hall of Fame at turn 4,119; the run ended on its own when the game was beaten",
+      "turns": 4124,
+      "preset": "opus-rayquaza-lane",
+      "code": "fac85e7be",
+      "traces": {
+        "tag": "opus-5.5-rayquaza-lane-67d7-2026-11-11",
+        "files": [
+          {
+            "label": "trace",
+            "name": "agent-trace-67d7.tar.xz"
+          }
+        ]
+      },
+      "release": {
+        "tag": "opus-5.5-rayquaza-lane-67d7-2026-11-11",
+        "kicker": "HEAVILY ASSISTED · RAYQUAZA LANE · RELEASED FOR CHECKING",
+        "title": "Claude Opus 5.5, from power-on to the Hall of Fame",
+        "started_text": "Started 2026-11-10 at 15:38 Eastern Time from a new game, with no save state.",
+        "ended_text": "Ended 2026-11-11 at 08:54, when the game confirmed it had been beaten. No reloads and no operator input during the run.",
+        "facts": [
+          {
+            "label": "HELP",
+            "text": "Rayquaza lane. No step-by-step guide; four one-time hints (get the Mach Bike, the route to the Master Ball, the Sky Pillar climb and catching Rayquaza, Rayquaza's moves for the League), a Mach Bike dash tool and automatic biking. Each hint is logged; there are 17 hint events."
+          },
+          {
+            "label": "CODE VERSION",
+            "text": "commit `fac85e7be` in the public repository, with no local changes (`aaecbda17` in the run's own records, the same code)"
+          },
+          {
+            "label": "GAME FILE",
+            "text": "Pokémon Emerald (US), SHA-1 checksum `f3ae0881…6f4f1d07b7`. Not included; bring your own."
+          }
+        ],
+        "verify": "just verify-release <folder>",
+        "team": [
+          {
+            "species": "RAYQUAZA",
+            "level": 74,
+            "hp": "251/251",
+            "moves": "Fly, Waterfall, Aerial Ace, Outrage",
+            "item": "none",
+            "caught": "Sky Pillar, level 70, Master Ball"
+          },
+          {
+            "species": "ELECTRIKE",
+            "level": 25,
+            "hp": "63/63",
+            "moves": "Spark, Thunder Wave, Quick Attack, Howl",
+            "item": "none",
+            "caught": "Route 110, level 12, Great Ball"
+          },
+          {
+            "species": "WINGULL",
+            "level": 15,
+            "hp": "38/38",
+            "moves": "Wing Attack, Water Gun, Supersonic, Fly",
+            "item": "none",
+            "caught": "Route 110, level 12, Poké Ball"
+          },
+          {
+            "species": "ABRA",
+            "level": 11,
+            "hp": "29/29",
+            "moves": "Teleport",
+            "item": "none",
+            "caught": "Route 116, level 7, Poké Ball"
+          },
+          {
+            "species": "CASTFORM",
+            "level": 26,
+            "hp": "76/76",
+            "moves": "Powder Snow, Rain Dance, Sunny Day, Hail",
+            "item": "Mystic Water",
+            "caught": "Route 119, level 25, Poké Ball"
+          },
+          {
+            "species": "SWAMPERT",
+            "level": 55,
+            "hp": "202/202",
+            "moves": "Rock Smash, Dive, Strength, Surf",
+            "item": "none",
+            "caught": "Route 101, level 5 (starter), Poké Ball"
+          }
+        ],
+        "team_note": "Read from the run's final game state (turn 4,124), in team order.",
+        "check": [
+          {
+            "title": "WITH THE REPOSITORY",
+            "steps": [
+              "Clone the repository and run `just setup`.",
+              "Set `POKEBENCH_ROM` to your copy of the game.",
+              "Run `just verify-release <this folder>`. All PASS means the checksums and the game file match, the log starts from power-on with no operator input and ends with the game beaten, and the final memory shows the game-clear flag, eight badges and Rayquaza.",
+              "Optional: `just replay-verify <this folder>` replays the game from power-on."
+            ]
+          },
+          {
+            "title": "BY HAND",
+            "steps": [
+              "`shasum -a 256 -c SHA256SUMS`",
+              "Your game file's SHA-1 should be `f3ae0881…6f4f1d07b7`.",
+              "Load `HALL_OF_FAME_ENTERED.state` in the mGBA emulator.",
+              "The log's first line is `run_start`; the last is `run_end` with `reason: completed`.",
+              "Every input sent to the emulator is logged with its frame number (88,567 inputs)."
+            ]
+          }
+        ],
+        "notes": [
+          {
+            "title": "INDEPENDENT REPLAY, 2026-11-11",
+            "text": "The run was replayed from power-on in mGBA using only the logged inputs. Over the first 150,000 game frames, all 4,777 memory snapshots matched byte for byte and every turn's screenshot matched pixel for pixel."
+          }
+        ],
+        "assets": [
+          {
+            "name": "events-67d7.tar.xz",
+            "bytes": 11811008,
+            "about": "The harness event log: the model's note each turn, its tool calls, button presses, game readouts and milestones",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "agent-trace-67d7.tar.xz",
+            "bytes": 107997516,
+            "about": "All 4,132 model calls with the model's reasoning, and the exact request sent each turn",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "raw-ram-67d7.jsonl.xz",
+            "bytes": 443680268,
+            "about": "109,028 snapshots of the game's memory, each part with its checksum",
+            "open_with": "unpack_raw_ram.py"
+          },
+          {
+            "name": "raw-ram-final.json.gz",
+            "bytes": 64954,
+            "about": "The last memory snapshot, for a quick check of the final state",
+            "open_with": "gunzip -k"
+          },
+          {
+            "name": "unpack_raw_ram.py",
+            "bytes": 2165,
+            "about": "Script that rebuilds the snapshot folder (Python standard library only)",
+            "open_with": "python3"
+          },
+          {
+            "name": "checkpoints-67d7.tar.xz",
+            "bytes": 1052216,
+            "about": "202 emulator save states, one per milestone, from power-on to the Hall of Fame",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "screenshots-67d7.tar.xz",
+            "bytes": 21927328,
+            "about": "4,153 screenshots, one per turn",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "logs-67d7.tar.xz",
+            "bytes": 935448,
+            "about": "Game server logs and the recorder's journal",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "replay-67d7.tar.xz",
+            "bytes": 6256,
+            "about": "The replay script and its verification results",
+            "open_with": "tar -xf"
+          },
+          {
+            "name": "SHA256SUMS",
+            "bytes": 783,
+            "about": "Checksums of every file above",
+            "open_with": "shasum -a 256 -c"
+          },
+          {
+            "name": "VERIFY.md",
+            "bytes": 9007,
+            "about": "How to check the release, step by step",
+            "open_with": "less"
+          }
+        ],
+        "assets_note": "Edited for publication: local folder paths shortened; the gateway's provider name, session ids and request ids replaced with placeholders; one network address replaced with a documentation address; archive owners reset. Nothing else changed."
+      }
+    },
+    {
+      "id": "2026-11-04T16-25-02_deepseek-deepseek-v4.1-flash_5f0f",
+      "started": "2026-11-04T16:25:40.367-05:00",
+      "start": "a new game at power-on",
+      "result": "Balance Badge, then reached the Fortree Gym; stopped by the operator after 10 hours",
+      "turns": 2181,
+      "preset": "current-control-24h-8k",
+      "code": "6b616fab3",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-04_deepseek-v4.1-flash_standard_harness-6b616fa_5f0f_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-04_deepseek-v4.1-flash_standard_harness-6b616fa_5f0f_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-25T10-50-57_gpt-6-astra_429f",
+      "started": "2026-10-25T10:51:18.728-04:00",
+      "start": "a new game at power-on",
+      "result": "Heat Badge, then reached the Petalburg Gym; stopped by the operator after 12 h 32 min",
+      "turns": 2741,
+      "preset": "gpt-6-astra-30m-diagnostic-probe",
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_thinking.jsonl.gz"
+          },
+          {
+            "label": "Codex transcript",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_codex-transcript.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-25_gpt-6-astra_standard_harness-817e1ee_429f_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-07T01-55-08_gpt-6.1-sol_3300",
+      "started": "2026-11-07T01:55:59.776-05:00",
+      "start": "a new game at power-on",
+      "result": "Dynamo Badge and Wattson's Shock Wave; stopped at its 12-hour limit",
+      "turns": 862,
+      "preset": "sol61-control-12h",
+      "code": "db9a2d01c",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_thinking.jsonl.gz"
+          },
+          {
+            "label": "Codex transcript",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_codex-transcript.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_gpt-6.1-sol_standard_harness-db9a2d0_3300_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-24T19-31-52_qwen36-gpu1_d41e",
+      "started": "2026-10-24T19:32:42.790-04:00",
+      "start": "the title-screen save",
+      "result": "Stone, Knuckle and Dynamo Badges, the last with Wattson's Shock Wave; stopped by the operator after 27 h 25 min",
+      "turns": 7248,
+      "preset": "bundle-v-control-2h-dryrun-cook-dry-run-control",
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-24_qwen3.6-35b-a3b_standard_harness-817e1ee_d41e_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-24_qwen3.6-35b-a3b_standard_harness-817e1ee_d41e_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-08T18-33-33_rayquaza-lane-qwen36_3bb0",
+      "started": "2026-11-08T18:34:34.502-05:00",
+      "start": "a new game at power-on",
+      "result": "Balance Badge, then received HM Surf; stopped at its 24-hour limit",
+      "turns": 7015,
+      "preset": "rayquaza-lane-24h-v3-cook-bundle",
+      "code": "6faea475f",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-08_qwen3.6-35b-a3b_rayquaza-lane_harness-6faea47_3bb0_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-08_qwen3.6-35b-a3b_rayquaza-lane_harness-6faea47_3bb0_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-24T19-37-24_glm53-mac_6bbd",
+      "started": "2026-10-24T19:37:43.257-04:00",
+      "start": "the title-screen save",
+      "result": "Stone and Dynamo Badges (it skipped Knuckle), then got the Bicycle; ended on a model error after 28 h 6 min",
+      "turns": 1041,
+      "preset": "glm53-flash-4h-dryrun-cook-solo-bundle-a-1-dry-run-bundle",
+      "code": "817e1eed5",
+      "traces": {
+        "tag": "run-traces-2026-11-12",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-10-24_glm-5.3-flash_standard_harness-817e1ee_6bbd_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-10-24_glm-5.3-flash_standard_harness-817e1ee_6bbd_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-01T01-37-02_hyperqwen-gpu0_7da5",
+      "started": "2026-11-01T01:38:04.135-05:00",
+      "start": "the title-screen save",
+      "result": "Stone Badge, then the Match Call tutorial; stopped at its 24-hour limit",
+      "turns": 1330,
+      "preset": "hyperqwen-bundle-24h-cook-bundle",
+      "code": "25af31b00",
+      "traces": {
+        "tag": "run-traces-2026-11-12",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-01_qwen3.8-27b_standard_harness-25af31b_7da5_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-01_qwen3.8-27b_standard_harness-25af31b_7da5_trace.tar.xz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-11-07T00-28-59_rayquaza-lane-qwen_6056",
+      "started": "2026-11-07T00:29:45.009-05:00",
+      "start": "a new game at power-on",
+      "result": "Stone, Dynamo and Heat Badges, then the Knuckle Badge fourth, out of the usual order; then reached the Petalburg Gym; stopped at its 24-hour limit",
+      "turns": 2378,
+      "preset": "rayquaza-lane-24h-v2-cook-bundle",
+      "code": "b3b467dcf",
+      "traces": {
+        "tag": "article-1-evidence",
+        "files": [
+          {
+            "label": "thinking",
+            "name": "2026-11-07_qwen3.8-27b_rayquaza-lane_harness-b3b467d_6056_thinking.jsonl.gz"
+          },
+          {
+            "label": "trace",
+            "name": "2026-11-07_qwen3.8-27b_rayquaza-lane_harness-b3b467d_6056_trace.tar.xz"
+          }
+        ]
+      }
+    }
+  ]
+}

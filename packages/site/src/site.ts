@@ -1,0 +1,178 @@
+import { catalog } from "./catalog.js";
+import { problems, type Output } from "./check.js";
+import { html } from "./html.js";
+import { parseChartData, parsePoints, parseRuns, parseSiteData } from "./input.js";
+import { page, type Shell } from "./layout.js";
+import { groupModels, type SiteView } from "./pages/common.js";
+import { home } from "./pages/home.js";
+import { modelPage, modelsIndex } from "./pages/models.js";
+import { results } from "./pages/results.js";
+import { joinExplainers, parseExplainer, parseExplainerIndex, type ExplainerFile } from "./explainers.js";
+import { feed, postPath } from "./feed.js";
+import { credits } from "./pages/credits.js";
+import { explainerPage, explainersIndex } from "./pages/explainers.js";
+import { method } from "./pages/method.js";
+import { plainText } from "./markdown.js";
+import { listRuns, runPage, runsIndex } from "./pages/runs.js";
+import { postPage, updatesIndex } from "./pages/updates.js";
+import { parsePosts, type PostFile } from "./posts.js";
+import { standings } from "./standings.js";
+
+export class SiteError extends Error {}
+
+export interface SiteInputs {
+  readonly chartData: unknown;
+  readonly points: unknown;
+  readonly site: unknown;
+  readonly runs: unknown;
+  // Update posts: each file's name and Markdown text.
+  readonly posts: readonly PostFile[];
+  // docs/explainers: the README index and each md/<slug>.md. Figures arrive as assets under explainers/<slug>/.
+  readonly explainers: { readonly readme: string; readonly files: readonly ExplainerFile[] };
+  readonly credits: { readonly iconsLicence: string; readonly fontsNotice: string };
+  // Whether the repository has a CONTRIBUTING.md to link.
+  readonly contributing: boolean;
+  // Files copied into the site unchanged, keyed by their path in the built site.
+  readonly assets: ReadonlyMap<string, Uint8Array>;
+}
+
+const PLAIN_PATH = /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)*$/i;
+
+export function buildSite(inputs: SiteInputs): Map<string, Output> {
+  const site = parseSiteData(inputs.site);
+  const points = parsePoints(inputs.points);
+  const st = standings(parseChartData(inputs.chartData), points, site);
+  const cat = catalog(st.entries, parseRuns(inputs.runs));
+  const posts = parsePosts(inputs.posts, new Set(site.models.map((m) => m.slug)));
+  const view: SiteView = { st, cat, groups: groupModels(site.models, [...cat.bySeries.values()]), githubUrl: site.githubUrl };
+  const shell: Shell = {
+    sections: ["home", "results", "models", "runs", "updates", "explainers", "method"],
+    githubUrl: site.githubUrl,
+    footer: (root) => html`<p class="foot">DATA FROM THE RESULTS, ${site.dataDate} · PRICES AS OF ${points.pricesAsOf}</p>
+<p class="credits">Icons: <a href="https://github.com/halfmage/pixelarticons">pixelarticons</a> © 2019 Gerrit Halfmann, MIT licence. Fonts: Press Start 2P, Inter and JetBrains Mono, SIL Open Font License 1.1. <a href="${root}credits.html">Credits</a></p>`,
+  };
+  const out = new Map<string, Output>();
+  for (const [path, body] of inputs.assets) {
+    if (!PLAIN_PATH.test(path) || path.split("/").some((seg) => seg === "." || seg === "..")) {
+      throw new SiteError(`asset path "${path}" must be a plain relative path`);
+    }
+    out.set(path, body);
+  }
+  out.set("index.html", page(shell, {
+    title: "PokéBench",
+    description: "How far vision-language models get in Pokémon Emerald through a harness: results, models, runs and method.",
+    section: "home",
+    crumbs: ["HOME"],
+    depth: 0,
+    body: home(st, site.article, posts[0], listRuns(view.groups).find((l) => l.run.release !== undefined)?.run),
+  }));
+  out.set("results.html", page(shell, {
+    title: "Results · PokéBench",
+    description: "Every model's best run in Pokémon Emerald: how far it got, how long it took and what it would have cost.",
+    section: "results",
+    crumbs: ["RESULTS"],
+    depth: 0,
+    body: results(view),
+  }));
+  out.set("models.html", page(shell, {
+    title: "Models · PokéBench",
+    description: "Every model run through the PokéBench harness, with its best run with and without help.",
+    section: "models",
+    crumbs: ["MODELS"],
+    depth: 0,
+    body: modelsIndex(view.groups),
+  }));
+  for (const g of view.groups) {
+    out.set(`models/${g.meta.slug}.html`, page(shell, {
+      title: `${g.meta.name} · PokéBench`,
+      description: `${g.meta.name} in Pokémon Emerald: every run, with and without help.`,
+      section: "models",
+      crumbs: ["MODELS", g.meta.name],
+      depth: 1,
+      body: modelPage(site.githubUrl, g),
+    }));
+  }
+  out.set("runs.html", page(shell, {
+    title: "Runs · PokéBench",
+    description: "Every PokéBench run on the leaderboard, newest first, with the released ones linked.",
+    section: "runs",
+    crumbs: ["RUNS"],
+    depth: 0,
+    body: runsIndex(site.githubUrl, view.groups),
+  }));
+  out.set("updates.html", page(shell, {
+    title: "Updates · PokéBench",
+    description: "New models, harness versions and released runs on PokéBench, newest first.",
+    section: "updates",
+    crumbs: ["UPDATES"],
+    depth: 0,
+    body: updatesIndex(posts),
+  }));
+  for (const p of posts) {
+    out.set(postPath(p), page(shell, {
+      title: `${p.title} · PokéBench`,
+      description: plainText(p.first),
+      section: "updates",
+      crumbs: ["UPDATES", p.date],
+      depth: 1,
+      body: postPage(p, view.groups),
+    }));
+  }
+  out.set("feed.xml", feed(site.baseUrl, posts));
+  const explainers = joinExplainers(parseExplainerIndex(inputs.explainers.readme), inputs.explainers.files.map(parseExplainer));
+  out.set("explainers.html", page(shell, {
+    title: "Explainers · PokéBench",
+    description: "Every switch in the PokéBench harness, explained: what changes for the model, why, and what is still unproven.",
+    section: "explainers",
+    crumbs: ["EXPLAINERS"],
+    depth: 0,
+    body: explainersIndex(site.githubUrl, explainers, site.article),
+  }));
+  for (const g of explainers) {
+    for (const { explainer } of g.items) {
+      out.set(`explainers/${explainer.slug}.html`, page(shell, {
+        title: `${plainText(explainer.title)} · PokéBench`,
+        description: `PokéBench explainer: ${plainText(explainer.title)}.`,
+        section: "explainers",
+        crumbs: ["EXPLAINERS", plainText(explainer.title)],
+        depth: 1,
+        body: explainerPage(site.githubUrl, explainer),
+      }));
+    }
+  }
+  out.set("method.html", page(shell, {
+    title: "Method · PokéBench",
+    description: "How PokéBench runs a model through Pokémon Emerald, one turn at a time, and what counts as help.",
+    section: "method",
+    crumbs: ["METHOD"],
+    depth: 0,
+    body: method(explainers.reduce((n, g) => n + g.items.length, 0), inputs.contributing ? `${site.githubUrl}/blob/main/CONTRIBUTING.md` : undefined),
+  }));
+  out.set("credits.html", page(shell, {
+    title: "Credits · PokéBench",
+    description: "The icons, fonts and licences PokéBench uses, and its game-art policy.",
+    section: "credits",
+    crumbs: ["CREDITS"],
+    depth: 0,
+    body: credits(inputs.credits.iconsLicence, inputs.credits.fontsNotice),
+  }));
+  for (const g of view.groups) {
+    for (const s of g.series) {
+      for (const run of s.all) {
+        if (run.release === undefined) continue;
+        out.set(`runs/${run.short}.html`, page(shell, {
+          title: `Run ${run.short} · PokéBench`,
+          description: run.release.title,
+          section: "runs",
+          crumbs: ["RUNS", run.short],
+          depth: 1,
+          body: runPage(site.githubUrl, g, s, run, run.release),
+        }));
+      }
+    }
+  }
+  const decoded = new Map<string, Output>([...out].map(([k, v]) => [k, k.endsWith(".css") && typeof v !== "string" ? new TextDecoder().decode(v) : v]));
+  const found = problems(decoded);
+  if (found.length > 0) throw new SiteError(`the built site has problems:\n${found.join("\n")}`);
+  return out;
+}

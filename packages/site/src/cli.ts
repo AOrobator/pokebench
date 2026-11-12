@@ -1,0 +1,77 @@
+// The disk entrypoint: reads the site's inputs from the repo, builds in memory, writes site/dist.
+// Usage: node packages/site/dist/cli.js <repo root>
+import { access, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { buildSite } from "./site.js";
+
+const root = resolve(process.argv[2] ?? ".");
+const out = join(root, "site", "dist");
+
+async function json(rel: string): Promise<unknown> {
+  return JSON.parse(await readFile(join(root, rel), "utf8")) as unknown;
+}
+
+async function assets(): Promise<Map<string, Uint8Array>> {
+  const files: [string, string][] = [
+    ["site.css", "packages/site/assets/site.css"],
+    ["fonts/press-start-2p.woff2", "packages/viewer/static/fonts/press-start-2p.woff2"],
+    ["fonts/inter.woff2", "packages/viewer/static/fonts/inter.woff2"],
+    ["fonts/jetbrains-mono.woff2", "packages/viewer/static/fonts/jetbrains-mono.woff2"],
+    ["fonts/NOTICE.md", "packages/viewer/static/fonts/NOTICE.md"],
+    ["img/badges-over-time.png", "docs/images/badges-over-time.png"],
+    ["img/badges-over-time-dark.png", "docs/images/badges-over-time-dark.png"],
+    ["img/badges-for-the-money.png", "docs/images/badges-for-the-money.png"],
+    ["img/badges-for-the-money-dark.png", "docs/images/badges-for-the-money-dark.png"],
+    ["img/harness-loop.webp", "docs/images/harness-loop.webp"],
+    ["img/harness-loop-dark.webp", "docs/images/harness-loop-dark.webp"],
+    ["explainers.js", "packages/site/assets/explainers.js"],
+  ];
+  // Explainer figures: docs/explainers/md/<slug>/<file> → explainers/<slug>/<file>.
+  const md = join(root, "docs/explainers/md");
+  for (const entry of await readdir(md, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    for (const fig of await readdir(join(md, entry.name))) files.push([`explainers/${entry.name}/${fig}`, `docs/explainers/md/${entry.name}/${fig}`]);
+  }
+  for (const name of await readdir(join(root, "packages/site/assets/icons"))) files.push([`icons/${name}`, `packages/site/assets/icons/${name}`]);
+  const map = new Map<string, Uint8Array>();
+  for (const [to, from] of files) map.set(to, await readFile(join(root, from)));
+  return map;
+}
+
+async function posts(): Promise<{ name: string; text: string }[]> {
+  const dir = join(root, "site", "updates");
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".md")).sort();
+  return Promise.all(names.map(async (name) => ({ name, text: await readFile(join(dir, name), "utf8") })));
+}
+
+async function explainerFiles(): Promise<{ name: string; text: string }[]> {
+  const dir = join(root, "docs/explainers/md");
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".md")).sort();
+  return Promise.all(names.map(async (name) => ({ name, text: await readFile(join(dir, name), "utf8") })));
+}
+
+async function exists(rel: string): Promise<boolean> {
+  return access(join(root, rel)).then(() => true, () => false);
+}
+
+const built = buildSite({
+  chartData: await json("docs/images/charts/chart-data.json"),
+  points: await json("docs/images/charts/chart-points.json"),
+  site: await json("site/data/site.json"),
+  runs: await json("site/data/runs.json"),
+  posts: await posts(),
+  explainers: { readme: await readFile(join(root, "docs/explainers/README.md"), "utf8"), files: await explainerFiles() },
+  credits: {
+    iconsLicence: await readFile(join(root, "packages/site/assets/icons/LICENSE-pixelarticons"), "utf8"),
+    fontsNotice: await readFile(join(root, "packages/viewer/static/fonts/NOTICE.md"), "utf8"),
+  },
+  contributing: await exists("CONTRIBUTING.md"),
+  assets: await assets(),
+});
+await rm(out, { recursive: true, force: true });
+for (const [path, body] of built) {
+  const target = join(out, path);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, body);
+}
+process.stdout.write(`wrote ${String(built.size)} files to ${out}\n`);

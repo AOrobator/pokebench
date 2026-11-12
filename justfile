@@ -229,6 +229,11 @@ current-stop:
 codex-capture *args:
     node packages/agent/dist/codex-capture-cli.js "$@"
 
+# Build the public site (packages/site) into site/dist from the chart data, site/data and docs/images.
+site:
+    pnpm --filter @pokebench/site build
+    node packages/site/dist/cli.js "{{justfile_directory()}}"
+
 # Serve local HTML deliverables (runs/mockups, plus reports, reviews, explainers) on 127.0.0.1:8791.
 pages:
     scripts/pages.sh serve

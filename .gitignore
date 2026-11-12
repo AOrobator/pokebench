@@ -18,6 +18,9 @@
 # Run output (screenshots, traces, save states)
 /runs/
 
+# Built public site (just site)
+/site/dist/
+
 # Native mGBA build
 /.cache/
 

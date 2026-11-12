@@ -613,6 +613,14 @@ describe("gym-puzzle-supervisor-hold-v1",()=>{
   expect(held[0]).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
   expect(held[0]?.message).toContain("walked between FORTREE CITY (map 0/4) and FORTREE CITY GYM (map 12/1) 2 times");
  });
+ it("on: af33 Lavaridge gym trips are diagnostic only while Heat Badge is missing",()=>{
+  const gym={location:"LAVARIDGE TOWN GYM 1F",map_id:[4,1]};
+  const town={location:"LAVARIDGE TOWN",map_id:[0,12]};
+  const {sent,held}=play(true,r=>{r.state(gym);r.milestone("LAVARIDGE_GYM_ENTERED","observed");r.state(town);},gym,town);
+  expect(sent).toEqual([]);
+  expect(held).toHaveLength(1);
+  expect(held[0]).toMatchObject({kind:"map_cycle",mode:"diagnostic",phase:"would_warn"});
+ });
  it("on: the town and its POKéMON CENTER are held too while the gym is open",()=>{
   const {sent,held}=play(true,entered,CITY,CENTER);
   expect(sent).toEqual([]);

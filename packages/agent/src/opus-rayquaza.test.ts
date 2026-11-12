@@ -6,6 +6,8 @@ import {flagFeatures,normalizeFeatures,parsePlayPreset,presetFeatures,presetStar
 import {finalGuide} from "./play-wiring.js";
 import {OPUS_RAYQUAZA_SWITCHES} from "./opus-rayquaza.js";
 import lane from "../../../experiments/presets/opus-rayquaza-lane.json" with {type:"json"};
+import current from "../../../experiments/feature-configs/current.json" with {type:"json"};
+import control from "../../../experiments/presets/current-control-24h-8k.json" with {type:"json"};
 import type {AgentMessage} from "@mariozechner/pi-agent-core";
 
 const [BIKE,BALL,CATCH,MOVES]=OPUS_RAYQUAZA_SWITCHES;
@@ -164,4 +166,12 @@ it("gives a Sky Pillar dash only at its starting tile with the tool and register
   expect(await h.note()).toContain("deliberately drops");
   h.feed(state({...entry,map_id:[24,81],position:{x:7,y:4}}));
   expect(await h.note()).toContain("(7,1)");
+});
+
+
+it("retains the both-arm gym protection correctness setting in the dedicated lane",()=>{
+  const id="gym-puzzle-supervisor-hold-v1";
+  expect(current.onInBoth).toContain(id);
+  expect(presetFeatures(parsePlayPreset(control))[id]).toBe(true);
+  expect(presetFeatures(parsePlayPreset(lane))[id]).toBe(true);
 });

@@ -39,6 +39,7 @@ def install_travel(
     read: ReadMemory,
     *,
     safe_strides: bool = False,
+    active_warps: bool = False,
     intercept: bool = False,
     bike_register: bool = False,
     bike_toggle: bool = False,
@@ -80,7 +81,7 @@ def install_travel(
 
         from pokebench_env.strides import QueuedStride, install_strides
 
-        install_strides(api, emulator, cast(QueuedStride, server), read)
+        install_strides(api, emulator, cast(QueuedStride, server), read, active_warps=active_warps)
 
     if intercept:
         from typing import cast

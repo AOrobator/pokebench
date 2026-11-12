@@ -975,7 +975,7 @@ def build_parser() -> argparse.ArgumentParser:  # pragma: no cover - argparse re
     parser.add_argument(
         "--lexicon",
         type=Path,
-        help="voicing: a TSV of names and their phonemes, e.g. pokebench_env/data/pokemon-lexicon.tsv",
+        help="voicing: a TSV of names and the phonemes to speak them with",
     )
     parser.add_argument(
         "--kokoro",

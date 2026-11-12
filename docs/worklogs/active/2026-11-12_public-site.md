@@ -111,13 +111,14 @@ Per milestone: tests and coverage for code; headless browser screenshots at six 
 
 ## Open questions for the operator (do not block approval of M1)
 
-1. Crown style: options A–D at `runs/mockups/site-pokenav/crown-options.html` (C recommended). Needed by M2.
+1. ~~Crown style~~ decided 2026-11-12: option E. Stars on a 10×10 pixel grid, the Hall of Fame crown on 16×14, gold with a deep amber outline (#7a4a00); missing badges are grey outline stars (#8a8f98 light, #7d8aa0 dark). Assets in `runs/mockups/site-pokenav/img/icons/{star10-*,crown16-amber}.svg`.
 2. Dark-mode window interiors: dark (recommended and current default) or white. Needed by M1.
 3. URL: GitHub's default or a custom domain. Needed at activation.
 4. The article: link to it, or host a copy as a page. Not in scope until the operator decides.
 
 ## Session Log
 
+- 2026-11-12 01:55 ET: The operator picked medal option E (new crown, matching smaller stars).
 - 2026-11-12 01:40 ET: plan written on `claude/public-site` from the approved mockup. No implementation.
 
 ## Surprises

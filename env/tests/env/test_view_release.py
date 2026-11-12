@@ -571,3 +571,23 @@ def test_disk_output_discards_only_its_own_staging_and_rejects_stray_folders() -
     fs.dirs.add(root / "stray")
     with pytest.raises(vrl.ReleaseError, match="not a finished unpack"):
         vrl.DiskOutput(root, fs).existing("stray")
+
+
+def test_gateway_trace_is_available_to_viewer_without_rewriting_events() -> None:
+    files = Build().files()
+    record = (
+        json.dumps({"type": "assistant", "session_id": "private-session", "message": {"role": "assistant", "content": [{"type": "thinking", "thinking": "heal first"}]}})
+        + "\n"
+        + json.dumps({"type": "result", "session_id": "private-session", "is_error": False, "result": '{"name":"press","text":"heal"}'})
+        + "\n"
+    ).encode()
+    files["agent-trace-67d7.tar"] = tar({"calls/call-945-1.jsonl": record})
+    files = resum(files)
+    _, out = unpack(files)
+    run = out.published[RUN]
+    assert run["bridge/calls/call-945-1.jsonl"] == record
+    row = json.loads(run["bridge/calls.jsonl"])
+    assert row["request"] == 945
+    assert row["run_id"] == RUN
+    assert row["mode"] == "session"
+    assert run["events.jsonl"] == Build().events()
